@@ -111,6 +111,8 @@ static void agtype_in_array_start(void *pstate);
 static void agtype_in_array_end(void *pstate);
 static void agtype_in_object_field_start(void *pstate, char *fname,
                                          bool isnull);
+static void agtype_put_array(StringInfo out, agtype_value *scalar_val);
+static void agtype_put_object(StringInfo out, agtype_value *scalar_val);
 static void agtype_put_escaped_value(StringInfo out, agtype_value *scalar_val);
 static void escape_agtype(StringInfo buf, const char *str);
 bool is_decimal_needed(char *numstr);
@@ -782,6 +784,64 @@ static bool is_array_path(agtype_value *agtv)
     return true;
 }
 
+static void agtype_put_array(StringInfo out, agtype_value *scalar_val) {
+    int i = 0;
+
+    appendBinaryStringInfo(out, "[", 1);
+
+    for (i = 0; i < scalar_val->val.array.num_elems; i++) {
+        agtype_value *agtv = &scalar_val->val.array.elems[i];
+
+        if (agtv->type == AGTV_BINARY)
+            agtype_to_cstring_worker(out, (agtype_container *)agtv->val.binary.data, agtv->val.binary.len, false);
+        else if (agtv->type == AGTV_ARRAY)
+	    agtype_put_array(out, agtv);
+	else if (agtv->type == AGTV_OBJECT)
+	    agtype_put_object(out, agtv);
+        else
+            agtype_put_escaped_value(out, agtv);
+
+        if (i < scalar_val->val.object.num_pairs -1)
+           appendBinaryStringInfo(out, ", ", 2);
+    }
+
+    appendBinaryStringInfo(out, "]", 1);
+}
+
+
+static void agtype_put_object(StringInfo out, agtype_value *scalar_val) {
+    int i = 0;
+
+    appendBinaryStringInfo(out, "{", 1);	
+
+    for (i = 0; i < scalar_val->val.object.num_pairs; i++) {
+	agtype_pair *pairs = &scalar_val->val.object.pairs[i];
+
+	agtype_value *agtv = &pairs->key;
+	agtype_put_escaped_value(out, agtv);		
+
+        appendBinaryStringInfo(out, ": ", 2);
+
+
+	agtv = &pairs->value;
+
+	if (agtv->type == AGTV_BINARY)
+	    agtype_to_cstring_worker(out, (agtype_container *)agtv->val.binary.data, agtv->val.binary.len, false);
+        else if (agtv->type == AGTV_ARRAY)
+            agtype_put_array(out, agtv);
+        else if (agtv->type == AGTV_OBJECT)
+            agtype_put_object(out, agtv);
+	else
+	    agtype_put_escaped_value(out, agtv);
+
+	if (i < scalar_val->val.object.num_pairs -1)
+	    appendBinaryStringInfo(out, ", ", 2);
+    }
+
+    appendBinaryStringInfo(out, "}", 1);
+}
+
+
 static void agtype_put_escaped_value(StringInfo out, agtype_value *scalar_val)
 {
     char *numstr;
@@ -821,32 +881,17 @@ static void agtype_put_escaped_value(StringInfo out, agtype_value *scalar_val)
             appendBinaryStringInfo(out, "false", 5);
         break;
     case AGTV_VERTEX:
-    {
-        agtype *prop;
-        scalar_val->type = AGTV_OBJECT;
-        prop = agtype_value_to_agtype(scalar_val);
-        agtype_to_cstring_worker(out, &prop->root, prop->vl_len_, false);
+        agtype_put_object(out, scalar_val);  
         appendBinaryStringInfo(out, "::vertex", 8);
         break;
-    }
     case AGTV_EDGE:
-    {
-        agtype *prop;
-        scalar_val->type = AGTV_OBJECT;
-        prop = agtype_value_to_agtype(scalar_val);
-        agtype_to_cstring_worker(out, &prop->root, prop->vl_len_, false);
+        agtype_put_object(out, scalar_val);  
         appendBinaryStringInfo(out, "::edge", 6);
         break;
-    }
     case AGTV_PATH:
-    {
-        agtype *prop;
-        scalar_val->type = AGTV_ARRAY;
-        prop = agtype_value_to_agtype(scalar_val);
-        agtype_to_cstring_worker(out, &prop->root, prop->vl_len_, false);
+        agtype_put_array(out, scalar_val);
         appendBinaryStringInfo(out, "::path", 6);
         break;
-    }
 
     default:
         elog(ERROR, "unknown agtype scalar type");
