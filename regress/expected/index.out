@@ -372,14 +372,16 @@ $$) as (n agtype);
 
 CREATE INDEX CONCURRENTLY cntry_ode_idx ON cypher_index."City"
 (ag_catalog.agtype_access_operator(properties, '"country_code"'::agtype));
-SELECT COUNT(*) FROM cypher('agload_test_graph', $$
+SELECT COUNT(*) FROM cypher('cypher_index', $$
     MATCH (a:City)
     WHERE a.country_code = 'RS'
     RETURN a
 $$) as (n agtype);
-ERROR:  graph "agload_test_graph" does not exist
-LINE 1: SELECT COUNT(*) FROM cypher('agload_test_graph', $$
-                                    ^
+ count 
+-------
+     0
+(1 row)
+
 --
 -- General Cleanup
 --
@@ -397,5 +399,3 @@ NOTICE:  graph "cypher_index" has been dropped
  
 (1 row)
 
-SELECT drop_graph('agload_test_graph', true);
-ERROR:  graph "agload_test_graph" does not exist
