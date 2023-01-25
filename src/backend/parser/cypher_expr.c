@@ -96,6 +96,7 @@ static Node *transform_FuncCall(cypher_parsestate *cpstate, FuncCall *fn);
 static Node *transform_WholeRowRef(ParseState *pstate, ParseNamespaceItem *pnsi,
                                    int location);
 static ArrayExpr *make_agtype_array_expr(List *args);
+static Node *transform_column_ref_for_indirection(cypher_parsestate *cpstate, ColumnRef *cr);
 
 /* transform a cypher expression */
 Node *transform_cypher_expr(cypher_parsestate *cpstate, Node *expr,
@@ -708,6 +709,45 @@ static ArrayExpr *make_agtype_array_expr(List *args)
     return newa;
 }
 
+
+/*
+ * Transforms a column ref for indirection. Try to find the rte that the
+ * columnRef is references and pass the properties of that rte as what the
+ * columnRef is referencing. Otherwise, reference the Var
+ */
+static Node *transform_column_ref_for_indirection(cypher_parsestate *cpstate, ColumnRef *cr)
+{
+    ParseState *pstate = (ParseState *)cpstate;
+    ParseNamespaceItem *pnsi;
+    Node *field1 = linitial(cr->fields);
+    char *relname = NULL;
+    Node *node = NULL;
+    int levels_up = 0;
+
+    Assert(IsA(field1, String));
+    relname = strVal(field1);
+
+    // locate the referenced RTE
+    pnsi = refnameNamespaceItem(pstate, NULL, relname, cr->location, &levels_up);//find_rte(cpstate, relname);
+    /*
+     * This column ref is referencing something that was created in
+     * a previous query and is a variable.
+     */
+    if (!pnsi)
+        return transform_cypher_expr_recurse(cpstate, (Node *)cr);
+
+    // try to identify the properties column of the RTE
+    node = scanNSItemForColumn(pstate, pnsi, 0, "properties", cr->location);
+
+    if (!node)
+        ereport(ERROR,
+                (errcode(ERRCODE_UNDEFINED_OBJECT),
+                 errmsg("could not find rte for %s", relname)));
+
+    return node;
+}
+
+
 static Node *transform_A_Indirection(cypher_parsestate *cpstate,
                                      A_Indirection *a_ind)
 {
@@ -730,7 +770,15 @@ static Node *transform_A_Indirection(cypher_parsestate *cpstate,
                                      AGTYPEOID, AGTYPEOID);
 
     /* transform indirection argument expression */
-    ind_arg_expr = transform_cypher_expr_recurse(cpstate, a_ind->arg);
+    if (IsA(a_ind->arg, ColumnRef)) {
+        ColumnRef *cr = (ColumnRef *)a_ind->arg;
+
+        ind_arg_expr = transform_column_ref_for_indirection(cpstate, cr);
+    } else {
+        ind_arg_expr = transform_cypher_expr_recurse(cpstate, a_ind->arg);
+    }
+
+
 
     /* get the location of the expression */
     location = exprLocation(ind_arg_expr);

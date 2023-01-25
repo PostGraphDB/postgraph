@@ -248,14 +248,14 @@ $$) as (n agtype);
 CREATE INDEX CONCURRENTLY cntry_ode_idx ON cypher_index."City"
 (ag_catalog.agtype_access_operator(properties, '"country_code"'::agtype));
 
-SELECT COUNT(*) FROM cypher('agload_test_graph', $$
+SELECT COUNT(*) FROM cypher('cypher_index', $$
     MATCH (a:City)
     WHERE a.country_code = 'RS'
     RETURN a
 $$) as (n agtype);
 
+
 --
 -- General Cleanup
 --
 SELECT drop_graph('cypher_index', true);
-SELECT drop_graph('agload_test_graph', true);
