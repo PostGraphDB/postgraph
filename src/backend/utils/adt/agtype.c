@@ -3674,11 +3674,11 @@ Datum agtype_in_operator(PG_FUNCTION_ARGS)
     uint32 i = 0;
 
     /* return null if the array is null */
-    if (PG_ARGISNULL(0))
+    if (PG_ARGISNULL(1))
         PG_RETURN_NULL();
 
     /* get the array parameter and verify that it is a list */
-    agt_array = AG_GET_ARG_AGTYPE_P(0);
+    agt_array = AG_GET_ARG_AGTYPE_P(1);
     if (!AGT_ROOT_IS_ARRAY(agt_array))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("object of IN must be a list")));
@@ -3702,10 +3702,10 @@ Datum agtype_in_operator(PG_FUNCTION_ARGS)
     array_size = AGT_ROOT_COUNT(agt_array);
 
     /* return null if the item to find is null */
-    if (PG_ARGISNULL(1))
+    if (PG_ARGISNULL(0))
         PG_RETURN_NULL();
     /* get the item to search for */
-    agt_item = AG_GET_ARG_AGTYPE_P(1);
+    agt_item = AG_GET_ARG_AGTYPE_P(0);
 
     /* init item iterator */
     it_item = agtype_iterator_init(&agt_item->root);
@@ -3738,7 +3738,7 @@ Datum agtype_in_operator(PG_FUNCTION_ARGS)
             result = (compare_agtype_scalar_values(&agtv_item, &agtv_elem) ==
                       0);
     }
-    return boolean_to_agtype(result);
+    return result;
 }
 
 PG_FUNCTION_INFO_V1(agtype_string_match_starts_with);

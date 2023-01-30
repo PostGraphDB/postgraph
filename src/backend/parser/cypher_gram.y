@@ -1240,7 +1240,7 @@ expr:
         }
     | expr IN expr
         {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_IN, "=", $1, $3, @2);
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "@=", $1, $3, @2);
         }
     | expr IS NULL_P %prec IS
         {

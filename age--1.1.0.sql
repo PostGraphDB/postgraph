@@ -3319,11 +3319,22 @@ PARALLEL SAFE
 AS 'MODULE_PATHNAME';
 
 CREATE FUNCTION ag_catalog.agtype_in_operator(agtype, agtype)
-RETURNS agtype
+RETURNS bool
 LANGUAGE c
 IMMUTABLE
 PARALLEL SAFE
 AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR @= (
+  FUNCTION = ag_catalog.agtype_in_operator,
+  LEFTARG = agtype,
+  RIGHTARG = agtype,
+  NEGATOR = !@=,
+  RESTRICT = eqsel,
+  JOIN = eqjoinsel,
+  HASHES,
+  MERGES
+);
 
 --
 -- agtype - string matching (`STARTS WITH`, `ENDS WITH`, `CONTAINS`, & =~)

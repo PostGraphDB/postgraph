@@ -77,7 +77,6 @@ static Node *transform_cypher_bool_const(cypher_parsestate *cpstate,
                                          cypher_bool_const *bc);
 static Node *transform_cypher_integer_const(cypher_parsestate *cpstate,
                                             cypher_integer_const *ic);
-static Node *transform_AEXPR_IN(cypher_parsestate *cpstate, A_Expr *a);
 static Node *transform_cypher_param(cypher_parsestate *cpstate,
                                     cypher_param *cp);
 static Node *transform_cypher_map(cypher_parsestate *cpstate, cypher_map *cm);
@@ -143,8 +142,6 @@ static Node *transform_cypher_expr_recurse(cypher_parsestate *cpstate,
         {
         case AEXPR_OP:
             return transform_AEXPR_OP(cpstate, a);
-        case AEXPR_IN:
-            return transform_AEXPR_IN(cpstate, a);
         default:
             ereport(ERROR, (errmsg_internal("unrecognized A_Expr kind: %d",
                                             a->kind)));
@@ -465,27 +462,6 @@ static Node *transform_AEXPR_OP(cypher_parsestate *cpstate, A_Expr *a)
 
     return (Node *)make_op(pstate, a->name, lexpr, rexpr, last_srf,
                            a->location);
-}
-
-static Node *transform_AEXPR_IN(cypher_parsestate *cpstate, A_Expr *a)
-{
-    Oid func_in_oid;
-    FuncExpr *result;
-    List *args = NIL;
-
-    args = lappend(args, transform_cypher_expr_recurse(cpstate, a->rexpr));
-    args = lappend(args, transform_cypher_expr_recurse(cpstate, a->lexpr));
-
-    /* get the agtype_access_slice function */
-    func_in_oid = get_ag_func_oid("agtype_in_operator", 2, AGTYPEOID,
-                                  AGTYPEOID);
-
-    result = makeFuncExpr(func_in_oid, AGTYPEOID, args, InvalidOid, InvalidOid,
-                          COERCE_EXPLICIT_CALL);
-
-    result->location = exprLocation(a->lexpr);
-
-    return (Node *)result;
 }
 
 static Node *transform_BoolExpr(cypher_parsestate *cpstate, BoolExpr *expr)
