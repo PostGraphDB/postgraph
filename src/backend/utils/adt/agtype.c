@@ -138,19 +138,8 @@ static void add_indent(StringInfo out, bool indent, int level);
 static void cannot_cast_agtype_value(enum agtype_value_type type,
                                      const char *sqltype);
 static bool agtype_extract_scalar(agtype_container *agtc, agtype_value *res);
-static agtype_value *execute_array_access_operator(agtype *array,
-                                                   agtype_value *array_value,
-                                                   agtype *array_index);
 static agtype_value *execute_array_access_operator_internal(agtype *array,
-                                                            agtype_value *array_value,
                                                             int64 array_index);
-static agtype_value *execute_map_access_operator(agtype *map,
-                                                 agtype_value* map_value,
-                                                 agtype *key);
-static agtype_value *execute_map_access_operator_internal(
-    agtype *map, agtype_value *map_value, char *key, int key_len);
-Datum agtype_object_field_impl(FunctionCallInfo fcinfo, bool as_text);
-Datum agtype_array_element_impl(FunctionCallInfo fcinfo, bool as_text);
 /* typecast functions */
 static void agtype_typecast_object(agtype_in_state *state, char *annotation);
 static void agtype_typecast_array(agtype_in_state *state, char *annotation);
@@ -180,15 +169,26 @@ static agtype_iterator *get_next_object_key(agtype_iterator *it,
 static agtype_iterator *get_next_list_element(agtype_iterator *it,
                                              agtype_container *agtc,
                                              agtype_value *elem);
-static int extract_variadic_args_min(FunctionCallInfo fcinfo,
-                                     int variadic_start, bool convert_unknown,
-                                     Datum **args, Oid **types, bool **nulls,
-                                     int min_num_args);
 agtype_value *agtype_composite_to_agtype_value_binary(agtype *a);
+static Datum process_access_operator_result(FunctionCallInfo fcinfo,
+                                            agtype_value *agtv,
+                                            bool as_text);
 
+
+static Datum process_access_operator_result(FunctionCallInfo fcinfo, agtype_value *agtv, bool as_text);
+Datum agtype_array_element_impl(FunctionCallInfo fcinfo, agtype *agtype_in,
+                                int element, bool as_text);
+Datum agtype_object_field_impl(FunctionCallInfo fcinfo, agtype *agtype_in,
+                               char *key, int key_len, bool as_text);
 /* global storage of  OID for agtype and _agtype */
 static Oid g_AGTYPEOID = InvalidOid;
 static Oid g_AGTYPEARRAYOID = InvalidOid;
+
+// Used to extact properties field from vertices and edges quickly
+static const agtype_value prop_key = {
+    .type = AGTV_STRING,
+    .val.string = {10, "properties"}
+};
 
 /* helper function to quickly set, if necessary, and retrieve AGTYPEOID */
 Oid get_AGTYPEOID(void)
@@ -2887,178 +2887,27 @@ Datum agtype_to_int4_array(PG_FUNCTION_ARGS)
     PG_RETURN_ARRAYTYPE_P(result);
 }
 
-/*
- * Helper function for agtype_access_operator map access.
- * Note: This function expects that a map and a scalar key are being passed.
- */
-static agtype_value *execute_map_access_operator(agtype *map,
-                                                 agtype_value *map_value,
-                                                 agtype *key)
-{
-    agtype_value *key_value;
-    char *key_str;
-    int key_len = 0;
-
-    /* get the key from the container */
-    key_value = get_ith_agtype_value_from_container(&key->root, 0);
-
-    switch (key_value->type)
-    {
-    case AGTV_NULL:
-        return NULL;
-
-    case AGTV_INTEGER:
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("AGTV_INTEGER is not a valid key type")));
-    case AGTV_FLOAT:
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("AGTV_FLOAT is not a valid key type")));
-    case AGTV_NUMERIC:
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("AGTV_NUMERIC is not a valid key type")));
-    case AGTV_BOOL:
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("AGTV_BOOL is not a valid key type")));
-    case AGTV_STRING:
-        key_str = key_value->val.string.val;
-        key_len = key_value->val.string.len;
-        break;
-    default:
-        ereport(ERROR, (errmsg("unknown agtype scalar type")));
-        break;
-    }
-
-    return execute_map_access_operator_internal(map, map_value, key_str,
-                                                key_len);
-}
-
-static agtype_value *execute_map_access_operator_internal(
-    agtype *map, agtype_value *map_value, char *key, int key_len)
-{
-    agtype_value new_key_value;
-    new_key_value.type = AGTV_STRING;
-    new_key_value.val.string.val = key;
-    new_key_value.val.string.len = key_len;
-    /* if we were passed an agtype */
-    if (map_value == NULL)
-    {
-        map_value = find_agtype_value_from_container(&map->root, AGT_FOBJECT,
-                                                     &new_key_value);
-    }
-    /* if we were passed an agtype_value OBJECT (BINARY) */
-    else if (map_value != NULL && map_value->type == AGTV_BINARY)
-    {
-        map_value = find_agtype_value_from_container(map_value->val.binary.data,
-                                                     AGT_FOBJECT,
-                                                     &new_key_value);
-    }
-    /* if we were passed an agtype_value OBJECT */
-    else if (map_value != NULL && map_value->type == AGTV_OBJECT)
-    {
-        map_value = get_agtype_value_object_value(map_value, key, key_len);
-    }
-    /* otherwise, we don't know how to process it */
-    else
-    {
-        ereport(ERROR, (errmsg("unknown map_value type")));
-    }
-
-    /* return the agtype_value */
-    return map_value;
-}
-
-/*
- * Helper function for agtype_access_operator array access.
- * Note: This function expects that an array and a scalar int are being passed.
- */
-static agtype_value *execute_array_access_operator(agtype *array,
-                                                   agtype_value *array_value,
-                                                   agtype *array_index)
-{
-    agtype_value *array_index_value = NULL;
-
-    /* unpack the array index value */
-    array_index_value = get_ith_agtype_value_from_container(&array_index->root,
-                                                            0);
-
-    /* if AGTV_NULL return NULL */
-    if (array_index_value->type == AGTV_NULL)
-    {
-        return NULL;
-    }
-
-    /* index must be an integer */
-    if (array_index_value->type != AGTV_INTEGER)
-    {
-        ereport(ERROR,
-                (errmsg("array index must resolve to an integer value")));
-    }
-
-    return execute_array_access_operator_internal(
-        array, array_value, array_index_value->val.int_value);
-}
-
 static agtype_value *execute_array_access_operator_internal(agtype *array,
-                                                            agtype_value *array_value,
                                                             int64 array_index)
 {
-    agtype_value *array_element_value = NULL;
-    uint32 size = 0;
+    uint32 size;
 
     /* get the size of the array, given the type of the input */
-    if (array_value == NULL)
-    {
+    if (AGT_ROOT_IS_ARRAY(array) && !AGT_ROOT_IS_SCALAR(array))
         size = AGT_ROOT_COUNT(array);
-    }
-    else if (array_value->type == AGTV_ARRAY)
-    {
-        size = array_value->val.array.num_elems;
-    }
-    else if (array_value->type == AGTV_BINARY)
-    {
-        size = AGTYPE_CONTAINER_SIZE(array_value->val.binary.data);
-    }
     else
-    {
         elog(ERROR, "execute_array_access_operator_internal: unexpected type");
-    }
 
-    /* adjust for negative index values */
-    if (array_index < 0)
-    {
+    if (array_index < 0) {
         array_index = size + array_index;
+        if (array_index < 0)
+             return NULL;
+    }
+    else if (array_index > size) {
+            return NULL;
     }
 
-    /* check array bounds */
-    if ((array_index >= size) || (array_index < 0))
-    {
-        return NULL;
-    }
-
-    /* if we were passed an agtype */
-    if (array_value == NULL)
-    {
-        array_element_value = get_ith_agtype_value_from_container(&array->root,
-                                                                  array_index);
-    }
-    /* if we were passed an agtype_value ARRAY (BINARY) */
-    else if (array_value != NULL && array_value->type == AGTV_BINARY)
-    {
-        array_element_value = get_ith_agtype_value_from_container(
-            array_value->val.binary.data, array_index);
-    }
-    /* if we were passed an agtype_value ARRAY */
-    else if (array_value != NULL && array_value->type == AGTV_ARRAY)
-    {
-        array_element_value = &array_value->val.array.elems[array_index];
-    }
-    /* otherwise, we don't know how to process it */
-    else
-    {
-        ereport(ERROR, (errmsg("unknown array_value type")));
-    }
-
-    return array_element_value;
+    return get_ith_agtype_value_from_container(&array->root, array_index);
 }
 
 /*
@@ -3147,375 +2996,145 @@ agtype_value *get_agtype_value_object_value(const agtype_value *agtv_object,
     /* they don't match */
     return NULL;
 }
-
-/*
- * From PG's extract_variadic_args
- *
- * This function allows you to pass the minimum number of required arguments
- * so that you can have it bail out early (without allocating and building
- * the output arrays). In this case, the returned number of args will be 0
- * and the args array will be NULL.
- */
-static int extract_variadic_args_min(FunctionCallInfo fcinfo,
-                                     int variadic_start, bool convert_unknown,
-                                     Datum **args, Oid **types, bool **nulls,
-                                     int min_num_args)
+                               
+PG_FUNCTION_INFO_V1(agtype_field_access);
+Datum agtype_field_access(PG_FUNCTION_ARGS)
 {
-    bool variadic = get_fn_expr_variadic(fcinfo->flinfo);
-    Datum *args_res = NULL;
-    bool *nulls_res = NULL;
-    Oid *types_res = NULL;
-    int nargs = 0;
-    int i = 0;
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+    agtype *key = AG_GET_ARG_AGTYPE_P(1);
+    agtype_value *key_value;
 
-    *args = NULL;
-    *types = NULL;
-    *nulls = NULL;
-
-    if (variadic)
+    if (!AGT_ROOT_IS_SCALAR(key))
     {
-        ArrayType *array_in = NULL;
-        Oid element_type = InvalidOid;
-        bool typbyval = false;
-        char typalign = 0;
-        int16 typlen = 0;
+        PG_RETURN_NULL();
+    }
 
-        Assert(PG_NARGS() == variadic_start + 1);
+    key_value = get_ith_agtype_value_from_container(&key->root, 0);
 
-        if (PG_ARGISNULL(variadic_start))
-        {
-            return -1;
-        }
-
-        /* get the array */
-        array_in = PG_GETARG_ARRAYTYPE_P(variadic_start);
-
-        /* verify that we have the minimum number of args */
-        if (ArrayGetNItems(ARR_NDIM(array_in), ARR_DIMS(array_in)) <
-            min_num_args)
-        {
-            return 0;
-        }
-
-        /* get the element type */
-        element_type = ARR_ELEMTYPE(array_in);
-
-        get_typlenbyvalalign(element_type, &typlen, &typbyval, &typalign);
-        deconstruct_array(array_in, element_type, typlen, typbyval, typalign,
-                          &args_res, &nulls_res, &nargs);
-
-        /* All the elements of the array have the same type */
-        types_res = (Oid *) palloc0(nargs * sizeof(Oid));
-        for (i = 0; i < nargs; i++)
-        {
-            types_res[i] = element_type;
-        }
+    if (key_value->type == AGTV_INTEGER)
+    {
+        AG_RETURN_AGTYPE_P(agtype_array_element_impl(fcinfo, agt,
+                                                   key_value->val.int_value,
+                                                   false));
+    }
+    else if (key_value->type == AGTV_STRING)
+    {
+        AG_RETURN_AGTYPE_P(agtype_object_field_impl(fcinfo, agt,
+                                                    key_value->val.string.val,
+                                                    key_value->val.string.len,
+                                                    false));
     }
     else
     {
-        /* get the number of arguments */
-        nargs = PG_NARGS() - variadic_start;
-        Assert(nargs > 0);
-
-        /* verify that we have the minimum number of args */
-        if (nargs < min_num_args)
-        {
-            return 0;
-        }
-
-        /* allocate result memory */
-        nulls_res = (bool *) palloc0(nargs * sizeof(bool));
-        args_res = (Datum *) palloc0(nargs * sizeof(Datum));
-        types_res = (Oid *) palloc0(nargs * sizeof(Oid));
-
-        for (i = 0; i < nargs; i++)
-        {
-            nulls_res[i] = PG_ARGISNULL(i + variadic_start);
-            types_res[i] = get_fn_expr_argtype(fcinfo->flinfo, i + variadic_start);
-
-            /*
-             * Turn a constant (more or less literal) value that's of unknown
-             * type into text if required. Unknowns come in as a cstring
-             * pointer. Note: for functions declared as taking type "any", the
-             * parser will not do any type conversion on unknown-type literals
-             * (that is, undecorated strings or NULLs).
-             */
-            if (convert_unknown &&
-                types_res[i] == UNKNOWNOID &&
-                get_fn_expr_arg_stable(fcinfo->flinfo, i + variadic_start))
-            {
-                types_res[i] = TEXTOID;
-
-                if (PG_ARGISNULL(i + variadic_start))
-                {
-                    args_res[i] = (Datum) 0;
-                }
-                else
-                {
-                    args_res[i] = CStringGetTextDatum(PG_GETARG_POINTER(i + variadic_start));
-                }
-            }
-            else
-            {
-                /* no conversion needed, just take the datum as given */
-                args_res[i] = PG_GETARG_DATUM(i + variadic_start);
-            }
-
-            if (!OidIsValid(types_res[i]) ||
-                (convert_unknown && types_res[i] == UNKNOWNOID))
-            {
-                ereport(ERROR,
-                        (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                         errmsg("could not determine data type for argument %d",
-                                i + 1)));
-            }
-        }
-    }
-
-    /* Fill in results */
-    *args = args_res;
-    *nulls = nulls_res;
-    *types = types_res;
-
-    return nargs;
-}
-
-/*
- * get agtype object field
- */
-Datum agtype_object_field_impl(FunctionCallInfo fcinfo, bool as_text)
-{
-    agtype *agtype_in = AG_GET_ARG_AGTYPE_P(0);
-    text *key = PG_GETARG_TEXT_PP(1);
-    agtype_value *v;
-
-    if (!AGT_ROOT_IS_OBJECT(agtype_in))
-    {
         PG_RETURN_NULL();
     }
-
-    v = execute_map_access_operator_internal(agtype_in, NULL, VARDATA_ANY(key),
-                                             VARSIZE_ANY_EXHDR(key));
-
-    if (v != NULL)
-    {
-        if (as_text)
-        {
-            text *result = agtype_value_to_text(v, false);
-
-            if (result)
-            {
-                PG_RETURN_TEXT_P(result);
-            }
-        }
-        else
-        {
-            AG_RETURN_AGTYPE_P(agtype_value_to_agtype(v));
-        }
-    }
-
-    PG_RETURN_NULL();
 }
 
-/*
- * get agtype array element
- */
-Datum agtype_array_element_impl(FunctionCallInfo fcinfo, bool as_text)
-{
-    agtype *agtype_in = AG_GET_ARG_AGTYPE_P(0);
-    int element = PG_GETARG_INT32(1);
+static Datum process_access_operator_result(FunctionCallInfo fcinfo, agtype_value *agtv, bool as_text)
+{       
+    text *result;
+
+    if (!agtv || agtv->type == AGTV_NULL)
+        PG_RETURN_NULL();
+
+    if (!as_text)
+        return AGTYPE_P_GET_DATUM(agtype_value_to_agtype(agtv));
+
+    if (agtv->type == AGTV_BINARY) {
+        StringInfo out = makeStringInfo();
+        agtype_container *agtc = (agtype_container *)agtv->val.binary.data;
+        char *str;
+
+        str = agtype_to_cstring(out, agtc, agtv->val.binary.len);
+
+        result = cstring_to_text(str);
+     } else {
+        result = agtype_value_to_text(agtv, false);
+     }
+
+    if (result)
+        PG_RETURN_TEXT_P(result);
+    else
+        PG_RETURN_NULL();
+}
+
+Datum agtype_array_element_impl(FunctionCallInfo fcinfo, agtype *agtype_in,
+                                int element, bool as_text)
+{       
     agtype_value *v;
 
     if (!AGT_ROOT_IS_ARRAY(agtype_in))
+        PG_RETURN_NULL();
+
+    v = execute_array_access_operator_internal(agtype_in, element);
+                                     
+    return process_access_operator_result(fcinfo, v, as_text);
+}       
+   
+Datum agtype_object_field_impl(FunctionCallInfo fcinfo, agtype *agtype_in,
+                               char *key, int key_len, bool as_text)
+{  
+    agtype_value *v;
+    agtype_container *agtc = &agtype_in->root;
+    const agtype_value new_key_value = {
+        .type = AGTV_STRING,
+        .val.string = { key_len, key}
+    };
+
+    if (AGT_IS_VERTEX(agtype_in) || AGT_IS_EDGE(agtype_in))
+    {
+        agtype_value *agtv =
+            find_agtype_value_from_container((agtype_container *)&agtype_in->root.children[2],
+                                             AGT_FOBJECT, &prop_key);
+
+        agtc = (agtype_container *)agtv->val.binary.data;
+    }
+    else if (!AGT_ROOT_IS_OBJECT(agtype_in))
     {
         PG_RETURN_NULL();
     }
 
-    if (element < 0)
-    {
-        PG_RETURN_NULL();
-    }
+    v = find_agtype_value_from_container(agtc, AGT_FOBJECT,
+                                         &new_key_value);
 
-    v = execute_array_access_operator_internal(agtype_in, NULL, element);
-
-    if (v != NULL)
-    {
-        if (as_text)
-        {
-            text *result = agtype_value_to_text(v, false);
-
-            if (result)
-            {
-                PG_RETURN_TEXT_P(result);
-            }
-        }
-        else
-        {
-            AG_RETURN_AGTYPE_P(agtype_value_to_agtype(v));
-        }
-    }
-
-    PG_RETURN_NULL();
-}
-
+    return process_access_operator_result(fcinfo, v, as_text);
+}  
+ 
 PG_FUNCTION_INFO_V1(agtype_object_field);
 Datum agtype_object_field(PG_FUNCTION_ARGS)
 {
-    return agtype_object_field_impl(fcinfo, false);
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+    text *key = PG_GETARG_TEXT_PP(1);
+
+    AG_RETURN_AGTYPE_P(agtype_object_field_impl(fcinfo, agt, VARDATA_ANY(key), VARSIZE_ANY_EXHDR(key), false));
 }
 
 PG_FUNCTION_INFO_V1(agtype_object_field_text);
 Datum agtype_object_field_text(PG_FUNCTION_ARGS)
 {
-    return agtype_object_field_impl(fcinfo, true);
+
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+    text *key = PG_GETARG_TEXT_PP(1);
+
+    PG_RETURN_TEXT_P(agtype_object_field_impl(fcinfo, agt, VARDATA_ANY(key), VARSIZE_ANY_EXHDR(key), true));
 }
 
 PG_FUNCTION_INFO_V1(agtype_array_element);
 Datum agtype_array_element(PG_FUNCTION_ARGS)
 {
-    return agtype_array_element_impl(fcinfo, false);
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+    int elem = PG_GETARG_INT32(1);
+
+    AG_RETURN_AGTYPE_P(agtype_array_element_impl(fcinfo, agt, elem, false));
 }
 
 PG_FUNCTION_INFO_V1(agtype_array_element_text);
 Datum agtype_array_element_text(PG_FUNCTION_ARGS)
 {
-    return agtype_array_element_impl(fcinfo, true);
-}
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+    int elem = PG_GETARG_INT32(1);
 
-PG_FUNCTION_INFO_V1(agtype_access_operator);
-/*
- * Execution function for object.property, object["property"],
- * and array[element]
- */
-Datum agtype_access_operator(PG_FUNCTION_ARGS)
-{
-    Datum *args = NULL;
-    bool *nulls = NULL;
-    Oid *types = NULL;
-    int nargs = 0;
-    agtype *object = NULL;
-    agtype_value *object_value = NULL;
-    int i = 0;
-
-    /* extract our args, we need at least 2 */
-    nargs = extract_variadic_args_min(fcinfo, 0, true, &args, &types, &nulls,
-                                      2);
-    /* return NULL if we don't have the minimum number of args */
-    if (args == NULL || nargs == 0 || nulls[0] == true)
-    {
-        PG_RETURN_NULL();
-    }
-
-    /* get the object argument */
-    object = DATUM_GET_AGTYPE_P(args[0]);
-
-    /* if the object is a scalar, it must be a vertex or edge */
-    if (AGT_ROOT_IS_SCALAR(object))
-    {
-        agtype_value *scalar_value = NULL;
-        agtype_value *property_value = NULL;
-
-        /* unpack the scalar */
-        scalar_value = get_ith_agtype_value_from_container(&object->root, 0);
-
-        /* get the properties depending on the type or fail */
-        if (scalar_value->type == AGTV_VERTEX)
-        {
-            property_value = &scalar_value->val.object.pairs[2].value;
-        }
-        else if (scalar_value->type == AGTV_EDGE)
-        {
-            property_value = &scalar_value->val.object.pairs[4].value;
-        }
-        else
-        {
-            ereport(ERROR,(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                           errmsg("scalar object must be a vertex or edge")));
-        }
-
-        /* if the properties are NULL, return NULL */
-        if (property_value == NULL || property_value->type == AGTV_NULL)
-        {
-            PG_RETURN_NULL();
-        }
-
-        /* set the object_value to the property_value. */
-        object_value = property_value;
-    }
-
-    /* check for NULL keys */
-    for (i = 1; i < nargs; i++)
-    {
-        /* if we have a NULL, return NULL */
-        if (nulls[i] == true)
-        {
-            PG_RETURN_NULL();
-        }
-    }
-
-    /* iterate through the keys */
-    for (i = 1; i < nargs; i++)
-    {
-        agtype *key = NULL;
-
-        /* get the key */
-        key = DATUM_GET_AGTYPE_P(args[i]);
-
-        /* the key must be a scalar */
-        if (!(AGT_ROOT_IS_SCALAR(key)))
-        {
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("key must resolve to a scalar value")));
-        }
-
-        /*
-         * If we are dealing with a type of object, which can be an -
-         * agtype OBJECT, an agtype_value OBJECT serialized (BINARY), or an
-         * agtype_value OBJECT deserialized.
-         */
-        if ((object_value != NULL &&
-             (object_value->type == AGTV_OBJECT ||
-             (object_value->type == AGTV_BINARY &&
-              AGTYPE_CONTAINER_IS_OBJECT(object_value->val.binary.data)))) ||
-            (object != NULL && AGT_ROOT_IS_OBJECT(object)))
-        {
-            object_value = execute_map_access_operator(object, object_value,
-                                                       key);
-        }
-        /*
-         * If we are dealing with a type of array, which can be an -
-         * agtype ARRAY, an agtype_value ARRAY serialized (BINARY), or an
-         * agtype_value ARRAY deserialized.
-         */
-        else if ((object_value != NULL &&
-                  (object_value->type == AGTV_ARRAY ||
-                  (object_value->type == AGTV_BINARY &&
-                   AGTYPE_CONTAINER_IS_ARRAY(object_value->val.binary.data)))) ||
-                 (object != NULL && AGT_ROOT_IS_ARRAY(object)))
-        {
-            object_value = execute_array_access_operator(object, object_value,
-                                                         key);
-        }
-        /* this is unexpected */
-        else
-        {
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("container must be an array or object")));
-        }
-
-        /* for NULL values return NULL */
-        if (object_value == NULL || object_value->type == AGTV_NULL)
-        {
-            PG_RETURN_NULL();
-        }
-
-        /* clear the object reference */
-        object = NULL;
-
-    }
-
-    /* serialize and return the result */
-    return AGTYPE_P_GET_DATUM(agtype_value_to_agtype(object_value));
+    PG_RETURN_TEXT_P(agtype_array_element_impl(fcinfo, agt, elem, true));
 }
 
 PG_FUNCTION_INFO_V1(agtype_access_slice);
@@ -3618,29 +3237,17 @@ Datum agtype_access_slice(PG_FUNCTION_ARGS)
 
     /* adjust for negative and out of bounds index values */
     if (lower_index < 0)
-    {
         lower_index = array_size + lower_index;
-    }
     if (lower_index < 0)
-    {
         lower_index = 0;
-    }
     if (lower_index > array_size)
-    {
         lower_index = array_size;
-    }
     if (upper_index < 0)
-    {
         upper_index = array_size + upper_index;
-    }
     if (upper_index < 0)
-    {
         upper_index = 0;
-    }
     if (upper_index > array_size)
-    {
         upper_index = array_size;
-    }
 
     /* build our result array */
     memset(&result, 0, sizeof(agtype_in_state));
@@ -5491,39 +5098,6 @@ Datum age_type(PG_FUNCTION_ARGS)
     Assert(agtv_result->type = AGTV_STRING);
 
     PG_RETURN_POINTER(agtype_value_to_agtype(agtv_result));
-}
-
-PG_FUNCTION_INFO_V1(age_exists);
-/*
- * Executor function for EXISTS(property).
- *
- * Note: For most executor functions we want to return SQL NULL for NULL input.
- *       However, in this case, NULL means false - it was not found.
- */
-Datum age_exists(PG_FUNCTION_ARGS)
-{
-    agtype *agt_arg = NULL;
-    agtype_value *agtv_value = NULL;
-
-    /* check for NULL, NULL is FALSE */
-    if (PG_ARGISNULL(0))
-        PG_RETURN_BOOL(false);
-
-    /* get the argument */
-    agt_arg = AG_GET_ARG_AGTYPE_P(0);
-
-    /* check for a scalar AGTV_NULL */
-    if (AGT_ROOT_IS_SCALAR(agt_arg))
-    {
-        agtv_value = get_ith_agtype_value_from_container(&agt_arg->root, 0);
-
-        /* again, if NULL, NULL is FALSE */
-        if (agtv_value->type == AGTV_NULL)
-            PG_RETURN_BOOL(false);
-    }
-
-    /* otherwise, we have something, and something is TRUE */
-    PG_RETURN_BOOL(true);
 }
 
 PG_FUNCTION_INFO_V1(age_label);

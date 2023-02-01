@@ -307,7 +307,7 @@ SELECT * FROM cypher('cypher_match',
  $$MATCH (u)-[e]->(v) RETURN u, e, v $$) AS (u agtype, e agtype, v agtype);
 
 SELECT * FROM cypher('cypher_match',
- $$MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(v)) RETURN u, e, v $$)
+ $$MATCH (u)-[e]->(v) WHERE EXISTS ((u)-[e]->(v)) RETURN u, e, v $$)
 AS (u agtype, e agtype, v agtype);
 
 
@@ -355,57 +355,14 @@ SELECT * FROM cypher('cypher_match',
  $$MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)-[e]->(u)) RETURN u, e, v $$)
 AS (u agtype, e agtype, v agtype);
 
--- Multiple exists
-SELECT * FROM cypher('cypher_match',
- $$MATCH (u)-[e]->(v) WHERE EXISTS((u)) AND EXISTS((v)) RETURN u, e, v $$)
-AS (u agtype, e agtype, v agtype);
-
 SELECT * FROM cypher('cypher_match',
  $$MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) AND EXISTS((v)-[e]->(v)) RETURN u, e, v $$)
-AS (u agtype, e agtype, v agtype);
-
--- These should error
--- Bad pattern
-SELECT * FROM cypher('cypher_match',
- $$MATCH (u)-[e]->(v) WHERE EXISTS((u)) AND EXISTS([e]) AND EXISTS((v)) RETURN u, e, v $$)
 AS (u agtype, e agtype, v agtype);
 
 -- variable creation error
 SELECT * FROM cypher('cypher_match',
  $$MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(x)) RETURN u, e, v $$)
 AS (u agtype, e agtype, v agtype);
-
---
--- Tests for EXISTS(property)
---
-
--- dump all vertices
-SELECT * FROM cypher('cypher_match', $$MATCH (u) RETURN u $$) AS (u agtype);
-
--- select vertices with id as a property
-SELECT * FROM cypher('cypher_match',
- $$MATCH (u) WHERE EXISTS(u.id) RETURN u $$)
-AS (u agtype);
-
--- select vertices without id as a property
-SELECT * FROM cypher('cypher_match',
- $$MATCH (u) WHERE NOT EXISTS(u.id) RETURN u $$)
-AS (u agtype);
-
--- select vertices without id as a property but with a property i
-SELECT * FROM cypher('cypher_match',
- $$MATCH (u) WHERE NOT EXISTS(u.id) AND EXISTS(u.i) RETURN u $$)
-AS (u agtype);
-
--- select vertices with id as a property and have a self loop
-SELECT * FROM cypher('cypher_match',
- $$MATCH (u) WHERE EXISTS(u.id) AND EXISTS((u)-[]->(u)) RETURN u$$)
-AS (u agtype);
-
--- should give an error
-SELECT * FROM cypher('cypher_match',
- $$MATCH (u) WHERE EXISTS(u) RETURN u$$)
-AS (u agtype);
 
 --
 --Distinct

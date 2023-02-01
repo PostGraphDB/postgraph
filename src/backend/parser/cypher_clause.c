@@ -1348,7 +1348,6 @@ cypher_update_information *transform_cypher_remove_item_list(
         }
 
         ref = (ColumnRef *)ind->arg;
-
         variable_node = linitial(ref->fields);
 
         variable_name = variable_node->val.str;
@@ -1374,7 +1373,9 @@ cypher_update_information *transform_cypher_remove_item_list(
                      parser_errposition(pstate, set_item->location)));
         }
 
-        property_node = linitial(ind->indirection);
+        ref = (ColumnRef*)linitial(ind->indirection);
+
+        property_node = linitial(ref->fields);
 
         if (!IsA(property_node, String))
         {
@@ -1477,7 +1478,9 @@ cypher_update_information *transform_cypher_set_item_list(
                      parser_errposition(pstate, set_item->location)));
         }
 
-        property_node = linitial(ind->indirection);
+        ref = (ColumnRef*)linitial(ind->indirection);
+
+        property_node = linitial(ref->fields);
         if (!IsA(property_node, String))
         {
             ereport(ERROR,
@@ -1491,8 +1494,10 @@ cypher_update_information *transform_cypher_set_item_list(
 
         // create target entry for the new property value
         item->prop_position = (AttrNumber)pstate->p_next_resno;
+        cpstate->default_alias_num++;
         target_item = transform_cypher_item(cpstate, set_item->expr, NULL,
-                                            EXPR_KIND_SELECT_TARGET, NULL,
+                                            EXPR_KIND_SELECT_TARGET,
+                                            get_next_default_alias(cpstate),
                                             false);
         target_item->expr = add_volatile_wrapper(target_item->expr);
 
@@ -2311,6 +2316,7 @@ static Query *transform_cypher_sub_pattern(cypher_parsestate *cpstate,
     cypher_parsestate *child_parse_state = make_cypher_parsestate(cpstate);
     ParseState *p_child_parse_state = (ParseState *) child_parse_state;
     p_child_parse_state->p_expr_kind = pstate->p_expr_kind;
+
 
     /* create a cypher match node and assign it the sub pattern */
     match = make_ag_node(cypher_match);
@@ -4488,9 +4494,9 @@ transform_create_cypher_node(cypher_parsestate *cpstate, List **target_list,
 }
 
 /*
- * Returns the resno for the TargetEntry with the resname equal to the name
- * passed. Returns -1 otherwise.
- */
+* Returns the resno for the TargetEntry with the resname equal to the name
+* passed. Returns -1 otherwise.
+*/
 static int get_target_entry_resno(List *target_list, char *name)
 {
     ListCell *lc;
@@ -4498,6 +4504,7 @@ static int get_target_entry_resno(List *target_list, char *name)
     foreach (lc, target_list)
     {
         TargetEntry *te = (TargetEntry *)lfirst(lc);
+
         if (!strcmp(te->resname, name))
         {
             te->expr = add_volatile_wrapper(te->expr);
@@ -4509,10 +4516,10 @@ static int get_target_entry_resno(List *target_list, char *name)
 }
 
 /*
- * Transform logic for a previously declared variable in a CREATE clause.
- * All we need from the variable node is its id, and whether we can skip
- * some tests in the execution phase..
- */
+* Transform logic for a previously declared variable in a CREATE clause.
+* All we need from the variable node is its id, and whether we can skip
+* some tests in the execution phase..
+*/
 static cypher_target_node *transform_create_cypher_existing_node(
     cypher_parsestate *cpstate, List **target_list, bool declared_in_current_clause,
     cypher_node *node)
@@ -4524,11 +4531,10 @@ static cypher_target_node *transform_create_cypher_existing_node(
     rel->resultRelInfo = NULL;
     rel->variable_name = node->name;
 
-
     if (node->props)
     {
         ereport(ERROR,
-                (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+	        (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
                  errmsg("previously declared nodes in a create clause cannot have properties")));
     }
     if (node->label)

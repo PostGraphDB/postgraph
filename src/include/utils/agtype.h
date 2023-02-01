@@ -302,6 +302,16 @@ typedef struct
 #define AGT_HEADER_EDGE 0x00000003
 #define AGT_HEADER_PATH 0x00000004
 
+#define AGT_IS_VERTEX(agt) \
+    (AGT_ROOT_IS_SCALAR(agt) &&\
+     AGTE_IS_AGTYPE((agt)->root.children[0]) &&\
+     ((agt)->root.children[1] & AGT_HEADER_VERTEX))
+
+#define AGT_IS_EDGE(agt) \
+    (AGT_ROOT_IS_SCALAR(agt) &&\
+     AGTE_IS_AGTYPE((agt)->root.children[0]) &&\
+     ((agt)->root.children[1] & AGT_HEADER_EDGE))
+
 /*
  * IMPORTANT NOTE: For agtype_value_type, IS_A_AGTYPE_SCALAR() checks that the
  * type is between AGTV_NULL and AGTV_BOOL, inclusive. So, new scalars need to
@@ -467,7 +477,7 @@ int compare_agtype_containers_orderability(agtype_container *a,
                                            agtype_container *b);
 agtype_value *find_agtype_value_from_container(agtype_container *container,
                                                uint32 flags,
-                                               agtype_value *key);
+                                               const agtype_value *key);
 agtype_value *get_ith_agtype_value_from_container(agtype_container *container,
                                                   uint32 i);
 agtype_value *push_agtype_value(agtype_parse_state **pstate,

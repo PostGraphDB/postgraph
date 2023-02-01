@@ -557,35 +557,27 @@ SELECT agtype_build_map('[0]'::agtype, null);
 
 --
 -- Test agtype object/array access operators object.property, object["property"], and array[element]
--- Note: At this point, object.property and object["property"] are equivalent.
 --
-SELECT agtype_access_operator('{"bool":true, "array":[1,3,{"bool":false, "int":3, "float":3.14},7], "float":3.14}','"array"','2', '"float"');
--- empty map access
-SELECT agtype_access_operator('{}', '"array"');
--- empty array access
-SELECT agtype_access_operator('[]', '0');
--- out of bounds array access
-SELECT agtype_access_operator('[0, 1]', '2');
-SELECT agtype_access_operator('[0, 1]', '-3');
--- array AGTV_NULL element
-SELECT agtype_access_operator('[1, 3, 5, 7]', 'null');
--- map AGTV_NULL key
-SELECT agtype_access_operator('{"bool":false, "int":3, "float":3.14}', 'null');
--- invalid map key types
-SELECT agtype_access_operator('{"bool":false, "int":3, "float":3.14}', 'true');
-SELECT agtype_access_operator('{"bool":false, "int":3, "float":3.14}', '2');
-SELECT agtype_access_operator('{"bool":false, "int":3, "float":3.14}', '2.0');
-
-SELECT i, pg_typeof(i) FROM (SELECT '{"bool":true, "array":[1,3,{"bool":false, "int":3, "float":3.14},7], "float":3.14}'::agtype->'array'->2->'float' as i) a;
-SELECT i, pg_typeof(i) FROM (SELECT '{"bool":true, "array":[1,3,{"bool":false, "int":3, "float":3.14},7], "float":3.14}'::agtype->'array'->2->>'float' as i) a;
-SELECT i, pg_typeof(i) FROM (SELECT '{}'::agtype->'array' as i) a;
+SELECT i, pg_typeof(i) FROM (SELECT '{"bool":true, "array":[1,3,{"bool":false, "int":3, "float":3.14},7], "float":3.14}'::agtype->'array'::text->2->'float'::text as i) a;
+SELECT i, pg_typeof(i) FROM (SELECT '{"bool":true, "array":[1,3,{"bool":false, "int":3, "float":3.14},7], "float":3.14}'::agtype->'array'::text->2->>'float' as i) a;
+SELECT i, pg_typeof(i) FROM (SELECT '{}'::agtype->'array'::text as i) a;
 SELECT i, pg_typeof(i) FROM (SELECT '[]'::agtype->0 as i) a;
 SELECT i, pg_typeof(i) FROM (SELECT '[0, 1]'::agtype->2 as i) a;
 SELECT i, pg_typeof(i) FROM (SELECT '[0, 1]'::agtype->3 as i) a;
-SELECT i, pg_typeof(i) FROM (SELECT '{"bool":false, "int":3, "float":3.14}'::agtype->'true' as i) a;
+SELECT i, pg_typeof(i) FROM (SELECT '{"bool":false, "int":3, "float":3.14}'::agtype->'true'::text as i) a;
 SELECT i, pg_typeof(i) FROM (SELECT '{"bool":false, "int":3, "float":3.14}'::agtype->2 as i) a;
-SELECT i, pg_typeof(i) FROM (SELECT '{"bool":false, "int":3, "float":3.14}'::agtype->'true'->2 as i) a;
-SELECT i, pg_typeof(i) FROM (SELECT '{"bool":false, "int":3, "float":3.14}'::agtype->'true'->>2 as i) a;
+SELECT i, pg_typeof(i) FROM (SELECT '{"bool":false, "int":3, "float":3.14}'::agtype->'true'::text->2 as i) a;
+SELECT i, pg_typeof(i) FROM (SELECT '{"bool":false, "int":3, "float":3.14}'::agtype->'true'::text->>2 as i) a;
+
+SELECT i, pg_typeof(i) FROM (SELECT '{"bool":true, "array":[1,3,{"bool":false, "int":3, "float":3.14},7], "float":3.14}'::agtype->'"array"'::agtype->2->'"float"'::agtype as i) a;
+SELECT i, pg_typeof(i) FROM (SELECT '{}'::agtype->'"array"'::agtype as i) a;
+SELECT i, pg_typeof(i) FROM (SELECT '[]'::agtype->0 as i) a;
+SELECT i, pg_typeof(i) FROM (SELECT '[0, 1]'::agtype->2 as i) a;
+SELECT i, pg_typeof(i) FROM (SELECT '[0, 1]'::agtype->3 as i) a;
+SELECT i, pg_typeof(i) FROM (SELECT '{"bool":false, "int":3, "float":3.14}'::agtype->'"true"'::agtype as i) a;
+SELECT i, pg_typeof(i) FROM (SELECT '{"bool":false, "int":3, "float":3.14}'::agtype->2 as i) a;
+SELECT i, pg_typeof(i) FROM (SELECT '{"bool":false, "int":3, "float":3.14}'::agtype->'"true"'::agtype->2 as i) a;
+
 
 --
 -- Vertex
@@ -596,10 +588,6 @@ SELECT _agtype_build_vertex('1'::graphid, $$label$$, agtype_build_map('id', 2));
 
 --Null properties
 SELECT _agtype_build_vertex('1'::graphid, $$label_name$$, NULL);
-
---Test access operator
-SELECT agtype_access_operator(_agtype_build_vertex('1'::graphid, $$label$$,
-                              agtype_build_map('id', 2)), '"id"');
 SELECT _agtype_build_vertex('1'::graphid, $$label$$, agtype_build_list());
 
 --Vertex in a map
@@ -607,25 +595,10 @@ SELECT agtype_build_map(
 	'vertex',
 	_agtype_build_vertex('1'::graphid, $$label_name$$, agtype_build_map()));
 
-
-SELECT agtype_access_operator(
-        agtype_build_map(
-            'vertex', _agtype_build_vertex('1'::graphid, $$label_name$$,
-                                           agtype_build_map('key', 'value')),
-            'other_vertex', _agtype_build_vertex('1'::graphid, $$label_name$$,
-                                           agtype_build_map('key', 'other_value'))),
-        '"vertex"');
 --Vertex in a list
 SELECT agtype_build_list(
 	_agtype_build_vertex('1'::graphid, $$label_name$$, agtype_build_map()),
 	_agtype_build_vertex('2'::graphid, $$label_name$$, agtype_build_map()));
-
-SELECT agtype_access_operator(
-	agtype_build_list(
-		_agtype_build_vertex('1'::graphid, $$label_name$$,
-                                     agtype_build_map('id', 3)),
-		_agtype_build_vertex('2'::graphid, $$label_name$$,
-                                     agtype_build_map('id', 4))), '0');
 
 --
 -- Edge
@@ -641,26 +614,11 @@ SELECT _agtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
 SELECT _agtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
 			  $$label_name$$, NULL);
 
---Test access operator
-SELECT agtype_access_operator(_agtype_build_edge('1'::graphid, '2'::graphid,
-			      '3'::graphid, $$label$$, agtype_build_map('id', 2)),'"id"');
-
-
-
 --Edge in a map
 SELECT agtype_build_map(
 	'edge',
 	_agtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
 			   $$label_name$$, agtype_build_map()));
-
-
-SELECT agtype_access_operator(
-        agtype_build_map(
-            'edge', _agtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-				       $$label_name$$, agtype_build_map('key', 'value')),
-            'other_edge', _agtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-					     $$label_name$$, agtype_build_map('key', 'other_value'))),
-        '"edge"');
 
 --Edge in a list
 SELECT agtype_build_list(
@@ -669,14 +627,6 @@ SELECT agtype_build_list(
 	_agtype_build_edge('2'::graphid, '2'::graphid, '3'::graphid,
 			   $$label_name$$, agtype_build_map()));
 
-SELECT agtype_access_operator(
-	agtype_build_list(
-		_agtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label_name$$,
-                                     agtype_build_map('id', 3)),
-		_agtype_build_edge('2'::graphid, '2'::graphid, '3'::graphid, $$label_name$$,
-                                     agtype_build_map('id', 4))), '0');
-
--- Path
 SELECT _agtype_build_path(
 	_agtype_build_vertex('2'::graphid, $$label_name$$, agtype_build_map()),
 	_agtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,

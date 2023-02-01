@@ -3303,13 +3303,20 @@ CREATE CAST (agtype AS int[])
 --
 
 -- for series of `map.key` and `container[expr]`
-CREATE FUNCTION ag_catalog.agtype_access_operator(VARIADIC agtype[])
+CREATE FUNCTION agtype_field_access(agtype, agtype)
 RETURNS agtype
 LANGUAGE c
 IMMUTABLE
 RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 AS 'MODULE_PATHNAME';
+
+-- get agtype object field
+CREATE OPERATOR -> (
+  LEFTARG = agtype,
+  RIGHTARG = agtype,
+  FUNCTION = agtype_field_access
+);
 
 CREATE FUNCTION ag_catalog.agtype_access_slice(agtype, agtype, agtype)
 RETURNS agtype
@@ -3537,13 +3544,6 @@ RETURNS agtype
 LANGUAGE c
 IMMUTABLE
 RETURNS NULL ON NULL INPUT
-PARALLEL SAFE
-AS 'MODULE_PATHNAME';
-
-CREATE FUNCTION ag_catalog.age_exists(agtype)
-RETURNS boolean
-LANGUAGE c
-IMMUTABLE
 PARALLEL SAFE
 AS 'MODULE_PATHNAME';
 
