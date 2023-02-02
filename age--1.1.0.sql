@@ -86,6 +86,11 @@ RETURNS void
 LANGUAGE c
 AS 'MODULE_PATHNAME';
 
+CREATE FUNCTION ag_catalog.create_graph_if_not_exists(graph_name name)
+RETURNS void
+LANGUAGE c
+AS 'MODULE_PATHNAME';
+
 CREATE FUNCTION ag_catalog.drop_graph(graph_name name, cascade boolean = false)
 RETURNS void
 LANGUAGE c

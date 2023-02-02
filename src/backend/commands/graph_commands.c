@@ -54,6 +54,47 @@ static void drop_schema_for_graph(char *graph_name_str, const bool cascade);
 static void remove_schema(Node *schema_name, DropBehavior behavior);
 static void rename_graph(const Name graph_name, const Name new_name);
 
+PG_FUNCTION_INFO_V1(create_graph_if_not_exists);
+
+Datum create_graph_if_not_exists(PG_FUNCTION_ARGS)
+{
+    char *graph;
+    Name graph_name;
+    char *graph_name_str;
+    Oid nsp_id;
+
+    if (PG_ARGISNULL(0))
+    {
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("graph name must not be NULL")));
+    }
+    graph_name = PG_GETARG_NAME(0);
+
+    graph_name_str = NameStr(*graph_name);
+    if (graph_exists(graph_name_str))
+    {
+        PG_RETURN_VOID();
+    }
+
+    nsp_id = create_schema_for_graph(graph_name);
+
+    insert_graph(graph_name, nsp_id);
+
+    //Increment the Command counter before create the generic labels.
+    CommandCounterIncrement();
+
+    //Create the default label tables
+    graph = graph_name->data;
+    create_label(graph, AG_DEFAULT_LABEL_VERTEX, LABEL_TYPE_VERTEX, NIL);
+    create_label(graph, AG_DEFAULT_LABEL_EDGE, LABEL_TYPE_EDGE, NIL);
+
+    ereport(NOTICE,
+            (errmsg("graph \"%s\" has been created", NameStr(*graph_name))));
+
+    PG_RETURN_VOID();
+}
+
+
 PG_FUNCTION_INFO_V1(create_graph);
 
 Datum create_graph(PG_FUNCTION_ARGS)
