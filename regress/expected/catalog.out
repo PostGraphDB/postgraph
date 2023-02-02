@@ -391,7 +391,38 @@ SELECT create_vlabel(NULL, NULL);
 ERROR:  graph name must not be NULL
 SELECT create_elabel(NULL, NULL);
 ERROR:  graph name must not be NULL
+-- create graph IF NOT EXISTS
+SELECT create_graph_if_not_exists('new_g');
+NOTICE:  graph "new_g" has been created
+ create_graph_if_not_exists 
+----------------------------
+ 
+(1 row)
+
+SELECT create_graph_if_not_exists('new_g');
+ create_graph_if_not_exists 
+----------------------------
+ 
+(1 row)
+
+SELECT * FROM ag_catalog.ag_graph;
+ graphid | name  | namespace 
+---------+-------+-----------
+   17689 | g     | g
+   17729 | new_g | new_g
+(2 rows)
+
 -- dropping the graph
+SELECT drop_graph('new_g', true);
+NOTICE:  drop cascades to 2 other objects
+DETAIL:  drop cascades to table new_g._ag_label_vertex
+drop cascades to table new_g._ag_label_edge
+NOTICE:  graph "new_g" has been dropped
+ drop_graph 
+------------
+ 
+(1 row)
+
 SELECT drop_graph('g', true);
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table g._ag_label_vertex

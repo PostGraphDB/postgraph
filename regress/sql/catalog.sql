@@ -166,7 +166,14 @@ SELECT create_elabel(NULL, 'r');
 SELECT create_vlabel(NULL, NULL);
 SELECT create_elabel(NULL, NULL);
 
+-- create graph IF NOT EXISTS
+SELECT create_graph_if_not_exists('new_g');
+SELECT create_graph_if_not_exists('new_g');
+
+SELECT * FROM ag_catalog.ag_graph;
+
 -- dropping the graph
+SELECT drop_graph('new_g', true);
 SELECT drop_graph('g', true);
 
 
