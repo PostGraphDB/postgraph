@@ -132,7 +132,11 @@ SELECT * FROM cypher('expr', $$
 RETURN $var
 $$, $1) AS t(i agtype);
 EXECUTE cypher_parameter_invalid_argument('[1]');
-ERROR:  array index must resolve to an integer value
+ i 
+---
+ 
+(1 row)
+
 -- missing parameters argument
 PREPARE cypher_missing_params_argument(int) AS
 SELECT $1, * FROM cypher('expr', $$
@@ -2983,14 +2987,6 @@ $$) as (u agtype);
 ---
 (0 rows)
 
-SELECT * FROM cypher('expr', $$
-    MATCH (v) WHERE exists(v.test) RETURN reverse(v.test)
-$$) as (u agtype);
-     u     
------------
- [3, 2, 1]
-(1 row)
-
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN reverse(true)
@@ -5040,7 +5036,7 @@ ERROR:  cannot take square root of a negative number
 SELECT * from cypher('expr', $$
     RETURN something.pg_catalog.sqrt("1"::pg_float8)
 $$) as (result agtype);
-ERROR:  invalid indirection syntax
+ERROR:  could not find rte for something
 LINE 2:     RETURN something.pg_catalog.sqrt("1"::pg_float8)
                    ^
 -- should fail do to schema but using a reserved_keyword

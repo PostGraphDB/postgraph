@@ -1265,9 +1265,6 @@ $$) as (u agtype);
 SELECT * FROM cypher('expr', $$
     CREATE ({test: [1, 2, 3]})
 $$) as (u agtype);
-SELECT * FROM cypher('expr', $$
-    MATCH (v) WHERE exists(v.test) RETURN reverse(v.test)
-$$) as (u agtype);
 
 -- should fail
 SELECT * FROM cypher('expr', $$

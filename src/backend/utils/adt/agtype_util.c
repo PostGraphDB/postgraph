@@ -58,7 +58,7 @@
 static void fill_agtype_value(agtype_container *container, int index,
                               char *base_addr, uint32 offset,
                               agtype_value *result);
-static bool equals_agtype_scalar_value(agtype_value *a, agtype_value *b);
+static bool equals_agtype_scalar_value(const agtype_value *a, const agtype_value *b);
 static agtype *convert_to_agtype(agtype_value *val);
 static void convert_agtype_value(StringInfo buffer, agtentry *header,
                                  agtype_value *val, int level);
@@ -412,7 +412,7 @@ int compare_agtype_containers_orderability(agtype_container *a,
  * return NULL.  Otherwise, return palloc()'d copy of value.
  */
 agtype_value *find_agtype_value_from_container(agtype_container *container,
-                                               uint32 flags, agtype_value *key)
+                                               uint32 flags, const agtype_value *key)
 {
     agtentry *children = container->children;
     int count = AGTYPE_CONTAINER_SIZE(container);
@@ -1519,7 +1519,7 @@ static int compare_two_floats_orderability(float8 lhs, float8 rhs)
 /*
  * Are two scalar agtype_values of the same type a and b equal?
  */
-static bool equals_agtype_scalar_value(agtype_value *a, agtype_value *b)
+static bool equals_agtype_scalar_value(const agtype_value *a, const agtype_value *b)
 {
     /* if the values are of the same type */
     if (a->type == b->type)

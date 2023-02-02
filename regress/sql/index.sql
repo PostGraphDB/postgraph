@@ -245,8 +245,7 @@ SELECT COUNT(*) FROM cypher('cypher_index', $$
     RETURN a
 $$) as (n agtype);
 
-CREATE INDEX CONCURRENTLY cntry_ode_idx ON cypher_index."City"
-(ag_catalog.agtype_access_operator(properties, '"country_code"'::agtype));
+CREATE INDEX CONCURRENTLY cntry_ode_idx ON cypher_index."City" ((properties->'"country_code"'::agtype));
 
 SELECT COUNT(*) FROM cypher('cypher_index', $$
     MATCH (a:City)

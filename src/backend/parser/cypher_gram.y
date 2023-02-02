@@ -153,7 +153,6 @@
 
 %type <node> expr_var expr_func expr_func_norm expr_func_subexpr
 %type <list> expr_list expr_list_opt map_keyval_list_opt map_keyval_list
-%type <node> property_value
 
 /* names */
 %type <string> property_key_name var_name var_name_opt label_name
@@ -1172,7 +1171,6 @@ properties_opt:
 /*
  * expression
  */
-
 expr:
     expr OR expr
         {
@@ -1309,7 +1307,7 @@ expr:
             $$ = make_function_expr(list_make1(makeString("eq_tilde")),
                                     list_make2($1, $3), @2);
         }
-    | expr '[' expr ']'
+    | expr '[' expr ']'  %prec '.'
         {
             A_Indices *i;
 
@@ -1331,90 +1329,28 @@ expr:
 
             $$ = append_indirection($1, (Node *)i);
         }
-    /*
-     * This is a catch all grammar rule that allows us to avoid some
-     * shift/reduce errors between expression indirection rules by colapsing
-     * those rules into one generic rule. We can then inspect the expressions to
-     * decide what specific rule needs to be applied and then construct the
-     * required result.
-     */
     | expr '.' expr
         {
-            /*
-             * This checks for the grammar rule -
-             *     expr '.' property_key_name
-             * where the expr can be anything.
-             * Note: A property_key_name ends up as a ColumnRef.
-             * Note: We restrict some of what the expr can be, for now. More may
-             *       need to be added later to loosen the restrictions. Or, it
-             *       may need to be removed.
-             */
-            if (IsA($3, ColumnRef) &&
-                (IsA($1, ExtensibleNode) ||
-                 IsA($1, ColumnRef) ||
-                 IsA($1, A_Indirection)))
-            {
-                ColumnRef *cr = (ColumnRef*)$3;
-                List *fields = cr->fields;
-                Value *string = linitial(fields);
-
-                $$ = append_indirection($1, (Node*)string);
-            }
             /*
              * This checks for the grammar rule -
              *    symbolic_name '.' expr
              * Where expr is a function call.
              * Note: symbolic_name ends up as a ColumnRef
              */
-            else if (IsA($3, FuncCall) && IsA($1, ColumnRef))
+            if (IsA($3, FuncCall) && IsA($1, ColumnRef))
             {
                 FuncCall *fc = (FuncCall*)$3;
                 ColumnRef *cr = (ColumnRef*)$1;
                 List *fields = cr->fields;
                 Value *string = linitial(fields);
 
-                /*
-                 * A function can only be qualified with a single schema. So, we
-                 * check to see that the function isn't already qualified. There
-                 * may be unforeseen cases where we might need to remove this in
-                 * the future.
-                 */
-                if (list_length(fc->funcname) == 1)
-                {
-                    fc->funcname = lcons(string, fc->funcname);
-                    $$ = (Node*)fc;
-                }
-                else
-                    ereport(ERROR,
-                            (errcode(ERRCODE_SYNTAX_ERROR),
-                             errmsg("function already qualified"),
-                             ag_scanner_errposition(@1, scanner)));
+                fc->funcname = lcons(string, fc->funcname);
+                $$ = (Node*)fc;
             }
-            /* allow a function to be used as a parent of an indirection */
-            else if (IsA($1, FuncCall) && IsA($3, ColumnRef))
-            {
-                ColumnRef *cr = (ColumnRef*)$3;
-                List *fields = cr->fields;
-                Value *string = linitial(fields);
-
-                $$ = append_indirection($1, (Node*)string);
-            }
-            else if (IsA($1, FuncCall) && IsA($3, A_Indirection))
-            {
-                ereport(ERROR,
-                            (errcode(ERRCODE_SYNTAX_ERROR),
-                             errmsg("not supported A_Indirection indirection"),
-                             ag_scanner_errposition(@1, scanner)));
-            }
-            /*
-             * All other types of expression indirections are currently not
-             * supported
-             */
             else
-                ereport(ERROR,
-                        (errcode(ERRCODE_SYNTAX_ERROR),
-                         errmsg("invalid indirection syntax"),
-                         ag_scanner_errposition(@1, scanner)));
+            {
+                $$ = append_indirection($1, $3);
+            }
         }
     | expr TYPECAST symbolic_name
         {
@@ -1518,19 +1454,8 @@ expr_func_subexpr:
             n->location = @1;
             $$ = (Node *) n;
         }
-    | EXISTS '(' property_value ')'
-        {
-            $$ = make_function_expr(list_make1(makeString("exists")),
-                                    list_make1($3), @2);
-        }
     ;
 
-property_value:
-    expr_var '.' property_key_name
-        {
-            $$ = append_indirection($1, (Node *)makeString($3));
-        }
-    ;
 
 expr_atom:
     expr_literal

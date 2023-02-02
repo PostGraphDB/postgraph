@@ -94,7 +94,6 @@ static Node *transform_SubLink(cypher_parsestate *cpstate, SubLink *sublink);
 static Node *transform_FuncCall(cypher_parsestate *cpstate, FuncCall *fn);
 static Node *transform_WholeRowRef(ParseState *pstate, ParseNamespaceItem *pnsi,
                                    int location);
-static ArrayExpr *make_agtype_array_expr(List *args);
 static Node *transform_column_ref_for_indirection(cypher_parsestate *cpstate, ColumnRef *cr);
 
 /* transform a cypher expression */
@@ -276,7 +275,7 @@ static Node *transform_WholeRowRef(ParseState *pstate, ParseNamespaceItem *pnsi,
      * historically.  One argument for it is that "rel" and "rel.*" mean the
      * same thing for composite relations, so why not for scalar functions...
      */
-     result = makeWholeRowVar(rte, vnum, 0, true); // TODO: Review sublevels_up impact.
+     result = makeWholeRowVar(rte, vnum, 0, true);
 
      /* location is not filled in by makeWholeRowVar */
      result->location = location;
@@ -286,6 +285,7 @@ static Node *transform_WholeRowRef(ParseState *pstate, ParseNamespaceItem *pnsi,
 
      return (Node *)result;
 }
+
 
 /*
  * Function to transform a ColumnRef node from the grammar into a Var node
@@ -316,9 +316,7 @@ static Node *transform_ColumnRef(cypher_parsestate *cpstate, ColumnRef *cref)
                 /* Try to identify as an unqualified column */
                 node = colNameToVar(pstate, colname, false, cref->location);
                 if (node != NULL)
-                {
-                        break;
-                }
+                    break;
 
                 /*
                  * Try to find the columnRef as a transform_entity and extract
@@ -403,6 +401,7 @@ static Node *transform_ColumnRef(cypher_parsestate *cpstate, ColumnRef *cref)
                     node = transform_WholeRowRef(pstate, pnsi, cref->location);
                     break;
                 }
+
 
                 Assert(IsA(field2, String));
 
@@ -544,9 +543,6 @@ static Node *transform_cypher_param(cypher_parsestate *cpstate,
 {
     ParseState *pstate = (ParseState *)cpstate;
     Const *const_str;
-    FuncExpr *func_expr;
-    Oid func_access_oid;
-    List *args = NIL;
 
     if (!cpstate->params)
     {
@@ -558,22 +554,10 @@ static Node *transform_cypher_param(cypher_parsestate *cpstate,
              parser_errposition(pstate, cp->location)));
     }
 
-    /* get the agtype_access_operator function */
-    func_access_oid = get_ag_func_oid("agtype_access_operator", 1,
-                                      AGTYPEARRAYOID);
-
-    args = lappend(args, copyObject(cpstate->params));
-
     const_str = makeConst(AGTYPEOID, -1, InvalidOid, -1,
                           string_to_agtype(cp->name), false, false);
 
-    args = lappend(args, const_str);
-
-    func_expr = makeFuncExpr(func_access_oid, AGTYPEOID, args, InvalidOid,
-                             InvalidOid, COERCE_EXPLICIT_CALL);
-    func_expr->location = cp->location;
-
-    return (Node *)func_expr;
+    return (Node *)make_op(pstate, list_make1(makeString("->")), (Node *)cpstate->params, (Node *)const_str, pstate->p_last_srf,  -1);
 }
 
 static Node *transform_cypher_map(cypher_parsestate *cpstate, cypher_map *cm)
@@ -660,32 +644,6 @@ static Node *transform_cypher_list(cypher_parsestate *cpstate, cypher_list *cl)
     return (Node *)fexpr;
 }
 
-// makes a VARIADIC agtype array
-static ArrayExpr *make_agtype_array_expr(List *args)
-{
-    ArrayExpr  *newa = makeNode(ArrayExpr);
-
-    newa->elements = args;
-
-    /* assume all the variadic arguments were coerced to the same type */
-    newa->element_typeid = AGTYPEOID;
-    newa->array_typeid = AGTYPEARRAYOID;
-
-    if (!OidIsValid(newa->array_typeid))
-    {
-        ereport(ERROR,
-                (errcode(ERRCODE_UNDEFINED_OBJECT),
-                 errmsg("could not find array type for data type %s",
-                        format_type_be(newa->element_typeid))));
-    }
-
-    /* array_collid will be set by parse_collate.c */
-    newa->multidims = false;
-
-    return newa;
-}
-
-
 /*
  * Transforms a column ref for indirection. Try to find the rte that the
  * columnRef is references and pass the properties of that rte as what the
@@ -696,15 +654,16 @@ static Node *transform_column_ref_for_indirection(cypher_parsestate *cpstate, Co
     ParseState *pstate = (ParseState *)cpstate;
     ParseNamespaceItem *pnsi;
     Node *field1 = linitial(cr->fields);
-    char *relname = NULL;
-    Node *node = NULL;
+    char *relname;
+    Node *node;
     int levels_up = 0;
 
+    field1 = linitial(cr->fields);
     Assert(IsA(field1, String));
     relname = strVal(field1);
 
     // locate the referenced RTE
-    pnsi = refnameNamespaceItem(pstate, NULL, relname, cr->location, &levels_up);//find_rte(cpstate, relname);
+    pnsi = refnameNamespaceItem(pstate, NULL, relname, cr->location, &levels_up);
     /*
      * This column ref is referencing something that was created in
      * a previous query and is a variable.
@@ -727,20 +686,15 @@ static Node *transform_column_ref_for_indirection(cypher_parsestate *cpstate, Co
 static Node *transform_A_Indirection(cypher_parsestate *cpstate,
                                      A_Indirection *a_ind)
 {
+    ParseState *pstate = (ParseState *)cpstate;
     int location;
-    ListCell *lc = NULL;
-    Node *ind_arg_expr = NULL;
-    FuncExpr *func_expr = NULL;
-    Oid func_access_oid = InvalidOid;
-    Oid func_slice_oid = InvalidOid;
-    List *args = NIL;
-    bool is_access = false;
+    ListCell *lc;
+    Oid func_slice_oid;
+    List *args;
+    Node *cur;
 
     /* validate that we have an indirection with at least 1 entry */
     Assert(a_ind != NULL && list_length(a_ind->indirection));
-    /* get the agtype_access_operator function */
-    func_access_oid = get_ag_func_oid("agtype_access_operator", 1,
-                                      AGTYPEARRAYOID);
     /* get the agtype_access_slice function */
     func_slice_oid = get_ag_func_oid("agtype_access_slice", 3, AGTYPEOID,
                                      AGTYPEOID, AGTYPEOID);
@@ -749,18 +703,12 @@ static Node *transform_A_Indirection(cypher_parsestate *cpstate,
     if (IsA(a_ind->arg, ColumnRef)) {
         ColumnRef *cr = (ColumnRef *)a_ind->arg;
 
-        ind_arg_expr = transform_column_ref_for_indirection(cpstate, cr);
+        cur = transform_column_ref_for_indirection(cpstate, cr);
     } else {
-        ind_arg_expr = transform_cypher_expr_recurse(cpstate, a_ind->arg);
+        cur = transform_cypher_expr_recurse(cpstate, a_ind->arg);
     }
 
-
-
-    /* get the location of the expression */
-    location = exprLocation(ind_arg_expr);
-
-    /* add the expression as the first entry */
-    args = lappend(args, ind_arg_expr);
+    location = exprLocation(cur);
 
     /* iterate through the indirections */
     foreach (lc, a_ind->indirection)
@@ -771,31 +719,9 @@ static Node *transform_A_Indirection(cypher_parsestate *cpstate,
         if (IsA(node, A_Indices) && ((A_Indices *)node)->is_slice)
         {
             A_Indices *indices = (A_Indices *)node;
+            FuncExpr *func_expr;
 
-            /* were we working on an access? if so, wrap and close it */
-            if (is_access)
-            {
-                ArrayExpr *newa = make_agtype_array_expr(args);
-
-                func_expr = makeFuncExpr(func_access_oid, AGTYPEOID,
-                                         list_make1(newa),
-                                         InvalidOid, InvalidOid,
-                                         COERCE_EXPLICIT_CALL);
-
-                func_expr->funcvariadic = true;
-                func_expr->location = location;
-
-                /*
-                 * The result of this function is the input to the next access
-                 * or slice operator. So we need to start out with a new arg
-                 * list with this function expression.
-                 */
-                args = lappend(NIL, func_expr);
-
-                /* we are no longer working on an access */
-                is_access = false;
-
-            }
+            args = list_make1(cur);
 
             /* add slice bounds to args */
             if (!indices->lidx)
@@ -831,59 +757,38 @@ static Node *transform_A_Indirection(cypher_parsestate *cpstate,
                                      COERCE_EXPLICIT_CALL);
             func_expr->location = location;
 
-            /*
-             * The result of this function is the input to the next access
-             * or slice operator. So we need to start out with a new arg
-             * list with this function expression.
-             */
-            args = lappend(NIL, func_expr);
+            cur = (Node *)func_expr;
         }
         /* is this a string or index?*/
-        else if (IsA(node, String) || IsA(node, A_Indices))
+        else if (IsA(node, ColumnRef) || IsA(node, A_Indices))
         {
-            /* we are working on an access */
-            is_access = true;
-
-            /* is this an index? */
             if (IsA(node, A_Indices))
             {
                 A_Indices *indices = (A_Indices *)node;
 
                 node = transform_cypher_expr_recurse(cpstate, indices->uidx);
-                args = lappend(args, node);
+                cur = (Node *)make_op(pstate, list_make1(makeString("->")), cur, node, pstate->p_last_srf,  -1);
             }
-            /* it must be a string */
             else
             {
+                ColumnRef *cr = (ColumnRef*)node;
+                List *fields = cr->fields;
+                Value *string = linitial(fields);
+
                 Const *const_str = makeConst(AGTYPEOID, -1, InvalidOid, -1,
-                                             string_to_agtype(strVal(node)),
+                                             string_to_agtype(strVal(string)),
                                              false, false);
-                args = lappend(args, const_str);
+                cur = (Node *)make_op(pstate, list_make1(makeString("->")), cur, (Node *)const_str, pstate->p_last_srf,  -1);
             }
         }
-        /* not an indirection we understand */
         else
         {
             ereport(ERROR,
                     (errmsg("invalid indirection node %d", nodeTag(node))));
         }
     }
-
-    /* if we were doing an access, we need wrap the args with access func. */
-    if (is_access)
-    {
-        ArrayExpr *newa = make_agtype_array_expr(args);
-
-        func_expr = makeFuncExpr(func_access_oid, AGTYPEOID, list_make1(newa),
-                                 InvalidOid, InvalidOid,
-                                 COERCE_EXPLICIT_CALL);
-        func_expr->funcvariadic = true;
-    }
-
-    Assert(func_expr != NULL);
-    func_expr->location = location;
-
-    return (Node *)func_expr;
+    
+    return cur;
 }
 
 static Node *transform_cypher_string_match(cypher_parsestate *cpstate,
