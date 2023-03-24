@@ -1847,13 +1847,6 @@ IMMUTABLE
 PARALLEL SAFE
 AS 'MODULE_PATHNAME';
 
-CREATE FUNCTION agtype_typecast_float(variadic "any")
-RETURNS agtype
-LANGUAGE c
-IMMUTABLE
-PARALLEL SAFE
-AS 'MODULE_PATHNAME';
-
 -- original VLE function definition
 CREATE FUNCTION age_vle(IN agtype, IN agtype, IN agtype, IN agtype,
                         IN agtype, IN agtype, IN agtype,

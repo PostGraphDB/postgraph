@@ -726,8 +726,6 @@ SELECT * FROM cypher('expr', $$
 RETURN '-infinity'::float
 $$) AS r(result agtype);
 -- should return SQL null
-SELECT agtype_typecast_float('null'::agtype);
-SELECT agtype_typecast_float(null);
 SELECT * FROM cypher('expr', $$
 RETURN null::float
 $$) AS r(result agtype);
@@ -1515,22 +1513,18 @@ SELECT * FROM age_replace('Hello', 1, 'E');
 --
 -- sin, cos, tan, cot
 --
-SELECT sin = results FROM cypher('expr', $$
+SELECT sin::agtype = results FROM cypher('expr', $$
     RETURN sin(3.1415)
 $$) AS (results agtype), sin(3.1415);
-SELECT cos = results FROM cypher('expr', $$
+SELECT cos::agtype = results FROM cypher('expr', $$
     RETURN cos(3.1415)
 $$) AS (results agtype), cos(3.1415);
-SELECT tan = results FROM cypher('expr', $$
+SELECT tan::agtype = results FROM cypher('expr', $$
     RETURN tan(3.1415)
 $$) AS (results agtype), tan(3.1415);
-SELECT cot = results FROM cypher('expr', $$
+SELECT cot::agtype = results FROM cypher('expr', $$
     RETURN cot(3.1415)
 $$) AS (results agtype), cot(3.1415);
-SELECT sin = age_sin FROM sin(3.1415), age_sin(3.1415);
-SELECT cos = age_cos FROM cos(3.1415), age_cos(3.1415);
-SELECT tan = age_tan FROM tan(3.1415), age_tan(3.1415);
-SELECT cot = age_cot FROM cot(3.1415), age_cot(3.1415);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN sin(null)
