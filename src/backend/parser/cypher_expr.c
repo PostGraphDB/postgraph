@@ -62,8 +62,6 @@
 #define FUNC_AGTYPE_TYPECAST_NUMERIC "agtype_typecast_numeric"
 #define FUNC_AGTYPE_TYPECAST_FLOAT "agtype_typecast_float"
 #define FUNC_AGTYPE_TYPECAST_INT "agtype_typecast_int"
-#define FUNC_AGTYPE_TYPECAST_PG_FLOAT8 "agtype_to_float8"
-#define FUNC_AGTYPE_TYPECAST_PG_BIGINT "agtype_to_int8"
 
 static Node *transform_cypher_expr_recurse(cypher_parsestate *cpstate,
                                            Node *expr);
@@ -872,14 +870,6 @@ static Node *transform_cypher_typecast(cypher_parsestate *cpstate,
              pg_strcasecmp(ctypecast->typecast, "integer") == 0)
     {
         fname = lappend(fname, makeString(FUNC_AGTYPE_TYPECAST_INT));
-    }
-    else if (pg_strcasecmp(ctypecast->typecast, "pg_float8") == 0)
-    {
-        fname = lappend(fname, makeString(FUNC_AGTYPE_TYPECAST_PG_FLOAT8));
-    }
-    else if (pg_strcasecmp(ctypecast->typecast, "pg_bigint") == 0)
-    {
-        fname = lappend(fname, makeString(FUNC_AGTYPE_TYPECAST_PG_BIGINT));
     }
     /* if none was found, error out */
     else
