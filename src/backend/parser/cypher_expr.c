@@ -57,8 +57,8 @@
 
 /* names of typecast functions */
 #define FUNC_AGTYPE_TYPECAST_NUMERIC "agtype_typecast_numeric"
-#define FUNC_AGTYPE_TYPECAST_FLOAT "agtype_typecast_float"
-#define FUNC_AGTYPE_TYPECAST_INT "agtype_typecast_int"
+#define FUNC_AGTYPE_TYPECAST_FLOAT "age_tofloat"
+#define FUNC_AGTYPE_TYPECAST_INT "age_tointeger"
 
 static Node *transform_cypher_expr_recurse(cypher_parsestate *cpstate,
                                            Node *expr);
