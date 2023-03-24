@@ -2092,40 +2092,6 @@ SELECT * from cypher('expr', $$
 $$) as (result agtype);
 
 --
--- user defined function expressions - using pg functions for these tests
---
-SELECT * from cypher('expr', $$
-    RETURN pg_catalog.sqrt(25::pg_float8)
-$$) as (result agtype);
-SELECT * from cypher('expr', $$
-    RETURN ag_catalog.age_sqrt(25)
-$$) as (result agtype);
--- should return null
-SELECT * from cypher('expr', $$
-    RETURN pg_catalog.sqrt(null::pg_float8)
-$$) as (result agtype);
--- should fail
-SELECT * from cypher('expr', $$
-    RETURN pg_catalog.sqrt()
-$$) as (result agtype);
-SELECT * from cypher('expr', $$
-    RETURN pg_catalog.sqrt("1"::pg_float8)
-$$) as (result agtype);
-SELECT * from cypher('expr', $$
-    RETURN pg_catalog.sqrt(-1::pg_float8)
-$$) as (result agtype);
-SELECT * from cypher('expr', $$
-    RETURN something.pg_catalog.sqrt("1"::pg_float8)
-$$) as (result agtype);
--- should fail do to schema but using a reserved_keyword
-SELECT * from cypher('expr', $$
-    RETURN distinct.age_sqrt(25)
-$$) as (result agtype);
-SELECT * from cypher('expr', $$
-    RETURN contains.age_sqrt(25)
-$$) as (result agtype);
-
---
 -- aggregate functions avg(), sum(), count(), & count(*)
 --
 SELECT create_graph('UCSC');
@@ -2341,14 +2307,6 @@ SELECT * FROM cypher('opt_forms', $$MATCH (u)<--(v) RETURN u.i, v.i$$) AS (u agt
 SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN u.i, v.i$$) AS (u agtype, v agtype);
 SELECT * FROM cypher('opt_forms', $$MATCH (u) CREATE (u)-[:edge]->() RETURN *$$) AS (results agtype);
 SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN *$$) AS (col1 agtype, col2 agtype);
-
--- Added typecasts ::pg_bigint and ::pg_float8
-SELECT * from cypher('expr', $$
-RETURN pg_catalog.sqrt(pg_catalog.sqrt(pg_catalog.sqrt(256::pg_bigint)))
-$$) as (result agtype);
-SELECT * from cypher('expr', $$
-RETURN pg_catalog.sqrt(pg_catalog.sqrt(pg_catalog.sqrt(256::pg_float8)))
-$$) as (result agtype);
 
 -- VLE
 SELECT create_graph('VLE');
