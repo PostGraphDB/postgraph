@@ -23,8 +23,6 @@
 --
 -- catalog tables
 --
-
-
 CREATE TABLE ag_graph (
   graphid oid NOT NULL,
   name name NOT NULL,
@@ -40,12 +38,13 @@ ON ag_graph
 USING btree (namespace);
 
 -- 0 is an invalid label ID
-CREATE DOMAIN label_id AS int NOT NULL CHECK (VALUE > 0 AND VALUE <= 65535);
+CREATE DOMAIN label_id AS int NOT NULL 
+CHECK (VALUE > 0 AND VALUE <= 65535);
 
-CREATE DOMAIN label_kind AS "char" NOT NULL CHECK (VALUE = 'v' OR VALUE = 'e');
+CREATE DOMAIN label_kind AS "char" NOT NULL
+CHECK (VALUE = 'v' OR VALUE = 'e');
 
 CREATE TABLE ag_label (
-
   name name NOT NULL,
   graph oid NOT NULL,
   id label_id,
@@ -57,19 +56,17 @@ CREATE TABLE ag_label (
 );
 
 CREATE UNIQUE INDEX ag_label_name_graph_index
-ON ag_label
-USING btree (name, graph);
+ON ag_label USING btree (name, graph);
 
 CREATE UNIQUE INDEX ag_label_graph_oid_index
-ON ag_label
-USING btree (graph, id);
+ON ag_label USING btree (graph, id);
 
-CREATE UNIQUE INDEX ag_label_relation_index ON ag_label USING btree (relation);
+CREATE UNIQUE INDEX ag_label_relation_index
+ON ag_label USING btree (relation);
 
 --
 -- catalog lookup functions
 --
-
 CREATE FUNCTION _label_id(graph_name name, label_name name)
 RETURNS label_id
 LANGUAGE c
@@ -97,13 +94,13 @@ LANGUAGE c
 AS 'MODULE_PATHNAME';
 
 CREATE FUNCTION create_vlabel(graph_name name, label_name name)
-    RETURNS void
-    LANGUAGE c
+RETURNS void
+LANGUAGE c
 AS 'MODULE_PATHNAME';
 
 CREATE FUNCTION create_elabel(graph_name name, label_name name)
-    RETURNS void
-    LANGUAGE c
+RETURNS void
+LANGUAGE c
 AS 'MODULE_PATHNAME';
 
 CREATE FUNCTION alter_graph(graph_name name, operation cstring, new_value name)
@@ -118,19 +115,19 @@ LANGUAGE c
 AS 'MODULE_PATHNAME';
 
 CREATE FUNCTION load_labels_from_file(graph_name name,
-                                            label_name name,
-                                            file_path text,
-                                            id_field_exists bool default true)
-    RETURNS void
-    LANGUAGE c
-    AS 'MODULE_PATHNAME';
+                                      label_name name,
+                                      file_path text,
+                                      id_field_exists bool default true)
+RETURNS void
+LANGUAGE c
+AS 'MODULE_PATHNAME';
 
 CREATE FUNCTION load_edges_from_file(graph_name name,
-                                                label_name name,
-                                                file_path text)
-    RETURNS void
-    LANGUAGE c
-    AS 'MODULE_PATHNAME';
+                                     label_name name,
+                                     file_path text)
+RETURNS void
+LANGUAGE c
+AS 'MODULE_PATHNAME';
 
 --
 -- graphid type
@@ -186,7 +183,6 @@ CREATE TYPE graphid (
 --
 -- graphid - comparison operators (=, <>, <, >, <=, >=)
 --
-
 CREATE FUNCTION graphid_eq(graphid, graphid)
 RETURNS boolean
 LANGUAGE c
@@ -338,13 +334,13 @@ AS 'MODULE_PATHNAME';
 --   3: compare a test value to a base value plus/minus an offset, and return
 --      true or false according to the comparison result (optional)
 CREATE OPERATOR CLASS graphid_ops DEFAULT FOR TYPE graphid USING btree AS
-  OPERATOR 1 <,
-  OPERATOR 2 <=,
-  OPERATOR 3 =,
-  OPERATOR 4 >=,
-  OPERATOR 5 >,
-  FUNCTION 1 graphid_btree_cmp (graphid, graphid),
-  FUNCTION 2 graphid_btree_sort (internal);
+OPERATOR 1 <,
+OPERATOR 2 <=,
+OPERATOR 3 =,
+OPERATOR 4 >=,
+OPERATOR 5 >,
+FUNCTION 1 graphid_btree_cmp (graphid, graphid),
+FUNCTION 2 graphid_btree_sort (internal);
 
 --
 -- graphid functions
@@ -658,15 +654,13 @@ PARALLEL SAFE
 AS 'MODULE_PATHNAME';
 
 CREATE OPERATOR CLASS agtype_ops_btree
-  DEFAULT
-  FOR TYPE agtype
-  USING btree AS
-  OPERATOR 1 <,
-  OPERATOR 2 <=,
-  OPERATOR 3 =,
-  OPERATOR 4 >,
-  OPERATOR 5 >=,
-  FUNCTION 1 agtype_btree_cmp(agtype, agtype);
+DEFAULT FOR TYPE agtype USING btree AS
+OPERATOR 1 <,
+OPERATOR 2 <=,
+OPERATOR 3 =,
+OPERATOR 4 >,
+OPERATOR 5 >=,
+FUNCTION 1 agtype_btree_cmp(agtype, agtype);
 
 CREATE FUNCTION agtype_hash_cmp(agtype)
 RETURNS INTEGER
@@ -855,7 +849,7 @@ STRICT
 PARALLEL SAFE;
 
 CREATE FUNCTION gin_extract_agtype_query(agtype, internal, int2,
-                                                    internal, internal)
+                                         internal, internal)
 RETURNS internal
 AS 'MODULE_PATHNAME'
 LANGUAGE C
@@ -864,7 +858,7 @@ STRICT
 PARALLEL SAFE;
 
 CREATE FUNCTION gin_consistent_agtype(internal, int2, agtype, int4,
-                                                 internal, internal)
+                                      internal, internal)
 RETURNS bool
 AS 'MODULE_PATHNAME'
 LANGUAGE C
@@ -873,7 +867,7 @@ STRICT
 PARALLEL SAFE;
 
 CREATE FUNCTION gin_triconsistent_agtype(internal, int2, agtype, int4,
-                                                    internal, internal, internal)
+                                         internal, internal, internal)
 RETURNS bool
 AS 'MODULE_PATHNAME'
 LANGUAGE C
@@ -890,11 +884,11 @@ DEFAULT FOR TYPE agtype USING gin AS
   FUNCTION 1 gin_compare_agtype(text,text),
   FUNCTION 2 gin_extract_agtype(agtype, internal),
   FUNCTION 3 gin_extract_agtype_query(agtype, internal, int2,
-                                                 internal, internal),
+                                      internal, internal),
   FUNCTION 4 gin_consistent_agtype(internal, int2, agtype, int4,
-                                              internal, internal),
+                                   internal, internal),
   FUNCTION 6 gin_triconsistent_agtype(internal, int2, agtype, int4,
-                                                 internal, internal, internal),
+                                      internal, internal, internal),
 STORAGE text;
 
 --
@@ -1860,31 +1854,10 @@ IMMUTABLE
 PARALLEL SAFE
 AS 'MODULE_PATHNAME';
 
-CREATE FUNCTION agtype_typecast_vertex(variadic "any")
-RETURNS agtype
-LANGUAGE c
-STABLE
-PARALLEL SAFE
-AS 'MODULE_PATHNAME';
-
-CREATE FUNCTION agtype_typecast_edge(variadic "any")
-RETURNS agtype
-LANGUAGE c
-STABLE
-PARALLEL SAFE
-AS 'MODULE_PATHNAME';
-
-CREATE FUNCTION agtype_typecast_path(variadic "any")
-RETURNS agtype
-LANGUAGE c
-STABLE
-PARALLEL SAFE
-AS 'MODULE_PATHNAME';
-
 -- original VLE function definition
 CREATE FUNCTION age_vle(IN agtype, IN agtype, IN agtype, IN agtype,
-                                   IN agtype, IN agtype, IN agtype,
-                                   OUT edges agtype)
+                        IN agtype, IN agtype, IN agtype,
+                        OUT edges agtype)
 RETURNS SETOF agtype
 LANGUAGE C
 STABLE
@@ -1895,8 +1868,8 @@ AS 'MODULE_PATHNAME';
 -- This is an overloaded function definition to allow for the VLE local context
 -- caching mechanism to coexist with the previous VLE version.
 CREATE FUNCTION age_vle(IN agtype, IN agtype, IN agtype, IN agtype,
-                                   IN agtype, IN agtype, IN agtype, IN agtype,
-                                   OUT edges agtype)
+                        IN agtype, IN agtype, IN agtype, IN agtype,
+                        OUT edges agtype)
 RETURNS SETOF agtype
 LANGUAGE C
 STABLE

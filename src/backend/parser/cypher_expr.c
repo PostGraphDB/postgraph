@@ -56,9 +56,6 @@
 #include "utils/agtype.h"
 
 /* names of typecast functions */
-#define FUNC_AGTYPE_TYPECAST_EDGE "agtype_typecast_edge"
-#define FUNC_AGTYPE_TYPECAST_PATH "agtype_typecast_path"
-#define FUNC_AGTYPE_TYPECAST_VERTEX "agtype_typecast_vertex"
 #define FUNC_AGTYPE_TYPECAST_NUMERIC "agtype_typecast_numeric"
 #define FUNC_AGTYPE_TYPECAST_FLOAT "agtype_typecast_float"
 #define FUNC_AGTYPE_TYPECAST_INT "agtype_typecast_int"
@@ -846,19 +843,7 @@ static Node *transform_cypher_typecast(cypher_parsestate *cpstate,
     fname = list_make1(makeString("ag_catalog"));
 
     /* append the name of the requested typecast function */
-    if (pg_strcasecmp(ctypecast->typecast, "edge") == 0)
-    {
-        fname = lappend(fname, makeString(FUNC_AGTYPE_TYPECAST_EDGE));
-    }
-    else if (pg_strcasecmp(ctypecast->typecast, "path") == 0)
-    {
-        fname = lappend(fname, makeString(FUNC_AGTYPE_TYPECAST_PATH));
-    }
-    else if (pg_strcasecmp(ctypecast->typecast, "vertex") == 0)
-    {
-        fname = lappend(fname, makeString(FUNC_AGTYPE_TYPECAST_VERTEX));
-    }
-    else if (pg_strcasecmp(ctypecast->typecast, "numeric") == 0)
+    if (pg_strcasecmp(ctypecast->typecast, "numeric") == 0)
     {
         fname = lappend(fname, makeString(FUNC_AGTYPE_TYPECAST_NUMERIC));
     }
