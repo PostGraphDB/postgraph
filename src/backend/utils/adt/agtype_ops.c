@@ -236,29 +236,6 @@ Datum agtype_add(PG_FUNCTION_ARGS)
     AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(agtype_any_add);
-
-/* agtype addition between bigint and agtype */
-Datum agtype_any_add(PG_FUNCTION_ARGS)
-{
-    agtype *lhs;
-    agtype *rhs;
-    Datum result;
-
-    lhs = get_one_agtype_from_variadic_args(fcinfo, 0, 2);
-    rhs = get_one_agtype_from_variadic_args(fcinfo, 1, 1);
-
-    if (lhs == NULL || rhs == NULL)
-    {
-        PG_RETURN_NULL();
-    }
-
-    result = DirectFunctionCall2(agtype_add, AGTYPE_P_GET_DATUM(lhs),
-                                             AGTYPE_P_GET_DATUM(rhs));
-
-    AG_RETURN_AGTYPE_P(DATUM_GET_AGTYPE_P(result));
-}
-
 PG_FUNCTION_INFO_V1(agtype_sub);
 
 /*
@@ -324,29 +301,6 @@ Datum agtype_sub(PG_FUNCTION_ARGS)
                         errmsg("Invalid input parameter types for agtype_sub")));
 
     AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv_result));
-}
-
-PG_FUNCTION_INFO_V1(agtype_any_sub);
-
-/* agtype subtraction between bigint and agtype */
-Datum agtype_any_sub(PG_FUNCTION_ARGS)
-{
-    agtype *lhs;
-    agtype *rhs;
-    Datum result;
-
-    lhs = get_one_agtype_from_variadic_args(fcinfo, 0, 2);
-    rhs = get_one_agtype_from_variadic_args(fcinfo, 1, 1);
-
-    if (lhs == NULL || rhs == NULL)
-    {
-        PG_RETURN_NULL();
-    }
-
-    result = DirectFunctionCall2(agtype_sub, AGTYPE_P_GET_DATUM(lhs),
-                                             AGTYPE_P_GET_DATUM(rhs));
-
-    AG_RETURN_AGTYPE_P(DATUM_GET_AGTYPE_P(result));
 }
 
 PG_FUNCTION_INFO_V1(agtype_neg);
@@ -464,29 +418,6 @@ Datum agtype_mul(PG_FUNCTION_ARGS)
     AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(agtype_any_mul);
-
-/* agtype multiplication between bigint and agtype */
-Datum agtype_any_mul(PG_FUNCTION_ARGS)
-{
-    agtype *lhs;
-    agtype *rhs;
-    Datum result;
-
-    lhs = get_one_agtype_from_variadic_args(fcinfo, 0, 2);
-    rhs = get_one_agtype_from_variadic_args(fcinfo, 1, 1);
-
-    if (lhs == NULL || rhs == NULL)
-    {
-        PG_RETURN_NULL();
-    }
-
-    result = DirectFunctionCall2(agtype_mul, AGTYPE_P_GET_DATUM(lhs),
-                                             AGTYPE_P_GET_DATUM(rhs));
-
-    AG_RETURN_AGTYPE_P(DATUM_GET_AGTYPE_P(result));
-}
-
 PG_FUNCTION_INFO_V1(agtype_div);
 
 /*
@@ -582,29 +513,6 @@ Datum agtype_div(PG_FUNCTION_ARGS)
      AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(agtype_any_div);
-
-/* agtype division between bigint and agtype */
-Datum agtype_any_div(PG_FUNCTION_ARGS)
-{
-    agtype *lhs;
-    agtype *rhs;
-    Datum result;
-
-    lhs = get_one_agtype_from_variadic_args(fcinfo, 0, 2);
-    rhs = get_one_agtype_from_variadic_args(fcinfo, 1, 1);
-
-    if (lhs == NULL || rhs == NULL)
-    {
-        PG_RETURN_NULL();
-    }
-
-    result = DirectFunctionCall2(agtype_div, AGTYPE_P_GET_DATUM(lhs),
-                                             AGTYPE_P_GET_DATUM(rhs));
-
-    AG_RETURN_AGTYPE_P(DATUM_GET_AGTYPE_P(result));
-}
-
 PG_FUNCTION_INFO_V1(agtype_mod);
 
 /*
@@ -670,29 +578,6 @@ Datum agtype_mod(PG_FUNCTION_ARGS)
                         errmsg("Invalid input parameter types for agtype_mod")));
 
     AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv_result));
-}
-
-PG_FUNCTION_INFO_V1(agtype_any_mod);
-
-/* agtype modulo between bigint and agtype */
-Datum agtype_any_mod(PG_FUNCTION_ARGS)
-{
-    agtype *lhs;
-    agtype *rhs;
-    Datum result;
-
-    lhs = get_one_agtype_from_variadic_args(fcinfo, 0, 2);
-    rhs = get_one_agtype_from_variadic_args(fcinfo, 1, 1);
-
-    if (lhs == NULL || rhs == NULL)
-    {
-        PG_RETURN_NULL();
-    }
-
-    result = DirectFunctionCall2(agtype_mod, AGTYPE_P_GET_DATUM(lhs),
-                                             AGTYPE_P_GET_DATUM(rhs));
-
-    AG_RETURN_AGTYPE_P(DATUM_GET_AGTYPE_P(result));
 }
 
 PG_FUNCTION_INFO_V1(agtype_pow);
@@ -779,28 +664,6 @@ Datum agtype_eq(PG_FUNCTION_ARGS)
     PG_RETURN_BOOL(result);
 }
 
-PG_FUNCTION_INFO_V1(agtype_any_eq);
-
-Datum agtype_any_eq(PG_FUNCTION_ARGS)
-{
-    agtype *lhs;
-    agtype *rhs;
-    Datum result;
-
-    lhs = get_one_agtype_from_variadic_args(fcinfo, 0, 2);
-    rhs = get_one_agtype_from_variadic_args(fcinfo, 1, 1);
-
-    if (lhs == NULL || rhs == NULL)
-    {
-        PG_RETURN_NULL();
-    }
-
-    result = DirectFunctionCall2(agtype_eq, AGTYPE_P_GET_DATUM(lhs),
-                                            AGTYPE_P_GET_DATUM(rhs));
-
-    PG_RETURN_BOOL(result);
-}
-
 PG_FUNCTION_INFO_V1(agtype_ne);
 
 Datum agtype_ne(PG_FUNCTION_ARGS)
@@ -814,28 +677,6 @@ Datum agtype_ne(PG_FUNCTION_ARGS)
 
     PG_FREE_IF_COPY(agtype_lhs, 0);
     PG_FREE_IF_COPY(agtype_rhs, 1);
-
-    PG_RETURN_BOOL(result);
-}
-
-PG_FUNCTION_INFO_V1(agtype_any_ne);
-
-Datum agtype_any_ne(PG_FUNCTION_ARGS)
-{
-    agtype *lhs;
-    agtype *rhs;
-    Datum result;
-
-    lhs = get_one_agtype_from_variadic_args(fcinfo, 0, 2);
-    rhs = get_one_agtype_from_variadic_args(fcinfo, 1, 1);
-
-    if (lhs == NULL || rhs == NULL)
-    {
-        PG_RETURN_NULL();
-    }
-
-    result = DirectFunctionCall2(agtype_ne, AGTYPE_P_GET_DATUM(lhs),
-                                            AGTYPE_P_GET_DATUM(rhs));
 
     PG_RETURN_BOOL(result);
 }
@@ -857,28 +698,6 @@ Datum agtype_lt(PG_FUNCTION_ARGS)
     PG_RETURN_BOOL(result);
 }
 
-PG_FUNCTION_INFO_V1(agtype_any_lt);
-
-Datum agtype_any_lt(PG_FUNCTION_ARGS)
-{
-    agtype *lhs;
-    agtype *rhs;
-    Datum result;
-
-    lhs = get_one_agtype_from_variadic_args(fcinfo, 0, 2);
-    rhs = get_one_agtype_from_variadic_args(fcinfo, 1, 1);
-
-    if (lhs == NULL || rhs == NULL)
-    {
-        PG_RETURN_NULL();
-    }
-
-    result = DirectFunctionCall2(agtype_lt, AGTYPE_P_GET_DATUM(lhs),
-                                            AGTYPE_P_GET_DATUM(rhs));
-
-    PG_RETURN_BOOL(result);
-}
-
 PG_FUNCTION_INFO_V1(agtype_gt);
 
 Datum agtype_gt(PG_FUNCTION_ARGS)
@@ -892,28 +711,6 @@ Datum agtype_gt(PG_FUNCTION_ARGS)
 
     PG_FREE_IF_COPY(agtype_lhs, 0);
     PG_FREE_IF_COPY(agtype_rhs, 1);
-
-    PG_RETURN_BOOL(result);
-}
-
-PG_FUNCTION_INFO_V1(agtype_any_gt);
-
-Datum agtype_any_gt(PG_FUNCTION_ARGS)
-{
-    agtype *lhs;
-    agtype *rhs;
-    Datum result;
-
-    lhs = get_one_agtype_from_variadic_args(fcinfo, 0, 2);
-    rhs = get_one_agtype_from_variadic_args(fcinfo, 1, 1);
-
-    if (lhs == NULL || rhs == NULL)
-    {
-        PG_RETURN_NULL();
-    }
-
-    result = DirectFunctionCall2(agtype_gt, AGTYPE_P_GET_DATUM(lhs),
-                                            AGTYPE_P_GET_DATUM(rhs));
 
     PG_RETURN_BOOL(result);
 }
@@ -935,28 +732,6 @@ Datum agtype_le(PG_FUNCTION_ARGS)
     PG_RETURN_BOOL(result);
 }
 
-PG_FUNCTION_INFO_V1(agtype_any_le);
-
-Datum agtype_any_le(PG_FUNCTION_ARGS)
-{
-    agtype *lhs;
-    agtype *rhs;
-    Datum result;
-
-    lhs = get_one_agtype_from_variadic_args(fcinfo, 0, 2);
-    rhs = get_one_agtype_from_variadic_args(fcinfo, 1, 1);
-
-    if (lhs == NULL || rhs == NULL)
-    {
-        PG_RETURN_NULL();
-    }
-
-    result = DirectFunctionCall2(agtype_le, AGTYPE_P_GET_DATUM(lhs),
-                                            AGTYPE_P_GET_DATUM(rhs));
-
-    PG_RETURN_BOOL(result);
-}
-
 PG_FUNCTION_INFO_V1(agtype_ge);
 
 Datum agtype_ge(PG_FUNCTION_ARGS)
@@ -973,29 +748,6 @@ Datum agtype_ge(PG_FUNCTION_ARGS)
 
     PG_RETURN_BOOL(result);
 }
-
-PG_FUNCTION_INFO_V1(agtype_any_ge);
-
-Datum agtype_any_ge(PG_FUNCTION_ARGS)
-{
-    agtype *lhs;
-    agtype *rhs;
-    Datum result;
-
-    lhs = get_one_agtype_from_variadic_args(fcinfo, 0, 2);
-    rhs = get_one_agtype_from_variadic_args(fcinfo, 1, 1);
-
-    if (lhs == NULL || rhs == NULL)
-    {
-        PG_RETURN_NULL();
-    }
-
-    result = DirectFunctionCall2(agtype_ge, AGTYPE_P_GET_DATUM(lhs),
-                                            AGTYPE_P_GET_DATUM(rhs));
-
-    PG_RETURN_BOOL(result);
-}
-
 
 PG_FUNCTION_INFO_V1(agtype_contains);
 /*
