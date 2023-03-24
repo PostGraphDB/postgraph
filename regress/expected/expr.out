@@ -1676,157 +1676,6 @@ SELECT agtype_in('[NaN, {"e": 2.718281::numeric, "one": Infinity, "pie": 3.14159
  [NaN, {"e": 2.718281::numeric, "one": Infinity, "pie": 3.1415927}, 2::numeric, null]
 (1 row)
 
---
--- Test typecast :: transform and execution logic for object (vertex & edge)
---
-SELECT * FROM cypher('expr', $$
-RETURN {id:0, label:"vertex 0", properties:{}}::vertex
-$$) AS r(result agtype);
-                          result                          
-----------------------------------------------------------
- {"id": 0, "label": "vertex 0", "properties": {}}::vertex
-(1 row)
-
-SELECT * FROM cypher('expr', $$
-RETURN {vertex_0:{id:0, label:"vertex 0", properties:{}}::vertex}
-$$) AS r(result agtype);
-                                 result                                 
-------------------------------------------------------------------------
- {"vertex_0": {"id": 0, "label": "vertex 0", "properties": {}}::vertex}
-(1 row)
-
-SELECT * FROM cypher('expr', $$
-RETURN {name:"container 0", vertices:[{vertex_0:{id:0, label:"vertex 0", properties:{}}::vertex}, {vertex_0:{id:0, label:"vertex 0", properties:{}}::vertex}]}
-$$) AS r(result agtype);
-                                                                                        result                                                                                         
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- {"name": "container 0", "vertices": [{"vertex_0": {"id": 0, "label": "vertex 0", "properties": {}}::vertex}, {"vertex_0": {"id": 0, "label": "vertex 0", "properties": {}}::vertex}]}
-(1 row)
-
-SELECT * FROM cypher('expr', $$
-RETURN {id:3, label:"edge 0", properties:{}, start_id:0, end_id:1}::edge
-$$) AS r(result agtype);
-                                      result                                      
-----------------------------------------------------------------------------------
- {"id": 3, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge
-(1 row)
-
-SELECT * FROM cypher('expr', $$
-RETURN {edge_0:{id:3, label:"edge 0", properties:{}, start_id:0, end_id:1}::edge}
-$$) AS r(result agtype);
-                                            result                                            
-----------------------------------------------------------------------------------------------
- {"edge_0": {"id": 3, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge}
-(1 row)
-
---invalid edge typecast
-SELECT * FROM cypher('expr', $$
-RETURN {edge_0:{id:3, label:"edge 0", properties:{}, startid:0, end_id:1}::edge}
-$$) AS r(result agtype);
-ERROR:  edge typecast object has an invalid or missing start_id
-SELECT * FROM cypher('expr', $$
-RETURN {edge_0:{id:3, label:"edge 0", properties:{}, start_id:0, endid:1}::edge}
-$$) AS r(result agtype);
-ERROR:  edge typecast object has an invalid or missing end_id
-SELECT * FROM cypher('expr', $$
-RETURN {name:"container 1", edges:[{id:3, label:"edge 0", properties:{}, start_id:0, end_id:1}::edge, {id:4, label:"edge 1", properties:{}, start_id:1, end_id:0}::edge]}
-$$) AS r(result agtype);
-                                                                                                 result                                                                                                 
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- {"name": "container 1", "edges": [{"id": 3, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge, {"id": 4, "label": "edge 1", "end_id": 0, "start_id": 1, "properties": {}}::edge]}
-(1 row)
-
-SELECT * FROM cypher('expr', $$
-RETURN {name:"path 1", path:[{id:0, label:"vertex 0", properties:{}}::vertex, {id:2, label:"edge 0", properties:{}, start_id:0, end_id:1}::edge, {id:1, label:"vertex 1", properties:{}}::vertex]}
-$$) AS r(result agtype);
-                                                                                                               result                                                                                                               
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- {"name": "path 1", "path": [{"id": 0, "label": "vertex 0", "properties": {}}::vertex, {"id": 2, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge, {"id": 1, "label": "vertex 1", "properties": {}}::vertex]}
-(1 row)
-
--- should return null
-SELECT * FROM cypher('expr', $$
-RETURN NULL::vertex
-$$) AS r(result agtype);
- result 
---------
- 
-(1 row)
-
-SELECT * FROM cypher('expr', $$
-RETURN NULL::edge
-$$) AS r(result agtype);
- result 
---------
- 
-(1 row)
-
-SELECT agtype_typecast_vertex('null'::agtype);
- agtype_typecast_vertex 
-------------------------
- 
-(1 row)
-
-SELECT agtype_typecast_vertex(null);
- agtype_typecast_vertex 
-------------------------
- 
-(1 row)
-
-SELECT agtype_typecast_edge('null'::agtype);
- agtype_typecast_edge 
-----------------------
- 
-(1 row)
-
-SELECT agtype_typecast_edge(null);
- agtype_typecast_edge 
-----------------------
- 
-(1 row)
-
--- should return JSON null
-SELECT agtype_in('null::vertex');
- agtype_in 
------------
- null
-(1 row)
-
-SELECT agtype_in('null::edge');
- agtype_in 
------------
- null
-(1 row)
-
--- should all fail
-SELECT * FROM cypher('expr', $$
-RETURN {id:0, labelz:"vertex 0", properties:{}}::vertex
-$$) AS r(result agtype);
-ERROR:  vertex typecast object has invalid or missing label
-SELECT * FROM cypher('expr', $$
-RETURN {id:0, label:"vertex 0"}::vertex
-$$) AS r(result agtype);
-ERROR:  typecast object is not a vertex
-SELECT * FROM cypher('expr', $$
-RETURN {id:"0", label:"vertex 0", properties:{}}::vertex
-$$) AS r(result agtype);
-ERROR:  vertex typecast object has invalid or missing id
-SELECT * FROM cypher('expr', $$
-RETURN {}::vertex
-$$) AS r(result agtype);
-ERROR:  typecast object is not a vertex
-SELECT * FROM cypher('expr', $$
-RETURN {id:3, labelz:"edge 0", properties:{}, start_id:0, end_id:1}::edge
-$$) AS r(result agtype);
-ERROR:  edge typecast object has an invalid or missing label
-SELECT * FROM cypher('expr', $$
-RETURN {id:3, label:"edge 0", start_id:0, end_id:1}::edge
-$$) AS r(result agtype);
-ERROR:  typecast object is not an edge
-SELECT * FROM cypher('expr', $$
-RETURN {}::edge
-$$) AS r(result agtype);
-ERROR:  typecast object is not an edge
 -- make sure that output can be read back in and reproduce the output
 SELECT agtype_in('{"name": "container 0", "vertices": [{"vertex_0": {"id": 0, "label": "vertex 0", "properties": {}}::vertex}, {"vertex_0": {"id": 0, "label": "vertex 0", "properties": {}}::vertex}]}');
                                                                                        agtype_in                                                                                       
@@ -1859,18 +1708,6 @@ SELECT agtype_in('{"Path" : [{"id": 0, "label": "vertex 0", "properties": {}}::v
  {"Path": [{"id": 0, "label": "vertex 0", "properties": {}}::vertex, {"id": 2, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge, {"id": 1, "label": "vertex 1", "properties": {}}::vertex]::path}
 (1 row)
 
-SELECT * FROM cypher('expr', $$ RETURN [{id: 0, label: "vertex 0", properties: {}}::vertex, {id: 2, label: "edge 0", end_id: 1, start_id: 0, properties: {}}::edge, {id: 1, label: "vertex 1", properties: {}}::vertex]::path $$) AS r(result agtype);
-                                                                                                    result                                                                                                    
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 0, "label": "vertex 0", "properties": {}}::vertex, {"id": 2, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge, {"id": 1, "label": "vertex 1", "properties": {}}::vertex]::path
-(1 row)
-
-SELECT * FROM cypher('expr', $$ RETURN {path : [{id: 0, label: "vertex 0", properties: {}}::vertex, {id: 2, label: "edge 0", end_id: 1, start_id: 0, properties: {}}::edge, {id: 1, label: "vertex 1", properties: {}}::vertex]::path} $$) AS r(result agtype);
-                                                                                                         result                                                                                                         
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- {"path": [{"id": 0, "label": "vertex 0", "properties": {}}::vertex, {"id": 2, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge, {"id": 1, "label": "vertex 1", "properties": {}}::vertex]::path}
-(1 row)
-
 -- verify that the output can be input
 SELECT agtype_in('[{"id": 0, "label": "vertex 0", "properties": {}}::vertex, {"id": 2, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge, {"id": 1, "label": "vertex 1", "properties": {}}::vertex]::path');
                                                                                                   agtype_in                                                                                                   
@@ -1889,37 +1726,6 @@ SELECT agtype_in('[{"id": 0, "label": "vertex 0", "properties": {}}::vertex, {"i
 ERROR:  array is not a valid path
 SELECT agtype_in('{"Path" : [{"id": 2, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge, {"id": 0, "label": "vertex 0", "properties": {}}::vertex, {"id": 2, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge, {"id": 1, "label": "vertex 1", "properties": {}}::vertex]::path}');
 ERROR:  array is not a valid path
-SELECT * FROM cypher('expr', $$ RETURN [{id: 0, label: "vertex 0", properties: {}}::vertex]::path $$) AS r(result agtype);
-ERROR:  typecast argument is not a valid path
-SELECT * FROM cypher('expr', $$ RETURN [{id: 2, label: "edge 0", end_id: 1, start_id: 0, properties: {}}::edge]::path $$) AS r(result agtype);
-ERROR:  typecast argument is not a valid path
-SELECT * FROM cypher('expr', $$ RETURN []::path $$) AS r(result agtype);
-ERROR:  typecast argument is not a valid path
--- should be JSON null
-SELECT agtype_in('null::path');
- agtype_in 
------------
- null
-(1 row)
-
--- should be SQL null
-SELECT * FROM cypher('expr', $$ RETURN null::path $$) AS r(result agtype);
- result 
---------
- 
-(1 row)
-
-SELECT agtype_typecast_path(agtype_in('null'));
- agtype_typecast_path 
-----------------------
- 
-(1 row)
-
-SELECT agtype_typecast_path(null);
- agtype_typecast_path 
-----------------------
- 
-(1 row)
 
 -- test functions
 -- create some vertices and edges
@@ -2195,14 +2001,6 @@ $$) AS (label agtype);
  "e1"
  "e1"
 (2 rows)
-
-SELECT * FROM cypher('expr', $$
-    RETURN label({id: 0, label: 'typecast', properties: {}}::vertex)
-$$) AS (label agtype);
-   label    
-------------
- "typecast"
-(1 row)
 
 -- return NULL
 SELECT * FROM cypher('expr', $$
@@ -2697,23 +2495,6 @@ ERROR:  function ag_catalog.age_tointeger() does not exist
 LINE 2:     RETURN toInteger()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
--- length() of a path
-SELECT * FROM cypher('expr', $$
-    RETURN length([{id: 0, label: "vertex 0", properties: {}}::vertex, {id: 2, label: "edge 0", end_id: 1, start_id: 0, properties: {}}::edge, {id: 1, label: "vertex 1", properties: {}}::vertex]::path)
-$$) AS (length agtype);
- length 
---------
- 1
-(1 row)
-
-SELECT * FROM cypher('expr', $$
-    RETURN length([{id: 0, label: "vertex 0", properties: {}}::vertex, {id: 2, label: "edge 0", end_id: 1, start_id: 0, properties: {}}::edge, {id: 1, label: "vertex 1", properties: {}}::vertex, {id: 2, label: "edge 0", end_id: 1, start_id: 0, properties: {}}::edge, {id: 1, label: "vertex 1", properties: {}}::vertex]::path)
-$$) AS (length agtype);
- length 
---------
- 2
-(1 row)
-
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN length(null)

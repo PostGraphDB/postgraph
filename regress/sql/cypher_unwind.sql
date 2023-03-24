@@ -42,7 +42,8 @@ SELECT * FROM cypher('cypher_unwind', $$
 $$) as (i agtype);
 
 SELECT * FROM cypher('cypher_unwind', $$
-    WITH [{id: 0, label:'', properties:{}}::vertex, {id: 1, label:'', properties:{}}::vertex] as n
+    MATCH (n_1)
+    WITH collect(n_1) as n
     UNWIND n as a
     SET a.i = 1
     RETURN a
