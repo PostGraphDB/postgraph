@@ -7316,6 +7316,24 @@ Datum age_pi(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
 }   
 
+PG_FUNCTION_INFO_V1(age_rand);
+
+Datum age_rand(PG_FUNCTION_ARGS)
+{
+    agtype_value agtv_result;
+    float8 float_result;
+
+    /* get e by raising e to 1 - no, they don't have a constant e :/ */
+    float_result = DatumGetFloat8(DirectFunctionCall1(random, Float8GetDatum(1)));
+
+    /* build the result */
+    agtv_result.type = AGTV_FLOAT;
+    agtv_result.val.float_value = float_result;
+
+    PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
+}
+
+
 PG_FUNCTION_INFO_V1(age_exp);
 
 Datum age_exp(PG_FUNCTION_ARGS)
