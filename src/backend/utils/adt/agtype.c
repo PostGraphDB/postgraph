@@ -4314,133 +4314,50 @@ Datum age_toboolean(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(age_tofloat);
-
-Datum age_tofloat(PG_FUNCTION_ARGS)
-{
-    int nargs;
-    Datum *args;
-    Datum arg;
-    bool *nulls;
-    Oid *types;
+Datum
+age_tofloat(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
     agtype_value agtv_result;
-    char *string = NULL;
-    bool is_valid = false;
-    Oid type;
     float8 result;
 
-    /* extract argument values */
-    nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
-
-    /* check number of args */
-    if (nargs > 1)
+    if (!AGT_ROOT_IS_SCALAR(agt))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("toFloat() only supports one argument")));
+                        errmsg("toFloat() only supports scalar arguments")));
 
-    /* check for null */
-    if (nargs < 0 || nulls[0])
-        PG_RETURN_NULL();
+    agtype_value *agtv_value =
+        get_ith_agtype_value_from_container(&agt->root, 0);
 
-    /*
-     * toFloat() supports integer, float, numeric, text, cstring, or the
-     * agtype integer, float, numeric, and string input
-     */
-    arg = args[0];
-    type = types[0];
+    if (agtv_value->type == AGTV_INTEGER) {
+        char *string = DatumGetCString(DirectFunctionCall1(int8out,
+                             Int64GetDatum(agtv_value->val.int_value)));
 
-    if (type != AGTYPEOID)
-    {
-        if (type == INT2OID)
-            result = (float8) DatumGetInt16(arg);
-        else if (type == INT4OID)
-            result = (float8) DatumGetInt32(arg);
-        else if (type == INT8OID)
-        {
-            /*
-             * Get the string representation of the integer because it could be
-             * too large to fit in a float. Let the float routine determine
-             * what to do with it.
-             */
-            string = DatumGetCString(DirectFunctionCall1(int8out, arg));
-            /* turn it into a float */
-            result = float8in_internal_null(string, NULL, "double precision",
-                                            string, &is_valid);
-            /* return null if it was not a invalid float */
-            if (!is_valid)
-                PG_RETURN_NULL();
-        }
-        else if (type == FLOAT4OID)
-            result = (float8) DatumGetFloat4(arg);
-        else if (type == FLOAT8OID)
-            result = DatumGetFloat8(arg);
-        else if (type == NUMERICOID)
-            result = DatumGetFloat8(DirectFunctionCall1(
-                numeric_float8_no_overflow, arg));
-        else if (type == CSTRINGOID || type == TEXTOID)
-        {
-            if (type == CSTRINGOID)
-                string = DatumGetCString(arg);
-            else
-                string = text_to_cstring(DatumGetTextPP(arg));
+        bool is_valid;
+        result = float8in_internal_null(string, NULL, "double precision",
+                                        string, &is_valid);
 
-            result = float8in_internal_null(string, NULL, "double precision",
-                                            string, &is_valid);
-            if (!is_valid)
-                PG_RETURN_NULL();
-        }
-        else
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("toFloat() unsupported argument type %d",
-                                   type)));
-    }
-    else
-    {
-        agtype *agt_arg;
-        agtype_value *agtv_value;
-
-        /* get the agtype argument */
-        agt_arg = DATUM_GET_AGTYPE_P(arg);
-
-        if (!AGT_ROOT_IS_SCALAR(agt_arg))
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("toFloat() only supports scalar arguments")));
-
-        agtv_value = get_ith_agtype_value_from_container(&agt_arg->root, 0);
-
-        if (agtv_value->type == AGTV_INTEGER)
-        {
-            /* get the string representation of the integer */
-            string = DatumGetCString(DirectFunctionCall1(int8out,
-                         Int64GetDatum(agtv_value->val.int_value)));
-            /* turn it into a float */
-            result = float8in_internal_null(string, NULL, "double precision",
-                                            string, &is_valid);
-            /* return null if it was an invalid float */
-            if (!is_valid)
-                PG_RETURN_NULL();
-        }
-        else if (agtv_value->type == AGTV_FLOAT)
-            result = agtv_value->val.float_value;
-        else if (agtv_value->type == AGTV_NUMERIC)
-            result = DatumGetFloat8(DirectFunctionCall1(
+        if (!is_valid)
+            PG_RETURN_NULL();
+    } else if (agtv_value->type == AGTV_FLOAT) {
+        result = agtv_value->val.float_value;
+    } else if (agtv_value->type == AGTV_NUMERIC) {
+        result = DatumGetFloat8(DirectFunctionCall1(
                 numeric_float8_no_overflow,
                 NumericGetDatum(agtv_value->val.numeric)));
-        else if (agtv_value->type == AGTV_STRING)
-        {
-            string = strndup(agtv_value->val.string.val,
-                             agtv_value->val.string.len);
-            result = float8in_internal_null(string, NULL, "double precision",
-                                            string, &is_valid);
-            free(string);
-            if (!is_valid)
-                PG_RETURN_NULL();
-        }
-        else
+    } else if (agtv_value->type == AGTV_STRING) {
+        char *string = strndup(agtv_value->val.string.val,
+                               agtv_value->val.string.len);
+
+        bool is_valid;
+        result = float8in_internal_null(string, NULL, "double precision",
+                                        string, &is_valid);
+        if (!is_valid)
+            PG_RETURN_NULL();
+    } else {
             ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("toFloat() unsupported argument agtype %d",
+                        errmsg("toFloat(agtype) unsupported argument agtype %d",
                                    agtv_value->type)));
     }
 
-    /* build the result */
     agtv_result.type = AGTV_FLOAT;
     agtv_result.val.float_value = result;
 
@@ -7386,6 +7303,18 @@ Datum age_e(PG_FUNCTION_ARGS)
 
     PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
 }
+
+PG_FUNCTION_INFO_V1(age_pi);
+    
+Datum age_pi(PG_FUNCTION_ARGS)
+{   
+    agtype_value agtv_result;
+    
+    agtv_result.type = AGTV_FLOAT;
+    agtv_result.val.float_value = M_PI;
+
+    PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
+}   
 
 PG_FUNCTION_INFO_V1(age_exp);
 
