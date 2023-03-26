@@ -1626,6 +1626,7 @@ $$) AS r(result agtype);
  -Infinity
 (1 row)
 
+-- should return SQL null
 SELECT * FROM cypher('expr', $$
 RETURN null::float
 $$) AS r(result agtype);
@@ -1634,6 +1635,7 @@ $$) AS r(result agtype);
  
 (1 row)
 
+-- should return JSON null
 SELECT agtype_in('null::float');
  agtype_in 
 -----------
@@ -1736,7 +1738,6 @@ SELECT agtype_in('[{"id": 0, "label": "vertex 0", "properties": {}}::vertex, {"i
 ERROR:  array is not a valid path
 SELECT agtype_in('{"Path" : [{"id": 2, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge, {"id": 0, "label": "vertex 0", "properties": {}}::vertex, {"id": 2, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge, {"id": 1, "label": "vertex 1", "properties": {}}::vertex]::path}');
 ERROR:  array is not a valid path
-
 -- test functions
 -- create some vertices and edges
 SELECT * FROM cypher('expr', $$CREATE (:v)$$) AS (a agtype);
@@ -2427,7 +2428,7 @@ $$) AS (toFloat agtype);
 SELECT * FROM cypher('expr', $$
     RETURN toFloat(true)
 $$) AS (toFloat agtype);
-ERROR:  toFloat() unsupported argument agtype 5
+ERROR:  toFloat(agtype) unsupported argument agtype 5
 SELECT * FROM cypher('expr', $$
     RETURN toFloat()
 $$) AS (toFloat agtype);
@@ -3614,7 +3615,7 @@ ERROR:  replace() unsupported argument type 23
 --
 -- sin, cos, tan, cot
 --
-SELECT sin = results FROM cypher('expr', $$
+SELECT sin::agtype = results FROM cypher('expr', $$
     RETURN sin(3.1415)
 $$) AS (results agtype), sin(3.1415);
  ?column? 
@@ -4092,14 +4093,14 @@ $$) AS (results agtype);
 SELECT * FROM cypher('expr', $$
     RETURN pi(null)
 $$) AS (results agtype);
-ERROR:  function pg_catalog.pi(agtype) does not exist
+ERROR:  function ag_catalog.age_pi(agtype) does not exist
 LINE 2:     RETURN pi(null)
                      ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN pi(1)
 $$) AS (results agtype);
-ERROR:  function pg_catalog.pi(agtype) does not exist
+ERROR:  function ag_catalog.age_pi(agtype) does not exist
 LINE 2:     RETURN pi(1)
                      ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -4538,12 +4539,12 @@ ERROR:  sign() unsupported argument agtype 1
 -- rand()
 --
 -- should select 0 rows as rand() is in [0,1)
-SELECT * FROM cypher('expr', $$
+SELECT true FROM cypher('expr', $$
     RETURN rand()
-$$) AS (result agtype)
+$$) AS (result int)
 WHERE result >= 1 or result < 0;
- result 
---------
+ bool 
+------
 (0 rows)
 
 -- should select 0 rows as rand() should not return the same value
@@ -4756,15 +4757,6 @@ SELECT * from cypher('expr', $$
     RETURN sqrt("1")
 $$) as (result agtype);
 ERROR:  sqrt() unsupported argument agtype 1
-
-SELECT * from cypher('expr', $$
-    RETURN ag_catalog.age_sqrt(25)
-$$) as (result agtype);
- result 
---------
- 5.0
-(1 row)
-
 --
 -- aggregate functions avg(), sum(), count(), & count(*)
 --
@@ -4893,7 +4885,7 @@ LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN sum() $$) AS (sum agt...
                                                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('UCSC', $$ RETURN count() $$) AS (count agtype);
-ERROR:  pg_catalog.count(*) must be used to call a parameterless aggregate function
+ERROR:  ag_catalog.age_count(*) must be used to call a parameterless aggregate function
 LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN count() $$) AS (count...
                                                ^
 --

@@ -1354,7 +1354,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 AS 'MODULE_PATHNAME';
 
-CREATE FUNCTION age_tointeger(variadic "any")
+CREATE FUNCTION age_tointeger(agtype)
 RETURNS agtype
 LANGUAGE c
 IMMUTABLE
@@ -1623,12 +1623,51 @@ IMMUTABLE
 PARALLEL SAFE
 AS 'MODULE_PATHNAME';
 
+CREATE FUNCTION age_pi()
+RETURNS agtype
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION age_rand()
+RETURNS agtype
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
 CREATE FUNCTION age_timestamp()
 RETURNS agtype
 LANGUAGE c
 IMMUTABLE
 PARALLEL SAFE
 AS 'MODULE_PATHNAME';
+
+--
+-- Agreggation
+--
+CREATE AGGREGATE age_count(*)
+(
+   stype = int8,
+   sfunc = int8inc,
+   finalfunc = int8_to_agtype,
+   combinefunc = int8pl,
+   finalfunc_modify = READ_WRITE,
+   initcond = 0,
+   parallel = safe
+);
+
+CREATE AGGREGATE age_count(agtype)
+(
+   stype = int8,
+   sfunc = int8inc_any,
+   finalfunc = int8_to_agtype,
+   combinefunc = int8pl,
+   finalfunc_modify = READ_WRITE,
+   initcond = 0,
+   parallel = safe
+);
 
 --
 -- aggregate function components for stdev(internal, agtype)

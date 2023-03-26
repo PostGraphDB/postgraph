@@ -1926,9 +1926,6 @@ static Node *make_null_const(int location)
     return (Node *)n;
 }
 
-/*
- * typecast
- */
 static Node *make_typecast_expr(Node *expr, char *typecast, int location)
 {
     cypher_typecast *node;
@@ -1941,48 +1938,12 @@ static Node *make_typecast_expr(Node *expr, char *typecast, int location)
     return (Node *)node;
 }
 
-/*
- * functions
- */
 static Node *make_function_expr(List *func_name, List *exprs, int location)
 {
     FuncCall *fnode;
 
-    /* AGE function names are unqualified. So, their list size = 1 */
-    if (list_length(func_name) == 1)
-    {
-        List *funcname;
-        char *name;
+    fnode = makeFuncCall(func_name, exprs, COERCE_SQL_SYNTAX, location);
 
-        /* get the name of the function */
-        name = ((Value*)linitial(func_name))->val.str;
-
-        /*
-         * Check for openCypher functions that are directly mapped to PG
-         * functions. We may want to find a better way to do this, as there
-         * could be many.
-         */
-        if (pg_strcasecmp(name, "rand") == 0)
-            funcname = SystemFuncName("random");
-        else if (pg_strcasecmp(name, "pi") == 0)
-            funcname = SystemFuncName("pi");
-        else if (pg_strcasecmp(name, "count") == 0)
-            funcname = SystemFuncName("count");
-        else
-            /*
-             * We don't qualify AGE functions here. This is done in the
-             * transform layer and allows us to know which functions are ours.
-             */
-            funcname = func_name;
-
-        /* build the function call */
-        fnode = makeFuncCall(funcname, exprs, COERCE_SQL_SYNTAX, location);
-    }
-    /* all other functions are passed as is */
-    else
-        fnode = makeFuncCall(func_name, exprs, COERCE_SQL_SYNTAX, location);
-
-    /* return the node */
     return (Node *)fnode;
 }
 

@@ -1890,9 +1890,9 @@ $$) AS (results agtype);
 -- rand()
 --
 -- should select 0 rows as rand() is in [0,1)
-SELECT * FROM cypher('expr', $$
+SELECT true FROM cypher('expr', $$
     RETURN rand()
-$$) AS (result agtype)
+$$) AS (result int)
 WHERE result >= 1 or result < 0;
 -- should select 0 rows as rand() should not return the same value
 SELECT * FROM cypher('expr', $$
