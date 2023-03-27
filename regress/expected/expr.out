@@ -1982,7 +1982,16 @@ $$) AS (type agtype);
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN type(v)
 $$) AS (type agtype);
-ERROR:  type() argument must be an edge or null
+ type 
+------
+ "v"
+ "v"
+ "v"
+ "v1"
+ "v1"
+ "v1"
+(6 rows)
+
 SELECT * FROM cypher('expr', $$
     RETURN type()
 $$) AS (type agtype);
@@ -2816,35 +2825,19 @@ $$) AS (toUpper agtype);
 (1 row)
 
 SELECT * FROM cypher('expr', $$
+    RETURN toUpper('')
+$$) AS (toUpper agtype);
+ toupper 
+---------
+ ""
+(1 row)
+
+SELECT * FROM cypher('expr', $$
     RETURN toLower('TO LOWERCASE')
 $$) AS (toLower agtype);
     tolower     
 ----------------
  "to lowercase"
-(1 row)
-
-SELECT * FROM age_toupper('text'::text);
- age_toupper 
--------------
- "TEXT"
-(1 row)
-
-SELECT * FROM age_toupper('cstring'::cstring);
- age_toupper 
--------------
- "CSTRING"
-(1 row)
-
-SELECT * FROM age_tolower('TEXT'::text);
- age_tolower 
--------------
- "text"
-(1 row)
-
-SELECT * FROM age_tolower('CSTRING'::cstring);
- age_tolower 
--------------
- "cstring"
 (1 row)
 
 -- should return null
@@ -2936,19 +2929,19 @@ $$) AS (results agtype);
  "string"
 (1 row)
 
-SELECT * FROM age_ltrim('  string   ');
+SELECT * FROM age_ltrim('"  string   "'::agtype);
   age_ltrim  
 -------------
  "string   "
 (1 row)
 
-SELECT * FROM age_rtrim('  string   ');
+SELECT * FROM age_rtrim('"  string   "'::agtype);
  age_rtrim  
 ------------
  "  string"
 (1 row)
 
-SELECT * FROM age_trim('  string   ');
+SELECT * FROM age_trim('"  string   "'::agtype);
  age_trim 
 ----------
  "string"
@@ -3009,7 +3002,7 @@ ERROR:  rTrim() unsupported argument agtype 5
 SELECT * FROM cypher('expr', $$
     RETURN trim(true)
 $$) AS (results agtype);
-ERROR:  trim() unsupported argument agtype 5
+ERROR:  Trim() unsupported argument agtype 5
 SELECT * FROM cypher('expr', $$
     RETURN lTrim()
 $$) AS (results agtype);
@@ -3071,7 +3064,7 @@ SELECT * FROM cypher('expr', $$
 $$) AS (results agtype);
  results 
 ---------
- 
+ ""
 (1 row)
 
 SELECT * FROM cypher('expr', $$
@@ -3090,7 +3083,7 @@ $$) AS (results agtype);
  
 (1 row)
 
-SELECT * FROM age_left(null, 1);
+SELECT * FROM age_left(null, '1'::agtype);
  age_left 
 ----------
  
@@ -3106,11 +3099,19 @@ SELECT * FROM age_left(null, null);
 SELECT * FROM cypher('expr', $$
     RETURN left("123456789", null)
 $$) AS (results agtype);
-ERROR:  left() length parameter cannot be null
+ results 
+---------
+ 
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN left("123456789", -1)
 $$) AS (results agtype);
-ERROR:  left() negative values are not supported for length
+  results   
+------------
+ "12345678"
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN left()
 $$) AS (results agtype);
@@ -3119,9 +3120,17 @@ LINE 2:     RETURN left()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM age_left('123456789', null);
-ERROR:  left() length parameter cannot be null
-SELECT * FROM age_left('123456789', -1);
-ERROR:  left() negative values are not supported for length
+ age_left 
+----------
+ 
+(1 row)
+
+SELECT * FROM age_left('"123456789"'::agtype, '-1'::agtype);
+  age_left  
+------------
+ "12345678"
+(1 row)
+
 SELECT * FROM age_left();
 ERROR:  function age_left() does not exist
 LINE 1: SELECT * FROM age_left();
@@ -3150,7 +3159,7 @@ SELECT * FROM cypher('expr', $$
 $$) AS (results agtype);
  results 
 ---------
- 
+ ""
 (1 row)
 
 SELECT * FROM cypher('expr', $$
@@ -3169,7 +3178,7 @@ $$) AS (results agtype);
  
 (1 row)
 
-SELECT * FROM age_right(null, 1);
+SELECT * FROM age_right(null, '1'::agtype);
  age_right 
 -----------
  
@@ -3185,11 +3194,19 @@ SELECT * FROM age_right(null, null);
 SELECT * FROM cypher('expr', $$
     RETURN right("123456789", null)
 $$) AS (results agtype);
-ERROR:  right() length parameter cannot be null
+ results 
+---------
+ 
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN right("123456789", -1)
 $$) AS (results agtype);
-ERROR:  right() negative values are not supported for length
+  results   
+------------
+ "23456789"
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN right()
 $$) AS (results agtype);
@@ -3198,9 +3215,17 @@ LINE 2:     RETURN right()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM age_right('123456789', null);
-ERROR:  right() length parameter cannot be null
-SELECT * FROM age_right('123456789', -1);
-ERROR:  right() negative values are not supported for length
+ age_right 
+-----------
+ 
+(1 row)
+
+SELECT * FROM age_right('"123456789"'::agtype, '-1'::agtype);
+ age_right  
+------------
+ "23456789"
+(1 row)
+
 SELECT * FROM age_right();
 ERROR:  function age_right() does not exist
 LINE 1: SELECT * FROM age_right();

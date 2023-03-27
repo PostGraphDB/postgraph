@@ -1197,12 +1197,11 @@ SELECT * FROM cypher('expr', $$
     RETURN toUpper('to uppercase')
 $$) AS (toUpper agtype);
 SELECT * FROM cypher('expr', $$
+    RETURN toUpper('')
+$$) AS (toUpper agtype);
+SELECT * FROM cypher('expr', $$
     RETURN toLower('TO LOWERCASE')
 $$) AS (toLower agtype);
-SELECT * FROM age_toupper('text'::text);
-SELECT * FROM age_toupper('cstring'::cstring);
-SELECT * FROM age_tolower('TEXT'::text);
-SELECT * FROM age_tolower('CSTRING'::cstring);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN toUpper(null)
@@ -1241,9 +1240,9 @@ $$) AS (results agtype);
 SELECT * FROM cypher('expr', $$
     RETURN trim("  string   ")
 $$) AS (results agtype);
-SELECT * FROM age_ltrim('  string   ');
-SELECT * FROM age_rtrim('  string   ');
-SELECT * FROM age_trim('  string   ');
+SELECT * FROM age_ltrim('"  string   "'::agtype);
+SELECT * FROM age_rtrim('"  string   "'::agtype);
+SELECT * FROM age_trim('"  string   "'::agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN lTrim(null)
@@ -1300,7 +1299,7 @@ $$) AS (results agtype);
 SELECT * FROM cypher('expr', $$
     RETURN left(null, null)
 $$) AS (results agtype);
-SELECT * FROM age_left(null, 1);
+SELECT * FROM age_left(null, '1'::agtype);
 SELECT * FROM age_left(null, null);
 -- should fail
 SELECT * FROM cypher('expr', $$
@@ -1313,7 +1312,7 @@ SELECT * FROM cypher('expr', $$
     RETURN left()
 $$) AS (results agtype);
 SELECT * FROM age_left('123456789', null);
-SELECT * FROM age_left('123456789', -1);
+SELECT * FROM age_left('"123456789"'::agtype, '-1'::agtype);
 SELECT * FROM age_left();
 --right()
 SELECT * FROM cypher('expr', $$
@@ -1332,7 +1331,7 @@ $$) AS (results agtype);
 SELECT * FROM cypher('expr', $$
     RETURN right(null, null)
 $$) AS (results agtype);
-SELECT * FROM age_right(null, 1);
+SELECT * FROM age_right(null, '1'::agtype);
 SELECT * FROM age_right(null, null);
 -- should fail
 SELECT * FROM cypher('expr', $$
@@ -1345,7 +1344,7 @@ SELECT * FROM cypher('expr', $$
     RETURN right()
 $$) AS (results agtype);
 SELECT * FROM age_right('123456789', null);
-SELECT * FROM age_right('123456789', -1);
+SELECT * FROM age_right('"123456789"'::agtype, '-1'::agtype);
 SELECT * FROM age_right();
 -- substring()
 SELECT * FROM cypher('expr', $$
