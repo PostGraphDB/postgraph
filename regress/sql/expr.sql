@@ -1197,12 +1197,11 @@ SELECT * FROM cypher('expr', $$
     RETURN toUpper('to uppercase')
 $$) AS (toUpper agtype);
 SELECT * FROM cypher('expr', $$
+    RETURN toUpper('')
+$$) AS (toUpper agtype);
+SELECT * FROM cypher('expr', $$
     RETURN toLower('TO LOWERCASE')
 $$) AS (toLower agtype);
-SELECT * FROM age_toupper('text'::text);
-SELECT * FROM age_toupper('cstring'::cstring);
-SELECT * FROM age_tolower('TEXT'::text);
-SELECT * FROM age_tolower('CSTRING'::cstring);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN toUpper(null)

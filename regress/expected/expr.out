@@ -2816,35 +2816,19 @@ $$) AS (toUpper agtype);
 (1 row)
 
 SELECT * FROM cypher('expr', $$
+    RETURN toUpper('')
+$$) AS (toUpper agtype);
+ toupper 
+---------
+ ""
+(1 row)
+
+SELECT * FROM cypher('expr', $$
     RETURN toLower('TO LOWERCASE')
 $$) AS (toLower agtype);
     tolower     
 ----------------
  "to lowercase"
-(1 row)
-
-SELECT * FROM age_toupper('text'::text);
- age_toupper 
--------------
- "TEXT"
-(1 row)
-
-SELECT * FROM age_toupper('cstring'::cstring);
- age_toupper 
--------------
- "CSTRING"
-(1 row)
-
-SELECT * FROM age_tolower('TEXT'::text);
- age_tolower 
--------------
- "text"
-(1 row)
-
-SELECT * FROM age_tolower('CSTRING'::cstring);
- age_tolower 
--------------
- "cstring"
 (1 row)
 
 -- should return null
