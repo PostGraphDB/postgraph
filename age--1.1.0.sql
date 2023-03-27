@@ -38,11 +38,9 @@ ON ag_graph
 USING btree (namespace);
 
 -- 0 is an invalid label ID
-CREATE DOMAIN label_id AS int NOT NULL 
-CHECK (VALUE > 0 AND VALUE <= 65535);
+CREATE DOMAIN label_id AS int NOT NULL CHECK (VALUE > 0 AND VALUE <= 65535);
 
-CREATE DOMAIN label_kind AS "char" NOT NULL
-CHECK (VALUE = 'v' OR VALUE = 'e');
+CREATE DOMAIN label_kind AS "char" NOT NULL CHECK (VALUE = 'v' OR VALUE = 'e');
 
 CREATE TABLE ag_label (
   name name NOT NULL,
@@ -55,14 +53,11 @@ CREATE TABLE ag_label (
     REFERENCES ag_graph(graphid)
 );
 
-CREATE UNIQUE INDEX ag_label_name_graph_index
-ON ag_label USING btree (name, graph);
+CREATE UNIQUE INDEX ag_label_name_graph_index ON ag_label USING btree (name, graph);
 
-CREATE UNIQUE INDEX ag_label_graph_oid_index
-ON ag_label USING btree (graph, id);
+CREATE UNIQUE INDEX ag_label_graph_oid_index ON ag_label USING btree (graph, id);
 
-CREATE UNIQUE INDEX ag_label_relation_index
-ON ag_label USING btree (relation);
+CREATE UNIQUE INDEX ag_label_relation_index ON ag_label USING btree (relation);
 
 --
 -- catalog lookup functions
@@ -935,7 +930,7 @@ AS 'MODULE_PATHNAME';
 CREATE FUNCTION _agtype_build_vertex(graphid, cstring, agtype)
 RETURNS agtype
 LANGUAGE c
-STABLE
+IMMUTABLE
 CALLED ON NULL INPUT
 PARALLEL SAFE
 AS 'MODULE_PATHNAME';
@@ -946,7 +941,7 @@ AS 'MODULE_PATHNAME';
 CREATE FUNCTION _agtype_build_edge(graphid, graphid, graphid, cstring, agtype)
 RETURNS agtype
 LANGUAGE c
-STABLE
+IMMUTABLE
 CALLED ON NULL INPUT
 PARALLEL SAFE
 AS 'MODULE_PATHNAME';
@@ -954,7 +949,7 @@ AS 'MODULE_PATHNAME';
 CREATE FUNCTION _ag_enforce_edge_uniqueness(VARIADIC "any")
 RETURNS bool
 LANGUAGE c
-STABLE
+IMMUTABLE
 PARALLEL SAFE
 as 'MODULE_PATHNAME';
 
@@ -1252,8 +1247,7 @@ RETURNS SETOF record
 LANGUAGE c
 AS 'MODULE_PATHNAME';
 
-CREATE FUNCTION get_cypher_keywords(OUT word text, OUT catcode "char",
-                                    OUT catdesc text)
+CREATE FUNCTION get_cypher_keywords(OUT word text, OUT catcode "char", OUT catdesc text)
 RETURNS SETOF record
 LANGUAGE c
 STABLE
@@ -1468,11 +1462,12 @@ IMMUTABLE
 PARALLEL SAFE
 AS 'MODULE_PATHNAME';
 
-CREATE FUNCTION age_split(variadic "any")
+CREATE FUNCTION age_split(agtype, agtype)
 RETURNS agtype
 LANGUAGE c
 IMMUTABLE
 PARALLEL SAFE
+RETURNS NULL ON NULL INPUT
 AS 'MODULE_PATHNAME';
 
 CREATE FUNCTION age_replace(variadic "any")
@@ -1587,11 +1582,12 @@ IMMUTABLE
 PARALLEL SAFE
 AS 'MODULE_PATHNAME';
 
-CREATE FUNCTION age_abs(variadic "any")
+CREATE FUNCTION age_abs(agtype)
 RETURNS agtype
 LANGUAGE c
 IMMUTABLE
 PARALLEL SAFE
+RETURNS NULL ON NULL INPUT
 AS 'MODULE_PATHNAME';
 
 CREATE FUNCTION age_sign(variadic "any")

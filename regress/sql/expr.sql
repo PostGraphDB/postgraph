@@ -1424,8 +1424,8 @@ SELECT * FROM cypher('expr', $$
     RETURN split(null, ",")
 $$) AS (results agtype);
 SELECT * FROM age_split(null, null);
-SELECT * FROM age_split('a,b,c,d,e,f', null);
-SELECT * FROM age_split(null, ',');
+SELECT * FROM age_split('"a,b,c,d,e,f"'::agtype, null);
+SELECT * FROM age_split(null, '","'::agtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN split(123456789, ",")
@@ -1439,9 +1439,9 @@ $$) AS (results agtype);
 SELECT * FROM cypher('expr', $$
     RETURN split()
 $$) AS (results agtype);
-SELECT * FROM age_split(123456789, ',');
-SELECT * FROM age_split('a,b,c,d,e,f', -1);
-SELECT * FROM age_split('a,b,c,d,e,f');
+SELECT * FROM age_split('123456789'::agtype, '","'::agtype);
+SELECT * FROM age_split('"a,b,c,d,e,f"'::agtype, '-1'::agtype);
+SELECT * FROM age_split('"a,b,c,d,e,f"'::agtype);
 SELECT * FROM age_split();
 
 --
