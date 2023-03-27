@@ -3846,7 +3846,7 @@ SELECT * FROM atan(1), age_atan('1'::agtype);
  0.785398163397448 | 0.785398163397448
 (1 row)
 
-SELECT * FROM atan2(1, 1), age_atan2(1, 1);
+SELECT * FROM atan2(1, 1), age_atan2('1'::agtype, '1'::agtype);
        atan2       |     age_atan2     
 -------------------+-------------------
  0.785398163397448 | 0.785398163397448
@@ -3941,13 +3941,13 @@ SELECT * FROM age_atan2(null, null);
  
 (1 row)
 
-SELECT * FROM age_atan2(1, null);
+SELECT * FROM age_atan2('1'::agtype, null);
  age_atan2 
 -----------
  
 (1 row)
 
-SELECT * FROM age_atan2(null, 1);
+SELECT * FROM age_atan2(null, '1'::agtype);
  age_atan2 
 -----------
  
@@ -4005,7 +4005,10 @@ HINT:  No function matches the given name and argument types. You might need to 
 SELECT * FROM cypher('expr', $$
     RETURN atan2(null)
 $$) AS (results agtype);
-ERROR:  atan2() invalid number of arguments
+ERROR:  function ag_catalog.age_atan2(agtype) does not exist
+LINE 2:     RETURN atan2(null)
+                        ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM age_asin('0');
  age_asin 
 ----------
@@ -4024,10 +4027,10 @@ SELECT * FROM age_atan('0');
  0.0
 (1 row)
 
-SELECT * FROM age_atan2('0', 1);
-ERROR:  atan2() unsupported argument type 25
-SELECT * FROM age_atan2(1, '0');
-ERROR:  atan2() unsupported argument type 25
+SELECT * FROM age_atan2('"0"'::agtype, '1'::agtype);
+ERROR:  atan2() unsupported argument agtype 1
+SELECT * FROM age_atan2('1'::agtype, '"0"'::agtype);
+ERROR:  atan2() unsupported argument agtype 1
 SELECT * FROM age_asin();
 ERROR:  function age_asin() does not exist
 LINE 1: SELECT * FROM age_asin();
@@ -4048,8 +4051,11 @@ ERROR:  function age_atan2() does not exist
 LINE 1: SELECT * FROM age_atan2();
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_atan2(1);
-ERROR:  atan2() invalid number of arguments
+SELECT * FROM age_atan2('1'::agtype);
+ERROR:  function age_atan2(agtype) does not exist
+LINE 1: SELECT * FROM age_atan2('1'::agtype);
+                      ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
 -- pi
 --

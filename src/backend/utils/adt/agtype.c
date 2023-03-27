@@ -6522,50 +6522,27 @@ PG_FUNCTION_INFO_V1(age_atan2);
 
 Datum age_atan2(PG_FUNCTION_ARGS)
 {
-    int nargs;
-    Datum *args;
-    bool *nulls;
-    Oid *types;
+    agtype *x_agt = AG_GET_ARG_AGTYPE_P(0);
+    agtype *y_agt = AG_GET_ARG_AGTYPE_P(1);
     agtype_value agtv_result;
+    bool is_null;
     float8 x, y;
     float8 angle;
-    bool is_null = true;
 
-    /* extract argument values */
-    nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
+    y = get_float_compatible_arg(AGTYPE_P_GET_DATUM(y_agt), AGTYPEOID, "atan2", &is_null);
 
-    /* check number of args */
-    if (nargs != 2)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("atan2() invalid number of arguments")));
-
-    /* check for a null input */
-    if (nargs < 0 || nulls[0] || nulls[1])
-        PG_RETURN_NULL();
-
-    /*
-     * atan2() supports integer, float, and numeric or the agtype integer,
-     * float, and numeric for the input expressions.
-     */
-
-    y = get_float_compatible_arg(args[0], types[0], "atan2", &is_null);
-
-    /* check for a agtype null input */
     if (is_null)
         PG_RETURN_NULL();
 
-    x = get_float_compatible_arg(args[1], types[1], "atan2", &is_null);
+    x = get_float_compatible_arg(AGTYPE_P_GET_DATUM(x_agt), AGTYPEOID, "atan2", &is_null);
 
-    /* check for a agtype null input */
     if (is_null)
         PG_RETURN_NULL();
 
-    /* We need the numeric input as a float8 so that we can pass it off to PG */
     angle = DatumGetFloat8(DirectFunctionCall2(datan2,
                                                Float8GetDatum(y),
                                                Float8GetDatum(x)));
 
-    /* build the result */
     agtv_result.type = AGTV_FLOAT;
     agtv_result.val.float_value = angle;
 
