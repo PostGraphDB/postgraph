@@ -1591,10 +1591,10 @@ $$) AS (results agtype);
 SELECT * FROM cypher('expr', $$
     RETURN atan2(1, 1)*4
 $$) AS (results agtype);
-SELECT * FROM asin(1), age_asin(1);
-SELECT * FROM acos(0), age_acos(0);
-SELECT * FROM atan(1), age_atan(1);
-SELECT * FROM atan2(1, 1), age_atan2(1, 1);
+SELECT * FROM asin(1), age_asin('1'::agtype);
+SELECT * FROM acos(0), age_acos('0'::agtype);
+SELECT * FROM atan(1), age_atan('1'::agtype);
+SELECT * FROM atan2(1, 1), age_atan2('1'::agtype, '1'::agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN asin(1.1)
@@ -1630,8 +1630,8 @@ SELECT * FROM age_asin(null);
 SELECT * FROM age_acos(null);
 SELECT * FROM age_atan(null);
 SELECT * FROM age_atan2(null, null);
-SELECT * FROM age_atan2(1, null);
-SELECT * FROM age_atan2(null, 1);
+SELECT * FROM age_atan2('1'::agtype, null);
+SELECT * FROM age_atan2(null, '1'::agtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN asin("0")
@@ -1666,13 +1666,13 @@ $$) AS (results agtype);
 SELECT * FROM age_asin('0');
 SELECT * FROM age_acos('0');
 SELECT * FROM age_atan('0');
-SELECT * FROM age_atan2('0', 1);
-SELECT * FROM age_atan2(1, '0');
+SELECT * FROM age_atan2('"0"'::agtype, '1'::agtype);
+SELECT * FROM age_atan2('1'::agtype, '"0"'::agtype);
 SELECT * FROM age_asin();
 SELECT * FROM age_acos();
 SELECT * FROM age_atan();
 SELECT * FROM age_atan2();
-SELECT * FROM age_atan2(1);
+SELECT * FROM age_atan2('1'::agtype);
 
 --
 -- pi
