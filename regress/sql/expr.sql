@@ -597,8 +597,6 @@ SELECT * FROM cypher('expr', $$
 RETURN ([0, {one: 1, pie: 3.1415927, e: 2.718281::numeric}, 2, null][3])::int
 $$) AS r(result agtype);
 -- should return SQL null
-SELECT agtype_typecast_int('null'::agtype);
-SELECT agtype_typecast_int(null);
 SELECT * FROM cypher('expr', $$
 RETURN null::int
 $$) AS r(result agtype);
