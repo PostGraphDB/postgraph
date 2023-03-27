@@ -3750,7 +3750,11 @@ LINE 2:     RETURN cot()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM age_sin('0');
-ERROR:  sin() unsupported argument type 25
+ age_sin 
+---------
+ 0.0
+(1 row)
+
 SELECT * FROM age_cos('0');
 ERROR:  cos() unsupported argument type 25
 SELECT * FROM age_tan('0');

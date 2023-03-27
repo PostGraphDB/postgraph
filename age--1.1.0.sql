@@ -1483,10 +1483,11 @@ AS 'MODULE_PATHNAME';
 --
 -- Trig functions - radian input
 --
-CREATE FUNCTION age_sin(variadic "any")
+CREATE FUNCTION age_sin(agtype)
 RETURNS agtype
 LANGUAGE c
 IMMUTABLE
+RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 AS 'MODULE_PATHNAME';
 
