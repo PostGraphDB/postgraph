@@ -1592,8 +1592,8 @@ SELECT * FROM cypher('expr', $$
     RETURN atan2(1, 1)*4
 $$) AS (results agtype);
 SELECT * FROM asin(1), age_asin('1'::agtype);
-SELECT * FROM acos(0), age_acos(0);
-SELECT * FROM atan(1), age_atan(1);
+SELECT * FROM acos(0), age_acos('0'::agtype);
+SELECT * FROM atan(1), age_atan('1'::agtype);
 SELECT * FROM atan2(1, 1), age_atan2(1, 1);
 -- should return null
 SELECT * FROM cypher('expr', $$

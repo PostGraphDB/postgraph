@@ -3834,13 +3834,13 @@ SELECT * FROM asin(1), age_asin('1'::agtype);
  1.5707963267949 | 1.5707963267949
 (1 row)
 
-SELECT * FROM acos(0), age_acos(0);
+SELECT * FROM acos(0), age_acos('0'::agtype);
       acos       |    age_acos     
 -----------------+-----------------
  1.5707963267949 | 1.5707963267949
 (1 row)
 
-SELECT * FROM atan(1), age_atan(1);
+SELECT * FROM atan(1), age_atan('1'::agtype);
        atan        |     age_atan      
 -------------------+-------------------
  0.785398163397448 | 0.785398163397448
@@ -3860,11 +3860,7 @@ ERROR:  input is out of range
 SELECT * FROM cypher('expr', $$
     RETURN acos(1.1)
 $$) AS (results agtype);
- results 
----------
- 
-(1 row)
-
+ERROR:  input is out of range
 SELECT * FROM cypher('expr', $$
     RETURN asin(-1.1)
 $$) AS (results agtype);
@@ -3872,11 +3868,7 @@ ERROR:  input is out of range
 SELECT * FROM cypher('expr', $$
     RETURN acos(-1.1)
 $$) AS (results agtype);
- results 
----------
- 
-(1 row)
-
+ERROR:  input is out of range
 SELECT * FROM cypher('expr', $$
     RETURN asin(null)
 $$) AS (results agtype);
@@ -4021,9 +4013,17 @@ SELECT * FROM age_asin('0');
 (1 row)
 
 SELECT * FROM age_acos('0');
-ERROR:  acos() unsupported argument type 25
+    age_acos     
+-----------------
+ 1.5707963267949
+(1 row)
+
 SELECT * FROM age_atan('0');
-ERROR:  atan() unsupported argument type 25
+ age_atan 
+----------
+ 0.0
+(1 row)
+
 SELECT * FROM age_atan2('0', 1);
 ERROR:  atan2() unsupported argument type 25
 SELECT * FROM age_atan2(1, '0');
