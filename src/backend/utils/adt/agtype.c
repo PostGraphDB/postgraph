@@ -3581,79 +3581,6 @@ Datum agtype_typecast_numeric(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(agtype_value_to_agtype(&result_value));
 }
 
-PG_FUNCTION_INFO_V1(agtype_typecast_int);
-/*
- * Execute function to typecast an agtype to an agtype int
- */
-Datum agtype_typecast_int(PG_FUNCTION_ARGS)
-{
-    agtype *arg_agt;
-    agtype_value *arg_value;
-    agtype_value result_value;
-    Datum d;
-    char *string = NULL;
-
-    /* get the agtype equivalence of any convertable input type */
-    arg_agt = get_one_agtype_from_variadic_args(fcinfo, 0, 1);
-
-    /* Return null if arg_agt is null. This covers SQL and Agtype NULLS */
-    if (arg_agt == NULL)
-        PG_RETURN_NULL();
-
-    /* check that we have a scalar value */
-    if (!AGT_ROOT_IS_SCALAR(arg_agt))
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("typecast argument must be a scalar value")));
-
-    /* get the arg parameter */
-    arg_value = get_ith_agtype_value_from_container(&arg_agt->root, 0);
-
-    /* check for agtype null */
-    if (arg_value->type == AGTV_NULL)
-        PG_RETURN_NULL();
-
-    /* the input type drives the casting */
-    switch(arg_value->type)
-    {
-    case AGTV_INTEGER:
-        PG_RETURN_POINTER(agtype_value_to_agtype(arg_value));
-        break;
-    case AGTV_FLOAT:
-        d = DirectFunctionCall1(dtoi8,
-                                Float8GetDatum(arg_value->val.float_value));
-        break;
-    case AGTV_NUMERIC:
-        d = DirectFunctionCall1(numeric_int8,
-                                NumericGetDatum(arg_value->val.numeric));
-        break;
-    case AGTV_STRING:
-        /* we need a null terminated string */
-        string = (char *) palloc0(sizeof(char)*arg_value->val.string.len + 1);
-        string = strncpy(string, arg_value->val.string.val,
-                         arg_value->val.string.len);
-        string[arg_value->val.string.len] = '\0';
-
-        d = DirectFunctionCall1(int8in, CStringGetDatum(string));
-        /* free the string */
-        pfree(string);
-        string = NULL;
-        break;
-    /* what was given doesn't cast to an int */
-    default:
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("typecast expression must be a number or a string")));
-        break;
-    }
-
-    /* set the result type and return our result */
-    result_value.type = AGTV_INTEGER;
-    result_value.val.int_value = DatumGetInt64(d);
-
-    PG_RETURN_POINTER(agtype_value_to_agtype(&result_value));
-}
-
 PG_FUNCTION_INFO_V1(age_id);
 
 Datum age_id(PG_FUNCTION_ARGS)
@@ -4058,32 +3985,18 @@ PG_FUNCTION_INFO_V1(age_head);
 
 Datum age_head(PG_FUNCTION_ARGS)
 {
-    agtype *agt_arg = NULL;
-    agtype_value *agtv_result = NULL;
-    int count;
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
 
-    /* check for null */
-    if (PG_ARGISNULL(0))
-        PG_RETURN_NULL();
-
-    agt_arg = AG_GET_ARG_AGTYPE_P(0);
-    /* check for an array */
-    if (!AGT_ROOT_IS_ARRAY(agt_arg) || AGT_ROOT_IS_SCALAR(agt_arg))
+    if (!AGT_ROOT_IS_ARRAY(agt) || AGT_ROOT_IS_SCALAR(agt))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("head() argument must resolve to a list or null")));
+                        errmsg("head() argument must resolve to a list")));
 
-    count = AGT_ROOT_COUNT(agt_arg);
+    int count = AGT_ROOT_COUNT(agt);
 
-    /* if we have an empty list, return a null */
     if (count == 0)
         PG_RETURN_NULL();
 
-    /* get the first element of the array */
-    agtv_result = get_ith_agtype_value_from_container(&agt_arg->root, 0);
-
-    /* if it is AGTV_NULL, return null */
-    if (agtv_result->type == AGTV_NULL)
-        PG_RETURN_NULL();
+    agtype_value *agtv_result = get_ith_agtype_value_from_container(&agt->root, 0);
 
     PG_RETURN_POINTER(agtype_value_to_agtype(agtv_result));
 }
@@ -5949,22 +5862,17 @@ Datum age_round(PG_FUNCTION_ARGS)
 
     /* check for a null input */
     if (nargs < 0 || nulls[0])
-    {
         PG_RETURN_NULL();
-    }
 
     /*
      * round() supports integer, float, and numeric or the agtype integer,
      * float, and numeric for the input expression.
      */
-    arg = get_numeric_compatible_arg(args[0], types[0], "round", &is_null,
-                                     NULL);
+    arg = get_numeric_compatible_arg(args[0], types[0], "round", &is_null, NULL);
 
     /* check for a agtype null input */
     if (is_null)
-    {
         PG_RETURN_NULL();
-    }
 
     /* We need the input as a numeric so that we can pass it off to PG */
     if (nargs == 2 && !nulls[1])

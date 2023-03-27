@@ -1881,13 +1881,6 @@ CREATE AGGREGATE age_collect(variadic "any")
 --
 -- function for typecasting an agtype value to another agtype value
 --
-CREATE FUNCTION agtype_typecast_int(variadic "any")
-RETURNS agtype
-LANGUAGE c
-IMMUTABLE
-PARALLEL SAFE
-AS 'MODULE_PATHNAME';
-
 CREATE FUNCTION agtype_typecast_numeric(variadic "any")
 RETURNS agtype
 LANGUAGE c
