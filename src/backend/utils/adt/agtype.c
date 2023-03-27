@@ -6438,98 +6438,42 @@ PG_FUNCTION_INFO_V1(age_cot);
 
 Datum age_cot(PG_FUNCTION_ARGS)
 {
-    int nargs;
-    Datum *args;
-    bool *nulls;
-    Oid *types;
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
     agtype_value agtv_result;
     float8 angle;
-    float8 result;
-    bool is_null = true;
-
-    /* extract argument values */
-    nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
-
-    /* check number of args */
-    if (nargs != 1)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("cot() invalid number of arguments")));
-
-    /* check for a null input */
-    if (nargs < 0 || nulls[0])
-        PG_RETURN_NULL();
-
-    /*
-     * cot() supports integer, float, and numeric or the agtype integer, float,
-     * and numeric for the angle
-     */
-
-    angle = get_float_compatible_arg(args[0], types[0], "cot", &is_null);
-
-    /* check for a agtype null input */
+    bool is_null;
+    
+    angle = get_float_compatible_arg(AGTYPE_P_GET_DATUM(agt), AGTYPEOID, "cot", &is_null);
+    
     if (is_null)
         PG_RETURN_NULL();
-
-    /* We need the numeric input as a float8 so that we can pass it off to PG */
-    result = DatumGetFloat8(DirectFunctionCall1(dcot,
-                                                Float8GetDatum(angle)));
-
-    /* build the result */
+    
     agtv_result.type = AGTV_FLOAT;
-    agtv_result.val.float_value = result;
-
-    PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
+    agtv_result.val.float_value =
+        DatumGetFloat8(DirectFunctionCall1(dcot, Float8GetDatum(angle)));
+    
+    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv_result));
 }
 
 PG_FUNCTION_INFO_V1(age_asin);
 
 Datum age_asin(PG_FUNCTION_ARGS)
 {
-    int nargs;
-    Datum *args;
-    bool *nulls;
-    Oid *types;
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
     agtype_value agtv_result;
-    float8 x;
     float8 angle;
-    bool is_null = true;
+    bool is_null;
 
-    /* extract argument values */
-    nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
+    angle = get_float_compatible_arg(AGTYPE_P_GET_DATUM(agt), AGTYPEOID, "asin", &is_null);
 
-    /* check number of args */
-    if (nargs != 1)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("asin() invalid number of arguments")));
-
-    /* check for a null input */
-    if (nargs < 0 || nulls[0])
-        PG_RETURN_NULL();
-
-    /*
-     * asin() supports integer, float, and numeric or the agtype integer, float,
-     * and numeric for the input expression.
-     */
-
-    x = get_float_compatible_arg(args[0], types[0], "asin", &is_null);
-
-    /* verify that x is within range */
-    if (x < -1 || x > 1)
-        PG_RETURN_NULL();
-
-    /* check for a agtype null input */
     if (is_null)
         PG_RETURN_NULL();
 
-    /* We need the numeric input as a float8 so that we can pass it off to PG */
-    angle = DatumGetFloat8(DirectFunctionCall1(dasin,
-                                               Float8GetDatum(x)));
-
-    /* build the result */
     agtv_result.type = AGTV_FLOAT;
-    agtv_result.val.float_value = angle;
+    agtv_result.val.float_value =
+        DatumGetFloat8(DirectFunctionCall1(dasin, Float8GetDatum(angle)));
 
-    PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
+    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv_result));
 }
 
 PG_FUNCTION_INFO_V1(age_acos);

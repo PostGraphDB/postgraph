@@ -3768,7 +3768,11 @@ SELECT * FROM age_tan('0');
 (1 row)
 
 SELECT * FROM age_cot('0');
-ERROR:  cot() unsupported argument type 25
+ age_cot  
+----------
+ Infinity
+(1 row)
+
 SELECT * FROM age_sin();
 ERROR:  function age_sin() does not exist
 LINE 1: SELECT * FROM age_sin();
@@ -3824,7 +3828,7 @@ $$) AS (results agtype);
  3.14159265358979
 (1 row)
 
-SELECT * FROM asin(1), age_asin(1);
+SELECT * FROM asin(1), age_asin('1'::agtype);
       asin       |    age_asin     
 -----------------+-----------------
  1.5707963267949 | 1.5707963267949
@@ -3852,11 +3856,7 @@ SELECT * FROM atan2(1, 1), age_atan2(1, 1);
 SELECT * FROM cypher('expr', $$
     RETURN asin(1.1)
 $$) AS (results agtype);
- results 
----------
- 
-(1 row)
-
+ERROR:  input is out of range
 SELECT * FROM cypher('expr', $$
     RETURN acos(1.1)
 $$) AS (results agtype);
@@ -3868,11 +3868,7 @@ $$) AS (results agtype);
 SELECT * FROM cypher('expr', $$
     RETURN asin(-1.1)
 $$) AS (results agtype);
- results 
----------
- 
-(1 row)
-
+ERROR:  input is out of range
 SELECT * FROM cypher('expr', $$
     RETURN acos(-1.1)
 $$) AS (results agtype);
@@ -4019,7 +4015,11 @@ SELECT * FROM cypher('expr', $$
 $$) AS (results agtype);
 ERROR:  atan2() invalid number of arguments
 SELECT * FROM age_asin('0');
-ERROR:  asin() unsupported argument type 25
+ age_asin 
+----------
+ 0.0
+(1 row)
+
 SELECT * FROM age_acos('0');
 ERROR:  acos() unsupported argument type 25
 SELECT * FROM age_atan('0');
