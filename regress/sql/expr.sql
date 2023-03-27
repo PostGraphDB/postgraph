@@ -1299,7 +1299,7 @@ $$) AS (results agtype);
 SELECT * FROM cypher('expr', $$
     RETURN left(null, null)
 $$) AS (results agtype);
-SELECT * FROM age_left(null, 1);
+SELECT * FROM age_left(null, '1'::agtype);
 SELECT * FROM age_left(null, null);
 -- should fail
 SELECT * FROM cypher('expr', $$
@@ -1312,7 +1312,7 @@ SELECT * FROM cypher('expr', $$
     RETURN left()
 $$) AS (results agtype);
 SELECT * FROM age_left('123456789', null);
-SELECT * FROM age_left('123456789', -1);
+SELECT * FROM age_left('"123456789"'::agtype, '-1'::agtype);
 SELECT * FROM age_left();
 --right()
 SELECT * FROM cypher('expr', $$
@@ -1331,7 +1331,7 @@ $$) AS (results agtype);
 SELECT * FROM cypher('expr', $$
     RETURN right(null, null)
 $$) AS (results agtype);
-SELECT * FROM age_right(null, 1);
+SELECT * FROM age_right(null, '1'::agtype);
 SELECT * FROM age_right(null, null);
 -- should fail
 SELECT * FROM cypher('expr', $$
@@ -1344,7 +1344,7 @@ SELECT * FROM cypher('expr', $$
     RETURN right()
 $$) AS (results agtype);
 SELECT * FROM age_right('123456789', null);
-SELECT * FROM age_right('123456789', -1);
+SELECT * FROM age_right('"123456789"'::agtype, '-1'::agtype);
 SELECT * FROM age_right();
 -- substring()
 SELECT * FROM cypher('expr', $$

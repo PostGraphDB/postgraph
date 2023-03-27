@@ -5172,141 +5172,44 @@ PG_FUNCTION_INFO_V1(age_right);
 
 Datum age_right(PG_FUNCTION_ARGS)
 {
-    int nargs;
-    Datum *args;
-    Datum arg;
-    bool *nulls;
-    Oid *types;
-    agtype_value agtv_result;
-    text *text_string = NULL;
-    char *string = NULL;
-    int string_len;
-    Oid type;
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+    text *text_string;
+    agtype_value *agtv_value;
 
-    /* extract argument values */
-    nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
 
-    /* check number of args */
-    if (nargs != 2)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("right() invalid number of arguments")));
+    if (!AGT_ROOT_IS_SCALAR(agt))
+            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                            errmsg("right() only supports scalar arguments")));
 
-    /* check for a null string */
-    if (nargs < 0 || nulls[0])
+    agtv_value = get_ith_agtype_value_from_container(&agt->root, 0);
+
+    if (agtv_value->type == AGTV_NULL)
         PG_RETURN_NULL();
-
-    /* check for a null length */
-    if (nulls[1])
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("right() length parameter cannot be null")));
-
-    /* right() supports text, cstring, or the agtype string input */
-    arg = args[0];
-    type = types[0];
-
-    if (type != AGTYPEOID)
-    {
-        if (type == CSTRINGOID)
-            text_string = cstring_to_text(DatumGetCString(arg));
-        else if (type == TEXTOID)
-            text_string = DatumGetTextPP(arg);
-        else
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("right() unsupported argument type %d",
-                                   type)));
-    }
+    else if (agtv_value->type == AGTV_STRING)
+        text_string = cstring_to_text_with_len(agtv_value->val.string.val, agtv_value->val.string.len);
     else
-    {
-        agtype *agt_arg;
-        agtype_value *agtv_value;
-
-        /* get the agtype argument */
-        agt_arg = DATUM_GET_AGTYPE_P(arg);
-
-        if (!AGT_ROOT_IS_SCALAR(agt_arg))
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("right() only supports scalar arguments")));
-
-        agtv_value = get_ith_agtype_value_from_container(&agt_arg->root, 0);
-
-        /* check for agtype null */
-        if (agtv_value->type == AGTV_NULL)
-            PG_RETURN_NULL();
-        if (agtv_value->type == AGTV_STRING)
-            text_string = cstring_to_text_with_len(agtv_value->val.string.val,
-                                                   agtv_value->val.string.len);
-        else
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("right() unsupported argument agtype %d",
-                                   agtv_value->type)));
-    }
-
-    /* right() only supports integer and agtype integer for the second parameter. */
-    arg = args[1];
-    type = types[1];
-
-    if (type != AGTYPEOID)
-    {
-        if (type == INT2OID)
-            string_len = (int64) DatumGetInt16(arg);
-        else if (type == INT4OID)
-            string_len = (int64) DatumGetInt32(arg);
-        else if (type == INT8OID)
-            string_len = (int64) DatumGetInt64(arg);
-        else
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("right() unsupported argument type %d", type)));
-    }
-    else
-    {
-        agtype *agt_arg;
-        agtype_value *agtv_value;
-
-        /* get the agtype argument */
-        agt_arg = DATUM_GET_AGTYPE_P(arg);
-
-        if (!AGT_ROOT_IS_SCALAR(agt_arg))
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("right() only supports scalar arguments")));
-
-        agtv_value = get_ith_agtype_value_from_container(&agt_arg->root, 0);
-
-        /* no need to check for agtype null because it is an error if found */
-        if (agtv_value->type != AGTV_INTEGER)
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("right() unsupported argument agtype %d",
-                                   agtv_value->type)));
-
-        string_len = agtv_value->val.int_value;
-    }
-
-    /* negative values are not supported in the opencypher spec */
-    if (string_len < 0)
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("right() negative values are not supported for length")));
+                        errmsg("right() unsupported argument agtype %d", agtv_value->type)));
 
-    /*
-     * We need the string as a text string so that we can let PG deal with
-     * multibyte characters in the string.
-     */
+    agt = AG_GET_ARG_AGTYPE_P(1);
+    if (!AGT_ROOT_IS_SCALAR(agt))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("right() only supports scalar arguments")));
+
+    agtv_value = get_ith_agtype_value_from_container(&agt->root, 0);
+
+    if (agtv_value->type != AGTV_INTEGER)
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("right() unsupported argument agtype %d", agtv_value->type)));
+
     text_string = DatumGetTextPP(DirectFunctionCall2(text_right,
                                                      PointerGetDatum(text_string),
-                                                     Int64GetDatum(string_len)));
+                                                     Int64GetDatum(agtv_value->val.int_value)));
 
-    /* convert it back to a cstring */
-    string = text_to_cstring(text_string);
-    string_len = strlen(string);
+    agtype_value agtv_result = { .type = AGTV_STRING,
+                                 .val.string = { VARSIZE(text_string), text_to_cstring(text_string) }};
 
-    /* if we have an empty string, return null */
-    if (string_len == 0)
-        PG_RETURN_NULL();
-
-    /* build the result */
-    agtv_result.type = AGTV_STRING;
-    agtv_result.val.string.val = string;
-    agtv_result.val.string.len = string_len;
-
-    PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
+    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv_result));
 }
 
 PG_FUNCTION_INFO_V1(age_left);

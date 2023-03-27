@@ -3074,7 +3074,7 @@ $$) AS (results agtype);
  
 (1 row)
 
-SELECT * FROM age_left(null, 1);
+SELECT * FROM age_left(null, '1'::agtype);
  age_left 
 ----------
  
@@ -3104,7 +3104,7 @@ LINE 2:     RETURN left()
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM age_left('123456789', null);
 ERROR:  left() length parameter cannot be null
-SELECT * FROM age_left('123456789', -1);
+SELECT * FROM age_left('"123456789"'::agtype, '-1'::agtype);
 ERROR:  left() negative values are not supported for length
 SELECT * FROM age_left();
 ERROR:  function age_left() does not exist
@@ -3134,7 +3134,7 @@ SELECT * FROM cypher('expr', $$
 $$) AS (results agtype);
  results 
 ---------
- 
+ ""
 (1 row)
 
 SELECT * FROM cypher('expr', $$
@@ -3153,7 +3153,7 @@ $$) AS (results agtype);
  
 (1 row)
 
-SELECT * FROM age_right(null, 1);
+SELECT * FROM age_right(null, '1'::agtype);
  age_right 
 -----------
  
@@ -3169,11 +3169,19 @@ SELECT * FROM age_right(null, null);
 SELECT * FROM cypher('expr', $$
     RETURN right("123456789", null)
 $$) AS (results agtype);
-ERROR:  right() length parameter cannot be null
+ results 
+---------
+ 
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN right("123456789", -1)
 $$) AS (results agtype);
-ERROR:  right() negative values are not supported for length
+  results   
+------------
+ "23456789"
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN right()
 $$) AS (results agtype);
@@ -3182,9 +3190,17 @@ LINE 2:     RETURN right()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM age_right('123456789', null);
-ERROR:  right() length parameter cannot be null
-SELECT * FROM age_right('123456789', -1);
-ERROR:  right() negative values are not supported for length
+ age_right 
+-----------
+ 
+(1 row)
+
+SELECT * FROM age_right('"123456789"'::agtype, '-1'::agtype);
+ age_right  
+------------
+ "23456789"
+(1 row)
+
 SELECT * FROM age_right();
 ERROR:  function age_right() does not exist
 LINE 1: SELECT * FROM age_right();
