@@ -160,6 +160,9 @@
 %type <keyword> reserved_keyword safe_keywords conflicted_keywords
 %type <list> func_name
 
+/*set operations*/
+%type <boolean> all_or_distinct
+
 /* precedence: lowest to highest */
 %left UNION
 %left OR
@@ -176,9 +179,6 @@
 %left '[' ']' '(' ')'
 %left '.'
 %left TYPECAST
-
-/*set operations*/
-%type <boolean> all_or_distinct
 
 %{
 //
@@ -209,9 +209,6 @@ static Node *make_null_const(int location);
 
 // typecast
 static Node *make_typecast_expr(Node *expr, char *typecast, int location);
-
-// functions
-static Node *make_function_expr(List *func_name, List *exprs, int location);
 
 // setops
 static Node *make_set_op(SetOperation op, bool all_or_distinct, List *larg,
@@ -1043,23 +1040,13 @@ simple_path:
         }
     | simple_path path_relationship path_node
         {
-            cypher_relationship *cr = NULL;
+            cypher_relationship *cr = (cypher_relationship *)$2;
 
-            /* get the relationship */
-            cr = (cypher_relationship *)$2;
-
-            /* if this is a VLE relation node */
-            if (cr->varlen != NULL)
-            {
-                /* build the VLE relation */
+            if (cr->varlen) {
                 cr = build_VLE_relation($1, cr, $3, @1, @2);
 
-                /* return the VLE relation in the path */
                 $$ = lappend(lappend($1, cr), $3);
-            }
-            /* otherwise, it is a regular relationship node */
-            else
-            {
+            } else {
                 $$ = lappend(lappend($1, $2), $3);
             }
         }
@@ -1304,8 +1291,8 @@ expr:
         }
     | expr EQ_TILDE expr
         {
-            $$ = make_function_expr(list_make1(makeString("eq_tilde")),
-                                    list_make2($1, $3), @2);
+            $$ = (Node *)makeFuncCall(list_make1(makeString("eq_tilde")),
+                                    list_make2($1, $3), COERCE_SQL_SYNTAX, @2);
         }
     | expr '[' expr ']'  %prec '.'
         {
@@ -1394,11 +1381,11 @@ expr_func:
 expr_func_norm:
     func_name '(' ')'
         {
-            $$ = make_function_expr($1, NIL, @1);
+            $$ = (Node *)makeFuncCall($1, NIL, COERCE_SQL_SYNTAX, @1);
         }
     | func_name '(' expr_list ')'
         {
-            $$ = make_function_expr($1, $3, @2);
+            $$ = (Node *)makeFuncCall($1, $3, COERCE_SQL_SYNTAX, @1);
         }
     /* borrowed from PG's grammar */
     | func_name '(' '*' ')'
@@ -1413,13 +1400,13 @@ expr_func_norm:
              * so that later processing can detect what the argument
              * really was.
              */
-             FuncCall *n = (FuncCall *)make_function_expr($1, NIL, @1);
+             FuncCall *n = (FuncCall *)makeFuncCall($1, NIL, COERCE_SQL_SYNTAX, @1);
              n->agg_star = true;
              $$ = (Node *)n;
          }
     | func_name '(' DISTINCT  expr_list ')'
         {
-            FuncCall *n = (FuncCall *)make_function_expr($1, $4, @1);
+            FuncCall *n = (FuncCall *)makeFuncCall($1, $4, COERCE_SQL_SYNTAX, @1);
             n->agg_order = NIL;
             n->agg_distinct = true;
             $$ = (Node *)n;
@@ -1938,15 +1925,6 @@ static Node *make_typecast_expr(Node *expr, char *typecast, int location)
     return (Node *)node;
 }
 
-static Node *make_function_expr(List *func_name, List *exprs, int location)
-{
-    FuncCall *fnode;
-
-    fnode = makeFuncCall(func_name, exprs, COERCE_SQL_SYNTAX, location);
-
-    return (Node *)fnode;
-}
-
 /* function to create a unique name given a prefix */
 static char *create_unique_name(char *prefix_name)
 {
@@ -2263,6 +2241,7 @@ static cypher_relationship *build_VLE_relation(List *left_arg,
     {
         eargs = lappend(eargs, make_string_const(cr->label, location));
     }
+
     if (cr->props == NULL)
     {
         eargs = lappend(eargs, make_null_const(location));
@@ -2275,7 +2254,7 @@ static cypher_relationship *build_VLE_relation(List *left_arg,
     fname = list_make2(makeString("ag_catalog"),
                        makeString("age_build_vle_match_edge"));
     /* build the edge function node */
-    node = make_function_expr(fname, eargs, location);
+    node = (Node *)makeFuncCall(fname, eargs, COERCE_SQL_SYNTAX, location);
     /* add in the edge*/
     args = lappend(args, node);
     /* add in the lidx and uidx range as Const */
@@ -2303,7 +2282,7 @@ static cypher_relationship *build_VLE_relation(List *left_arg,
     args = lappend(args, make_int_const(unique_number, -1));
 
     /* build the VLE function node */
-    cr->varlen = make_function_expr(list_make1(makeString("vle")), args,
+    cr->varlen = (Node *)makeFuncCall(list_make1(makeString("vle")), args, COERCE_SQL_SYNTAX,
                                     cr_location);
     /* return the VLE relation node */
     return cr;

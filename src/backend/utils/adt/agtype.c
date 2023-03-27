@@ -6458,15 +6458,10 @@ PG_FUNCTION_INFO_V1(age_e);
 
 Datum age_e(PG_FUNCTION_ARGS)
 {
-    agtype_value agtv_result;
-    float8 float_result;
-
-    /* get e by raising e to 1 - no, they don't have a constant e :/ */
-    float_result = DatumGetFloat8(DirectFunctionCall1(dexp, Float8GetDatum(1)));
-
-    /* build the result */
-    agtv_result.type = AGTV_FLOAT;
-    agtv_result.val.float_value = float_result;
+    agtype_value agtv_result = {
+        .type = AGTV_FLOAT,
+        .val.float_value = DatumGetFloat8(DirectFunctionCall1(dexp, Float8GetDatum(1)))
+    };
 
     PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
 }
@@ -6475,10 +6470,10 @@ PG_FUNCTION_INFO_V1(age_pi);
     
 Datum age_pi(PG_FUNCTION_ARGS)
 {   
-    agtype_value agtv_result;
-    
-    agtv_result.type = AGTV_FLOAT;
-    agtv_result.val.float_value = M_PI;
+    agtype_value agtv_result = {
+        .type = AGTV_FLOAT,
+        .val.float_value = M_PI
+    };
 
     PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
 }   
@@ -6487,19 +6482,13 @@ PG_FUNCTION_INFO_V1(age_rand);
 
 Datum age_rand(PG_FUNCTION_ARGS)
 {
-    agtype_value agtv_result;
-    float8 float_result;
-
-    /* get e by raising e to 1 - no, they don't have a constant e :/ */
-    float_result = DatumGetFloat8(DirectFunctionCall1(random, Float8GetDatum(1)));
-
-    /* build the result */
-    agtv_result.type = AGTV_FLOAT;
-    agtv_result.val.float_value = float_result;
+    agtype_value agtv_result = {
+        .type = AGTV_FLOAT,
+        .val.float_value = DatumGetFloat8(DirectFunctionCall1(random, Float8GetDatum(1)))
+    };
 
     PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
 }
-
 
 PG_FUNCTION_INFO_V1(age_exp);
 
