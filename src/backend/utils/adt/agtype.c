@@ -6574,48 +6574,21 @@ PG_FUNCTION_INFO_V1(age_radians);
 
 Datum age_radians(PG_FUNCTION_ARGS)
 {
-    int nargs;
-    Datum *args;
-    bool *nulls;
-    Oid *types;
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
     agtype_value agtv_result;
-    float8 angle_degrees;
-    float8 angle_radians;
-    bool is_null = true;
-
-    /* extract argument values */
-    nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
-
-    /* check number of args */
-    if (nargs != 1)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("radians() invalid number of arguments")));
-
-    /* check for a null input */
-    if (nargs < 0 || nulls[0])
-        PG_RETURN_NULL();
-
-    /*
-     * radians_from_degrees() supports integer, float, and numeric or the agtype
-     * integer, float, and numeric for the input expression.
-     */
-
-    angle_degrees = get_float_compatible_arg(args[0], types[0], "radians",
-                                             &is_null);
-
-    /* check for a agtype null input */
+    float8 angle;
+    bool is_null;
+    
+    angle = get_float_compatible_arg(AGTYPE_P_GET_DATUM(agt), AGTYPEOID, "radians", &is_null);
+    
     if (is_null)
         PG_RETURN_NULL();
-
-    /* We need the numeric input as a float8 so that we can pass it off to PG */
-    angle_radians = DatumGetFloat8(DirectFunctionCall1(radians,
-                                                       Float8GetDatum(angle_degrees)));
-
-    /* build the result */
+    
     agtv_result.type = AGTV_FLOAT;
-    agtv_result.val.float_value = angle_radians;
-
-    PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
+    agtv_result.val.float_value =
+        DatumGetFloat8(DirectFunctionCall1(radians, Float8GetDatum(angle)));
+    
+    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv_result));
 }
 
 PG_FUNCTION_INFO_V1(age_round);
