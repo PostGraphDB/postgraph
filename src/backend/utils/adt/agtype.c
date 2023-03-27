@@ -6417,47 +6417,21 @@ PG_FUNCTION_INFO_V1(age_tan);
 
 Datum age_tan(PG_FUNCTION_ARGS)
 {
-    int nargs;
-    Datum *args;
-    bool *nulls;
-    Oid *types;
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
     agtype_value agtv_result;
     float8 angle;
-    float8 result;
-    bool is_null = true;
+    bool is_null;
 
-    /* extract argument values */
-    nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
+    angle = get_float_compatible_arg(AGTYPE_P_GET_DATUM(agt), AGTYPEOID, "tan", &is_null);
 
-    /* check number of args */
-    if (nargs != 1)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("tan() invalid number of arguments")));
-
-    /* check for a null input */
-    if (nargs < 0 || nulls[0])
-        PG_RETURN_NULL();
-
-    /*
-     * tan() supports integer, float, and numeric or the agtype integer, float,
-     * and numeric for the angle
-     */
-
-    angle = get_float_compatible_arg(args[0], types[0], "tan", &is_null);
-
-    /* check for a agtype null input */
     if (is_null)
         PG_RETURN_NULL();
 
-    /* We need the numeric input as a float8 so that we can pass it off to PG */
-    result = DatumGetFloat8(DirectFunctionCall1(dtan,
-                                                Float8GetDatum(angle)));
-
-    /* build the result */
     agtv_result.type = AGTV_FLOAT;
-    agtv_result.val.float_value = result;
+    agtv_result.val.float_value =
+        DatumGetFloat8(DirectFunctionCall1(dtan, Float8GetDatum(angle)));
 
-    PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
+    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv_result));
 }
 
 PG_FUNCTION_INFO_V1(age_cot);
