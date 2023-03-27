@@ -2920,19 +2920,19 @@ $$) AS (results agtype);
  "string"
 (1 row)
 
-SELECT * FROM age_ltrim('  string   ');
+SELECT * FROM age_ltrim('"  string   "'::agtype);
   age_ltrim  
 -------------
  "string   "
 (1 row)
 
-SELECT * FROM age_rtrim('  string   ');
+SELECT * FROM age_rtrim('"  string   "'::agtype);
  age_rtrim  
 ------------
  "  string"
 (1 row)
 
-SELECT * FROM age_trim('  string   ');
+SELECT * FROM age_trim('"  string   "'::agtype);
  age_trim 
 ----------
  "string"
@@ -2993,7 +2993,7 @@ ERROR:  rTrim() unsupported argument agtype 5
 SELECT * FROM cypher('expr', $$
     RETURN trim(true)
 $$) AS (results agtype);
-ERROR:  trim() unsupported argument agtype 5
+ERROR:  Trim() unsupported argument agtype 5
 SELECT * FROM cypher('expr', $$
     RETURN lTrim()
 $$) AS (results agtype);

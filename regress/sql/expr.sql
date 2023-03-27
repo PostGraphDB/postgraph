@@ -1240,9 +1240,9 @@ $$) AS (results agtype);
 SELECT * FROM cypher('expr', $$
     RETURN trim("  string   ")
 $$) AS (results agtype);
-SELECT * FROM age_ltrim('  string   ');
-SELECT * FROM age_rtrim('  string   ');
-SELECT * FROM age_trim('  string   ');
+SELECT * FROM age_ltrim('"  string   "'::agtype);
+SELECT * FROM age_rtrim('"  string   "'::agtype);
+SELECT * FROM age_trim('"  string   "'::agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN lTrim(null)
