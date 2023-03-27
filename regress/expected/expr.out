@@ -3756,7 +3756,11 @@ SELECT * FROM age_sin('0');
 (1 row)
 
 SELECT * FROM age_cos('0');
-ERROR:  cos() unsupported argument type 25
+ age_cos 
+---------
+ 1.0
+(1 row)
+
 SELECT * FROM age_tan('0');
 ERROR:  tan() unsupported argument type 25
 SELECT * FROM age_cot('0');
