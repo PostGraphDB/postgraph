@@ -1937,7 +1937,7 @@ $$) AS (endNode agtype);
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN endNode(v)
 $$) AS (endNode agtype);
-ERROR:  endNode() argument must be an edge or null
+ERROR:  endNode() argument must be an edge
 SELECT * FROM cypher('expr', $$
     RETURN endNode()
 $$) AS (endNode agtype);
@@ -2228,7 +2228,7 @@ $$) AS (properties agtype);
 SELECT * FROM cypher('expr', $$
     RETURN properties(1234)
 $$) AS (properties agtype);
-ERROR:  properties() argument must be a vertex, an edge or null
+ERROR:  properties() argument must be a vertex or edge
 SELECT * FROM cypher('expr', $$
     RETURN properties()
 $$) AS (properties agtype);
