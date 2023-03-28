@@ -305,12 +305,12 @@ typedef struct
 #define AGT_IS_VERTEX(agt) \
     (AGT_ROOT_IS_SCALAR(agt) &&\
      AGTE_IS_AGTYPE((agt)->root.children[0]) &&\
-     ((agt)->root.children[1] & AGT_HEADER_VERTEX))
+     (((agt)->root.children[1] & AGT_HEADER_VERTEX) == AGT_HEADER_VERTEX))
 
 #define AGT_IS_EDGE(agt) \
     (AGT_ROOT_IS_SCALAR(agt) &&\
      AGTE_IS_AGTYPE((agt)->root.children[0]) &&\
-     ((agt)->root.children[1] & AGT_HEADER_EDGE))
+     (((agt)->root.children[1] & AGT_HEADER_EDGE) == AGT_HEADER_EDGE))
 
 /*
  * IMPORTANT NOTE: For agtype_value_type, IS_A_AGTYPE_SCALAR() checks that the

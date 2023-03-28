@@ -1838,7 +1838,7 @@ $$) AS (start_id agtype);
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN start_id(v)
 $$) AS (start_id agtype);
-ERROR:  start_id() argument must be an edge or null
+ERROR:  start_id() argument must be an edge
 SELECT * FROM cypher('expr', $$
     RETURN start_id()
 $$) AS (start_id agtype);
@@ -1871,7 +1871,7 @@ $$) AS (end_id agtype);
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN end_id(v)
 $$) AS (end_id agtype);
-ERROR:  end_id() argument must be an edge or null
+ERROR:  end_id() argument must be an edge
 SELECT * FROM cypher('expr', $$
     RETURN end_id()
 $$) AS (end_id agtype);
