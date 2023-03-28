@@ -3960,7 +3960,7 @@ Datum age_endnode(PG_FUNCTION_ARGS)
     /* check for proper agtype */
     if (agtv_object->type != AGTV_EDGE)
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("endNode() argument must be an edge or null")));
+                        errmsg("endNode() argument must be an edge")));
 
     /* get the graphid for the end_id */
     agtv_value = GET_AGTYPE_VALUE_OBJECT_VALUE(agtv_object, "end_id");
@@ -4039,38 +4039,23 @@ PG_FUNCTION_INFO_V1(age_properties);
 
 Datum age_properties(PG_FUNCTION_ARGS)
 {
-    agtype *agt_arg = NULL;
-    agtype_value *agtv_object = NULL;
-    agtype_value *agtv_result = NULL;
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
 
-    /* check for null */
-    if (PG_ARGISNULL(0))
+    if (is_agtype_null(agt))
         PG_RETURN_NULL();
 
-    agt_arg = AG_GET_ARG_AGTYPE_P(0);
-    /* check for a scalar object */
-    if (!AGT_ROOT_IS_SCALAR(agt_arg))
+    if (!AGT_IS_EDGE(agt) && !AGT_IS_VERTEX(agt))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("properties() argument must resolve to a scalar value")));
+                        errmsg("properties() argument must be a vertex or edge")));
 
-    /* get the object out of the array */
-    agtv_object = get_ith_agtype_value_from_container(&agt_arg->root, 0);
+    agtype_value *agtv =
+        find_agtype_value_from_container((agtype_container *)&agt->root.children[2],
+                                         AGT_FOBJECT, &prop_key);
 
-    /* is it an agtype null? */
-    if (agtv_object->type == AGTV_NULL)
-            PG_RETURN_NULL();
+    Assert(agtv != NULL);
+    Assert(agtv->type == AGTV_OBJECT || agtv->type == AGTV_BINARY);
 
-    /* check for proper agtype */
-    if (agtv_object->type != AGTV_VERTEX && agtv_object->type != AGTV_EDGE)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("properties() argument must be a vertex, an edge or null")));
-
-    agtv_result = GET_AGTYPE_VALUE_OBJECT_VALUE(agtv_object, "properties");
-
-    Assert(agtv_result != NULL);
-    Assert(agtv_result->type = AGTV_OBJECT);
-
-    PG_RETURN_POINTER(agtype_value_to_agtype(agtv_result));
+    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(agtv));
 }
 
 PG_FUNCTION_INFO_V1(age_length);
@@ -4110,99 +4095,37 @@ Datum age_length(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(age_toboolean);
+Datum
+age_toboolean(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
 
-Datum age_toboolean(PG_FUNCTION_ARGS)
-{
-    int nargs;
-    Datum *args;
-    Datum arg;
-    bool *nulls;
-    Oid *types;
-    Oid type;
-    agtype_value agtv_result;
-    char *string = NULL;
-    bool result = false;
-
-    /* extract argument values */
-    nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
-
-    /* check number of args */
-    if (nargs > 1)
+    if (!AGT_ROOT_IS_SCALAR(agt))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("toBoolean() only supports one argument")));
+                        errmsg("toBoolean() only supports scalar arguments")));
 
-    /* check for null */
-    if (nargs < 0 || nulls[0])
-        PG_RETURN_NULL();
+    agtype_value *agtv_value = get_ith_agtype_value_from_container(&agt->root, 0);
 
-    /*
-     * toBoolean() supports bool, text, cstring, or the agtype bool, and string
-     * input.
-     */
-    arg = args[0];
-    type = types[0];
-
-    if (type != AGTYPEOID)
-    {
-        if (type == BOOLOID)
-            result = DatumGetBool(arg);
-        else if (type == CSTRINGOID || type == TEXTOID)
-        {
-            if (type == CSTRINGOID)
-                string = DatumGetCString(arg);
-            else
-                string = text_to_cstring(DatumGetTextPP(arg));
-
-            if (pg_strcasecmp(string, "true") == 0)
-                result = true;
-            else if (pg_strcasecmp(string, "false") == 0)
-                result = false;
-            else
-                PG_RETURN_NULL();
-        }
-        else
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("toBoolean() unsupported argument type %d",
-                                   type)));
-    }
-    else
-    {
-        agtype *agt_arg;
-        agtype_value *agtv_value;
-
-        /* get the agtype argument */
-        agt_arg = DATUM_GET_AGTYPE_P(arg);
-
-        if (!AGT_ROOT_IS_SCALAR(agt_arg))
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("toBoolean() only supports scalar arguments")));
-
-        agtv_value = get_ith_agtype_value_from_container(&agt_arg->root, 0);
-
-        if (agtv_value->type == AGTV_BOOL)
+    bool result;
+    if (agtv_value->type == AGTV_BOOL) {
             result = agtv_value->val.boolean;
-        else if (agtv_value->type == AGTV_STRING)
-        {
-            int len = agtv_value->val.string.len;
+    } else if (agtv_value->type == AGTV_STRING) {
+        int len = agtv_value->val.string.len;
 
-            string = agtv_value->val.string.val;
+        char *string = agtv_value->val.string.val;
 
-            if (len == 4 && pg_strncasecmp(string, "true", len) == 0)
-                result = true;
-            else if (len == 5 && pg_strncasecmp(string, "false", len) == 0)
-                result = false;
-            else
-                PG_RETURN_NULL();
-        }
+        if (len == 4 && !pg_strncasecmp(string, "true", len))
+            result = true;
+        else if (len == 5 && !pg_strncasecmp(string, "false", len))
+            result = false;
         else
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("toBoolean() unsupported argument agtype %d",
-                                   agtv_value->type)));
+            PG_RETURN_NULL();
+    } else {
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("toBoolean() unsupported argument agtype %d",
+                               agtv_value->type)));
     }
 
-    /* build the result */
-    agtv_result.type = AGTV_BOOL;
-    agtv_result.val.boolean = result;
+    agtype_value agtv_result = { .type = AGTV_BOOL, .val.boolean = result };
 
     PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
 }
@@ -4218,8 +4141,7 @@ age_tofloat(PG_FUNCTION_ARGS) {
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("toFloat() only supports scalar arguments")));
 
-    agtype_value *agtv_value =
-        get_ith_agtype_value_from_container(&agt->root, 0);
+    agtype_value *agtv_value = get_ith_agtype_value_from_container(&agt->root, 0);
 
     if (agtv_value->type == AGTV_INTEGER) {
         char *string = DatumGetCString(DirectFunctionCall1(int8out,
@@ -4238,8 +4160,7 @@ age_tofloat(PG_FUNCTION_ARGS) {
                 numeric_float8_no_overflow,
                 NumericGetDatum(agtv_value->val.numeric)));
     } else if (agtv_value->type == AGTV_STRING) {
-        char *string = strndup(agtv_value->val.string.val,
-                               agtv_value->val.string.len);
+        char *string = strndup(agtv_value->val.string.val, agtv_value->val.string.len);
 
         bool is_valid;
         result = float8in_internal_null(string, NULL, "double precision",
@@ -4259,195 +4180,63 @@ age_tofloat(PG_FUNCTION_ARGS) {
 }
 
 PG_FUNCTION_INFO_V1(age_tointeger);
+Datum
+age_tointeger(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
 
-Datum age_tointeger(PG_FUNCTION_ARGS)
-{
-    int nargs;
-    Datum *args;
-    Datum arg;
-    bool *nulls;
-    Oid *types;
-    agtype_value agtv_result;
-    char *string = NULL;
-    bool is_valid = false;
-    Oid type;
-    int64 result;
-
-    /* extract argument values */
-    nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
-
-    /* check number of args */
-    if (nargs > 1)
+    if (!AGT_ROOT_IS_SCALAR(agt))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("toInteger() only supports one argument")));
+                        errmsg("toInteger() only supports scalar arguments")));
 
-    /* check for null */
-    if (nargs < 0 || nulls[0])
-        PG_RETURN_NULL();
+    agtype_value *agtv_value = get_ith_agtype_value_from_container(&agt->root, 0);
 
-    /*
-     * toInteger() supports integer, float, numeric, text, cstring, or the
-     * agtype integer, float, numeric, and string input
-     */
-    arg = args[0];
-    type = types[0];
+    int64 result;
+    if (agtv_value->type == AGTV_INTEGER) {
+        result = agtv_value->val.int_value;
+    } else if (agtv_value->type == AGTV_FLOAT) {
+        float f = agtv_value->val.float_value;
 
-    if (type != AGTYPEOID)
-    {
-        if (type == INT2OID)
-            result = (int64) DatumGetInt16(arg);
-        else if (type == INT4OID)
-            result = (int64) DatumGetInt32(arg);
-        else if (type == INT8OID)
-            result = (int64) DatumGetInt64(arg);
-        else if (type == FLOAT4OID)
-        {
-            float4 f = DatumGetFloat4(arg);
+        if (isnan(f) || isinf(f) || f < PG_INT64_MIN || f > PG_INT64_MAX)
+            PG_RETURN_NULL();
 
-            if (isnan(f) || isinf(f) ||
-                f < PG_INT64_MIN || f > PG_INT64_MAX)
-                PG_RETURN_NULL();
+        result = (int64) f;
+    } else if (agtv_value->type == AGTV_NUMERIC) {
+        float8 f;
+        Datum num = NumericGetDatum(agtv_value->val.numeric);
 
-            result = (int64) f;
-        }
-        else if (type == FLOAT8OID)
-        {
-            float8 f = DatumGetFloat8(arg);
+        f = DatumGetFloat8(DirectFunctionCall1(numeric_float8_no_overflow, num));
 
-            if (isnan(f) || isinf(f) ||
-                f < PG_INT64_MIN || f > PG_INT64_MAX)
-                PG_RETURN_NULL();
+        if (isnan(f) || isinf(f) || f < PG_INT64_MIN || f > PG_INT64_MAX)
+            PG_RETURN_NULL();
 
-            result = (int64) f;
-        }
-        else if (type == NUMERICOID)
-        {
-            float8 f;
+        result = (int64) f;
+    } else if (agtv_value->type == AGTV_STRING) {
+        // we need a null terminated cstring
+        char *string = strndup(agtv_value->val.string.val, agtv_value->val.string.len);
 
-            f = DatumGetFloat8(DirectFunctionCall1(
-                numeric_float8_no_overflow, arg));
+        // convert it if it is a regular integer string
+        bool is_valid = scanint8(string, true, &result);
 
-            if (isnan(f) || isinf(f) ||
-                f < PG_INT64_MIN || f > PG_INT64_MAX)
-                PG_RETURN_NULL();
-
-            result = (int64) f;
-        }
-        else if (type == CSTRINGOID || type == TEXTOID)
-        {
-            if (type == CSTRINGOID)
-                string = DatumGetCString(arg);
-            else
-                string = text_to_cstring(DatumGetTextPP(arg));
-
-            /* convert it if it is a regular integer string */
-            is_valid = scanint8(string, true, &result);
-            /*
-             * If it isn't an integer string, try converting it as a float
-             * string.
-             */
-            if (!is_valid)
-            {
-                float f;
-
-                f = float8in_internal_null(string, NULL, "double precision",
-                                           string, &is_valid);
-                /*
-                 * If the conversions failed or it's a special float value,
-                 * return null.
-                 */
-                if (!is_valid || isnan(f) || isinf(f) ||
-                    f < PG_INT64_MIN || f > PG_INT64_MAX)
+        // If it isn't an integer string, try converting it as a float string.
+        if (!is_valid) {
+            float f = float8in_internal_null(string, NULL, "double precision", string, &is_valid);
+            free(string);
+            
+            // If the conversions failed or it's a special float value, return null.
+            if (!is_valid || isnan(f) || isinf(f) || f < PG_INT64_MIN || f > PG_INT64_MAX)
                     PG_RETURN_NULL();
 
-                result = (int64) f;
-            }
-        }
-        else
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("toInteger() unsupported argument type %d",
-                                   type)));
-    }
-    else
-    {
-        agtype *agt_arg;
-        agtype_value *agtv_value;
-
-        /* get the agtype argument */
-        agt_arg = DATUM_GET_AGTYPE_P(arg);
-
-        if (!AGT_ROOT_IS_SCALAR(agt_arg))
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("toInteger() only supports scalar arguments")));
-
-        agtv_value = get_ith_agtype_value_from_container(&agt_arg->root, 0);
-
-        if (agtv_value->type == AGTV_INTEGER)
-            result = agtv_value->val.int_value;
-        else if (agtv_value->type == AGTV_FLOAT)
-        {
-            float f = agtv_value->val.float_value;
-
-            if (isnan(f) || isinf(f) ||
-                f < PG_INT64_MIN || f > PG_INT64_MAX)
-                PG_RETURN_NULL();
-
             result = (int64) f;
+        } else {
+            free(string);
         }
-        else if (agtv_value->type == AGTV_NUMERIC)
-        {
-            float8 f;
-            Datum num = NumericGetDatum(agtv_value->val.numeric);
-
-            f = DatumGetFloat8(DirectFunctionCall1(
-                numeric_float8_no_overflow, num));
-
-            if (isnan(f) || isinf(f) ||
-                f < PG_INT64_MIN || f > PG_INT64_MAX)
-                PG_RETURN_NULL();
-
-            result = (int64) f;
-        }
-        else if (agtv_value->type == AGTV_STRING)
-        {
-            /* we need a null terminated cstring */
-            string = strndup(agtv_value->val.string.val,
-                             agtv_value->val.string.len);
-            /* convert it if it is a regular integer string */
-            is_valid = scanint8(string, true, &result);
-            /*
-             * If it isn't an integer string, try converting it as a float
-             * string.
-             */
-            if (!is_valid)
-            {
-                float f;
-
-                f = float8in_internal_null(string, NULL, "double precision",
-                                           string, &is_valid);
-                free(string);
-                /*
-                 * If the conversions failed or it's a special float value,
-                 * return null.
-                 */
-                if (!is_valid || isnan(f) || isinf(f) ||
-                    f < PG_INT64_MIN || f > PG_INT64_MAX)
-                    PG_RETURN_NULL();
-
-                result = (int64) f;
-            }
-            else
-                free(string);
-        }
-        else
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("toInteger() unsupported argument agtype %d",
-                                   agtv_value->type)));
+    } else {
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("toInteger() unsupported argument agtype %d",
+                               agtv_value->type)));
     }
 
-    /* build the result */
-    agtv_result.type = AGTV_INTEGER;
-    agtv_result.val.int_value = result;
+    agtype_value agtv_result = { .type = AGTV_INTEGER, .val.int_value = result };
 
     PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
 }
