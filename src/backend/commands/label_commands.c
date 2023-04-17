@@ -17,7 +17,7 @@
  * under the License.
  */
 
-#include "postgres.h"
+#include "postgraph.h"
 
 #include "access/heapam.h"
 #include "access/xact.h"
@@ -255,9 +255,9 @@ Datum create_elabel(PG_FUNCTION_ARGS)
 }
 
 /*
- * For the new label, create an entry in ag_catalog.ag_label, create a
+ * For the new label, create an entry in CATALOG_SCHEMA.ag_label, create a
  * new table and sequence. Returns the oid from the new tuple in
- * ag_catalog.ag_label.
+ * CATALOG_SCHEMA.ag_label.
  */
 void create_label(char *graph_name, char *label_name, char label_type,
                   List *parents)
@@ -312,10 +312,10 @@ void create_label(char *graph_name, char *label_name, char label_type,
 }
 
 // CREATE TABLE `schema_name`.`rel_name` (
-//   "id" graphid PRIMARY KEY DEFAULT "ag_catalog"."_graphid"(...),
+//   "id" graphid PRIMARY KEY DEFAULT CATALOG_SCHEMA."_graphid"(...),
 //   "start_id" graphid NOT NULL note: only for edge labels
 //   "end_id" graphid NOT NULL  note: only for edge labels
-//   "properties" agtype NOT NULL DEFAULT "ag_catalog"."agtype_build_map"()
+//   "properties" agtype NOT NULL DEFAULT CATALOG_SCHEMA."agtype_build_map"()
 // )
 static void create_table_for_label(char *graph_name, char *label_name,
                                    char *schema_name, char *rel_name,
@@ -370,10 +370,10 @@ static void create_table_for_label(char *graph_name, char *label_name,
 }
 
 // CREATE TABLE `schema_name`.`rel_name` (
-//   "id" graphid PRIMARY KEY DEFAULT "ag_catalog"."_graphid"(...),
+//   "id" graphid PRIMARY KEY DEFAULT CATALOG_SCHEMA."_graphid"(...),
 //   "start_id" graphid NOT NULL
 //   "end_id" graphid NOT NULL
-//   "properties" agtype NOT NULL DEFAULT "ag_catalog"."agtype_build_map"()
+//   "properties" agtype NOT NULL DEFAULT CATALOG_SCHEMA."agtype_build_map"()
 // )
 static List *create_edge_table_elements(char *graph_name, char *label_name,
                                         char *schema_name, char *rel_name,
@@ -384,7 +384,7 @@ static List *create_edge_table_elements(char *graph_name, char *label_name,
     ColumnDef *end_id;
     ColumnDef *props;
 
-    // "id" graphid PRIMARY KEY DEFAULT "ag_catalog"."_graphid"(...)
+    // "id" graphid PRIMARY KEY DEFAULT CATALOG_SCHEMA."_graphid"(...)
     id = makeColumnDef(AG_EDGE_COLNAME_ID, GRAPHIDOID, -1, InvalidOid);
     id->constraints = list_make2(build_pk_constraint(),
                                  build_id_default(graph_name, label_name,
@@ -399,7 +399,7 @@ static List *create_edge_table_elements(char *graph_name, char *label_name,
     end_id = makeColumnDef(AG_EDGE_COLNAME_END_ID, GRAPHIDOID, -1, InvalidOid);
     end_id->constraints = list_make1(build_not_null_constraint());
 
-    // "properties" agtype NOT NULL DEFAULT "ag_catalog"."agtype_build_map"()
+    // "properties" agtype NOT NULL DEFAULT CATALOG_SCHEMA."agtype_build_map"()
     props = makeColumnDef(AG_EDGE_COLNAME_PROPERTIES, AGTYPEOID, -1,
                           InvalidOid);
     props->constraints = list_make2(build_not_null_constraint(),
@@ -409,8 +409,8 @@ static List *create_edge_table_elements(char *graph_name, char *label_name,
 }
 
 // CREATE TABLE `schema_name`.`rel_name` (
-//   "id" graphid PRIMARY KEY DEFAULT "ag_catalog"."_graphid"(...),
-//   "properties" agtype NOT NULL DEFAULT "ag_catalog"."agtype_build_map"()
+//   "id" graphid PRIMARY KEY DEFAULT CATALOG_SCHEMA."_graphid"(...),
+//   "properties" agtype NOT NULL DEFAULT CATALOG_SCHEMA."agtype_build_map"()
 // )
 static List *create_vertex_table_elements(char *graph_name, char *label_name,
                                           char *schema_name, char *rel_name,
@@ -419,13 +419,13 @@ static List *create_vertex_table_elements(char *graph_name, char *label_name,
     ColumnDef *id;
     ColumnDef *props;
 
-    // "id" graphid PRIMARY KEY DEFAULT "ag_catalog"."_graphid"(...)
+    // "id" graphid PRIMARY KEY DEFAULT CATALOG_SCHEMA."_graphid"(...)
     id = makeColumnDef(AG_VERTEX_COLNAME_ID, GRAPHIDOID, -1, InvalidOid);
     id->constraints = list_make2(build_pk_constraint(),
                                  build_id_default(graph_name, label_name,
                                                   schema_name, seq_name));
 
-    // "properties" agtype NOT NULL DEFAULT "ag_catalog"."agtype_build_map"()
+    // "properties" agtype NOT NULL DEFAULT CATALOG_SCHEMA."agtype_build_map"()
     props = makeColumnDef(AG_VERTEX_COLNAME_PROPERTIES, AGTYPEOID, -1,
                           InvalidOid);
     props->constraints = list_make2(build_not_null_constraint(),
@@ -499,7 +499,7 @@ static FuncCall *build_id_default_func_expr(char *graph_name, char *label_name,
     FuncCall *graphid_func;
 
     // Build a node that gets the label id
-    label_id_func_name = list_make2(makeString("ag_catalog"),
+    label_id_func_name = list_make2(makeString(CATALOG_SCHEMA),
                                     makeString("_label_id"));
     graph_name_const = makeNode(A_Const);
     graph_name_const->val.type = T_String;
@@ -530,7 +530,7 @@ static FuncCall *build_id_default_func_expr(char *graph_name, char *label_name,
      * Build a node that contructs the graphid from the label id function
      * and the next val function for the given sequence.
      */
-    graphid_func_name = list_make2(makeString("ag_catalog"),
+    graphid_func_name = list_make2(makeString(CATALOG_SCHEMA),
                                    makeString("_graphid"));
     graphid_func_args = list_make2(label_id_func, nextval_func);
     graphid_func = makeFuncCall(graphid_func_name, graphid_func_args, COERCE_SQL_SYNTAX, -1);
@@ -571,15 +571,15 @@ static Constraint *build_not_null_constraint(void)
     return not_null;
 }
 
-// DEFAULT "ag_catalog"."agtype_build_map"()
+// DEFAULT CATALOG_SCHEMA."agtype_build_map"()
 static Constraint *build_properties_default(void)
 {
     List *func_name;
     FuncCall *func;
     Constraint *props_default;
 
-    // "ag_catalog"."agtype_build_map"()
-    func_name = list_make2(makeString("ag_catalog"),
+    // CATALOG_SCHEMA."agtype_build_map"()
+    func_name = list_make2(makeString(CATALOG_SCHEMA),
                            makeString("agtype_build_map"));
     func = makeFuncCall(func_name, NIL, COERCE_SQL_SYNTAX, -1);
 

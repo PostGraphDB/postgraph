@@ -22,7 +22,7 @@
  * HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-#include "postgres.h"
+#include "postgraph.h"
 
 #include "access/htup.h"
 #include "access/htup_details.h"
@@ -34,7 +34,7 @@
 #include "catalog/ag_namespace.h"
 #include "utils/ag_func.h"
 
-// checks that func_oid is of func_name function in ag_catalog
+// checks that func_oid is of func_name function in CATALOG_SCHEMA
 bool is_oid_ag_func(Oid func_oid, const char *func_name)
 {
     HeapTuple proctup;
@@ -59,7 +59,7 @@ bool is_oid_ag_func(Oid func_oid, const char *func_name)
 
     nspname = get_namespace_name_or_temp(nspid);
     Assert(nspname);
-    return (strcmp(nspname, "ag_catalog") == 0);
+    return (strcmp(nspname, CATALOG_SCHEMA) == 0);
 }
 
 // gets the function OID that matches with func_name and argument types
