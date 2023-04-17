@@ -1,4 +1,7 @@
 /*
+ * PostGraph
+ * Copyright (C) 2023 by PostGraph
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,6 +18,12 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
+ *
+ * For PostgreSQL Database Management System:
+ * (formerly known as Postgres, then as Postgres95)
+ *
+ * Portions Copyright (c) 2020-2023, Apache Software Foundation
+ * Portions Copyright (c) 1996-2010, Bitnine Global
  */
 
 -- complain if script is sourced in psql, rather than via CREATE EXTENSION
@@ -33,9 +42,7 @@ CREATE UNIQUE INDEX ag_graph_graphid_index ON ag_graph USING btree (graphid);
 
 CREATE UNIQUE INDEX ag_graph_name_index ON ag_graph USING btree (name);
 
-CREATE UNIQUE INDEX ag_graph_namespace_index
-ON ag_graph
-USING btree (namespace);
+CREATE UNIQUE INDEX ag_graph_namespace_index ON ag_graph USING btree (namespace);
 
 -- 0 is an invalid label ID
 CREATE DOMAIN label_id AS int NOT NULL CHECK (VALUE > 0 AND VALUE <= 65535);
@@ -109,18 +116,12 @@ RETURNS void
 LANGUAGE c
 AS 'MODULE_PATHNAME';
 
-CREATE FUNCTION load_labels_from_file(graph_name name,
-                                      label_name name,
-                                      file_path text,
-                                      id_field_exists bool default true)
+CREATE FUNCTION load_labels_from_file(graph_name name, label_name name, file_path text, id_field_exists bool default true)
 RETURNS void
 LANGUAGE c
 AS 'MODULE_PATHNAME';
 
-CREATE FUNCTION load_edges_from_file(graph_name name,
-                                     label_name name,
-                                     file_path text)
-RETURNS void
+CREATE FUNCTION load_edges_from_file(graph_name name, label_name name, file_path text) RETURNS void
 LANGUAGE c
 AS 'MODULE_PATHNAME';
 
@@ -843,8 +844,7 @@ IMMUTABLE
 STRICT
 PARALLEL SAFE;
 
-CREATE FUNCTION gin_extract_agtype_query(agtype, internal, int2,
-                                         internal, internal)
+CREATE FUNCTION gin_extract_agtype_query(agtype, internal, int2, internal, internal)
 RETURNS internal
 AS 'MODULE_PATHNAME'
 LANGUAGE C
@@ -852,8 +852,7 @@ IMMUTABLE
 STRICT
 PARALLEL SAFE;
 
-CREATE FUNCTION gin_consistent_agtype(internal, int2, agtype, int4,
-                                      internal, internal)
+CREATE FUNCTION gin_consistent_agtype(internal, int2, agtype, int4, internal, internal)
 RETURNS bool
 AS 'MODULE_PATHNAME'
 LANGUAGE C
@@ -861,8 +860,7 @@ IMMUTABLE
 STRICT
 PARALLEL SAFE;
 
-CREATE FUNCTION gin_triconsistent_agtype(internal, int2, agtype, int4,
-                                         internal, internal, internal)
+CREATE FUNCTION gin_triconsistent_agtype(internal, int2, agtype, int4, internal, internal, internal)
 RETURNS bool
 AS 'MODULE_PATHNAME'
 LANGUAGE C
@@ -878,12 +876,9 @@ DEFAULT FOR TYPE agtype USING gin AS
   OPERATOR 11 ?&(agtype, text[]),
   FUNCTION 1 gin_compare_agtype(text,text),
   FUNCTION 2 gin_extract_agtype(agtype, internal),
-  FUNCTION 3 gin_extract_agtype_query(agtype, internal, int2,
-                                      internal, internal),
-  FUNCTION 4 gin_consistent_agtype(internal, int2, agtype, int4,
-                                   internal, internal),
-  FUNCTION 6 gin_triconsistent_agtype(internal, int2, agtype, int4,
-                                      internal, internal, internal),
+  FUNCTION 3 gin_extract_agtype_query(agtype, internal, int2, internal, internal),
+  FUNCTION 4 gin_consistent_agtype(internal, int2, agtype, int4, internal, internal),
+  FUNCTION 6 gin_triconsistent_agtype(internal, int2, agtype, int4, internal, internal, internal),
 STORAGE text;
 
 --
@@ -911,7 +906,6 @@ AS 'MODULE_PATHNAME';
 CREATE CAST (agtype AS graphid)
 WITH FUNCTION agtype_to_graphid(agtype)
 AS IMPLICIT;
-
 
 --
 -- agtype - path
@@ -980,9 +974,7 @@ AS 'MODULE_PATHNAME', 'agtype_build_map_noargs';
 --
 CREATE FUNCTION agtype_volatile_wrapper(agt agtype)
 RETURNS agtype AS $return_value$
-BEGIN
-	RETURN agt;
-END;
+BEGIN RETURN agt; END;
 $return_value$ LANGUAGE plpgsql
 VOLATILE
 CALLED ON NULL INPUT
@@ -1180,7 +1172,6 @@ CREATE OPERATOR @= (
 --
 -- agtype - string matching (`STARTS WITH`, `ENDS WITH`, `CONTAINS`, & =~)
 --
-
 CREATE FUNCTION agtype_string_match_starts_with(agtype, agtype)
 RETURNS agtype
 LANGUAGE c
@@ -1215,7 +1206,6 @@ AS 'MODULE_PATHNAME';
 --
 -- functions for updating clauses
 --
-
 -- This function is defined as a VOLATILE function to prevent the optimizer
 -- from pulling up Query's for CREATE clauses.
 CREATE FUNCTION _cypher_create_clause(internal)

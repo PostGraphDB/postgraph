@@ -17,7 +17,7 @@
  * under the License.
  */
 
-#include "postgres.h"
+#include "postgraph.h"
 
 #include "access/genam.h"
 #include "access/heapam.h"
@@ -44,7 +44,7 @@
 #include "utils/ag_cache.h"
 #include "utils/graphid.h"
 
-// INSERT INTO ag_catalog.ag_label
+// INSERT INTO CATALOG_SCHEMA.ag_label
 // VALUES (label_name, label_graph, label_id, label_kind, label_relation)
 void insert_label(const char *label_name, Oid graph_oid, int32 label_id,
                   char label_kind, Oid label_relation)
@@ -94,7 +94,7 @@ void insert_label(const char *label_name, Oid graph_oid, int32 label_id,
     table_close(ag_label, RowExclusiveLock);
 }
 
-// DELETE FROM ag_catalog.ag_label WHERE relation = relation
+// DELETE FROM CATALOG_SCHEMA.ag_label WHERE relation = relation
 void delete_label(Oid relation)
 {
     ScanKeyData scan_keys[1];
@@ -154,7 +154,7 @@ PG_FUNCTION_INFO_V1(_label_name);
 
 /*
  * Using the graph name and the vertex/edge's graphid, find
- * the correct label name from ag_catalog.label
+ * the correct label name from CATALOG_SCHEMA.label
  */
 Datum _label_name(PG_FUNCTION_ARGS)
 {
@@ -274,7 +274,7 @@ List *get_all_edge_labels_per_graph(EState *estate, Oid graph_oid)
     ag_label = table_open(ag_label_relation_id(), RowExclusiveLock);
     scan_desc = table_beginscan(ag_label, estate->es_snapshot, 2, scan_keys);
 
-    resultRelInfo = create_entity_result_rel_info(estate, "ag_catalog",
+    resultRelInfo = create_entity_result_rel_info(estate, CATALOG_SCHEMA,
                                                   "ag_label");
 
     slot = ExecInitExtraTupleSlot(

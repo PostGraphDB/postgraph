@@ -18,7 +18,7 @@
  * under the License.
  */
 
-#include "postgres.h"
+#include "postgraph.h"
 
 #include "nodes/makefuncs.h"
 #include "nodes/nodes.h"
@@ -2251,7 +2251,7 @@ static cypher_relationship *build_VLE_relation(List *left_arg,
         eargs = lappend(eargs, cr->props);
     }
     /* build the edge function name (schema.funcname) */
-    fname = list_make2(makeString("ag_catalog"),
+    fname = list_make2(makeString(CATALOG_SCHEMA),
                        makeString("age_build_vle_match_edge"));
     /* build the edge function node */
     node = (Node *)makeFuncCall(fname, eargs, COERCE_SQL_SYNTAX, location);

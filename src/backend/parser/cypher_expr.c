@@ -1,6 +1,6 @@
 /*
  * PostGraph
- * Copyright (C) 2022 by PostGraph
+ * Copyright (C) 2023 by PostGraph
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -28,7 +28,7 @@
  * Portions Copyright (c) 1994, The Regents of the University of California
  */
 
-#include "postgres.h"
+#include "postgraph.h"
 
 #include "catalog/pg_type.h"
 #include "miscadmin.h"
@@ -632,7 +632,7 @@ transform_cypher_typecast(cypher_parsestate *cpstate, cypher_typecast *ctypecast
     Assert (ctypecast != NULL);
 
     /* create the qualified function name, schema first */
-    fname = list_make1(makeString("ag_catalog"));
+    fname = list_make1(makeString(CATALOG_SCHEMA));
 
     /* append the name of the requested typecast function */
     if (pg_strcasecmp(ctypecast->typecast, "numeric") == 0)
@@ -682,7 +682,7 @@ make_qualified_function_name(cypher_parsestate *cpstate, List *lst, List *targs)
     ag_name[i + 4] = '\0';
 
     // add the catalog schema and create list        
-    List *fname = list_make2(makeString("ag_catalog"), makeString(ag_name));
+    List *fname = list_make2(makeString(CATALOG_SCHEMA), makeString(ag_name));
 
     // Some functions need the graph name passed to them in order to work
     if (strcmp("startNode", name) == 0 || strcmp("endNode", name) == 0 || strcmp("vle", name) == 0 || strcmp("vertex_stats", name) == 0) {

@@ -22,7 +22,7 @@
  * HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-#include "postgres.h"
+#include "postgraph.h"
 
 #include "access/sysattr.h"
 #include "access/heapam.h"
@@ -2639,12 +2639,12 @@ static FuncCall *prevent_duplicate_edges(cypher_parsestate *cpstate,
     List *edges = NIL;
     ListCell *lc;
     List *qualified_function_name;
-    Value *ag_catalog, *edge_fn;
+    Value *catalog, *edge_fn;
 
-    ag_catalog = makeString("ag_catalog");
+    catalog = makeString(CATALOG_SCHEMA);
     edge_fn = makeString("_ag_enforce_edge_uniqueness");
 
-    qualified_function_name = list_make2(ag_catalog, edge_fn);
+    qualified_function_name = list_make2(catalog, edge_fn);
 
     // iterate through each entity, collecting the access node for each edge
     foreach (lc, entities)
@@ -2744,7 +2744,7 @@ static List *make_join_condition_for_edge(cypher_parsestate *cpstate,
     {
         Node *left_id = NULL;
         Node *right_id = NULL;
-        Value *ag_catalog = makeString("ag_catalog");
+        Value *catalog = makeString(CATALOG_SCHEMA);
         Value *func_name;
         List *qualified_func_name;
         List *args = NIL;
@@ -2767,7 +2767,7 @@ static List *make_join_condition_for_edge(cypher_parsestate *cpstate,
         if (prev_node->in_join_tree)
         {
             func_name = makeString("age_match_vle_terminal_edge");
-            qualified_func_name = list_make2(ag_catalog, func_name);
+            qualified_func_name = list_make2(catalog, func_name);
 
             /*
              * Get the vertex's id and pass to the function. Pass in NULL
@@ -2800,7 +2800,7 @@ static List *make_join_condition_for_edge(cypher_parsestate *cpstate,
             match_qual = makeString("age_match_two_vle_edges");
 
             // make the qualified function name
-            qualified_name = list_make2(ag_catalog, match_qual);
+            qualified_name = list_make2(catalog, match_qual);
 
             // make the args
             args = list_make2(prev_edge->expr, entity->expr);
@@ -2937,9 +2937,9 @@ static List *make_join_condition_for_edge(cypher_parsestate *cpstate,
 static Node *make_type_cast_to_agtype(Node *arg)
 {
     TypeCast *n = makeNode(TypeCast);
-    Value *ag_catalog = makeString("ag_catalog");
+    Value *catalog = makeString(CATALOG_SCHEMA);
     Value *agtype_str = makeString("agtype");
-    List *qualified_name = list_make2(ag_catalog, agtype_str);
+    List *qualified_name = list_make2(catalog, agtype_str);
 
     n->arg = arg;
     n->typeName = makeTypeNameFromNameList(qualified_name);
@@ -3005,11 +3005,11 @@ static List *join_to_entity(cypher_parsestate *cpstate,
     else if (entity->type == ENT_VLE_EDGE)
     {
         List *qualified_name, *args;
-        Value *ag_catalog, *match_qual;
+        Value *catalog, *match_qual;
         bool is_left_side;
         FuncCall *fc;
 
-        ag_catalog = makeString("ag_catalog");
+        catalog = makeString(CATALOG_SCHEMA);
         match_qual = makeString("age_match_vle_edge_to_id_qual");
 
         /*
@@ -3035,7 +3035,7 @@ static List *join_to_entity(cypher_parsestate *cpstate,
         }
 
         // make the qualified function name
-        qualified_name = list_make2(ag_catalog, match_qual);
+        qualified_name = list_make2(catalog, match_qual);
 
         // make the args
         args = list_make3(entity->expr, qual, make_bool_a_const(is_left_side));
@@ -3128,7 +3128,7 @@ static A_Expr *filter_vertices_on_label_id(cypher_parsestate *cpstate,
                                                           cpstate->graph_oid);
     A_Const *n;
     FuncCall *fc;
-    Value *ag_catalog, *extract_label_id;
+    Value *catalog, *extract_label_id;
     int32 label_id = lcd->id;
 
     n = makeNode(A_Const);
@@ -3136,10 +3136,10 @@ static A_Expr *filter_vertices_on_label_id(cypher_parsestate *cpstate,
     n->val.val.ival = label_id;
     n->location = -1;
 
-    ag_catalog = makeString("ag_catalog");
+    catalog = makeString(CATALOG_SCHEMA);
     extract_label_id = makeString("_extract_label_id");
 
-    fc = makeFuncCall(list_make2(ag_catalog, extract_label_id),
+    fc = makeFuncCall(list_make2(catalog, extract_label_id),
                       list_make1(id_field), COERCE_EXPLICIT_CALL, -1);
 
     return makeSimpleA_Expr(AEXPR_OP, "=", (Node *)fc, (Node *)n, -1);
@@ -3712,7 +3712,7 @@ static Node *make_qual(cypher_parsestate *cpstate,
 
         function_name = get_accessor_function_name(entity->type, col_name);
 
-        qualified_name = list_make2(makeString("ag_catalog"),
+        qualified_name = list_make2(makeString(CATALOG_SCHEMA),
                                     makeString(function_name));
 
 
@@ -3725,7 +3725,7 @@ static Node *make_qual(cypher_parsestate *cpstate,
         ColumnRef *cr = makeNode(ColumnRef);
 
         // cast graphid to agtype
-        qualified_name = list_make2(makeString("ag_catalog"),
+        qualified_name = list_make2(makeString(CATALOG_SCHEMA),
                                     makeString("graphid_to_agtype"));
 
         if (entity->type == ENT_EDGE)
