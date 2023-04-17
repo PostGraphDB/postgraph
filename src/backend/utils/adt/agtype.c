@@ -185,10 +185,24 @@ static Oid g_AGTYPEOID = InvalidOid;
 static Oid g_AGTYPEARRAYOID = InvalidOid;
 
 // Used to extact properties field from vertices and edges quickly
+static const agtype_value id_key = {
+    .type = AGTV_STRING,
+    .val.string = {2, "id"}
+};
+static const agtype_value start_key = {
+    .type = AGTV_STRING,
+    .val.string = {8, "start_id"}
+};
+static const agtype_value end_key = {
+    .type = AGTV_STRING,
+    .val.string = {6, "end_id"}
+};
 static const agtype_value prop_key = {
     .type = AGTV_STRING,
     .val.string = {10, "properties"}
 };
+
+
 
 /* helper function to quickly set, if necessary, and retrieve AGTYPEOID */
 Oid get_AGTYPEOID(void)
@@ -3582,117 +3596,60 @@ Datum agtype_typecast_numeric(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(age_id);
-
-Datum age_id(PG_FUNCTION_ARGS)
-{
-    agtype *agt_arg = NULL;
-    agtype_value *agtv_object = NULL;
-    agtype_value *agtv_result = NULL;
-
-    /* check for null */
-    if (PG_ARGISNULL(0))
+Datum
+age_id(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+    
+    if (is_agtype_null(agt))
         PG_RETURN_NULL();
-
-    agt_arg = AG_GET_ARG_AGTYPE_P(0);
-    /* check for a scalar object */
-    if (!AGT_ROOT_IS_SCALAR(agt_arg))
+    
+    if (!AGT_IS_EDGE(agt) && !AGT_IS_VERTEX(agt))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("id() argument must resolve to a scalar value")));
+                        errmsg("properties() argument must be a vertex or edge")));
+    
+    agtype_value *agtv = 
+        find_agtype_value_from_container((agtype_container *)&agt->root.children[2],
+                                         AGT_FOBJECT, &id_key);
 
-    /* get the object out of the array */
-    agtv_object = get_ith_agtype_value_from_container(&agt_arg->root, 0);
-
-    /* is it an agtype null? */
-    if (agtv_object->type == AGTV_NULL)
-            PG_RETURN_NULL();
-
-    /* check for proper agtype */
-    if (agtv_object->type != AGTV_VERTEX && agtv_object->type != AGTV_EDGE)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("id() argument must be a vertex, an edge or null")));
-
-    agtv_result = GET_AGTYPE_VALUE_OBJECT_VALUE(agtv_object, "id");
-
-    Assert(agtv_result != NULL);
-    Assert(agtv_result->type = AGTV_INTEGER);
-
-    PG_RETURN_POINTER(agtype_value_to_agtype(agtv_result));
+    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(agtv));
 }
 
 PG_FUNCTION_INFO_V1(age_start_id);
+Datum
+age_start_id(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
 
-Datum age_start_id(PG_FUNCTION_ARGS)
-{
-    agtype *agt_arg = NULL;
-    agtype_value *agtv_object = NULL;
-    agtype_value *agtv_result = NULL;
-
-    /* check for null */
-    if (PG_ARGISNULL(0))
+    if (is_agtype_null(agt))
         PG_RETURN_NULL();
 
-    agt_arg = AG_GET_ARG_AGTYPE_P(0);
-    /* check for a scalar object */
-    if (!AGT_ROOT_IS_SCALAR(agt_arg))
+    if (!AGT_IS_EDGE(agt))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("start_id() argument must resolve to a scalar value")));
+                        errmsg("start_id() argument must be an edge")));
 
-    /* get the object out of the array */
-    agtv_object = get_ith_agtype_value_from_container(&agt_arg->root, 0);
+    agtype_value *agtv =
+        find_agtype_value_from_container((agtype_container *)&agt->root.children[2],
+                                         AGT_FOBJECT, &start_key);
 
-    /* is it an agtype null? */
-    if (agtv_object->type == AGTV_NULL)
-            PG_RETURN_NULL();
-
-    /* check for proper agtype */
-    if (agtv_object->type != AGTV_EDGE)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("start_id() argument must be an edge or null")));
-
-    agtv_result = GET_AGTYPE_VALUE_OBJECT_VALUE(agtv_object, "start_id");
-
-    Assert(agtv_result != NULL);
-    Assert(agtv_result->type = AGTV_INTEGER);
-
-    PG_RETURN_POINTER(agtype_value_to_agtype(agtv_result));
+    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(agtv));
 }
 
 PG_FUNCTION_INFO_V1(age_end_id);
+Datum 
+age_end_id(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
 
-Datum age_end_id(PG_FUNCTION_ARGS)
-{
-    agtype *agt_arg = NULL;
-    agtype_value *agtv_object = NULL;
-    agtype_value *agtv_result = NULL;
-
-    /* check for null */
-    if (PG_ARGISNULL(0))
+    if (is_agtype_null(agt))
         PG_RETURN_NULL();
 
-    agt_arg = AG_GET_ARG_AGTYPE_P(0);
-    /* check for a scalar object */
-    if (!AGT_ROOT_IS_SCALAR(agt_arg))
+    if (!AGT_IS_EDGE(agt))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("end_id() argument must resolve to a scalar value")));
+                        errmsg("end_id() argument must be an edge")));
 
-    /* get the object out of the array */
-    agtv_object = get_ith_agtype_value_from_container(&agt_arg->root, 0);
+    agtype_value *agtv =
+        find_agtype_value_from_container((agtype_container *)&agt->root.children[2],
+                                         AGT_FOBJECT, &end_key);
 
-    /* is it an agtype null? */
-    if (agtv_object->type == AGTV_NULL)
-            PG_RETURN_NULL();
-
-    /* check for proper agtype */
-    if (agtv_object->type != AGTV_EDGE)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("end_id() argument must be an edge or null")));
-
-    agtv_result = GET_AGTYPE_VALUE_OBJECT_VALUE(agtv_object, "end_id");
-
-    Assert(agtv_result != NULL);
-    Assert(agtv_result->type = AGTV_INTEGER);
-
-    PG_RETURN_POINTER(agtype_value_to_agtype(agtv_result));
+    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(agtv));
 }
 
 /*
