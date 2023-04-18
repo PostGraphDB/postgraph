@@ -17,7 +17,7 @@
  * under the License.
  */
 
-#include "postgres.h"
+#include "postgraph.h"
 
 #include "catalog/namespace.h"
 
@@ -25,7 +25,7 @@
 
 Oid ag_catalog_namespace_id(void)
 {
-    return get_namespace_oid("ag_catalog", false);
+    return get_namespace_oid(CATALOG_SCHEMA, false);
 }
 
 Oid pg_catalog_namespace_id(void)

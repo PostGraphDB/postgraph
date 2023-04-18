@@ -1,31 +1,35 @@
 /*
+ * PostGraph
+ * Copyright (C) 2023 by PostGraph
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
  * For PostgreSQL Database Management System:
  * (formerly known as Postgres, then as Postgres95)
  *
+ * Portions Copyright (c) 2020-2023, Apache Software Foundation
+ * Portions Copyright (c) 1996-2010, Bitnine Global
  * Portions Copyright (c) 1996-2010, The PostgreSQL Global Development Group
- *
  * Portions Copyright (c) 1994, The Regents of the University of California
- *
- * Permission to use, copy, modify, and distribute this software and its documentation for any purpose,
- * without fee, and without a written agreement is hereby granted, provided that the above copyright notice
- * and this paragraph and the following two paragraphs appear in all copies.
- *
- * IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT,
- * INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,
- * ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF THE UNIVERSITY
- * OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING,
- * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
- *
- * THE SOFTWARE PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA
- * HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
 /*
  * Declarations for agtype data type support.
- *
- * Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group
  */
 
 #ifndef AG_AGTYPE_H
@@ -60,8 +64,8 @@ typedef enum
     (x > WAGT_DONE && x < WAGT_BEGIN_ARRAY)
 
 /* Strategy numbers for GIN index opclasses */
-#define AGTYPE_CONTAINS_STRATEGY_NUMBER 7
-#define AGTYPE_EXISTS_STRATEGY_NUMBER 9
+#define AGTYPE_CONTAINS_STRATEGY_NUMBER    7
+#define AGTYPE_EXISTS_STRATEGY_NUMBER      9
 #define AGTYPE_EXISTS_ANY_STRATEGY_NUMBER 10
 #define AGTYPE_EXISTS_ALL_STRATEGY_NUMBER 11
 
@@ -86,13 +90,13 @@ typedef enum
  * index matches against the heap tuple; currently, this costs nothing because
  * we must always recheck for other reasons.
  */
-#define AGT_GIN_FLAG_KEY 0x01 /* key (or string array element) */
-#define AGT_GIN_FLAG_NULL 0x02 /* null value */
-#define AGT_GIN_FLAG_BOOL 0x03 /* boolean value */
-#define AGT_GIN_FLAG_NUM 0x04 /* numeric value */
-#define AGT_GIN_FLAG_STR 0x05 /* string value (if not an array element) */
-#define AGT_GIN_FLAG_HASHED 0x10 /* OR'd into flag if value was hashed */
-#define AGT_GIN_MAX_LENGTH 125 /* max length of text part before hashing */
+#define AGT_GIN_FLAG_KEY    0x01 // key (or string array element)
+#define AGT_GIN_FLAG_NULL   0x02 // null value
+#define AGT_GIN_FLAG_BOOL   0x03 // boolean value
+#define AGT_GIN_FLAG_NUM    0x04 // numeric value
+#define AGT_GIN_FLAG_STR    0x05 // string value (if not an array element)
+#define AGT_GIN_FLAG_HASHED 0x10 // OR'd into flag if value was hashed
+#define AGT_GIN_MAX_LENGTH   125 // max length of text part before hashing
 
 /* Convenience macros */
 #define DATUM_GET_AGTYPE_P(d) ((agtype *)PG_DETOAST_DATUM(d))
@@ -169,29 +173,32 @@ typedef struct agtype_value agtype_value;
  */
 typedef uint32 agtentry;
 
-#define AGTENTRY_OFFLENMASK 0x0FFFFFFF
-#define AGTENTRY_TYPEMASK 0x70000000
-#define AGTENTRY_HAS_OFF 0x80000000
+#define AGTENTRY_OFFLENMASK 0x0FFF
+#define AGTENTRY_TYPEMASK   0x7000
+#define AGTENTRY_HAS_OFF    0x8000
 
 /* values stored in the type bits */
-#define AGTENTRY_IS_STRING 0x00000000
-#define AGTENTRY_IS_NUMERIC 0x10000000
-#define AGTENTRY_IS_BOOL_FALSE 0x20000000
-#define AGTENTRY_IS_BOOL_TRUE 0x30000000
-#define AGTENTRY_IS_NULL 0x40000000
-#define AGTENTRY_IS_CONTAINER 0x50000000 /* array or object */
-#define AGTENTRY_IS_AGTYPE 0x70000000 /* our type designator */
+#define AGTENTRY_IS_STRING     0x0000
+#define AGTENTRY_IS_NUMERIC    0x1000
+#define AGTENTRY_IS_BOOL_FALSE 0x2000
+#define AGTENTRY_IS_BOOL_TRUE  0x3000
+#define AGTENTRY_IS_NULL       0x4000
+#define AGTENTRY_IS_CONTAINER  0x5000 /* array or object */
+#define AGTENTRY_IS_AGTYPE     0x7000 /* our type designator */
 
 /* Access macros.  Note possible multiple evaluations */
-#define AGTE_OFFLENFLD(agte_) ((agte_)&AGTENTRY_OFFLENMASK)
-#define AGTE_HAS_OFF(agte_) (((agte_)&AGTENTRY_HAS_OFF) != 0)
+#define AGTE_OFFLENFLD(agte_) \
+    ((agte_)&AGTENTRY_OFFLENMASK)
+#define AGTE_HAS_OFF(agte_) \
+    (((agte_)&AGTENTRY_HAS_OFF) != 0)
 #define AGTE_IS_STRING(agte_) \
     (((agte_)&AGTENTRY_TYPEMASK) == AGTENTRY_IS_STRING)
 #define AGTE_IS_NUMERIC(agte_) \
     (((agte_)&AGTENTRY_TYPEMASK) == AGTENTRY_IS_NUMERIC)
 #define AGTE_IS_CONTAINER(agte_) \
     (((agte_)&AGTENTRY_TYPEMASK) == AGTENTRY_IS_CONTAINER)
-#define AGTE_IS_NULL(agte_) (((agte_)&AGTENTRY_TYPEMASK) == AGTENTRY_IS_NULL)
+#define AGTE_IS_NULL(agte_) \
+    (((agte_)&AGTENTRY_TYPEMASK) == AGTENTRY_IS_NULL)
 #define AGTE_IS_BOOL_TRUE(agte_) \
     (((agte_)&AGTENTRY_TYPEMASK) == AGTENTRY_IS_BOOL_TRUE)
 #define AGTE_IS_BOOL_FALSE(agte_) \
@@ -240,14 +247,14 @@ typedef struct agtype_container
 } agtype_container;
 
 /* flags for the header-field in agtype_container*/
-#define AGT_CMASK   0x0FFFFFFF /* mask for count field */
-#define AGT_FSCALAR 0x10000000 /* flag bits */
-#define AGT_FOBJECT 0x20000000
-#define AGT_FARRAY  0x40000000
-#define AGT_FBINARY 0x80000000 /* our binary objects */
+#define AGT_CMASK   0x0FFF /* mask for count field */
+#define AGT_FSCALAR 0x1000 /* flag bits */
+#define AGT_FOBJECT 0x2000
+#define AGT_FARRAY  0x4000
+#define AGT_FBINARY 0x8000 /* our binary objects */
 
 /*
- * It should be noted that while AGT_FBINARY utilizes the AGTV_BINARY mechanism,
+ * AGT_FBINARY utilizes the AGTV_BINARY mechanism,
  * it is not necessarily an agtype serialized (binary) value. We are just using
  * that mechanism to pass blobs of data more quickly between components. In the
  * case of the path from the VLE routine, the blob is a graphid array where the
@@ -263,26 +270,28 @@ typedef struct agtype_container
  * for differing types of user defined binary blobs. To be consistent and clear,
  * we create binary specific masks, flags, and macros.
  */
-#define AGT_FBINARY_MASK 0x0FFFFFFF /* mask for binary flags */
-#define AGTYPE_FBINARY_CONTAINER_TYPE(agtc) ((agtc)->header &AGT_FBINARY_MASK)
-#define AGT_ROOT_DATA_FBINARY(agtp_) VARDATA(agtp_);
-#define AGT_FBINARY_TYPE_VLE_PATH 0x00000001
+#define AGT_FBINARY_MASK          0x0FFF /* mask for binary flags */
+#define AGTYPE_FBINARY_CONTAINER_TYPE(agtc) \
+    ((agtc)->header &AGT_FBINARY_MASK)
+#define AGT_ROOT_DATA_FBINARY(agtp_) \
+    VARDATA(agtp_);
+#define AGT_FBINARY_TYPE_VLE_PATH 0x0001
 
 /* convenience macros for accessing an agtype_container struct */
-#define AGTYPE_CONTAINER_SIZE(agtc) ((agtc)->header & AGT_CMASK)
+#define AGTYPE_CONTAINER_SIZE(agtc)       ((agtc)->header & AGT_CMASK)
 #define AGTYPE_CONTAINER_IS_SCALAR(agtc) (((agtc)->header & AGT_FSCALAR) != 0)
 #define AGTYPE_CONTAINER_IS_OBJECT(agtc) (((agtc)->header & AGT_FOBJECT) != 0)
-#define AGTYPE_CONTAINER_IS_ARRAY(agtc) (((agtc)->header & AGT_FARRAY) != 0)
+#define AGTYPE_CONTAINER_IS_ARRAY(agtc)  (((agtc)->header & AGT_FARRAY)  != 0)
 #define AGTYPE_CONTAINER_IS_BINARY(agtc) (((agtc)->header & AGT_FBINARY) != 0)
 
-/* The top-level on-disk format for an agtype datum. */
+// The top-level on-disk format for an agtype datum.
 typedef struct
 {
-    int32 vl_len_; /* varlena header (do not touch directly!) */
+    int32 vl_len_; // varlena header (do not touch directly!)
     agtype_container root;
 } agtype;
 
-/* convenience macros for accessing the root container in an agtype datum */
+// convenience macros for accessing the root container in an agtype datum */
 #define AGT_ROOT_COUNT(agtp_) (*(uint32 *)VARDATA(agtp_) & AGT_CMASK)
 #define AGT_ROOT_IS_SCALAR(agtp_) \
     ((*(uint32 *)VARDATA(agtp_) & AGT_FSCALAR) != 0)
@@ -295,12 +304,12 @@ typedef struct
 #define AGT_ROOT_BINARY_FLAGS(agtp_) \
     (*(uint32 *)VARDATA(agtp_) & AGT_FBINARY_MASK)
 
-/* values for the AGTYPE header field to denote the stored data type */
-#define AGT_HEADER_INTEGER 0x00000000
-#define AGT_HEADER_FLOAT 0x00000001
-#define AGT_HEADER_VERTEX 0x00000002
-#define AGT_HEADER_EDGE 0x00000003
-#define AGT_HEADER_PATH 0x00000004
+// values for the AGTYPE header field to denote the stored data type
+#define AGT_HEADER_INTEGER 0x0000
+#define AGT_HEADER_FLOAT   0x0001
+#define AGT_HEADER_VERTEX  0x0002
+#define AGT_HEADER_EDGE    0x0003
+#define AGT_HEADER_PATH    0x0004
 
 #define AGT_IS_VERTEX(agt) \
     (AGT_ROOT_IS_SCALAR(agt) &&\
@@ -312,11 +321,6 @@ typedef struct
      AGTE_IS_AGTYPE((agt)->root.children[0]) &&\
      (((agt)->root.children[1] & AGT_HEADER_EDGE) == AGT_HEADER_EDGE))
 
-/*
- * IMPORTANT NOTE: For agtype_value_type, IS_A_AGTYPE_SCALAR() checks that the
- * type is between AGTV_NULL and AGTV_BOOL, inclusive. So, new scalars need to
- * be between these values.
- */
 enum agtype_value_type
 {
     /* Scalar types */
@@ -344,38 +348,16 @@ enum agtype_value_type
  */
 struct agtype_value
 {
-    enum agtype_value_type type; /* Influences sort order */
-
-    union
-    {
-        int64 int_value; /* Cypher 8 byte Integer */
-        float8 float_value; /* Cypher 8 byte Float */
+    enum agtype_value_type type;
+    union {
+        int64 int_value; // 8-byte Integer
+        float8 float_value; // 8-byte Float
         Numeric numeric;
         bool boolean;
-        struct
-        {
-            int len;
-            char *val; /* Not necessarily null-terminated */
-        } string; /* String primitive type */
-
-        struct
-        {
-            int num_elems;
-            agtype_value *elems;
-            bool raw_scalar; /* Top-level "raw scalar" array? */
-        } array; /* Array container type */
-
-        struct
-        {
-            int num_pairs; /* 1 pair, 2 elements */
-            agtype_pair *pairs;
-        } object; /* Associative container type */
-
-        struct
-        {
-            int len;
-            agtype_container *data;
-        } binary; /* Array or object, in on-disk format */
+        struct { int len; char *val; /* Not necessarily null-terminated */ } string; // String primitive type
+        struct { int num_elems; agtype_value *elems; bool raw_scalar; } array;       // Array container type
+        struct { int num_pairs; agtype_pair *pairs; } object;                        // Associative container type
+        struct { int len; agtype_container *data; } binary;                          // Array or object, in on-disk format
     } val;
 };
 
@@ -384,9 +366,6 @@ struct agtype_value
 
 /*
  * Key/value pair within an Object.
- *
- * This struct type is only used briefly while constructing an agtype ; it is
- * *not* the on-disk representation.
  *
  * Pairs with duplicate keys are de-duplicated.  We store the originally
  * observed pair ordering for the purpose of removing duplicates in a
@@ -431,39 +410,25 @@ typedef enum
 
 typedef struct agtype_iterator
 {
-    /* Container being iterated */
-    agtype_container *container;
-    uint32 num_elems; /*
-                       * Number of elements in children array (will be
-                       * num_pairs for objects)
-                       */
-    bool is_scalar; /* Pseudo-array scalar value? */
-    agtentry *children; /* agtentrys for child nodes */
-    /* Data proper. This points to the beginning of the variable-length data */
-    char *data_proper;
-
-    /* Current item in buffer (up to num_elems) */
-    int curr_index;
-
-    /* Data offset corresponding to current item */
-    uint32 curr_data_offset;
-
+    agtype_container *container; // Container being iterated
+    uint32 num_elems;            // Number of elements in children array (will be num_pairs for objects)
+    bool is_scalar;              // Pseudo-array scalar value?
+    agtentry *children;          // agtentrys for child nodes
+    char *data_proper;           // Data proper. This points to the beginning of the variable-length data
+    int curr_index;              // Current item in buffer (up to num_elems)
+    uint32 curr_data_offset;     // Data offset corresponding to current item
     /*
      * If the container is an object, we want to return keys and values
      * alternately; so curr_data_offset points to the current key, and
      * curr_value_offset points to the current value.
      */
     uint32 curr_value_offset;
-
-    /* Private state */
-    agt_iterator_state state;
-
+    agt_iterator_state state;    // Private state
     struct agtype_iterator *parent;
 } agtype_iterator;
 
 /* agtype parse state */
-typedef struct agtype_in_state
-{
+typedef struct agtype_in_state {
     agtype_parse_state *parse_state;
     agtype_value *res;
 } agtype_in_state;
@@ -473,56 +438,27 @@ int reserve_from_buffer(StringInfo buffer, int len);
 short pad_buffer_to_int(StringInfo buffer);
 uint32 get_agtype_offset(const agtype_container *agtc, int index);
 uint32 get_agtype_length(const agtype_container *agtc, int index);
-int compare_agtype_containers_orderability(agtype_container *a,
-                                           agtype_container *b);
-agtype_value *find_agtype_value_from_container(agtype_container *container,
-                                               uint32 flags,
-                                               const agtype_value *key);
-agtype_value *get_ith_agtype_value_from_container(agtype_container *container,
-                                                  uint32 i);
-agtype_value *push_agtype_value(agtype_parse_state **pstate,
-                                agtype_iterator_token seq,
-                                agtype_value *agtval);
+int compare_agtype_containers_orderability(agtype_container *a, agtype_container *b);
+agtype_value *find_agtype_value_from_container(agtype_container *container, uint32 flags, const agtype_value *key);
+agtype_value *get_ith_agtype_value_from_container(agtype_container *container, uint32 i);
+agtype_value *push_agtype_value(agtype_parse_state **pstate, agtype_iterator_token seq, agtype_value *agtval);
 agtype_iterator *agtype_iterator_init(agtype_container *container);
-agtype_iterator_token agtype_iterator_next(agtype_iterator **it,
-                                           agtype_value *val,
-                                           bool skip_nested);
+agtype_iterator_token agtype_iterator_next(agtype_iterator **it, agtype_value *val, bool skip_nested);
 agtype *agtype_value_to_agtype(agtype_value *val);
-bool agtype_deep_contains(agtype_iterator **val,
-                          agtype_iterator **m_contained);
+bool agtype_deep_contains(agtype_iterator **val, agtype_iterator **m_contained);
 void agtype_hash_scalar_value(const agtype_value *scalar_val, uint32 *hash);
-void agtype_hash_scalar_value_extended(const agtype_value *scalar_val,
-                                       uint64 *hash, uint64 seed);
-void convert_extended_array(StringInfo buffer, agtentry *pheader,
-                            agtype_value *val);
-void convert_extended_object(StringInfo buffer, agtentry *pheader,
-                             agtype_value *val);
+void agtype_hash_scalar_value_extended(const agtype_value *scalar_val, uint64 *hash, uint64 seed);
+void convert_extended_array(StringInfo buffer, agtentry *pheader, agtype_value *val);
+void convert_extended_object(StringInfo buffer, agtentry *pheader, agtype_value *val);
 Datum get_numeric_datum_from_agtype_value(agtype_value *agtv);
 bool is_numeric_result(agtype_value *lhs, agtype_value *rhs);
 
-/* agtype.c support functions */
-/*
- * This is a shortcut for when using string constants to call
- * get_agtype_value_object_value.
- *
- * Note: sizeof() works here because we use string constants. Normally,
- * however, you should not use sizeof() in place of strlen().
- *
- * Note: We also subtract 1 from the value because sizeof() a string constant
- * includes the null terminator whereas strlen() does not and neither does
- * the string representation in agtype_value.
- */
 #define GET_AGTYPE_VALUE_OBJECT_VALUE(agtv_object, search_key) \
-        get_agtype_value_object_value(agtv_object, search_key, \
-                                      sizeof(search_key) - 1)
+        get_agtype_value_object_value(agtv_object, search_key, sizeof(search_key) - 1)
 
-agtype_value *get_agtype_value_object_value(const agtype_value *agtv_object,
-                                            char *search_key,
-                                            int search_key_length);
-char *agtype_to_cstring(StringInfo out, agtype_container *in,
-                        int estimated_len);
-char *agtype_to_cstring_indent(StringInfo out, agtype_container *in,
-                               int estimated_len);
+agtype_value *get_agtype_value_object_value(const agtype_value *agtv_object, char *search_key, int search_key_length);
+char *agtype_to_cstring(StringInfo out, agtype_container *in, int estimated_len);
+char *agtype_to_cstring_indent(StringInfo out, agtype_container *in, int estimated_len);
 size_t check_string_length(size_t len);
 Datum integer_to_agtype(int64 i);
 Datum float_to_agtype(float8 f);
@@ -532,31 +468,20 @@ void uniqueify_agtype_object(agtype_value *object);
 char *agtype_value_type_to_string(enum agtype_value_type type);
 bool is_decimal_needed(char *numstr);
 int compare_agtype_scalar_values(agtype_value *a, agtype_value *b);
-agtype_value *alter_property_value(agtype_value *properties, char *var_name,
-                                   agtype *new_v, bool remove_property);
-
-agtype *get_one_agtype_from_variadic_args(FunctionCallInfo fcinfo,
-                                          int variadic_offset,
-                                          int expected_nargs);
+agtype_value *alter_property_value(agtype_value *properties, char *var_name, agtype *new_v, bool remove_property);
+agtype *get_one_agtype_from_variadic_args(FunctionCallInfo fcinfo, int variadic_offset, int expected_nargs);
 Datum make_vertex(Datum id, Datum label, Datum properties);
-Datum make_edge(Datum id, Datum startid, Datum endid, Datum label,
-                   Datum properties);
+Datum make_edge(Datum id, Datum startid, Datum endid, Datum label, Datum properties);
 Datum make_path(List *path);
-Datum column_get_datum(TupleDesc tupdesc, HeapTuple tuple, int column,
-                       const char *attname, Oid typid, bool isnull);
-agtype_value *agtype_value_build_vertex(graphid id, char *label,
-                                        Datum properties);
-agtype_value *agtype_value_build_edge(graphid id, char *label, graphid end_id,
-                                      graphid start_id, Datum properties);
-agtype_value *get_agtype_value(char *funcname, agtype *agt_arg,
-                               enum agtype_value_type type, bool error);
+Datum column_get_datum(TupleDesc tupdesc, HeapTuple tuple, int column, const char *attname, Oid typid, bool isnull);
+agtype_value *agtype_value_build_vertex(graphid id, char *label, Datum properties);
+agtype_value *agtype_value_build_edge(graphid id, char *label, graphid end_id, graphid start_id, Datum properties);
+agtype_value *get_agtype_value(char *funcname, agtype *agt_arg, enum agtype_value_type type, bool error);
 bool is_agtype_null(agtype *agt_arg);
 agtype_value *string_to_agtype_value(char *s);
 agtype_value *integer_to_agtype_value(int64 int_value);
-void add_agtype(Datum val, bool is_null, agtype_in_state *result, Oid val_type,
-                bool key_scalar);
+void add_agtype(Datum val, bool is_null, agtype_in_state *result, Oid val_type, bool key_scalar);
 
-/* Oid accessors for AGTYPE */
 Oid get_AGTYPEOID(void);
 Oid get_AGTYPEARRAYOID(void);
 void clear_global_Oids_AGTYPE(void);
