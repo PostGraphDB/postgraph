@@ -459,6 +459,9 @@ bool is_numeric_result(agtype_value *lhs, agtype_value *rhs);
 agtype_value *get_agtype_value_object_value(const agtype_value *agtv_object, char *search_key, int search_key_length);
 char *agtype_to_cstring(StringInfo out, agtype_container *in, int estimated_len);
 char *agtype_to_cstring_indent(StringInfo out, agtype_container *in, int estimated_len);
+
+Datum agtype_from_cstring(char *str, int len);
+
 size_t check_string_length(size_t len);
 Datum integer_to_agtype(int64 i);
 Datum float_to_agtype(float8 f);
@@ -487,5 +490,7 @@ Oid get_AGTYPEARRAYOID(void);
 void clear_global_Oids_AGTYPE(void);
 #define AGTYPEOID get_AGTYPEOID()
 #define AGTYPEARRAYOID get_AGTYPEARRAYOID()
+
+void agtype_put_escaped_value(StringInfo out, agtype_value *scalar_val);
 
 #endif

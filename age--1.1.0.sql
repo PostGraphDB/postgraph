@@ -411,6 +411,44 @@ CREATE TYPE agtype (
   LIKE = jsonb
 );
 
+
+--
+-- vertex
+--
+CREATE TYPE vertex;
+
+
+CREATE FUNCTION vertex_in(cstring)
+RETURNS vertex
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION vertex_out(vertex)
+RETURNS cstring
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+
+CREATE FUNCTION build_vertex(graphid, cstring, agtype)
+RETURNS vertex
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE TYPE vertex (
+  INPUT = vertex_in,
+  OUTPUT = vertex_out,
+  LIKE = jsonb
+);
+
 --
 -- agtype - mathematical operators (+, -, *, /, %, ^)
 --

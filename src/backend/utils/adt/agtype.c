@@ -102,7 +102,6 @@ typedef enum /* type categories for datum_to_agtype */
     AGT_TYPE_OTHER /* all else */
 } agt_type_category;
 
-static inline Datum agtype_from_cstring(char *str, int len);
 size_t check_string_length(size_t len);
 static void agtype_in_agtype_annotation(void *pstate, char *annotation);
 static void agtype_in_object_start(void *pstate);
@@ -113,7 +112,6 @@ static void agtype_in_object_field_start(void *pstate, char *fname,
                                          bool isnull);
 static void agtype_put_array(StringInfo out, agtype_value *scalar_val);
 static void agtype_put_object(StringInfo out, agtype_value *scalar_val);
-static void agtype_put_escaped_value(StringInfo out, agtype_value *scalar_val);
 static void escape_agtype(StringInfo buf, const char *str);
 bool is_decimal_needed(char *numstr);
 static void agtype_in_scalar(void *pstate, char *token,
@@ -375,7 +373,7 @@ Datum agtype_out(PG_FUNCTION_ARGS)
  *
  * Uses the agtype parser (with hooks) to construct an agtype.
  */
-static inline Datum agtype_from_cstring(char *str, int len)
+Datum agtype_from_cstring(char *str, int len)
 {
     agtype_lex_context *lex;
     agtype_in_state state;
@@ -856,7 +854,7 @@ static void agtype_put_object(StringInfo out, agtype_value *scalar_val) {
 }
 
 
-static void agtype_put_escaped_value(StringInfo out, agtype_value *scalar_val)
+void agtype_put_escaped_value(StringInfo out, agtype_value *scalar_val)
 {
     char *numstr;
 
