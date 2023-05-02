@@ -23,7 +23,7 @@
  * (formerly known as Postgres, then as Postgres95)
  *
  * Portions Copyright (c) 2020-2023, Apache Software Foundation
- * Portions Copyright (c) 1996-2010, Bitnine Global
+ * Portions Copyright (c) 2019-2020, Bitnine Global
  */
 
 -- complain if script is sourced in psql, rather than via CREATE EXTENSION
@@ -56,7 +56,6 @@ CREATE FUNCTION _label_id(graph_name name, label_name name) RETURNS label_id LAN
 --
 -- utility functions
 --
-
 CREATE FUNCTION create_graph(graph_name name) RETURNS void LANGUAGE c AS 'MODULE_PATHNAME';
 CREATE FUNCTION create_graph_if_not_exists(graph_name name) RETURNS void LANGUAGE c AS 'MODULE_PATHNAME';
 CREATE FUNCTION drop_graph(graph_name name, cascade boolean = false) RETURNS void LANGUAGE c AS 'MODULE_PATHNAME';
@@ -70,8 +69,6 @@ CREATE FUNCTION load_edges_from_file(graph_name name, label_name name, file_path
 --
 -- graphid type
 --
-
--- define graphid as a shell type first
 CREATE TYPE graphid;
 
 CREATE FUNCTION graphid_in(cstring) RETURNS graphid LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
@@ -143,6 +140,40 @@ CREATE FUNCTION vertex_out(vertex) RETURNS cstring LANGUAGE c IMMUTABLE RETURNS 
 CREATE FUNCTION build_vertex(graphid, cstring, agtype) RETURNS vertex LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 
 CREATE TYPE vertex (INPUT = vertex_in, OUTPUT = vertex_out, LIKE = jsonb);
+
+--
+-- vertex - access operators (->, ->> )
+--
+CREATE FUNCTION vertex_property_access(vertex, text) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE OPERATOR -> (LEFTARG = vertex, RIGHTARG = text, FUNCTION = vertex_property_access);
+CREATE FUNCTION vertex_property_access_text(vertex, text) RETURNS text LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE OPERATOR ->> (LEFTARG = vertex, RIGHTARG = text, FUNCTION = vertex_property_access_text);
+
+--
+-- vertex - contains operators (@>, <@)
+--
+CREATE FUNCTION vertex_contains(vertex, agtype) RETURNS boolean LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE OPERATOR @> (LEFTARG = vertex, RIGHTARG = agtype, FUNCTION = vertex_contains, COMMUTATOR = '<@', RESTRICT = contsel, JOIN = contjoinsel);
+CREATE FUNCTION vertex_contained_by(agtype, vertex) RETURNS boolean LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE OPERATOR <@ (LEFTARG = agtype, RIGHTARG = vertex, FUNCTION = vertex_contained_by, COMMUTATOR = '@>', RESTRICT = contsel, JOIN = contjoinsel);
+
+--
+-- vertex - key existence operators (?, ?|, ?&)
+--
+CREATE FUNCTION vertex_exists(vertex, text) RETURNS boolean LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE OPERATOR ? (LEFTARG = vertex, RIGHTARG = text, FUNCTION = vertex_exists, COMMUTATOR = '?', RESTRICT = contsel, JOIN = contjoinsel);
+CREATE FUNCTION vertex_exists_any(vertex, text[]) RETURNS boolean LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE OPERATOR ?| (LEFTARG = vertex, RIGHTARG = text[], FUNCTION = vertex_exists_any, RESTRICT = contsel, JOIN = contjoinsel);
+CREATE FUNCTION vertex_exists_all(vertex, text[]) RETURNS boolean LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE OPERATOR ?& (LEFTARG = vertex, RIGHTARG = text[], FUNCTION = vertex_exists_all, RESTRICT = contsel, JOIN = contjoinsel);
+
+--
+-- vertex functions
+--
+CREATE FUNCTION id(vertex) RETURNS graphid LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'vertex_id';
+CREATE FUNCTION label(vertex) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'vertex_label';
+
+
 
 --
 -- agtype - mathematical operators (+, -, *, /, %, ^)
@@ -237,9 +268,8 @@ CREATE FUNCTION gin_consistent_agtype(internal, int2, agtype, int4, internal, in
 CREATE FUNCTION gin_triconsistent_agtype(internal, int2, agtype, int4, internal, internal, internal) RETURNS bool AS 'MODULE_PATHNAME' LANGUAGE C IMMUTABLE STRICT PARALLEL SAFE;
 
 CREATE OPERATOR CLASS gin_agtype_ops DEFAULT FOR TYPE agtype USING gin AS
-  OPERATOR 7 @>, OPERATOR 9 ?(agtype, text), OPERATOR 10 ?|(agtype, text[]), OPERATOR 11 ?&(agtype, text[]),
-  FUNCTION 1 gin_compare_agtype(text,text), FUNCTION 2 gin_extract_agtype(agtype, internal), FUNCTION 3 gin_extract_agtype_query(agtype, internal, int2, internal, internal),
-  FUNCTION 4 gin_consistent_agtype(internal, int2, agtype, int4, internal, internal), FUNCTION 6 gin_triconsistent_agtype(internal, int2, agtype, int4, internal, internal, internal),
+OPERATOR 7 @>, OPERATOR 9 ?(agtype, text), OPERATOR 10 ?|(agtype, text[]), OPERATOR 11 ?&(agtype, text[]),
+FUNCTION 1 gin_compare_agtype, FUNCTION 2 gin_extract_agtype, FUNCTION 3 gin_extract_agtype_query, FUNCTION 4 gin_consistent_agtype, FUNCTION 6 gin_triconsistent_agtype,
 STORAGE text;
 
 --
@@ -251,18 +281,10 @@ CREATE FUNCTION agtype_to_graphid(agtype) RETURNS graphid LANGUAGE c IMMUTABLE R
 CREATE CAST (agtype AS graphid) WITH FUNCTION agtype_to_graphid(agtype) AS IMPLICIT;
 
 --
--- agtype - path
+-- agtype - entity creation
 --
 CREATE FUNCTION _agtype_build_path(VARIADIC "any") RETURNS agtype LANGUAGE c STABLE CALLED ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-
---
--- agtype - vertex
---
 CREATE FUNCTION _agtype_build_vertex(graphid, cstring, agtype) RETURNS agtype LANGUAGE c IMMUTABLE CALLED ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-
---
--- agtype - edge
---
 CREATE FUNCTION _agtype_build_edge(graphid, graphid, graphid, cstring, agtype) RETURNS agtype LANGUAGE c IMMUTABLE CALLED ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 
 --
@@ -296,7 +318,7 @@ CREATE FUNCTION agtype_build_list(VARIADIC "any") RETURNS agtype LANGUAGE c IMMU
 CREATE FUNCTION agtype_build_list() RETURNS agtype LANGUAGE c IMMUTABLE CALLED ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'agtype_build_list_noargs';
 
 --
--- agtype - type coercions
+-- agtype - typecasting
 --
 -- agtype -> text (explicit)
 CREATE FUNCTION agtype_to_text(agtype) RETURNS text LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
@@ -375,13 +397,16 @@ CREATE FUNCTION age_properties(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETUR
 CREATE FUNCTION age_startnode(agtype, agtype) RETURNS agtype LANGUAGE c STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_endnode(agtype, agtype) RETURNS agtype LANGUAGE c STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_length(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_size(variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_type(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME','age_label';
+CREATE FUNCTION age_label(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+
+-- XXX: Typecasting and typecasting need to be merged
 CREATE FUNCTION age_toboolean(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_tofloat(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_tointeger(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_tostring(variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_size(variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_type(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME','age_label';
-CREATE FUNCTION age_label(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION agtype_typecast_numeric(variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
 
 --
 -- String functions
@@ -428,75 +453,57 @@ CREATE FUNCTION age_timestamp() RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAF
 --
 -- Agreggation
 --
+-- accumlates floats into an array for aggregation
+CREATE FUNCTION age_agtype_float8_accum(_float8, agtype) RETURNS _float8 LANGUAGE c IMMUTABLE STRICT PARALLEL SAFE AS 'MODULE_PATHNAME';
+
+-- count(agtype)
 CREATE AGGREGATE age_count(*) (stype = int8, sfunc = int8inc, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_WRITE, initcond = 0, parallel = safe);
 CREATE AGGREGATE age_count(agtype) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_WRITE, initcond = 0, parallel = safe);
---
--- aggregate function components for stdev(internal, agtype)
--- and stdevp(internal, agtype)
---
+-- stdev(internal, agtype)
 CREATE FUNCTION age_float8_stddev_samp_aggfinalfn(_float8) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_agtype_float8_accum(_float8, agtype) RETURNS _float8 LANGUAGE c IMMUTABLE STRICT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE AGGREGATE age_stdev(agtype) (stype = _float8, sfunc = age_agtype_float8_accum, finalfunc = age_float8_stddev_samp_aggfinalfn, combinefunc = float8_combine, finalfunc_modify = read_only, initcond = '{0,0,0}', parallel = safe);
+-- stdevp(internal, agtype)
 CREATE FUNCTION age_float8_stddev_pop_aggfinalfn(_float8) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE AGGREGATE age_stdevp(agtype) (stype = _float8, sfunc = age_agtype_float8_accum, finalfunc = age_float8_stddev_pop_aggfinalfn, combinefunc = float8_combine, finalfunc_modify = read_only, initcond = '{0,0,0}', parallel = safe);
-
---
--- aggregate function components for avg(agtype) and sum(agtype)
---
--- aggregate definition for avg(agytpe)
+-- avg(agytpe)
 CREATE AGGREGATE age_avg(agtype) (stype = _float8, sfunc = age_agtype_float8_accum, finalfunc = float8_avg, combinefunc = float8_combine, finalfunc_modify = read_only, initcond = '{0,0,0}', parallel = safe);
 CREATE FUNCTION age_agtype_sum(agtype, agtype) RETURNS agtype LANGUAGE c IMMUTABLE STRICT PARALLEL SAFE AS 'MODULE_PATHNAME';
+-- sum(agtype)
 CREATE AGGREGATE age_sum(agtype) (stype = agtype, sfunc = age_agtype_sum, combinefunc = age_agtype_sum, finalfunc_modify = read_only, parallel = safe);
-
---
--- aggregate functions for min(variadic "any") and max(variadic "any")
---
+-- max(variadic "any")
 CREATE FUNCTION age_agtype_larger_aggtransfn(agtype, variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE AGGREGATE age_max(variadic "any") (stype = agtype, sfunc = age_agtype_larger_aggtransfn, combinefunc = age_agtype_larger_aggtransfn, finalfunc_modify = read_only, parallel = safe);
+-- min(agtype)
 CREATE FUNCTION age_agtype_smaller_aggtransfn(agtype, variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE AGGREGATE age_min(variadic "any") (stype = agtype, sfunc = age_agtype_smaller_aggtransfn, combinefunc = age_agtype_smaller_aggtransfn, finalfunc_modify = read_only, parallel = safe);
-
---
--- aggregate functions percentileCont(internal, agtype) and
--- percentileDisc(internal, agtype)
---
+-- percentileCont(internal, agtype) and percentileDisc(internal, agtype)
 CREATE FUNCTION age_percentile_aggtransfn(internal, agtype, agtype) RETURNS internal LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_percentile_cont_aggfinalfn(internal) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_percentile_disc_aggfinalfn(internal) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE AGGREGATE age_percentilecont(agtype, agtype) (stype = internal, sfunc = age_percentile_aggtransfn, finalfunc = age_percentile_cont_aggfinalfn, parallel = safe);
 CREATE AGGREGATE age_percentiledisc(agtype, agtype) (stype = internal, sfunc = age_percentile_aggtransfn, finalfunc = age_percentile_disc_aggfinalfn, parallel = safe);
-
---
--- aggregate functions for collect(variadic "any")
---
+-- collect(variadic "any")
 CREATE FUNCTION age_collect_aggtransfn(internal, variadic "any") RETURNS internal LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_collect_aggfinalfn(internal) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE AGGREGATE age_collect(variadic "any") (stype = internal, sfunc = age_collect_aggtransfn, finalfunc = age_collect_aggfinalfn, parallel = safe);
 
 --
--- function for typecasting an agtype value to another agtype value
---
-CREATE FUNCTION agtype_typecast_numeric(variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-
-
---
 -- John's crap
 --
 -- original VLE function definition
-CREATE FUNCTION age_vle(IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, OUT edges agtype) RETURNS SETOF agtype LANGUAGE C STABLE CALLED ON NULL INPUT
-PARALLEL UNSAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_vle(IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, OUT edges agtype)
+RETURNS SETOF agtype LANGUAGE C STABLE CALLED ON NULL INPUT PARALLEL UNSAFE AS 'MODULE_PATHNAME';
 
 -- This is an overloaded function definition to allow for the VLE local context
 -- caching mechanism to coexist with the previous VLE version.
 CREATE FUNCTION age_vle(IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, OUT edges agtype)
 RETURNS SETOF agtype LANGUAGE C STABLE CALLED ON NULL INPUT PARALLEL UNSAFE AS 'MODULE_PATHNAME';
 -- function to build an edge for a VLE match
+
+-- TODO: remove
 CREATE FUNCTION age_build_vle_match_edge(agtype, agtype) RETURNS agtype LANGUAGE C STABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
--- function to match a terminal vle edge
 CREATE FUNCTION age_match_vle_terminal_edge(variadic "any") RETURNS boolean LANGUAGE C STABLE CALLED ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
--- function to create an AGTV_PATH from a VLE_path_container
 CREATE FUNCTION age_materialize_vle_path(agtype) RETURNS agtype LANGUAGE C STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
--- function to create an AGTV_ARRAY of edges from a VLE_path_container
 CREATE FUNCTION age_materialize_vle_edges(agtype) RETURNS agtype LANGUAGE C STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_match_vle_edge_to_id_qual(variadic "any") RETURNS boolean LANGUAGE C STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_match_two_vle_edges(agtype, agtype) RETURNS boolean LANGUAGE C STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';

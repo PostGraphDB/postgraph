@@ -176,8 +176,6 @@ static Datum process_access_operator_result(FunctionCallInfo fcinfo,
 static Datum process_access_operator_result(FunctionCallInfo fcinfo, agtype_value *agtv, bool as_text);
 Datum agtype_array_element_impl(FunctionCallInfo fcinfo, agtype *agtype_in,
                                 int element, bool as_text);
-Datum agtype_object_field_impl(FunctionCallInfo fcinfo, agtype *agtype_in,
-                               char *key, int key_len, bool as_text);
 /* global storage of  OID for agtype and _agtype */
 static Oid g_AGTYPEOID = InvalidOid;
 static Oid g_AGTYPEARRAYOID = InvalidOid;

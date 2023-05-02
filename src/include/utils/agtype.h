@@ -491,6 +491,8 @@ void clear_global_Oids_AGTYPE(void);
 #define AGTYPEOID get_AGTYPEOID()
 #define AGTYPEARRAYOID get_AGTYPEARRAYOID()
 
+Datum agtype_object_field_impl(FunctionCallInfo fcinfo, agtype *agtype_in, char *key, int key_len, bool as_text);
+
 void agtype_put_escaped_value(StringInfo out, agtype_value *scalar_val);
 
 #endif
