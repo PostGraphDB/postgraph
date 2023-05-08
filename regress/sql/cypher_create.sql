@@ -18,7 +18,7 @@
  */
 
 LOAD 'age';
-SET search_path TO ag_catalog;
+SET search_path TO postgraph;
 
 SELECT create_graph('cypher_create');
 

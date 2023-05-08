@@ -29,7 +29,7 @@ WHITESPACE = re.compile('\s')
 def setUpAge(conn:ext.connection, graphName:str):
     with conn.cursor() as cursor:
         cursor.execute("LOAD 'age';")
-        cursor.execute("SET search_path = ag_catalog, '$user', public;")
+        cursor.execute("SET search_path = postgraph, '$user', public;")
 
         cursor.execute("SELECT typelem FROM pg_type WHERE typname='_agtype'")
         oid = cursor.fetchone()[0]

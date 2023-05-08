@@ -55,7 +55,7 @@ public class Agtype extends PGobject implements Cloneable {
      * object is created on the server-side.
      */
     public Agtype() {
-        super.setType("ag_catalog.agtype");
+        super.setType("postgraph.agtype");
     }
 
     Agtype(Object obj) {

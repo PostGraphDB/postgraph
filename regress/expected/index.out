@@ -1,6 +1,6 @@
 \! cp -r regress/age_load/data regress/instance/data/age_load
 LOAD 'age';
-SET search_path TO ag_catalog;
+SET search_path TO postgraph;
 SET enable_mergejoin = ON;
 SET enable_hashjoin = ON;
 SET enable_nestloop = ON;

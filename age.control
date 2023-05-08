@@ -19,4 +19,4 @@ default_version = '1.1.0'
 comment = 'AGE database extension'
 module_pathname = '$libdir/age'
 
-schema = 'ag_catalog'
+schema = 'postgraph'

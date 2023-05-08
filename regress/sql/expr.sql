@@ -19,7 +19,7 @@
 
 SET extra_float_digits = 0;
 LOAD 'age';
-SET search_path TO ag_catalog;
+SET search_path TO postgraph;
 
 SELECT * FROM create_graph('expr');
 
@@ -873,7 +873,7 @@ $$) AS (label agtype);
 SELECT * FROM cypher('expr', $$
     RETURN label(NULL)
 $$) AS (label agtype);
-SELECT ag_catalog.age_label(NULL);
+SELECT postgraph.age_label(NULL);
 -- should error
 SELECT * FROM cypher('expr', $$
     MATCH p=()-[]->() RETURN label(p)

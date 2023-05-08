@@ -2,7 +2,7 @@
 
 LOAD 'age';
 
-SET search_path TO ag_catalog;
+SET search_path TO postgraph;
 SELECT create_graph('agload_test_graph');
 
 SELECT create_vlabel('agload_test_graph','Country');

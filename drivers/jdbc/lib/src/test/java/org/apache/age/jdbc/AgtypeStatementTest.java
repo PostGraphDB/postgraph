@@ -54,13 +54,13 @@ class AgtypeStatementTest {
     }
 
     /**
-     * When a statement is run first, "ag_catalog"."agtype" needs to be added to the connection.
+     * When a statement is run first, "postgraph"."agtype" needs to be added to the connection.
      *
      * @throws SQLException Throws an SQL Exepction if the driver is unable to parse Agtype.
      */
     @Test
     void agTypeInStatementAsString() throws SQLException, InvalidAgtypeException {
-        baseDockerizedTest.getConnection().addDataType("\"ag_catalog\".\"agtype\"", Agtype.class);
+        baseDockerizedTest.getConnection().addDataType("\"postgraph\".\"agtype\"", Agtype.class);
         //Step 1: Run a statement
         runStatementString(baseDockerizedTest.getConnection());
     }
@@ -80,20 +80,20 @@ class AgtypeStatementTest {
 
     /**
      * When a Prepared statement is run first and the agtype is not a parameter, but in the string,
-     * "ag_catalog"."agtype" needs to be added to the connection.
+     * "postgraph"."agtype" needs to be added to the connection.
      *
      * @throws SQLException Throws an SQL Exepction if the driver is unable to parse Agtype.
      */
     @Test
     void asTypeInPreparedStatementAsString() throws SQLException, InvalidAgtypeException {
-        baseDockerizedTest.getConnection().addDataType("\"ag_catalog\".\"agtype\"", Agtype.class);
+        baseDockerizedTest.getConnection().addDataType("\"postgraph\".\"agtype\"", Agtype.class);
 
         runPreparedStatementString(baseDockerizedTest.getConnection());
     }
 
     /**
      * When a Prepared statement is run and agType is both a string and a parameter, agtype needs to
-     * be added to the connection, but "ag_catalog."agtype" does not need to be added.
+     * be added to the connection, but "postgraph."agtype" does not need to be added.
      *
      * @throws SQLException Throws an SQL Exepction if the driver is unable to parse Agtype.
      */
@@ -108,14 +108,14 @@ class AgtypeStatementTest {
     }
 
     /**
-     * When a statement is run first, "ag_catalog"."agType" needs to be added to the connection, no
+     * When a statement is run first, "postgraph"."agType" needs to be added to the connection, no
      * need to add agtype for running a Prepared Statement afterward.
      *
      * @throws SQLException Throws an SQL Exepction if the driver is unable to parse Agtype.
      */
     @Test
     void asTypeInStatementThenPreparedStatement() throws SQLException, InvalidAgtypeException {
-        baseDockerizedTest.getConnection().addDataType("\"ag_catalog\".\"agtype\"", Agtype.class);
+        baseDockerizedTest.getConnection().addDataType("\"postgraph\".\"agtype\"", Agtype.class);
         //Step 1: Run a statement
         runStatementString(baseDockerizedTest.getConnection());
         //Step 2: Run a Prepared Statement, where AgType is a parameter
@@ -124,7 +124,7 @@ class AgtypeStatementTest {
 
     /**
      * When a Prepared statement is run first, agtype needs to be added to the connection, no need
-     * to add "ag_catalog"."agType" for running a Statement afterward.
+     * to add "postgraph"."agType" for running a Statement afterward.
      *
      * @throws SQLException Throws an SQL Exepction if the driver is unable to parse Agtype.
      */
@@ -144,7 +144,7 @@ class AgtypeStatementTest {
     private void runStatementString(PgConnection conn) throws SQLException, InvalidAgtypeException {
         ResultSet rs;
         Statement stmt = conn.createStatement();
-        stmt.execute("SELECT '1'::ag_catalog.agtype");
+        stmt.execute("SELECT '1'::postgraph.agtype");
         rs = stmt.getResultSet();
         assertTrue(rs.next());
         Agtype returnedAgtype = (Agtype) rs.getObject(1);
@@ -169,7 +169,7 @@ class AgtypeStatementTest {
     private void runPreparedStatementParameterAndString(PgConnection conn) throws SQLException,
         InvalidAgtypeException {
         PreparedStatement ps = conn
-            .prepareStatement("SELECT ?, '1'::ag_catalog.agtype");
+            .prepareStatement("SELECT ?, '1'::postgraph.agtype");
         Agtype agType = new Agtype();
 
         agType.setValue("1");
@@ -189,7 +189,7 @@ class AgtypeStatementTest {
     private void runPreparedStatementString(PgConnection conn) throws SQLException,
         InvalidAgtypeException {
         PreparedStatement ps = conn
-            .prepareStatement("SELECT ?, '1'::ag_catalog.agtype");
+            .prepareStatement("SELECT ?, '1'::postgraph.agtype");
 
         ps.setInt(1, 1);
         ps.executeQuery();

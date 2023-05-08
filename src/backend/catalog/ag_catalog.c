@@ -81,7 +81,7 @@ void process_utility_hook_fini(void)
  *
  * 1. The schema that graphs in stored in are not dropped.
  *
- * 2. While dropping ag_catalog, the object hook is run. Which uses the
+ * 2. While dropping postgraph, the object hook is run. Which uses the
  * information in the indexes and tables being dropped. To prevent an error
  * from being thrown, we need to disable the object_access_hook before dropping
  * the extension.
@@ -232,7 +232,7 @@ Oid ag_relation_id(const char *name, const char *kind)
 {
     Oid id;
 
-    id = get_relname_relid(name, ag_catalog_namespace_id());
+    id = get_relname_relid(name, postgraph_namespace_id());
     if (!OidIsValid(id))
     {
         ereport(ERROR, (errcode(ERRCODE_UNDEFINED_TABLE),

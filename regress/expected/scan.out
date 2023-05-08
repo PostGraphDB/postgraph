@@ -18,7 +18,7 @@
  */
 SET extra_float_digits = 0;
 LOAD 'age';
-SET search_path TO ag_catalog;
+SET search_path TO postgraph;
 SELECT create_graph('scan');
 NOTICE:  graph "scan" has been created
  create_graph 
@@ -362,7 +362,7 @@ CREATE DATABASE contrib_regression_age_euc_kr
 \c contrib_regression_age_euc_kr
 CREATE EXTENSION age;
 LOAD 'age';
-SET search_path TO ag_catalog;
+SET search_path TO postgraph;
 SELECT create_graph('scan');
 NOTICE:  graph "scan" has been created
  create_graph 
@@ -390,7 +390,7 @@ NOTICE:  graph "scan" has been dropped
 \c contrib_regression
 DROP DATABASE contrib_regression_age_euc_kr;
 LOAD 'age';
-SET search_path TO ag_catalog;
+SET search_path TO postgraph;
 -- invalid Unicode escape sequence (must be \uXXXX or \UXXXXXXXX)
 SELECT * FROM cypher('scan', $$
 RETURN "\UD835"

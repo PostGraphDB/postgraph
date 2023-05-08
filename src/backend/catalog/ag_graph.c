@@ -40,7 +40,7 @@
 
 static Oid get_graph_namespace(const char *graph_name);
 
-// INSERT INTO ag_catalog.ag_graph VALUES (graph_name, nsp_id)
+// INSERT INTO postgraph.ag_graph VALUES (graph_name, nsp_id)
 void insert_graph(const Name graph_name, const Oid nsp_id)
 {
     Datum values[Natts_ag_graph];
@@ -73,7 +73,7 @@ void insert_graph(const Name graph_name, const Oid nsp_id)
     table_close(ag_graph, RowExclusiveLock);
 }
 
-// DELETE FROM ag_catalog.ag_graph WHERE name = graph_name
+// DELETE FROM postgraph.ag_graph WHERE name = graph_name
 void delete_graph(const Name graph_name)
 {
     ScanKeyData scan_keys[1];

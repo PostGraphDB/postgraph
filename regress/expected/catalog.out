@@ -17,7 +17,7 @@
  * under the License.
  */
 LOAD 'age';
-SET search_path TO ag_catalog;
+SET search_path TO postgraph;
 --
 -- create_graph(), drop_label(), and drop_graph() tests
 --
@@ -405,7 +405,7 @@ SELECT create_graph_if_not_exists('new_g');
  
 (1 row)
 
-SELECT * FROM ag_catalog.ag_graph;
+SELECT * FROM postgraph.ag_graph;
  graphid | name  | namespace 
 ---------+-------+-----------
    17217 | g     | g

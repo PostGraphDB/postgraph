@@ -17,7 +17,7 @@
  * under the License.
  */
 LOAD 'age';
-SET search_path TO ag_catalog;
+SET search_path TO postgraph;
 SELECT create_graph('cypher_vle');
 NOTICE:  graph "cypher_vle" has been created
  create_graph 

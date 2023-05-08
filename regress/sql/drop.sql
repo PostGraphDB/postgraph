@@ -18,7 +18,7 @@
  */
 
 LOAD 'age';
-SET search_path TO ag_catalog;
+SET search_path TO postgraph;
 
 SELECT create_graph('drop');
 
@@ -26,7 +26,7 @@ DROP EXTENSION age;
 
 SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname = 'drop';
 
-SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'ag_catalog';
+SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'postgraph';
 
 -- Recreate the extension and validate we can recreate a graph
 CREATE EXTENSION age;

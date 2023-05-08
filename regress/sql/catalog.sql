@@ -18,7 +18,7 @@
  */
 
 LOAD 'age';
-SET search_path TO ag_catalog;
+SET search_path TO postgraph;
 
 --
 -- create_graph(), drop_label(), and drop_graph() tests
@@ -170,7 +170,7 @@ SELECT create_elabel(NULL, NULL);
 SELECT create_graph_if_not_exists('new_g');
 SELECT create_graph_if_not_exists('new_g');
 
-SELECT * FROM ag_catalog.ag_graph;
+SELECT * FROM postgraph.ag_graph;
 
 -- dropping the graph
 SELECT drop_graph('new_g', true);

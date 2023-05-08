@@ -257,7 +257,7 @@ static bool is_rte_cypher(RangeTblEntry *rte)
 
 /*
  * Return true if the qualified name of the given function is
- * <"ag_catalog"."cypher">. Otherwise, return false.
+ * <"postgraph"."cypher">. Otherwise, return false.
  */
 static bool is_func_cypher(FuncExpr *funcexpr)
 {
