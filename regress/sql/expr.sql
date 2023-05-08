@@ -18,7 +18,7 @@
  */
 
 SET extra_float_digits = 0;
-LOAD 'age';
+LOAD 'postgraph';
 SET search_path TO postgraph;
 
 SELECT * FROM create_graph('expr');

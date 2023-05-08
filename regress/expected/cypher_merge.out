@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-LOAD 'age';
+LOAD 'postgraph';
 SET search_path TO postgraph;
 SELECT create_graph('cypher_merge');
 NOTICE:  graph "cypher_merge" has been created

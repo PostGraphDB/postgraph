@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-LOAD 'age';
+LOAD 'postgraph';
 SET search_path TO postgraph;
 -- basic comparisons
 SELECT '0'::graphid = '0'::graphid, '0'::graphid = '1'::graphid;

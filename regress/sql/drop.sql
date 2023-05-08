@@ -17,35 +17,35 @@
  * under the License.
  */
 
-LOAD 'age';
+LOAD 'postgraph';
 SET search_path TO postgraph;
 
 SELECT create_graph('drop');
 
-DROP EXTENSION age;
+DROP EXTENSION postgraph;
 
 SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname = 'drop';
 
 SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'postgraph';
 
 -- Recreate the extension and validate we can recreate a graph
-CREATE EXTENSION age;
+CREATE EXTENSION postgraph;
 
 SELECT create_graph('drop');
 
--- Create a schema that uses the agtype, so we can't just drop age.
+-- Create a schema that uses the agtype, so we can't just drop postgraph.
 CREATE SCHEMA other_schema;
 
 CREATE TABLE other_schema.tbl (id agtype);
 
 -- Should Fail because agtype can't be dropped
-DROP EXTENSION age;
+DROP EXTENSION postgraph;
 
 -- Check the graph still exist, because the DROP command failed
 SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname = 'drop';
 
 -- Should succeed, delete the 'drop' schema and leave 'other_schema'
-DROP EXTENSION age CASCADE;
+DROP EXTENSION postgraph CASCADE;
 
 -- 'other_schema' should exist, 'drop' should be deleted
 SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname IN ('other_schema', 'drop');
