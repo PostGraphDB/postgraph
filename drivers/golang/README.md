@@ -34,7 +34,7 @@ Connect to your containerized Postgres instance and then run the following comma
 # psql 
 CREATE EXTENSION age;
 LOAD 'age';
-SET search_path = ag_catalog, "$user", public;
+SET search_path = postgraph, "$user", public;
 ```
 
 ### Test

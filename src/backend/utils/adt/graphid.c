@@ -38,7 +38,7 @@ Oid get_GRAPHIDOID(void)
     {
       g_GRAPHIDOID = GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid,
                                          CStringGetDatum("graphid"),
-                                         ObjectIdGetDatum(ag_catalog_namespace_id()));
+                                         ObjectIdGetDatum(postgraph_namespace_id()));
     }
 
     return g_GRAPHIDOID;
@@ -51,7 +51,7 @@ Oid get_GRAPHIDARRAYOID(void)
     {
         g_GRAPHIDARRAYOID = GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid,
                                             CStringGetDatum("_graphid"),
-                                            ObjectIdGetDatum(ag_catalog_namespace_id()));
+                                            ObjectIdGetDatum(postgraph_namespace_id()));
     }
 
     return g_GRAPHIDARRAYOID;

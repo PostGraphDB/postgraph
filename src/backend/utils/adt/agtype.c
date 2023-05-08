@@ -207,7 +207,7 @@ Oid get_AGTYPEOID(void)
     {
         g_AGTYPEOID = GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid,
                                     CStringGetDatum("agtype"),
-                                    ObjectIdGetDatum(ag_catalog_namespace_id()));
+                                    ObjectIdGetDatum(postgraph_namespace_id()));
     }
 
     return g_AGTYPEOID;
@@ -220,7 +220,7 @@ Oid get_AGTYPEARRAYOID(void)
     {
         g_AGTYPEARRAYOID = GetSysCacheOid2(TYPENAMENSP,Anum_pg_type_oid,
                                            CStringGetDatum("_agtype"),
-                                           ObjectIdGetDatum(ag_catalog_namespace_id()));
+                                           ObjectIdGetDatum(postgraph_namespace_id()));
     }
 
     return g_AGTYPEARRAYOID;
@@ -3734,7 +3734,7 @@ static char *get_label_name(const char *graph_name, int64 label_id)
     if (tupdesc->natts != Natts_ag_label)
         ereport(ERROR,
                 (errcode(ERRCODE_UNDEFINED_TABLE),
-                 errmsg("Invalid number of attributes for ag_catalog.ag_label")));
+                 errmsg("Invalid number of attributes for postgraph.ag_label")));
 
     result = NameStr(*DatumGetName(
         heap_getattr(tuple, Anum_ag_label_name, tupdesc, &column_is_null)));

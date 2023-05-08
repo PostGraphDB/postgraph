@@ -24,6 +24,6 @@
 
 #include "postgres.h"
 
-#define CATALOG_SCHEMA "ag_catalog"
+#define CATALOG_SCHEMA "postgraph"
 
 #endif

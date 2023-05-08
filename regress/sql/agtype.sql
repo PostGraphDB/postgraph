@@ -26,7 +26,7 @@
 --
 LOAD 'age';
 SET extra_float_digits = 0;
-SET search_path TO ag_catalog;
+SET search_path TO postgraph;
 
 --
 -- Create a table using the AGTYPE type

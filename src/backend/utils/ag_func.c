@@ -84,7 +84,7 @@ Oid get_ag_func_oid(const char *func_name, const int nargs, ...)
     func_oid = GetSysCacheOid3(PROCNAMEARGSNSP, Anum_pg_proc_oid,
                                CStringGetDatum(func_name),
                                PointerGetDatum(arg_types),
-                               ObjectIdGetDatum(ag_catalog_namespace_id()));
+                               ObjectIdGetDatum(postgraph_namespace_id()));
     if (!OidIsValid(func_oid))
     {
         ereport(ERROR, (errmsg_internal("ag function does not exist"),

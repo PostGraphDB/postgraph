@@ -66,7 +66,7 @@ public class BaseDockerizedTest {
         try (Statement statement = connection.createStatement()) {
             statement.execute("CREATE EXTENSION IF NOT EXISTS age;");
             statement.execute("LOAD 'age'");
-            statement.execute("SET search_path = ag_catalog, \"$user\", public;");
+            statement.execute("SET search_path = postgraph, \"$user\", public;");
             statement.execute("SELECT create_graph('cypher');");
         }
     }

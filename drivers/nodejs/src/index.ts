@@ -40,7 +40,7 @@ async function setAGETypes (client: Client, types: typeof pgTypes) {
   await client.query(`
         CREATE EXTENSION IF NOT EXISTS age;
         LOAD 'age';
-        SET search_path = ag_catalog, "$user", public;
+        SET search_path = postgraph, "$user", public;
     `)
 
   const oidResults = await client.query(`

@@ -23,7 +23,7 @@
 
 #include "catalog/ag_namespace.h"
 
-Oid ag_catalog_namespace_id(void)
+Oid postgraph_namespace_id(void)
 {
     return get_namespace_oid(CATALOG_SCHEMA, false);
 }

@@ -39,7 +39,7 @@ func GetReady(db *sql.DB, graphName string) (bool, error) {
 		return false, err
 	}
 
-	_, err = tx.Exec("SET search_path = ag_catalog, '$user', public;")
+	_, err = tx.Exec("SET search_path = postgraph, '$user', public;")
 	if err != nil {
 		return false, err
 	}
@@ -204,7 +204,7 @@ func (age *Age) GetReady() (bool, error) {
 		return false, err
 	}
 
-	_, err = tx.Exec("SET search_path = ag_catalog, '$user', public;")
+	_, err = tx.Exec("SET search_path = postgraph, '$user', public;")
 	if err != nil {
 		return false, err
 	}
