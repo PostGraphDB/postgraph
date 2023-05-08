@@ -252,64 +252,6 @@ stmt:
                 yyerror(&yylloc, scanner, extra, "syntax error");
 
             extra->result = $1;
-            extra->extra = NULL;
-        }
-    | EXPLAIN cypher_stmt semicolon_opt
-        {
-            ExplainStmt *estmt = NULL;
-
-            if (yychar != YYEOF)
-                yyerror(&yylloc, scanner, extra, "syntax error");
-
-            extra->result = $2;
-
-            estmt = makeNode(ExplainStmt);
-            estmt->query = NULL;
-            estmt->options = NIL;
-            extra->extra = (Node *)estmt;
-        }
-    | EXPLAIN VERBOSE cypher_stmt semicolon_opt
-        {
-            ExplainStmt *estmt = NULL;
-
-            if (yychar != YYEOF)
-                yyerror(&yylloc, scanner, extra, "syntax error");
-
-            extra->result = $3;
-
-            estmt = makeNode(ExplainStmt);
-            estmt->query = NULL;
-            estmt->options = list_make1(makeDefElem("verbose", NULL, @2));;
-            extra->extra = (Node *)estmt;
-        }
-    | EXPLAIN ANALYZE cypher_stmt semicolon_opt
-        {
-            ExplainStmt *estmt = NULL;
-
-            if (yychar != YYEOF)
-                yyerror(&yylloc, scanner, extra, "syntax error");
-
-            extra->result = $3;
-
-            estmt = makeNode(ExplainStmt);
-            estmt->query = NULL;
-            estmt->options = list_make1(makeDefElem("analyze", NULL, @2));;
-            extra->extra = (Node *)estmt;
-        }
-    | EXPLAIN ANALYZE VERBOSE cypher_stmt semicolon_opt
-        {
-            ExplainStmt *estmt = NULL;
-
-            if (yychar != YYEOF)
-                yyerror(&yylloc, scanner, extra, "syntax error");
-
-            extra->result = $4;
-
-            estmt = makeNode(ExplainStmt);
-            estmt->query = NULL;
-            estmt->options = list_make2(makeDefElem("analyze", NULL, @2),
-                                        makeDefElem("verbose", NULL, @3));;
-            extra->extra = (Node *)estmt;
         }
     ;
 
@@ -2110,7 +2052,6 @@ static Node *build_comparison_expression(Node *left_grammar_node,
             n = (Node *)makeSimpleA_Expr(AEXPR_OP, opr_name, lexpr,
                                          right_grammar_node, location);
 
-            /* now add it (AND) to the other comparisons */
             result_expr = make_and_expr(left_grammar_node, n, location);
         }
     }
