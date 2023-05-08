@@ -761,7 +761,7 @@ Datum agtype_contains(PG_FUNCTION_ARGS)
 
     if (PG_ARGISNULL(0) || PG_ARGISNULL(1))
     {
-        PG_RETURN_BOOL(false);
+        PG_RETURN_NULL();
     }
 
     properties = AG_GET_ARG_AGTYPE_P(0);
@@ -786,7 +786,7 @@ Datum agtype_contained_by(PG_FUNCTION_ARGS)
 
     if (PG_ARGISNULL(0) || PG_ARGISNULL(1))
     {
-        PG_RETURN_BOOL(false);
+        PG_RETURN_NULL();
     }
 
     properties = AG_GET_ARG_AGTYPE_P(0);

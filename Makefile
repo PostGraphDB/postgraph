@@ -58,7 +58,9 @@ OBJS = src/backend/age.o \
        src/backend/utils/adt/age_vle.o \
        src/backend/utils/adt/cypher_funcs.o \
        src/backend/utils/adt/ag_float8_supp.o \
+       src/backend/utils/adt/edge.o \
        src/backend/utils/adt/graphid.o \
+       src/backend/utils/adt/vertex.o \
        src/backend/utils/ag_func.o \
        src/backend/utils/cache/ag_cache.o \
        src/backend/utils/load/ag_load_labels.o \
@@ -74,6 +76,8 @@ DATA = age--1.1.0.sql
 REGRESS = scan \
           graphid \
           agtype \
+          vertex \
+          edge \
           catalog \
           cypher \
           expr \

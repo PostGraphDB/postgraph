@@ -1,4 +1,7 @@
 /*
+ * PostGraph
+ * Copyright (C) 2023 by PostGraph
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,18 +20,17 @@
  * under the License.
  */
 
-#include "postgraph.h"
+LOAD 'age';
+SET search_path TO ag_catalog;
 
-#include "catalog/namespace.h"
+--
+-- Vertex
+--
+--Basic Vertex Creation
+SELECT build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label$$, agtype_build_map());
+SELECT build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, agtype_build_map('id', 2));
 
-#include "catalog/ag_namespace.h"
+--Null properties
+SELECT build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label_name$$, NULL);
+SELECT build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, agtype_build_list());
 
-Oid ag_catalog_namespace_id(void)
-{
-    return get_namespace_oid(CATALOG_SCHEMA, false);
-}
-
-Oid pg_catalog_namespace_id(void)
-{
-    return get_namespace_oid("pg_catalog", false);
-}
