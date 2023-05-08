@@ -1,6 +1,6 @@
 \! cp -r regress/age_load/data regress/instance/data/age_load
 
-LOAD 'age';
+LOAD 'postgraph';
 SET search_path TO postgraph;
 
 SET enable_mergejoin = ON;

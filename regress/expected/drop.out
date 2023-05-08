@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-LOAD 'age';
+LOAD 'postgraph';
 SET search_path TO postgraph;
 SELECT create_graph('drop');
 NOTICE:  graph "drop" has been created
@@ -25,7 +25,7 @@ NOTICE:  graph "drop" has been created
  
 (1 row)
 
-DROP EXTENSION age;
+DROP EXTENSION postgraph;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table drop._ag_label_vertex
 drop cascades to table drop._ag_label_edge
@@ -41,7 +41,7 @@ SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname = 'postgraph';
 (0 rows)
 
 -- Recreate the extension and validate we can recreate a graph
-CREATE EXTENSION age;
+CREATE EXTENSION postgraph;
 SELECT create_graph('drop');
 NOTICE:  graph "drop" has been created
  create_graph 
@@ -49,16 +49,16 @@ NOTICE:  graph "drop" has been created
  
 (1 row)
 
--- Create a schema that uses the agtype, so we can't just drop age.
+-- Create a schema that uses the agtype, so we can't just drop postgraph.
 CREATE SCHEMA other_schema;
 CREATE TABLE other_schema.tbl (id agtype);
 -- Should Fail because agtype can't be dropped
-DROP EXTENSION age;
+DROP EXTENSION postgraph;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table drop._ag_label_vertex
 drop cascades to table drop._ag_label_edge
 NOTICE:  graph "drop" has been dropped
-ERROR:  cannot drop extension age because other objects depend on it
+ERROR:  cannot drop extension postgraph because other objects depend on it
 DETAIL:  column id of table other_schema.tbl depends on type agtype
 HINT:  Use DROP ... CASCADE to drop the dependent objects too.
 -- Check the graph still exist, because the DROP command failed
@@ -69,7 +69,7 @@ SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname = 'drop';
 (1 row)
 
 -- Should succeed, delete the 'drop' schema and leave 'other_schema'
-DROP EXTENSION age CASCADE;
+DROP EXTENSION postgraph CASCADE;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table drop._ag_label_vertex
 drop cascades to table drop._ag_label_edge

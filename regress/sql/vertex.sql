@@ -20,7 +20,7 @@
  * under the License.
  */
 
-LOAD 'age';
+LOAD 'postgraph';
 SET search_path TO postgraph;
 
 --

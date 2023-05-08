@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-LOAD 'age';
+LOAD 'postgraph';
 SET search_path TO postgraph;
 --
 -- create_graph(), drop_label(), and drop_graph() tests

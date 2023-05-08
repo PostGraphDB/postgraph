@@ -140,7 +140,7 @@ static bool is_age_drop(PlannedStmt *pstmt)
             Value *val = (Value *)obj;
             char *str = val->val.str;
 
-            if (!pg_strcasecmp(str, "age"))
+            if (!pg_strcasecmp(str, "postgraph"))
                 return true;
         }
     }

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-LOAD 'age';
+LOAD 'postgraph';
 SET search_path TO postgraph;
 
 SELECT create_graph('cypher_match');
