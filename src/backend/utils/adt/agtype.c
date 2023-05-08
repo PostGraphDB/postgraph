@@ -176,9 +176,6 @@ static Datum process_access_operator_result(FunctionCallInfo fcinfo,
 static Datum process_access_operator_result(FunctionCallInfo fcinfo, agtype_value *agtv, bool as_text);
 Datum agtype_array_element_impl(FunctionCallInfo fcinfo, agtype *agtype_in,
                                 int element, bool as_text);
-/* global storage of  OID for agtype and _agtype */
-static Oid g_AGTYPEOID = InvalidOid;
-static Oid g_AGTYPEARRAYOID = InvalidOid;
 
 // Used to extact properties field from vertices and edges quickly
 static const agtype_value id_key = {
@@ -197,41 +194,6 @@ static const agtype_value prop_key = {
     .type = AGTV_STRING,
     .val.string = {10, "properties"}
 };
-
-
-
-/* helper function to quickly set, if necessary, and retrieve AGTYPEOID */
-Oid get_AGTYPEOID(void)
-{
-    if (g_AGTYPEOID == InvalidOid)
-    {
-        g_AGTYPEOID = GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid,
-                                    CStringGetDatum("agtype"),
-                                    ObjectIdGetDatum(postgraph_namespace_id()));
-    }
-
-    return g_AGTYPEOID;
-}
-
-/* helper function to quickly set, if necessary, and retrieve AGTYPEARRAYOID */
-Oid get_AGTYPEARRAYOID(void)
-{
-    if (g_AGTYPEARRAYOID == InvalidOid)
-    {
-        g_AGTYPEARRAYOID = GetSysCacheOid2(TYPENAMENSP,Anum_pg_type_oid,
-                                           CStringGetDatum("_agtype"),
-                                           ObjectIdGetDatum(postgraph_namespace_id()));
-    }
-
-    return g_AGTYPEARRAYOID;
-}
-
-/* helper function to clear the AGTYPEOIDs after a drop extension */
-void clear_global_Oids_AGTYPE(void)
-{
-    g_AGTYPEOID = InvalidOid;
-    g_AGTYPEARRAYOID = InvalidOid;
-}
 
 /* fast helper function to test for AGTV_NULL in an agtype */
 bool is_agtype_null(agtype *agt_arg)
