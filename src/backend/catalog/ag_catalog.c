@@ -115,8 +115,6 @@ static void drop_age_extension(DropStmt *stmt)
      */
     RemoveObjects(stmt);
 
-    /* reset global variables for OIDs */
-    clear_global_Oids_AGTYPE();
     clear_global_Oids_GRAPHID();
 }
 

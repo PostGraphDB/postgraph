@@ -19,9 +19,6 @@
  * specific language governing permissions and limitations
  * under the License.
  *
- * For PostgreSQL Database Management System:
- * (formerly known as Postgres, then as Postgres95)
- *
  * Portions Copyright (c) 2020-2023, Apache Software Foundation
  * Portions Copyright (c) 2019-2020, Bitnine Global
  */
