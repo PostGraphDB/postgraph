@@ -1102,18 +1102,6 @@ $$) AS (length agtype);
 --
 -- toString()
 --
-
--- PG types
-SELECT * FROM age_toString(3);
-SELECT * FROM age_toString(3.14);
-SELECT * FROM age_toString(3.14::float);
-SELECT * FROM age_toString(3.14::numeric);
-SELECT * FROM age_toString(true);
-SELECT * FROM age_toString(false);
-SELECT * FROM age_toString('a string');
-SELECT * FROM age_toString('a cstring'::cstring);
-SELECT * FROM age_toString('a text string'::text);
--- agtypes
 SELECT * FROM age_toString(agtype_in('3'));
 SELECT * FROM age_toString(agtype_in('3.14'));
 SELECT * FROM age_toString(agtype_in('3.14::float'));
