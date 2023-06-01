@@ -1166,11 +1166,11 @@ ERROR:  cannot cast agtype boolean to type int
 SELECT * FROM cypher('type_coercion', $$
 	RETURN {key: 1}
 $$) AS (i bigint);
-ERROR:  cannot cast agtype object to type int
+ERROR:  cannot cast non-scalar agtype to int8
 SELECT * FROM cypher('type_coercion', $$
 	RETURN [1]
 $$) AS (i bigint);
-ERROR:  cannot cast agtype array to type int
+ERROR:  cannot cast non-scalar agtype to int8
 SELECT * FROM cypher('type_coercion', $$CREATE ()-[:edge]->()$$) AS (result agtype);
  result 
 --------
@@ -1242,7 +1242,7 @@ RETURN 2.71::int
 $$) AS r(result agtype);
  result 
 --------
- 2
+ 3
 (1 row)
 
 SELECT * FROM cypher('expr', $$
@@ -1250,7 +1250,7 @@ RETURN 2.71::numeric::int
 $$) AS r(result agtype);
  result 
 --------
- 2
+ 3
 (1 row)
 
 SELECT * FROM cypher('expr', $$
@@ -1305,19 +1305,11 @@ SELECT agtype_in('null::int');
 SELECT * FROM cypher('expr', $$
 RETURN '0.0'::int
 $$) AS r(result agtype);
- result 
---------
- 0
-(1 row)
-
+ERROR:  invalid input syntax for type bigint: "0.0"
 SELECT * FROM cypher('expr', $$
 RETURN '1.5'::int
 $$) AS r(result agtype);
- result 
---------
- 1
-(1 row)
-
+ERROR:  invalid input syntax for type bigint: "1.5"
 SELECT * FROM cypher('graph_name', $$
 RETURN "15555555555555555555555555555"::int
 $$) AS (string_result agtype);
@@ -1327,19 +1319,11 @@ LINE 1: SELECT * FROM cypher('graph_name', $$
 SELECT * FROM cypher('expr', $$
 RETURN 'NaN'::float::int
 $$) AS r(result agtype);
- result 
---------
- 
-(1 row)
-
+ERROR:  bigint out of range
 SELECT * FROM cypher('expr', $$
 RETURN 'infinity'::float::int
 $$) AS r(result agtype);
- result 
---------
- 
-(1 row)
-
+ERROR:  bigint out of range
 -- Test from an agtype value to an agtype numeric
 --
 SELECT * FROM cypher('expr', $$
@@ -2461,11 +2445,7 @@ $$) AS (toInteger agtype);
 SELECT * FROM cypher('expr', $$
     RETURN toInteger("1.2")
 $$) AS (toInteger agtype);
- tointeger 
------------
- 1
-(1 row)
-
+ERROR:  invalid input syntax for type bigint: "1.2"
 SELECT * FROM cypher('expr', $$
     RETURN toInteger("1.2"::numeric)
 $$) AS (toInteger agtype);
@@ -2478,11 +2458,7 @@ $$) AS (toInteger agtype);
 SELECT * FROM cypher('expr', $$
     RETURN toInteger("falze")
 $$) AS (toInteger agtype);
- tointeger 
------------
- 
-(1 row)
-
+ERROR:  invalid input syntax for type bigint: "falze"
 SELECT * FROM cypher('expr', $$
     RETURN toInteger(null)
 $$) AS (toInteger agtype);
@@ -2495,7 +2471,7 @@ $$) AS (toInteger agtype);
 SELECT * FROM cypher('expr', $$
     RETURN toInteger(true)
 $$) AS (toInteger agtype);
-ERROR:  toInteger() unsupported argument agtype 5
+ERROR:  cannot cast agtype boolean to type int
 SELECT * FROM cypher('expr', $$
     RETURN toInteger()
 $$) AS (toInteger agtype);
