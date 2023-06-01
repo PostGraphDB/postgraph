@@ -658,8 +658,8 @@ SELECT * FROM cypher('expr', $$
 RETURN ([0, {one: 1, pie: 3.1415927, e: 2.718281::numeric}, 2::numeric, null])
 $$) AS r(result agtype);
 -- should return SQL null
-SELECT agtype_typecast_numeric('null'::agtype);
-SELECT agtype_typecast_numeric(null);
+SELECT age_tonumeric('null'::agtype);
+SELECT age_tonumeric(null);
 SELECT * FROM cypher('expr', $$
 RETURN null::numeric
 $$) AS r(result agtype);
