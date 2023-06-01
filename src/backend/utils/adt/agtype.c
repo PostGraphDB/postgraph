@@ -130,11 +130,9 @@ static bool agtype_extract_scalar(agtype_container *agtc, agtype_value *res);
 static agtype_value *execute_array_access_operator_internal(agtype *array, int64 array_index);
 /* typecast functions */
 static void agtype_typecast_object(agtype_in_state *state, char *annotation);
-static void agtype_typecast_array(agtype_in_state *state, char *annotation);
 /* validation functions */
 static bool is_object_vertex(agtype_value *agtv);
 static bool is_object_edge(agtype_value *agtv);
-static bool is_array_path(agtype_value *agtv);
 /* graph entity retrieval */
 static Datum get_vertex(const char *graph, const char *vertex_label, int64 graphid);
 static char *get_label_name(const char *graph_name, int64 label_id);
@@ -317,36 +315,31 @@ static void agtype_in_object_start(void *pstate)
 {
     agtype_in_state *_state = (agtype_in_state *)pstate;
 
-    _state->res = push_agtype_value(&_state->parse_state, WAGT_BEGIN_OBJECT,
-                                    NULL);
+    _state->res = push_agtype_value(&_state->parse_state, WAGT_BEGIN_OBJECT, NULL);
 }
 
 static void agtype_in_object_end(void *pstate)
 {
     agtype_in_state *_state = (agtype_in_state *)pstate;
 
-    _state->res = push_agtype_value(&_state->parse_state, WAGT_END_OBJECT,
-                                    NULL);
+    _state->res = push_agtype_value(&_state->parse_state, WAGT_END_OBJECT, NULL);
 }
 
 static void agtype_in_array_start(void *pstate)
 {
     agtype_in_state *_state = (agtype_in_state *)pstate;
 
-    _state->res = push_agtype_value(&_state->parse_state, WAGT_BEGIN_ARRAY,
-                                    NULL);
+    _state->res = push_agtype_value(&_state->parse_state, WAGT_BEGIN_ARRAY, NULL);
 }
 
 static void agtype_in_array_end(void *pstate)
 {
     agtype_in_state *_state = (agtype_in_state *)pstate;
 
-    _state->res = push_agtype_value(&_state->parse_state, WAGT_END_ARRAY,
-                                    NULL);
+    _state->res = push_agtype_value(&_state->parse_state, WAGT_END_ARRAY, NULL);
 }
 
-static void agtype_in_object_field_start(void *pstate, char *fname,
-                                         bool isnull)
+static void agtype_in_object_field_start(void *pstate, char *fname, bool isnull)
 {
     agtype_in_state *_state = (agtype_in_state *)pstate;
     agtype_value v;
@@ -373,9 +366,6 @@ static void agtype_in_agtype_annotation(void *pstate, char *annotation)
     {
     case AGTV_OBJECT:
         agtype_typecast_object(_state, annotation);
-        break;
-    case AGTV_ARRAY:
-        agtype_typecast_array(_state, annotation);
         break;
 
     /*
@@ -457,63 +447,6 @@ static void agtype_typecast_object(agtype_in_state *state, char *annotation)
             ereport(ERROR,
                     (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                      errmsg("object is not a edge")));
-        }
-    }
-    /* otherwise this isn't a supported typecast */
-    else
-    {
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("invalid annotation value for object")));
-    }
-}
-
-/* function to handle array typecasts */
-static void agtype_typecast_array(agtype_in_state *state, char *annotation)
-{
-    agtype_value *agtv = NULL;
-    agtype_value *last_updated_value = NULL;
-    int len;
-    bool top = true;
-
-    /* verify that our required params are not null */
-    Assert(annotation != NULL);
-    Assert(state != NULL);
-
-    len = strlen(annotation);
-    agtv = state->res;
-
-    /*
-     * If the parse_state is not NULL, then we are not at the top level
-     * and the following must be valid for a nested array with a typecast
-     * at the end.
-     */
-    if (state->parse_state != NULL)
-    {
-        top = false;
-        last_updated_value = state->parse_state->last_updated_value;
-        /* make sure there is a value just copied in */
-        Assert(last_updated_value != NULL);
-        /* and that it is of type object */
-        Assert(last_updated_value->type == AGTV_ARRAY);
-    }
-
-    /* check for a cast to a path */
-    if (len == 4 && pg_strncasecmp(annotation, "path", len) == 0)
-    {
-        /* verify that the array conforms to a valid path */
-        if (is_array_path(agtv))
-        {
-            agtv->type = AGTV_PATH;
-            /* if it isn't the top, we need to adjust the copied value */
-            if (!top)
-                last_updated_value->type = AGTV_PATH;
-        }
-        else
-        {
-            ereport(ERROR,
-                    (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                     errmsg("array is not a valid path")));
         }
     }
     /* otherwise this isn't a supported typecast */
@@ -658,41 +591,6 @@ static bool is_object_edge(agtype_value *agtv)
     }
     return (has_id && has_label && has_properties &&
             has_start_id && has_end_id);
-}
-
-/* helper function to check if an array fits a path */
-static bool is_array_path(agtype_value *agtv)
-{
-    agtype_value *element = NULL;
-    int i;
-
-    /* we require a valid array */
-    Assert(agtv != NULL);
-    Assert(agtv->type == AGTV_ARRAY);
-
-    /* the array needs to have an odd number of elements */
-    if (agtv->val.array.num_elems < 1 ||
-        (agtv->val.array.num_elems - 1) % 2 != 0)
-        return false;
-
-    /* iterate through all elements */
-    for (i = 0; (i + 1) < agtv->val.array.num_elems; i+=2)
-    {
-        element = &agtv->val.array.elems[i];
-        if (element->type != AGTV_VERTEX)
-            return false;
-
-        element = &agtv->val.array.elems[i+1];
-        if (element->type != AGTV_EDGE)
-            return false;
-    }
-
-    /* check the last element */
-    element = &agtv->val.array.elems[i];
-    if (element->type != AGTV_VERTEX)
-        return false;
-
-    return true;
 }
 
 static void agtype_put_array(StringInfo out, agtype_value *scalar_val) {
