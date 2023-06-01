@@ -28,43 +28,6 @@
 
 static int graphid_btree_fast_cmp(Datum x, Datum y, SortSupport ssup);
 
-/* global storage of  OID for graphid and _graphid */
-static Oid g_GRAPHIDOID = InvalidOid;
-static Oid g_GRAPHIDARRAYOID = InvalidOid;
-
-/* helper function to quickly set, if necessary, and retrieve GRAPHIDOID */
-Oid get_GRAPHIDOID(void)
-{
-    if (g_GRAPHIDOID == InvalidOid)
-    {
-      g_GRAPHIDOID = GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid,
-                                         CStringGetDatum("graphid"),
-                                         ObjectIdGetDatum(postgraph_namespace_id()));
-    }
-
-    return g_GRAPHIDOID;
-}
-
-/* helper function to quickly set, if necessary, and retrieve GRAPHIDARRAYOID */
-Oid get_GRAPHIDARRAYOID(void)
-{
-    if (g_GRAPHIDARRAYOID == InvalidOid)
-    {
-        g_GRAPHIDARRAYOID = GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid,
-                                            CStringGetDatum("_graphid"),
-                                            ObjectIdGetDatum(postgraph_namespace_id()));
-    }
-
-    return g_GRAPHIDARRAYOID;
-}
-
-/* helper function to clear the GRAPHOIDs after a drop extension */
-void clear_global_Oids_GRAPHID(void)
-{
-    g_GRAPHIDOID = InvalidOid;
-    g_GRAPHIDARRAYOID = InvalidOid;
-}
-
 PG_FUNCTION_INFO_V1(graphid_in);
 
 // graphid type input function
