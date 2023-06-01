@@ -63,7 +63,6 @@
 #include "utils/age_vle.h"
 #include "utils/agtype.h"
 #include "utils/agtype_parser.h"
-#include "utils/ag_float8_supp.h"
 #include "catalog/ag_graph.h"
 #include "catalog/ag_label.h"
 #include "utils/graphid.h"
