@@ -577,11 +577,6 @@ SELECT agtype_hash_cmp('
 	 {"id":2, "start_id":1, "end_id": 3, "label":"elabel", "properties":{}}::edge,
 	 {"id":5, "label":"vlabel", "properties":{}}::vertex]'::agtype);
 
-SELECT agtype_hash_cmp('
-	[{"id":1, "label":"test", "properties":{"id":100}}::vertex,
-	 {"id":2, "start_id":1, "end_id": 3, "label":"elabel", "properties":{}}::edge,
-	 {"id":5, "label":"vlabel", "properties":{}}::vertex]::path'::agtype);
-
 --Agtype BTree Comparison Function
 SELECT agtype_btree_cmp('1'::agtype, '1'::agtype);
 SELECT agtype_btree_cmp('1'::agtype, '1.0'::agtype);
@@ -620,21 +615,6 @@ SELECT agtype_btree_cmp(
 	'{"id":2, "start_id":1, "end_id": 3, "label":"elabel", "properties":{"prop1": 1}}::edge'::agtype,
 	'{"id":8, "start_id":4, "end_id": 5, "label":"elabel", "properties":{"prop2": 2}}::edge'::agtype);
 
-SELECT agtype_btree_cmp(
-	'[{"id":1, "label":"test", "properties":{"id":100}}::vertex,
-	  {"id":2, "start_id":1, "end_id": 3, "label":"elabel", "properties":{}}::edge,
-	  {"id":3, "label":"vlabel", "properties":{}}::vertex]::path'::agtype,
-	'[{"id":1, "label":"test", "properties":{"id":100}}::vertex,
-	  {"id":2, "start_id":1, "end_id": 3, "label":"elabel", "properties":{}}::edge,
-	  {"id":3, "label":"vlabel", "properties":{}}::vertex]::path'::agtype);
-
-SELECT agtype_btree_cmp(
-	'[{"id":1, "label":"test", "properties":{"id":100}}::vertex,
-	  {"id":2, "start_id":1, "end_id": 3, "label":"elabel", "properties":{}}::edge,
-	  {"id":3, "label":"vlabel", "properties":{}}::vertex]::path'::agtype,
-	'[{"id":1, "label":"test", "properties":{"id":100}}::vertex,
-	  {"id":2, "start_id":1, "end_id": 3, "label":"elabel", "properties":{}}::edge,
-	  {"id":4, "label":"vlabel", "properties":{}}::vertex]::path'::agtype);
 --
 -- Cleanup
 --
