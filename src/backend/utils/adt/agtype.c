@@ -108,36 +108,23 @@ static void agtype_in_object_start(void *pstate);
 static void agtype_in_object_end(void *pstate);
 static void agtype_in_array_start(void *pstate);
 static void agtype_in_array_end(void *pstate);
-static void agtype_in_object_field_start(void *pstate, char *fname,
-                                         bool isnull);
+static void agtype_in_object_field_start(void *pstate, char *fname, bool isnull);
 static void agtype_put_array(StringInfo out, agtype_value *scalar_val);
 static void agtype_put_object(StringInfo out, agtype_value *scalar_val);
 static void escape_agtype(StringInfo buf, const char *str);
 bool is_decimal_needed(char *numstr);
-static void agtype_in_scalar(void *pstate, char *token,
-                             agtype_token_type tokentype,
-                             char *annotation);
-static void agtype_categorize_type(Oid typoid, agt_type_category *tcategory,
-                                   Oid *outfuncoid);
+static void agtype_in_scalar(void *pstate, char *token, agtype_token_type tokentype, char *annotation);
+static void agtype_categorize_type(Oid typoid, agt_type_category *tcategory, Oid *outfuncoid);
 static void composite_to_agtype(Datum composite, agtype_in_state *result);
-static void array_dim_to_agtype(agtype_in_state *result, int dim, int ndims,
-                                int *dims, Datum *vals, bool *nulls,
-                                int *valcount, agt_type_category tcategory,
-                                Oid outfuncoid);
+static void array_dim_to_agtype(agtype_in_state *result, int dim, int ndims, int *dims, Datum *vals, bool *nulls, int *valcount, agt_type_category tcategory, Oid outfuncoid);
 static void array_to_agtype_internal(Datum array, agtype_in_state *result);
-static void datum_to_agtype(Datum val, bool is_null, agtype_in_state *result,
-                            agt_type_category tcategory, Oid outfuncoid,
-                            bool key_scalar);
-static char *agtype_to_cstring_worker(StringInfo out, agtype_container *in,
-                                      int estimated_len, bool indent);
-static text *agtype_value_to_text(agtype_value *scalar_val,
-                                  bool err_not_scalar);
+static void datum_to_agtype(Datum val, bool is_null, agtype_in_state *result, agt_type_category tcategory, Oid outfuncoid, bool key_scalar);
+static char *agtype_to_cstring_worker(StringInfo out, agtype_container *in, int estimated_len, bool indent);
+static text *agtype_value_to_text(agtype_value *scalar_val, bool err_not_scalar);
 static void add_indent(StringInfo out, bool indent, int level);
-static void cannot_cast_agtype_value(enum agtype_value_type type,
-                                     const char *sqltype);
+static void cannot_cast_agtype_value(enum agtype_value_type type, const char *sqltype);
 static bool agtype_extract_scalar(agtype_container *agtc, agtype_value *res);
-static agtype_value *execute_array_access_operator_internal(agtype *array,
-                                                            int64 array_index);
+static agtype_value *execute_array_access_operator_internal(agtype *array, int64 array_index);
 /* typecast functions */
 static void agtype_typecast_object(agtype_in_state *state, char *annotation);
 static void agtype_typecast_array(agtype_in_state *state, char *annotation);
@@ -146,36 +133,18 @@ static bool is_object_vertex(agtype_value *agtv);
 static bool is_object_edge(agtype_value *agtv);
 static bool is_array_path(agtype_value *agtv);
 /* graph entity retrieval */
-static Datum get_vertex(const char *graph, const char *vertex_label,
-                        int64 graphid);
+static Datum get_vertex(const char *graph, const char *vertex_label, int64 graphid);
 static char *get_label_name(const char *graph_name, int64 label_id);
-static float8 get_float_compatible_arg(Datum arg, Oid type, char *funcname,
-                                       bool *is_null);
-static Numeric get_numeric_compatible_arg(Datum arg, Oid type, char *funcname,
-                                       bool *is_null,
-                                       enum agtype_value_type *ag_type);
-agtype *get_one_agtype_from_variadic_args(FunctionCallInfo fcinfo,
-                                                 int variadic_offset,
-                                                 int expected_nargs);
-
-static int64 get_int64_from_int_datums(Datum d, Oid type, char *funcname,
-                                       bool *is_agnull);
-
-static agtype_iterator *get_next_object_key(agtype_iterator *it,
-                                             agtype_container *agtc,
-                                             agtype_value *key);
-static agtype_iterator *get_next_list_element(agtype_iterator *it,
-                                             agtype_container *agtc,
-                                             agtype_value *elem);
+static float8 get_float_compatible_arg(Datum arg, Oid type, char *funcname, bool *is_null);
+static Numeric get_numeric_compatible_arg(Datum arg, Oid type, char *funcname, bool *is_null, enum agtype_value_type *ag_type);
+agtype *get_one_agtype_from_variadic_args(FunctionCallInfo fcinfo, int variadic_offset, int expected_nargs);
+static int64 get_int64_from_int_datums(Datum d, Oid type, char *funcname, bool *is_agnull);
+static agtype_iterator *get_next_object_key(agtype_iterator *it, agtype_container *agtc, agtype_value *key);
+static agtype_iterator *get_next_list_element(agtype_iterator *it, agtype_container *agtc, agtype_value *elem);
 agtype_value *agtype_composite_to_agtype_value_binary(agtype *a);
-static Datum process_access_operator_result(FunctionCallInfo fcinfo,
-                                            agtype_value *agtv,
-                                            bool as_text);
-
-
 static Datum process_access_operator_result(FunctionCallInfo fcinfo, agtype_value *agtv, bool as_text);
-Datum agtype_array_element_impl(FunctionCallInfo fcinfo, agtype *agtype_in,
-                                int element, bool as_text);
+static Datum process_access_operator_result(FunctionCallInfo fcinfo, agtype_value *agtv, bool as_text);
+Datum agtype_array_element_impl(FunctionCallInfo fcinfo, agtype *agtype_in, int element, bool as_text);
 
 // Used to extact properties field from vertices and edges quickly
 static const agtype_value id_key = {
@@ -2827,6 +2796,23 @@ agtype_to_int2(PG_FUNCTION_ARGS) {
     PG_RETURN_INT16(result);
 }
 
+static Datum
+agtype_to_float8_internal(agtype_value *agtv) {
+    if (agtv->type == AGTV_FLOAT)
+        return Float8GetDatum(agtv->val.float_value);
+    else if (agtv->type == AGTV_INTEGER)
+        return DirectFunctionCall1(i8tod, Int64GetDatum(agtv->val.int_value));
+    else if (agtv->type == AGTV_NUMERIC)
+        return DirectFunctionCall1(numeric_float8, NumericGetDatum(agtv->val.numeric));
+    else if (agtv->type == AGTV_STRING)
+        return DirectFunctionCall1(float8in, CStringGetDatum(agtv->val.string.val));
+    else
+        cannot_cast_agtype_value(agtv->type, "float8");
+
+    // unreachable
+    return 0;
+}
+
 PG_FUNCTION_INFO_V1(agtype_to_float8);
 
 /*
@@ -2834,47 +2820,38 @@ PG_FUNCTION_INFO_V1(agtype_to_float8);
  */
 Datum agtype_to_float8(PG_FUNCTION_ARGS)
 {
-    agtype *agtype_in = AG_GET_ARG_AGTYPE_P(0);
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
     agtype_value agtv;
-    float8 result;
 
-    if (!agtype_extract_scalar(&agtype_in->root, &agtv) ||
-        (agtv.type != AGTV_FLOAT &&
-         agtv.type != AGTV_INTEGER &&
-         agtv.type != AGTV_NUMERIC))
+    if (!agtype_extract_scalar(&agt->root, &agtv))
         cannot_cast_agtype_value(agtv.type, "float");
 
-    PG_FREE_IF_COPY(agtype_in, 0);
+    Datum result = agtype_to_float8_internal(&agtv);
 
-    if (agtv.type == AGTV_FLOAT)
-        result = agtv.val.float_value;
-    else if (agtv.type == AGTV_INTEGER)
-    {
-        /*
-         * Get the string representation of the integer because it could be
-         * too large to fit in a float. Let the float routine determine
-         * what to do with it.
-         */
-        char *string = DatumGetCString(DirectFunctionCall1(int8out,
-                           Int64GetDatum(agtv.val.int_value)));
-        bool is_valid = false;
-        /* turn it into a float */
-        result = float8in_internal_null(string, NULL, "double precision",
-                                     string, &is_valid);
+    PG_FREE_IF_COPY(agt, 0);
 
-        /* return null if it was not a invalid float */
-        if (!is_valid)
-            ereport(ERROR, (errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
-                            errmsg("cannot cast to float8, integer value out of range")));
-    }
-    else if (agtv.type == AGTV_NUMERIC)
-        result = DatumGetFloat8(DirectFunctionCall1(numeric_float8,
-                     NumericGetDatum(agtv.val.numeric)));
-    else
-        elog(ERROR, "invalid agtype type: %d", (int)agtv.type);
-
-    PG_RETURN_FLOAT8(result);
+    PG_RETURN_DATUM(result);
 }
+
+
+PG_FUNCTION_INFO_V1(age_tofloat);
+Datum   
+age_tofloat(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+    agtype_value agtv;
+
+    if (!agtype_extract_scalar(&agt->root, &agtv))
+        cannot_cast_agtype_value(agtv.type, "float");
+
+    Datum result = agtype_to_float8_internal(&agtv);
+
+    PG_FREE_IF_COPY(agt, 0);
+    
+    agtv.type = AGTV_FLOAT;
+    agtv.val.float_value = DatumGetFloat8(result);
+
+    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv));
+}   
 
 PG_FUNCTION_INFO_V1(agtype_to_text);
 
@@ -4049,55 +4026,6 @@ age_toboolean(PG_FUNCTION_ARGS) {
     PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_tofloat);
-Datum
-age_tofloat(PG_FUNCTION_ARGS) {
-    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
-    agtype_value agtv_result;
-    float8 result;
-
-    if (!AGT_ROOT_IS_SCALAR(agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("toFloat() only supports scalar arguments")));
-
-    agtype_value *agtv_value = get_ith_agtype_value_from_container(&agt->root, 0);
-
-    if (agtv_value->type == AGTV_INTEGER) {
-        char *string = DatumGetCString(DirectFunctionCall1(int8out,
-                             Int64GetDatum(agtv_value->val.int_value)));
-
-        bool is_valid;
-        result = float8in_internal_null(string, NULL, "double precision",
-                                        string, &is_valid);
-
-        if (!is_valid)
-            PG_RETURN_NULL();
-    } else if (agtv_value->type == AGTV_FLOAT) {
-        result = agtv_value->val.float_value;
-    } else if (agtv_value->type == AGTV_NUMERIC) {
-        result = DatumGetFloat8(DirectFunctionCall1(
-                numeric_float8_no_overflow,
-                NumericGetDatum(agtv_value->val.numeric)));
-    } else if (agtv_value->type == AGTV_STRING) {
-        char *string = strndup(agtv_value->val.string.val, agtv_value->val.string.len);
-
-        bool is_valid;
-        result = float8in_internal_null(string, NULL, "double precision",
-                                        string, &is_valid);
-        if (!is_valid)
-            PG_RETURN_NULL();
-    } else {
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("toFloat(agtype) unsupported argument agtype %d",
-                                   agtv_value->type)));
-    }
-
-    agtv_result.type = AGTV_FLOAT;
-    agtv_result.val.float_value = result;
-
-    PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
-}
-
 PG_FUNCTION_INFO_V1(age_size);
 
 Datum age_size(PG_FUNCTION_ARGS)
@@ -4986,22 +4914,7 @@ static float8 get_float_compatible_arg(Datum arg, Oid type, char *funcname,
         else if (type == INT4OID)
             result = (float8) DatumGetInt32(arg);
         else if (type == INT8OID)
-        {
-            /*
-             * Get the string representation of the integer because it could be
-             * too large to fit in a float. Let the float routine determine
-             * what to do with it.
-             */
-            char *string = DatumGetCString(DirectFunctionCall1(int8out, arg));
-            bool is_valid = false;
-            /* turn it into a float */
-            result = float8in_internal_null(string, NULL, "double precision",
-                                            string, &is_valid);
-
-            /* return 0 if it was an invalid float */
-            if (!is_valid)
-                return 0;
-        }
+            result = Float8GetDatum(DirectFunctionCall1(dtoi8, Int64GetDatum(arg)));
         else if (type == FLOAT4OID)
             result = (float8) DatumGetFloat4(arg);
         else if (type == FLOAT8OID)
