@@ -21,6 +21,7 @@
 
 #include "fmgr.h"
 #include "utils/builtins.h"
+#include "libpq/pqformat.h"
 #include "utils/sortsupport.h"
 
 #include "utils/graphid.h"
@@ -86,10 +87,8 @@ Datum graphid_in(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(graphid_out);
-
 // graphid type output function
-Datum graphid_out(PG_FUNCTION_ARGS)
-{
+Datum graphid_out(PG_FUNCTION_ARGS) {
     graphid gid = AG_GETARG_GRAPHID(0);
     char buf[32]; // greater than MAXINT8LEN+1
     char *out;
@@ -100,10 +99,27 @@ Datum graphid_out(PG_FUNCTION_ARGS)
     PG_RETURN_CSTRING(out);
 }
 
-PG_FUNCTION_INFO_V1(graphid_eq);
+// graphid_recv - converts external binary format to a graphid.
+PG_FUNCTION_INFO_V1(graphid_recv);
+Datum graphid_recv(PG_FUNCTION_ARGS) {
+    StringInfo buf = (StringInfo) PG_GETARG_POINTER(0);
 
-Datum graphid_eq(PG_FUNCTION_ARGS)
-{
+    PG_RETURN_INT64(pq_getmsgint64(buf));
+}
+
+// graphid_send - converts a graphid to binary format.
+PG_FUNCTION_INFO_V1(graphid_send);
+Datum graphid_send(PG_FUNCTION_ARGS) {
+    int64 arg1 = PG_GETARG_INT64(0);
+    StringInfoData buf;
+
+    pq_begintypsend(&buf);
+    pq_sendint64(&buf, arg1);
+    PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
+}
+
+PG_FUNCTION_INFO_V1(graphid_eq);
+Datum graphid_eq(PG_FUNCTION_ARGS) {
     graphid lgid = AG_GETARG_GRAPHID(0);
     graphid rgid = AG_GETARG_GRAPHID(1);
 
@@ -111,9 +127,7 @@ Datum graphid_eq(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(graphid_ne);
-
-Datum graphid_ne(PG_FUNCTION_ARGS)
-{
+Datum graphid_ne(PG_FUNCTION_ARGS) {
     graphid lgid = AG_GETARG_GRAPHID(0);
     graphid rgid = AG_GETARG_GRAPHID(1);
 
@@ -121,9 +135,7 @@ Datum graphid_ne(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(graphid_lt);
-
-Datum graphid_lt(PG_FUNCTION_ARGS)
-{
+Datum graphid_lt(PG_FUNCTION_ARGS) {
     graphid lgid = AG_GETARG_GRAPHID(0);
     graphid rgid = AG_GETARG_GRAPHID(1);
 
@@ -131,9 +143,7 @@ Datum graphid_lt(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(graphid_gt);
-
-Datum graphid_gt(PG_FUNCTION_ARGS)
-{
+Datum graphid_gt(PG_FUNCTION_ARGS) {
     graphid lgid = AG_GETARG_GRAPHID(0);
     graphid rgid = AG_GETARG_GRAPHID(1);
 
@@ -141,9 +151,7 @@ Datum graphid_gt(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(graphid_le);
-
-Datum graphid_le(PG_FUNCTION_ARGS)
-{
+Datum graphid_le(PG_FUNCTION_ARGS) {
     graphid lgid = AG_GETARG_GRAPHID(0);
     graphid rgid = AG_GETARG_GRAPHID(1);
 
@@ -151,9 +159,7 @@ Datum graphid_le(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(graphid_ge);
-
-Datum graphid_ge(PG_FUNCTION_ARGS)
-{
+Datum graphid_ge(PG_FUNCTION_ARGS) {
     graphid lgid = AG_GETARG_GRAPHID(0);
     graphid rgid = AG_GETARG_GRAPHID(1);
 
@@ -161,9 +167,7 @@ Datum graphid_ge(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(graphid_btree_cmp);
-
-Datum graphid_btree_cmp(PG_FUNCTION_ARGS)
-{
+Datum graphid_btree_cmp(PG_FUNCTION_ARGS) {
     graphid lgid = AG_GETARG_GRAPHID(0);
     graphid rgid = AG_GETARG_GRAPHID(1);
 
@@ -176,17 +180,14 @@ Datum graphid_btree_cmp(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(graphid_btree_sort);
-
-Datum graphid_btree_sort(PG_FUNCTION_ARGS)
-{
+Datum graphid_btree_sort(PG_FUNCTION_ARGS) {
     SortSupport ssup = (SortSupport)PG_GETARG_POINTER(0);
 
     ssup->comparator = graphid_btree_fast_cmp;
     PG_RETURN_VOID();
 }
 
-static int graphid_btree_fast_cmp(Datum x, Datum y, SortSupport ssup)
-{
+static int graphid_btree_fast_cmp(Datum x, Datum y, SortSupport ssup) {
     graphid lgid = DATUM_GET_GRAPHID(x);
     graphid rgid = DATUM_GET_GRAPHID(y);
 
@@ -198,26 +199,22 @@ static int graphid_btree_fast_cmp(Datum x, Datum y, SortSupport ssup)
         return -1;
 }
 
-graphid make_graphid(const int32 label_id, const int64 entry_id)
-{
+graphid make_graphid(const int32 label_id, const int64 entry_id) {
     uint64 tmp;
 
-    if (!label_id_is_valid(label_id))
-    {
+    if (!label_id_is_valid(label_id)) {
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("label_id must be %d .. %d",
                                LABEL_ID_MIN, LABEL_ID_MAX)));
     }
-    if (!entry_id_is_valid(entry_id))
-    {
+    if (!entry_id_is_valid(entry_id)) {
         ereport(ERROR,
                 (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("entry_id must be " INT64_FORMAT " .. " INT64_FORMAT,
                         ENTRY_ID_MIN, ENTRY_ID_MAX)));
     }
 
-    tmp = (((uint64)label_id) << ENTRY_ID_BITS) |
-          (((uint64)entry_id) & ENTRY_ID_MASK);
+    tmp = (((uint64)label_id) << ENTRY_ID_BITS) | (((uint64)entry_id) & ENTRY_ID_MASK);
 
     return (graphid)tmp;
 }
