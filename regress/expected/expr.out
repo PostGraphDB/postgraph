@@ -1618,19 +1618,11 @@ SELECT agtype_in('null::float');
 SELECT * FROM cypher('expr', $$
 RETURN '2:71'::float
 $$) AS r(result agtype);
- result 
---------
- 
-(1 row)
-
+ERROR:  invalid input syntax for type double precision: "2:71"
 SELECT * FROM cypher('expr', $$
 RETURN 'infi'::float
 $$) AS r(result agtype);
- result 
---------
- 
-(1 row)
-
+ERROR:  invalid input syntax for type double precision: "infi"
 -- verify that output can be accepted and reproduced correctly via agtype_in
 SELECT * FROM cypher('expr', $$
 RETURN ([0, {one: 1::float, pie: 3.1415927, e: 2.718281::numeric}, 2::numeric, null])
@@ -2392,11 +2384,7 @@ $$) AS (toFloat agtype);
 SELECT * FROM cypher('expr', $$
     RETURN toFloat("falze")
 $$) AS (toFloat agtype);
- tofloat 
----------
- 
-(1 row)
-
+ERROR:  invalid input syntax for type double precision: "falze"
 SELECT * FROM cypher('expr', $$
     RETURN toFloat(null)
 $$) AS (toFloat agtype);
@@ -2409,7 +2397,7 @@ $$) AS (toFloat agtype);
 SELECT * FROM cypher('expr', $$
     RETURN toFloat(true)
 $$) AS (toFloat agtype);
-ERROR:  toFloat(agtype) unsupported argument agtype 5
+ERROR:  cannot cast agtype boolean to type float8
 SELECT * FROM cypher('expr', $$
     RETURN toFloat()
 $$) AS (toFloat agtype);
