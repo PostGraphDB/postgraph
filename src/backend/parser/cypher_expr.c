@@ -637,7 +637,7 @@ transform_cypher_typecast(cypher_parsestate *cpstate, cypher_typecast *ctypecast
     /* append the name of the requested typecast function */
     if (pg_strcasecmp(ctypecast->typecast, "numeric") == 0)
     {
-        fname = lappend(fname, makeString("agtype_typecast_numeric"));
+        fname = lappend(fname, makeString("age_tonumeric"));
     }
     else if (pg_strcasecmp(ctypecast->typecast, "float") == 0)
     {

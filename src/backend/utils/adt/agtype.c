@@ -2661,6 +2661,53 @@ Datum agtype_to_int4_array(PG_FUNCTION_ARGS) {
     PG_RETURN_ARRAYTYPE_P(result);
 }
 
+#define int8_to_numeric int8_numeric
+#define float8_to_numeric float8_numeric
+#define string_to_numeric numeric_in
+
+static Datum
+agtype_to_numeric_internal(agtype_value *agtv) {
+    if (agtv->type == AGTV_INTEGER)
+        return DirectFunctionCall1(int8_to_numeric, Int64GetDatum(agtv->val.int_value));
+    else if (agtv->type == AGTV_FLOAT)
+        return DirectFunctionCall1(float8_to_numeric, Float8GetDatum(agtv->val.float_value));
+    else if (agtv->type == AGTV_NUMERIC)
+        return NumericGetDatum(agtv->val.numeric);
+    else if (agtv->type == AGTV_STRING) {
+        char *string = (char *) palloc(sizeof(char) * (agtv->val.string.len + 1));
+        string = strncpy(string, agtv->val.string.val, agtv->val.string.len);
+        string[agtv->val.string.len] = '\0';
+
+        Datum numd = DirectFunctionCall3(string_to_numeric, CStringGetDatum(string), ObjectIdGetDatum(InvalidOid), Int32GetDatum(-1));
+
+        pfree(string);
+
+        return numd;
+    } else
+        cannot_cast_agtype_value(agtv->type, "numerivc");
+
+    // unreachable
+    return 0;
+}
+
+PG_FUNCTION_INFO_V1(age_tonumeric);
+// agtype -> agtype numeric
+Datum
+age_tonumeric(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+
+    if (is_agtype_null(agt))
+        PG_RETURN_NULL();
+
+
+    agtype_value agtv = {
+        .type = AGTV_NUMERIC,
+        .val.numeric = DatumGetNumeric(agtype_to_numeric_internal(get_ith_agtype_value_from_container(&agt->root, 0)))
+    };
+
+    PG_RETURN_POINTER(agtype_value_to_agtype(&agtv));
+}
+
 PG_FUNCTION_INFO_V1(agtype_to_int2);
 // agtype -> int2
 Datum
@@ -3417,80 +3464,6 @@ Datum agtype_btree_cmp(PG_FUNCTION_ARGS)
     agtype_rhs = AG_GET_ARG_AGTYPE_P(1);
 
     PG_RETURN_INT16(compare_agtype_containers_orderability(&agtype_lhs->root, &agtype_rhs->root));
-}
-
-PG_FUNCTION_INFO_V1(agtype_typecast_numeric);
-/*
- * Execute function to typecast an agtype to an agtype numeric
- */
-Datum agtype_typecast_numeric(PG_FUNCTION_ARGS)
-{
-    agtype *arg_agt;
-    agtype_value *arg_value;
-    agtype_value result_value;
-    Datum numd;
-    char *string = NULL;
-
-    /* get the agtype equivalence of any convertable input type */
-    arg_agt = get_one_agtype_from_variadic_args(fcinfo, 0, 1);
-
-    /* Return null if arg_agt is null. This covers SQL and Agtype NULLS */
-    if (arg_agt == NULL)
-        PG_RETURN_NULL();
-
-    /* check that we have a scalar value */
-    if (!AGT_ROOT_IS_SCALAR(arg_agt))
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("typecast argument must resolve to a scalar value")));
-
-    /* get the arg parameter */
-    arg_value = get_ith_agtype_value_from_container(&arg_agt->root, 0);
-
-    /* the input type drives the casting */
-    switch(arg_value->type)
-    {
-    case AGTV_INTEGER:
-        numd = DirectFunctionCall1(int8_numeric,
-                                   Int64GetDatum(arg_value->val.int_value));
-        break;
-    case AGTV_FLOAT:
-        numd = DirectFunctionCall1(float8_numeric,
-                                   Float8GetDatum(arg_value->val.float_value));
-        break;
-    case AGTV_NUMERIC:
-        /* it is already a numeric so just return it */
-        PG_RETURN_POINTER(agtype_value_to_agtype(arg_value));
-        break;
-    /* this allows string numbers and NaN */
-    case AGTV_STRING:
-        /* we need a null terminated string */
-        string = (char *) palloc0(sizeof(char)*arg_value->val.string.len + 1);
-        string = strncpy(string, arg_value->val.string.val,
-                         arg_value->val.string.len);
-        string[arg_value->val.string.len] = '\0';
-        /* pass the string to the numeric in function for conversion */
-        numd = DirectFunctionCall3(numeric_in,
-                                   CStringGetDatum(string),
-                                   ObjectIdGetDatum(InvalidOid),
-                                   Int32GetDatum(-1));
-        /* free the string */
-        pfree(string);
-        string = NULL;
-        break;
-    /* what was given doesn't cast to a numeric */
-    default:
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("typecast expression must be a number or a string")));
-        break;
-    }
-
-    /* fill in and return our result */
-    result_value.type = AGTV_NUMERIC;
-    result_value.val.numeric = DatumGetNumeric(numd);
-
-    PG_RETURN_POINTER(agtype_value_to_agtype(&result_value));
 }
 
 PG_FUNCTION_INFO_V1(age_id);

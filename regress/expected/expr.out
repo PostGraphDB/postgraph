@@ -1439,15 +1439,15 @@ $$) AS r(result agtype);
 (1 row)
 
 -- should return SQL null
-SELECT agtype_typecast_numeric('null'::agtype);
- agtype_typecast_numeric 
--------------------------
+SELECT age_tonumeric('null'::agtype);
+ age_tonumeric 
+---------------
  
 (1 row)
 
-SELECT agtype_typecast_numeric(null);
- agtype_typecast_numeric 
--------------------------
+SELECT age_tonumeric(null);
+ age_tonumeric 
+---------------
  
 (1 row)
 
