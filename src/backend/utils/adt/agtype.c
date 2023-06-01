@@ -181,39 +181,6 @@ bool is_agtype_null(agtype *agt_arg)
 }
 
 /*
- * graphid_recv - converts external binary format to a graphid.
- *
- * Copied from PGs int8recv as a graphid is an int64.
- */
-
-PG_FUNCTION_INFO_V1(graphid_recv);
-
-Datum graphid_recv(PG_FUNCTION_ARGS)
-{
-    StringInfo buf = (StringInfo) PG_GETARG_POINTER(0);
-
-    PG_RETURN_INT64(pq_getmsgint64(buf));
-}
-
-/*
- * graphid_send - converts a graphid to binary format.
- *
- * Copied from PGs int8send as a graphid is an int64.
- */
-
-PG_FUNCTION_INFO_V1(graphid_send);
-
-Datum graphid_send(PG_FUNCTION_ARGS)
-{
-    int64 arg1 = PG_GETARG_INT64(0);
-    StringInfoData buf;
-
-    pq_begintypsend(&buf);
-    pq_sendint64(&buf, arg1);
-    PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
-}
-
-/*
  * agtype recv function copied from PGs jsonb_recv as agtype is based
  * off of jsonb
  *
