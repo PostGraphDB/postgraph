@@ -1,31 +1,35 @@
 /*
+ * PostGraph
+ * Copyright (C) 2023 by PostGraph
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
  * For PostgreSQL Database Management System:
  * (formerly known as Postgres, then as Postgres95)
  *
+ * Portions Copyright (c) 2020-2023, Apache Software Foundation
+ * Portions Copyright (c) 1996-2010, Bitnine Global
  * Portions Copyright (c) 1996-2010, The PostgreSQL Global Development Group
- *
  * Portions Copyright (c) 1994, The Regents of the University of California
- *
- * Permission to use, copy, modify, and distribute this software and its documentation for any purpose,
- * without fee, and without a written agreement is hereby granted, provided that the above copyright notice
- * and this paragraph and the following two paragraphs appear in all copies.
- *
- * IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT,
- * INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,
- * ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF THE UNIVERSITY
- * OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING,
- * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
- *
- * THE SOFTWARE PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA
- * HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
 /*
  * I/O routines for agtype type
- *
- * Portions Copyright (c) 2014-2018, PostgreSQL Global Development Group
  */
 
 #include "postgres.h"
@@ -63,7 +67,6 @@
 #include "utils/age_vle.h"
 #include "utils/agtype.h"
 #include "utils/agtype_parser.h"
-#include "utils/ag_float8_supp.h"
 #include "catalog/ag_graph.h"
 #include "catalog/ag_label.h"
 #include "utils/graphid.h"
@@ -4914,7 +4917,7 @@ static float8 get_float_compatible_arg(Datum arg, Oid type, char *funcname,
         else if (type == INT4OID)
             result = (float8) DatumGetInt32(arg);
         else if (type == INT8OID)
-            result = Float8GetDatum(DirectFunctionCall1(dtoi8, Int64GetDatum(arg)));
+            result = DatumGetFloat8(DirectFunctionCall1(i8tod, Int64GetDatum(arg)));
         else if (type == FLOAT4OID)
             result = (float8) DatumGetFloat4(arg);
         else if (type == FLOAT8OID)
@@ -4947,23 +4950,7 @@ static float8 get_float_compatible_arg(Datum arg, Oid type, char *funcname,
             return 0;
 
         if (agtv_value->type == AGTV_INTEGER)
-        {
-            /*
-             * Get the string representation of the integer because it could be
-             * too large to fit in a float. Let the float routine determine
-             * what to do with it.
-             */
-            bool is_valid = false;
-            char *string = DatumGetCString(DirectFunctionCall1(int8out,
-                                                               Int64GetDatum(agtv_value->val.int_value)));
-            /* turn it into a float */
-            result = float8in_internal_null(string, NULL, "double precision",
-                                            string, &is_valid);
-
-            /* return null if it was not a valid float */
-            if (!is_valid)
-                return 0;
-        }
+            result = DatumGetFloat8(DirectFunctionCall1(i8tod, Int64GetDatum(agtv_value->val.int_value)));
         else if (agtv_value->type == AGTV_FLOAT)
             result = agtv_value->val.float_value;
         else if (agtv_value->type == AGTV_NUMERIC)
