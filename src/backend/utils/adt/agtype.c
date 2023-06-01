@@ -2553,41 +2553,72 @@ Datum agtype_to_bool(PG_FUNCTION_ARGS)
     PG_RETURN_BOOL(agtv.val.boolean);
 }
 
+#define float8_to_int8 dtoi8
+#define numeric_to_int8 numeric_int8
+#define string_to_int8 int8in
+
+static Datum
+agtype_to_int8_internal(agtype_value *agtv) {
+    if (agtv->type == AGTV_INTEGER)
+        return Int64GetDatum(agtv->val.int_value);
+    else if (agtv->type == AGTV_FLOAT)
+        return DirectFunctionCall1(float8_to_int8, Float8GetDatum(agtv->val.float_value));
+    else if (agtv->type == AGTV_NUMERIC)
+        return DirectFunctionCall1(numeric_to_int8, NumericGetDatum(agtv->val.numeric));
+    else if (agtv->type == AGTV_STRING)
+        return DirectFunctionCall1(string_to_int8, CStringGetDatum(agtv->val.string.val));
+    else
+        cannot_cast_agtype_value(agtv->type, "int");
+
+    // cannot reach
+    return 0;
+}
+
 PG_FUNCTION_INFO_V1(agtype_to_int8);
-/*
- * Cast agtype to int8.
- */
+// agtype -> int8.
 Datum agtype_to_int8(PG_FUNCTION_ARGS)
 {
-    agtype *agtype_in = AG_GET_ARG_AGTYPE_P(0);
-    agtype_value agtv;
-    int64 result = 0x0;
-    agtype *arg_agt;
-
-    /* get the agtype equivalence of any convertable input type */
-    arg_agt = agtype_in;
-
-    if (arg_agt == NULL)
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+    
+    if (is_agtype_null(agt))
         PG_RETURN_NULL();
 
-    if (!agtype_extract_scalar(&arg_agt->root, &agtv) || (agtv.type != AGTV_FLOAT && agtv.type != AGTV_INTEGER && agtv.type != AGTV_NUMERIC && agtv.type != AGTV_STRING))
-        cannot_cast_agtype_value(agtv.type, "int");
+    if (!AGT_ROOT_IS_SCALAR(agt))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("cannot cast non-scalar agtype to int8")));
 
-    PG_FREE_IF_COPY(agtype_in, 0);
-
-    if (agtv.type == AGTV_INTEGER)
-        result = agtv.val.int_value;
-    else if (agtv.type == AGTV_FLOAT)
-        result = DatumGetInt64(DirectFunctionCall1(dtoi8, Float8GetDatum(agtv.val.float_value)));
-    else if (agtv.type == AGTV_NUMERIC)
-        result = DatumGetInt64(DirectFunctionCall1(numeric_int8, NumericGetDatum(agtv.val.numeric)));
-    else if (agtv.type == AGTV_STRING)
-        result = DatumGetInt64(DirectFunctionCall1(int8in, CStringGetDatum(agtv.val.string.val)));
-    else
-        elog(ERROR, "invalid agtype type: %d", (int)agtv.type);
-
-    PG_RETURN_INT64(result);
+    agtype_value *agtv = get_ith_agtype_value_from_container(&agt->root, 0);
+    
+    Datum d = agtype_to_int8_internal(agtv);
+    
+    PG_FREE_IF_COPY(agt, 0);
+    
+    PG_RETURN_DATUM(d);
 }
+
+PG_FUNCTION_INFO_V1(age_tointeger);
+Datum
+age_tointeger(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+
+    if (is_agtype_null(agt))
+        PG_RETURN_NULL();
+
+    if (!AGT_ROOT_IS_SCALAR(agt))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("cannot cast non-scalar agtype to int8")));
+    
+    agtype_value *agtv = get_ith_agtype_value_from_container(&agt->root, 0);
+    
+    agtype_value agtv_result = {
+        .type = AGTV_INTEGER,
+        .val.int_value = DatumGetInt64(agtype_to_int8_internal(agtv))
+    };
+    
+    PG_FREE_IF_COPY(agt, 0);
+    
+    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv_result));
+}
+
+
 
 #define int8_to_int4 int84
 #define int8_to_int2 int82
@@ -2625,6 +2656,9 @@ agtype_to_int4(PG_FUNCTION_ARGS) {
 
     if (is_agtype_null(agt))
         PG_RETURN_NULL();
+
+    if (!AGT_ROOT_IS_SCALAR(agt))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("cannot cast non-scalar agtype to int4")));    
 
     agtype_value *agtv = get_ith_agtype_value_from_container(&agt->root, 0);
 
@@ -4060,68 +4094,6 @@ age_tofloat(PG_FUNCTION_ARGS) {
 
     agtv_result.type = AGTV_FLOAT;
     agtv_result.val.float_value = result;
-
-    PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
-}
-
-PG_FUNCTION_INFO_V1(age_tointeger);
-Datum
-age_tointeger(PG_FUNCTION_ARGS) {
-    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
-
-    if (!AGT_ROOT_IS_SCALAR(agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("toInteger() only supports scalar arguments")));
-
-    agtype_value *agtv_value = get_ith_agtype_value_from_container(&agt->root, 0);
-
-    int64 result;
-    if (agtv_value->type == AGTV_INTEGER) {
-        result = agtv_value->val.int_value;
-    } else if (agtv_value->type == AGTV_FLOAT) {
-        float f = agtv_value->val.float_value;
-
-        if (isnan(f) || isinf(f) || f < PG_INT64_MIN || f > PG_INT64_MAX)
-            PG_RETURN_NULL();
-
-        result = (int64) f;
-    } else if (agtv_value->type == AGTV_NUMERIC) {
-        float8 f;
-        Datum num = NumericGetDatum(agtv_value->val.numeric);
-
-        f = DatumGetFloat8(DirectFunctionCall1(numeric_float8_no_overflow, num));
-
-        if (isnan(f) || isinf(f) || f < PG_INT64_MIN || f > PG_INT64_MAX)
-            PG_RETURN_NULL();
-
-        result = (int64) f;
-    } else if (agtv_value->type == AGTV_STRING) {
-        // we need a null terminated cstring
-        char *string = strndup(agtv_value->val.string.val, agtv_value->val.string.len);
-
-        // convert it if it is a regular integer string
-        bool is_valid = scanint8(string, true, &result);
-
-        // If it isn't an integer string, try converting it as a float string.
-        if (!is_valid) {
-            float f = float8in_internal_null(string, NULL, "double precision", string, &is_valid);
-            free(string);
-            
-            // If the conversions failed or it's a special float value, return null.
-            if (!is_valid || isnan(f) || isinf(f) || f < PG_INT64_MIN || f > PG_INT64_MAX)
-                    PG_RETURN_NULL();
-
-            result = (int64) f;
-        } else {
-            free(string);
-        }
-    } else {
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("toInteger() unsupported argument agtype %d",
-                               agtv_value->type)));
-    }
-
-    agtype_value agtv_result = { .type = AGTV_INTEGER, .val.int_value = result };
 
     PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
 }
