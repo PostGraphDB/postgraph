@@ -327,36 +327,36 @@ CREATE FUNCTION agtype_build_list() RETURNS agtype LANGUAGE c IMMUTABLE CALLED O
 --
 -- agtype - typecasting
 --
--- agtype -> text (explicit)
+-- agtype -> text
 CREATE FUNCTION agtype_to_text(agtype) RETURNS text LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE CAST (agtype AS text) WITH FUNCTION agtype_to_text(agtype);
--- agtype -> boolean (implicit)
+-- agtype -> boolean
 CREATE FUNCTION agtype_to_bool(agtype) RETURNS boolean LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE CAST (agtype AS boolean) WITH FUNCTION agtype_to_bool(agtype) AS IMPLICIT;
--- boolean -> agtype (explicit)
+-- boolean -> agtype
 CREATE FUNCTION bool_to_agtype(boolean) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE CAST (boolean AS agtype) WITH FUNCTION bool_to_agtype(boolean);
--- float8 -> agtype (explicit)
+-- float8 -> agtype
 CREATE FUNCTION float8_to_agtype(float8) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE CAST (float8 AS agtype) WITH FUNCTION float8_to_agtype(float8);
--- agtype -> float8 (implicit)
+-- agtype -> float8
 CREATE FUNCTION agtype_to_float8(agtype) RETURNS float8 LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE CAST (agtype AS float8) WITH FUNCTION agtype_to_float8(agtype);
--- int8 -> agtype (explicit)
+-- int8 -> agtype
 CREATE FUNCTION int8_to_agtype(int8) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE CAST (int8 AS agtype) WITH FUNCTION int8_to_agtype(int8);
 -- agtype -> int8
-CREATE FUNCTION agtype_to_int8(variadic "any") RETURNS bigint LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE CAST (agtype AS bigint) WITH FUNCTION agtype_to_int8(variadic "any") AS ASSIGNMENT;
+CREATE FUNCTION agtype_to_int8(agtype) RETURNS bigint LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE CAST (agtype AS bigint) WITH FUNCTION agtype_to_int8(agtype) AS ASSIGNMENT;
 -- agtype -> int4
-CREATE FUNCTION agtype_to_int4(variadic "any") RETURNS int LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE CAST (agtype AS int) WITH FUNCTION agtype_to_int4(variadic "any");
+CREATE FUNCTION agtype_to_int4(agtype) RETURNS int LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE CAST (agtype AS int) WITH FUNCTION agtype_to_int4(agtype);
 -- agtype -> int2
-CREATE FUNCTION agtype_to_int2(variadic "any") RETURNS smallint LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE CAST (agtype AS smallint) WITH FUNCTION agtype_to_int2(variadic "any");
+CREATE FUNCTION agtype_to_int2(agtype) RETURNS smallint LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE CAST (agtype AS smallint) WITH FUNCTION agtype_to_int2(agtype);
 -- agtype -> int4[]
-CREATE FUNCTION agtype_to_int4_array(variadic "any") RETURNS int[] LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE CAST (agtype AS int[]) WITH FUNCTION agtype_to_int4_array(variadic "any");
+CREATE FUNCTION agtype_to_int4_array(agtype) RETURNS int[] LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE CAST (agtype AS int[]) WITH FUNCTION agtype_to_int4_array(agtype);
 
 --
 -- agtype - access operators

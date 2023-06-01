@@ -2502,8 +2502,7 @@ static bool agtype_extract_scalar(agtype_container *agtc, agtype_value *res)
 /*
  * Emit correct, translatable cast error message
  */
-static void cannot_cast_agtype_value(enum agtype_value_type type,
-                                     const char *sqltype)
+static void cannot_cast_agtype_value(enum agtype_value_type type, const char *sqltype)
 {
     static const struct
     {
@@ -2529,27 +2528,24 @@ static void cannot_cast_agtype_value(enum agtype_value_type type,
     {
         if (messages[i].type == type)
         {
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg(messages[i].msg, sqltype)));
+            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg(messages[i].msg, sqltype)));
         }
     }
 
-    /* should be unreachable */
+    // unreachable
     elog(ERROR, "unknown agtype type: %d", (int)type);
 }
 
 PG_FUNCTION_INFO_V1(agtype_to_bool);
-
 /*
- * Cast agtype to boolean. From jsonb_bool().
+ * Cast agtype to boolean
  */
 Datum agtype_to_bool(PG_FUNCTION_ARGS)
 {
     agtype *agtype_in = AG_GET_ARG_AGTYPE_P(0);
     agtype_value agtv;
 
-    if (!agtype_extract_scalar(&agtype_in->root, &agtv) ||
-        agtv.type != AGTV_BOOL)
+    if (!agtype_extract_scalar(&agtype_in->root, &agtv) || agtv.type != AGTV_BOOL)
         cannot_cast_agtype_value(agtv.type, "boolean");
 
     PG_FREE_IF_COPY(agtype_in, 0);
@@ -2569,17 +2565,12 @@ Datum agtype_to_int8(PG_FUNCTION_ARGS)
     agtype *arg_agt;
 
     /* get the agtype equivalence of any convertable input type */
-    arg_agt = get_one_agtype_from_variadic_args(fcinfo, 0, 1);
+    arg_agt = agtype_in;
 
-    /* Return null if arg_agt is null. This covers SQL and Agtype NULLS */
     if (arg_agt == NULL)
         PG_RETURN_NULL();
 
-    if (!agtype_extract_scalar(&arg_agt->root, &agtv) ||
-        (agtv.type != AGTV_FLOAT &&
-         agtv.type != AGTV_INTEGER &&
-         agtv.type != AGTV_NUMERIC &&
-         agtv.type != AGTV_STRING))
+    if (!agtype_extract_scalar(&arg_agt->root, &agtv) || (agtv.type != AGTV_FLOAT && agtv.type != AGTV_INTEGER && agtv.type != AGTV_NUMERIC && agtv.type != AGTV_STRING))
         cannot_cast_agtype_value(agtv.type, "int");
 
     PG_FREE_IF_COPY(agtype_in, 0);
@@ -2587,108 +2578,113 @@ Datum agtype_to_int8(PG_FUNCTION_ARGS)
     if (agtv.type == AGTV_INTEGER)
         result = agtv.val.int_value;
     else if (agtv.type == AGTV_FLOAT)
-        result = DatumGetInt64(DirectFunctionCall1(dtoi8,
-                                Float8GetDatum(agtv.val.float_value)));
+        result = DatumGetInt64(DirectFunctionCall1(dtoi8, Float8GetDatum(agtv.val.float_value)));
     else if (agtv.type == AGTV_NUMERIC)
-        result = DatumGetInt64(DirectFunctionCall1(numeric_int8,
-                     NumericGetDatum(agtv.val.numeric)));
+        result = DatumGetInt64(DirectFunctionCall1(numeric_int8, NumericGetDatum(agtv.val.numeric)));
     else if (agtv.type == AGTV_STRING)
-        result = DatumGetInt64(DirectFunctionCall1(int8in,
-                           CStringGetDatum(agtv.val.string.val)));
+        result = DatumGetInt64(DirectFunctionCall1(int8in, CStringGetDatum(agtv.val.string.val)));
     else
         elog(ERROR, "invalid agtype type: %d", (int)agtv.type);
 
     PG_RETURN_INT64(result);
 }
 
+#define int8_to_int4 int84
+#define int8_to_int2 int82
+
+#define float8_to_int4 dtoi4
+#define float8_to_int2 dtoi2
+
+#define numeric_to_int4 numeric_int4
+#define numeric_to_int2 numeric_int2
+
+#define string_to_int4 int4in
+#define string_to_int2 int2in
+static Datum
+agtype_to_int4_internal(agtype_value *agtv) {
+    if (agtv->type == AGTV_INTEGER)
+        return DirectFunctionCall1(int8_to_int4, Int64GetDatum(agtv->val.int_value));
+    else if (agtv->type == AGTV_FLOAT)
+        return DirectFunctionCall1(float8_to_int4, Float8GetDatum(agtv->val.float_value));
+    else if (agtv->type == AGTV_NUMERIC)
+        return DirectFunctionCall1(numeric_to_int4, NumericGetDatum(agtv->val.numeric));
+    else if (agtv->type == AGTV_STRING)
+        return DirectFunctionCall1(string_to_int4, CStringGetDatum(agtv->val.string.val));
+    else
+        cannot_cast_agtype_value(agtv->type, "int");
+
+    // cannot reach
+    return 0;
+}
+
 PG_FUNCTION_INFO_V1(agtype_to_int4);
+// agtype -> int4
+Datum
+agtype_to_int4(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
 
-/*
- * Cast agtype to int4.
- */
-Datum agtype_to_int4(PG_FUNCTION_ARGS)
-{
-    agtype *agtype_in = AG_GET_ARG_AGTYPE_P(0);
-    agtype_value agtv;
-    int32 result = 0x0;
-    agtype *arg_agt;
-
-    /* get the agtype equivalence of any convertable input type */
-    arg_agt = get_one_agtype_from_variadic_args(fcinfo, 0, 1);
-
-    /* Return null if arg_agt is null. This covers SQL and Agtype NULLS */
-    if (arg_agt == NULL)
+    if (is_agtype_null(agt))
         PG_RETURN_NULL();
 
-    if (!agtype_extract_scalar(&arg_agt->root, &agtv) ||
-        (agtv.type != AGTV_FLOAT &&
-         agtv.type != AGTV_INTEGER &&
-         agtv.type != AGTV_NUMERIC &&
-         agtv.type != AGTV_STRING))
-        cannot_cast_agtype_value(agtv.type, "int");
+    agtype_value *agtv = get_ith_agtype_value_from_container(&agt->root, 0);
 
-    PG_FREE_IF_COPY(agtype_in, 0);
+    Datum d = agtype_to_int4_internal(agtv);
 
-    if (agtv.type == AGTV_INTEGER)
-        result = DatumGetInt32(DirectFunctionCall1(int84,
-                    Int64GetDatum(agtv.val.int_value)));
-    else if (agtv.type == AGTV_FLOAT)
-        result = DatumGetInt32(DirectFunctionCall1(dtoi4,
-                                Float8GetDatum(agtv.val.float_value)));
-    else if (agtv.type == AGTV_NUMERIC)
-        result = DatumGetInt32(DirectFunctionCall1(numeric_int4,
-                     NumericGetDatum(agtv.val.numeric)));
-    else if (agtv.type == AGTV_STRING)
-        result = DatumGetInt32(DirectFunctionCall1(int4in,
-                           CStringGetDatum(agtv.val.string.val)));
-    else
-        elog(ERROR, "invalid agtype type: %d", (int)agtv.type);
+    PG_FREE_IF_COPY(agt, 0);
 
-    PG_RETURN_INT32(result);
+    PG_RETURN_DATUM(d);
+}
+
+PG_FUNCTION_INFO_V1(agtype_to_int4_array);
+// agtype -> int4[]
+Datum agtype_to_int4_array(PG_FUNCTION_ARGS) {
+    agtype *agt= AG_GET_ARG_AGTYPE_P(0);
+    agtype_value agtv;
+    Datum *array_value;
+
+    agtype_iterator *agtype_iterator = agtype_iterator_init(&agt->root);
+    agtype_iterator_token agtv_token = agtype_iterator_next(&agtype_iterator, &agtv, false);
+
+    if (agtv.type != AGTV_ARRAY)
+        cannot_cast_agtype_value(agtv.type, "int4[]");
+
+    array_value = (Datum *) palloc(sizeof(Datum) * AGT_ROOT_COUNT(agt));
+
+    int i = 0;
+    while ((agtv_token = agtype_iterator_next(&agtype_iterator, &agtv, true)) != WAGT_END_ARRAY)
+        array_value[i++] = agtype_to_int4_internal(&agtv);
+
+    ArrayType *result = construct_array(array_value, AGT_ROOT_COUNT(agt), INT4OID, 4, true, 'i');
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    PG_RETURN_ARRAYTYPE_P(result);
 }
 
 PG_FUNCTION_INFO_V1(agtype_to_int2);
-
-/*
- * Cast agtype to int2.
- */
-Datum agtype_to_int2(PG_FUNCTION_ARGS)
-{
-    agtype *agtype_in = AG_GET_ARG_AGTYPE_P(0);
+// agtype -> int2
+Datum
+agtype_to_int2(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
     agtype_value agtv;
-    int16 result = 0x0;
-    agtype *arg_agt;
+    int16 result;
 
-    /* get the agtype equivalence of any convertable input type */
-    arg_agt = get_one_agtype_from_variadic_args(fcinfo, 0, 1);
-
-    /* Return null if arg_agt is null. This covers SQL and Agtype NULLS */
-    if (arg_agt == NULL)
+    if (is_agtype_null(agt))
         PG_RETURN_NULL();
 
-    if (!agtype_extract_scalar(&arg_agt->root, &agtv) ||
-        (agtv.type != AGTV_FLOAT &&
-         agtv.type != AGTV_INTEGER &&
-         agtv.type != AGTV_NUMERIC &&
-         agtv.type != AGTV_STRING))
+    if (!agtype_extract_scalar(&agt->root, &agtv) || (agtv.type != AGTV_FLOAT && agtv.type != AGTV_INTEGER && agtv.type != AGTV_NUMERIC && agtv.type != AGTV_STRING))
         cannot_cast_agtype_value(agtv.type, "int");
 
-    PG_FREE_IF_COPY(agtype_in, 0);
+    PG_FREE_IF_COPY(agt, 0);
 
     if (agtv.type == AGTV_INTEGER)
-        result = DatumGetInt16(DirectFunctionCall1(int82,
-                    Int64GetDatum(agtv.val.int_value)));
+        result = DatumGetInt16(DirectFunctionCall1(int8_to_int2, Int64GetDatum(agtv.val.int_value)));
     else if (agtv.type == AGTV_FLOAT)
-        result = DatumGetInt32(DirectFunctionCall1(dtoi2,
-                                Float8GetDatum(agtv.val.float_value)));
+        result = DatumGetInt32(DirectFunctionCall1(float8_to_int2, Float8GetDatum(agtv.val.float_value)));
     else if (agtv.type == AGTV_NUMERIC)
-        result = DatumGetInt16(DirectFunctionCall1(numeric_int2,
-                     NumericGetDatum(agtv.val.numeric)));
+        result = DatumGetInt16(DirectFunctionCall1(numeric_to_int2, NumericGetDatum(agtv.val.numeric)));
     else if (agtv.type == AGTV_STRING)
-        result = DatumGetInt16(DirectFunctionCall1(int2in,
-                           CStringGetDatum(agtv.val.string.val)));
-    else
-        elog(ERROR, "invalid agtype type: %d", (int)agtv.type);
+        result = DatumGetInt16(DirectFunctionCall1(string_to_int2, CStringGetDatum(agtv.val.string.val)));
 
     PG_RETURN_INT16(result);
 }
@@ -2779,83 +2775,27 @@ Datum agtype_to_text(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(bool_to_agtype);
-/*
- * Cast boolean to agtype.
- */
-Datum bool_to_agtype(PG_FUNCTION_ARGS)
-{
+// boolean -> agtype
+Datum
+bool_to_agtype(PG_FUNCTION_ARGS) {
     return boolean_to_agtype(PG_GETARG_BOOL(0));
 }
 
 PG_FUNCTION_INFO_V1(float8_to_agtype);
-/*
- * Cast float8 to agtype.
- */
-Datum float8_to_agtype(PG_FUNCTION_ARGS)
-{
+// float8 -> agtype
+Datum
+float8_to_agtype(PG_FUNCTION_ARGS) {
     return float_to_agtype(PG_GETARG_FLOAT8(0));
 }
 
 PG_FUNCTION_INFO_V1(int8_to_agtype);
-/*
- * Cast float8 to agtype.
- */
-Datum int8_to_agtype(PG_FUNCTION_ARGS)
-{
+// int8 -> agtype.
+Datum
+int8_to_agtype(PG_FUNCTION_ARGS) {
     return integer_to_agtype(PG_GETARG_INT64(0));
 }
 
-PG_FUNCTION_INFO_V1(agtype_to_int4_array);
-/*
- * Cast agtype to int4[].
- */
-Datum agtype_to_int4_array(PG_FUNCTION_ARGS)
-{
-    agtype *agtype_in = AG_GET_ARG_AGTYPE_P(0);
-    agtype_value agtv;
-    agtype_iterator_token agtv_token;
-    Datum *array_value;
-    ArrayType *result;
-    int element_size;
-    int i;
-
-    agtype_iterator *agtype_iterator = agtype_iterator_init(&agtype_in->root);
-    agtv_token = agtype_iterator_next(&agtype_iterator, &agtv, false);
-
-    if (agtv.type != AGTV_ARRAY)
-    {
-        cannot_cast_agtype_value(agtv.type, "int4[]");
-    }
-
-    element_size = agtv.val.array.num_elems;
-    array_value = (Datum *) palloc(sizeof(Datum) * element_size);
-
-    i = 0;
-    while ((agtv_token = agtype_iterator_next(&agtype_iterator, &agtv, true)) != WAGT_END_ARRAY)
-    {
-        int32 element_value = 0;
-        if (agtv.type == AGTV_INTEGER)
-            element_value = DatumGetInt32(DirectFunctionCall1(int84,
-                                                              Int64GetDatum(agtv.val.int_value)));
-        else if (agtv.type == AGTV_FLOAT)
-            element_value = DatumGetInt32(DirectFunctionCall1(dtoi4,
-                                                              Float8GetDatum(agtv.val.float_value)));
-        else if (agtv.type == AGTV_NUMERIC)
-            element_value = DatumGetInt32(DirectFunctionCall1(numeric_int4,
-                                                              NumericGetDatum(agtv.val.numeric)));
-        else if (agtv.type == AGTV_STRING)
-            element_value = DatumGetInt32(DirectFunctionCall1(int4in,
-                                                              CStringGetDatum(agtv.val.string.val)));
-        array_value[i++] = element_value;
-    }
-
-    result = construct_array(array_value, element_size, INT4OID, 4, true, 'i');
-
-    PG_RETURN_ARRAYTYPE_P(result);
-}
-
-static agtype_value *execute_array_access_operator_internal(agtype *array,
-                                                            int64 array_index)
+static agtype_value *execute_array_access_operator_internal(agtype *array, int64 array_index)
 {
     uint32 size;
 
