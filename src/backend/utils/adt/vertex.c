@@ -254,6 +254,16 @@ vertex_label(PG_FUNCTION_ARGS) {
     PG_RETURN_POINTER(d);
 }
 
+PG_FUNCTION_INFO_V1(vertex_properties);
+Datum
+vertex_properties(PG_FUNCTION_ARGS) {
+    vertex *v = AG_GET_ARG_VERTEX(0);
+
+    AG_RETURN_AGTYPE_P(extract_properties(v));
+}
+
+
+
 static void
 append_to_buffer(StringInfo buffer, const char *data, int len) {
     int offset = reserve_from_buffer(buffer, len);
