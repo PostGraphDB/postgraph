@@ -501,11 +501,11 @@ CREATE FUNCTION age_agtype_sum(agtype, agtype) RETURNS agtype LANGUAGE c IMMUTAB
 -- sum(agtype)
 CREATE AGGREGATE age_sum(agtype) (stype = agtype, sfunc = age_agtype_sum, combinefunc = age_agtype_sum, finalfunc_modify = read_only, parallel = safe);
 -- max(variadic "any")
-CREATE FUNCTION age_agtype_larger_aggtransfn(agtype, variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE AGGREGATE age_max(variadic "any") (stype = agtype, sfunc = age_agtype_larger_aggtransfn, combinefunc = age_agtype_larger_aggtransfn, finalfunc_modify = read_only, parallel = safe);
+CREATE FUNCTION agtype_max_trans(agtype, agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE AGGREGATE age_max(agtype) (stype = agtype, sfunc = agtype_max_trans, combinefunc = agtype_max_trans, finalfunc_modify = READ_ONLY, parallel = SAFE);
 -- min(agtype)
-CREATE FUNCTION age_agtype_smaller_aggtransfn(agtype, variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE AGGREGATE age_min(variadic "any") (stype = agtype, sfunc = age_agtype_smaller_aggtransfn, combinefunc = age_agtype_smaller_aggtransfn, finalfunc_modify = read_only, parallel = safe);
+CREATE FUNCTION agtype_min_trans(agtype, agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE AGGREGATE age_min(agtype) (stype = agtype, sfunc = agtype_min_trans, combinefunc = agtype_min_trans, finalfunc_modify = READ_ONLY, parallel = SAFE);
 -- percentileCont(internal, agtype) and percentileDisc(internal, agtype)
 CREATE FUNCTION age_percentile_aggtransfn(internal, agtype, agtype) RETURNS internal LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_percentile_cont_aggfinalfn(internal) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';

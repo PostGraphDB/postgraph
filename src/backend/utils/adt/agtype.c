@@ -6208,9 +6208,9 @@ Datum age_float8_stddev_pop_aggfinalfn(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_float));
 }
 
-PG_FUNCTION_INFO_V1(age_agtype_larger_aggtransfn);
+PG_FUNCTION_INFO_V1(agtype_max_trans);
 
-Datum age_agtype_larger_aggtransfn(PG_FUNCTION_ARGS)
+Datum agtype_max_trans(PG_FUNCTION_ARGS)
 {
     agtype *agtype_arg1;
     agtype *agtype_arg2;
@@ -6222,27 +6222,24 @@ Datum age_agtype_larger_aggtransfn(PG_FUNCTION_ARGS)
     agtype_arg1 = get_one_agtype_from_variadic_args(fcinfo, 0, 2);
     agtype_arg2 = get_one_agtype_from_variadic_args(fcinfo, 1, 1);
 
-    /* return NULL if both are NULL */
     if (agtype_arg1 == NULL && agtype_arg2 == NULL)
         PG_RETURN_NULL();
-    /* if one is NULL, return the other */
-    if (agtype_arg1 != NULL && agtype_arg2 == NULL)
+    else if (agtype_arg2 == NULL)
         PG_RETURN_POINTER(agtype_arg1);
-    if (agtype_arg1 == NULL && agtype_arg2 != NULL)
+    else if (agtype_arg1 == NULL)
         PG_RETURN_POINTER(agtype_arg2);
 
     /* test for max value */
-    test = compare_agtype_containers_orderability(&agtype_arg1->root,
-                                                  &agtype_arg2->root);
+    test = compare_agtype_containers_orderability(&agtype_arg1->root, &agtype_arg2->root);
 
     agtype_larger = (test >= 0) ? agtype_arg1 : agtype_arg2;
 
     PG_RETURN_POINTER(agtype_larger);
 }
 
-PG_FUNCTION_INFO_V1(age_agtype_smaller_aggtransfn);
+PG_FUNCTION_INFO_V1(agtype_min_trans);
 
-Datum age_agtype_smaller_aggtransfn(PG_FUNCTION_ARGS)
+Datum agtype_min_trans(PG_FUNCTION_ARGS)
 {
     agtype *agtype_arg1 = NULL;
     agtype *agtype_arg2 = NULL;
