@@ -1964,7 +1964,6 @@ SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Jessica", gpa: 3.9::num
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex agtype);
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN avg(u.gpa), sum(u.gpa), sum(u.gpa)/count(u.gpa), count(u.gpa), count(*) $$) 
 AS (avg agtype, sum agtype, sum_divided_by_count agtype, count agtype, count_star agtype);
--- add in 2 null gpa records
 SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Dave", age: 24})$$) AS (a agtype);
 SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Mike", age: 18})$$) AS (a agtype);
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex agtype);
