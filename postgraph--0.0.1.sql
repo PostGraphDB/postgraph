@@ -490,11 +490,11 @@ CREATE FUNCTION agtype_accum(_float8, agtype) RETURNS _float8 LANGUAGE c IMMUTAB
 CREATE AGGREGATE age_count(*) (stype = int8, sfunc = int8inc, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_WRITE, initcond = 0, parallel = safe);
 CREATE AGGREGATE age_count(agtype) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_WRITE, initcond = 0, parallel = safe);
 -- stdev(internal, agtype)
-CREATE FUNCTION age_float8_stddev_samp_aggfinalfn(_float8) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE AGGREGATE age_stdev(agtype) (stype = _float8, sfunc = agtype_accum, finalfunc = age_float8_stddev_samp_aggfinalfn, combinefunc = float8_combine, finalfunc_modify = read_only, initcond = '{0,0,0}', parallel = safe);
+CREATE FUNCTION agtype_stddev_samp_final(_float8) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE AGGREGATE age_stdev(agtype) (stype = _float8, sfunc = agtype_accum, finalfunc = agtype_stddev_samp_final, combinefunc = float8_combine, finalfunc_modify = read_only, initcond = '{0,0,0}', parallel = safe);
 -- stdevp(internal, agtype)
-CREATE FUNCTION age_float8_stddev_pop_aggfinalfn(_float8) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE AGGREGATE age_stdevp(agtype) (stype = _float8, sfunc = agtype_accum, finalfunc = age_float8_stddev_pop_aggfinalfn, combinefunc = float8_combine, finalfunc_modify = read_only, initcond = '{0,0,0}', parallel = safe);
+CREATE FUNCTION agtype_stddev_pop_final(_float8) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE AGGREGATE age_stdevp(agtype) (stype = _float8, sfunc = agtype_accum, finalfunc = agtype_stddev_pop_final, combinefunc = float8_combine, finalfunc_modify = read_only, initcond = '{0,0,0}', parallel = safe);
 -- avg(agytpe)
 CREATE AGGREGATE age_avg(agtype) (stype = _float8, sfunc = agtype_accum, finalfunc = float8_avg, combinefunc = float8_combine, finalfunc_modify = read_only, initcond = '{0,0,0}', parallel = safe);
 CREATE FUNCTION age_agtype_sum(agtype, agtype) RETURNS agtype LANGUAGE c IMMUTABLE STRICT PARALLEL SAFE AS 'MODULE_PATHNAME';

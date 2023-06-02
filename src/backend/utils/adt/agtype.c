@@ -6132,9 +6132,9 @@ Datum agtype_accum(PG_FUNCTION_ARGS)
 }
 
 /* Wrapper for stdDev function. */
-PG_FUNCTION_INFO_V1(age_float8_stddev_samp_aggfinalfn);
+PG_FUNCTION_INFO_V1(agtype_stddev_samp_final);
 
-Datum age_float8_stddev_samp_aggfinalfn(PG_FUNCTION_ARGS)
+Datum agtype_stddev_samp_final(PG_FUNCTION_ARGS)
 {
     Datum result;
     PGFunction func;
@@ -6164,9 +6164,9 @@ Datum age_float8_stddev_samp_aggfinalfn(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_float));
 }
 
-PG_FUNCTION_INFO_V1(age_float8_stddev_pop_aggfinalfn);
+PG_FUNCTION_INFO_V1(agtype_stddev_pop_final);
 
-Datum age_float8_stddev_pop_aggfinalfn(PG_FUNCTION_ARGS)
+Datum agtype_stddev_pop_final(PG_FUNCTION_ARGS)
 {
     Datum result;
     PGFunction func;
