@@ -60,11 +60,10 @@ SELECT id(build_vertex('1'::graphid, $$label$$, agtype_build_map()));
 (1 row)
 
 SELECT id(NULL);
- id 
-----
- 
-(1 row)
-
+ERROR:  function id(unknown) is not unique
+LINE 1: SELECT id(NULL);
+               ^
+HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
 --
 -- label function
 --
@@ -75,11 +74,10 @@ SELECT label(build_vertex('1'::graphid, $$label$$, agtype_build_map()));
 (1 row)
 
 SELECT label(NULL);
- label 
--------
- 
-(1 row)
-
+ERROR:  function label(unknown) is not unique
+LINE 1: SELECT label(NULL);
+               ^
+HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
 --
 -- -> operator
 --

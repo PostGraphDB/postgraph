@@ -181,6 +181,11 @@ CREATE FUNCTION build_edge(graphid, graphid, graphid, cstring, agtype) RETURNS e
 
 CREATE TYPE edge (INPUT = edge_in, OUTPUT = edge_out, LIKE = jsonb);
 
+--
+-- edge functions
+--
+CREATE FUNCTION id(edge) RETURNS graphid LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'edge_id';
+CREATE FUNCTION label(edge) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'edge_label';
 
 --
 -- agtype - mathematical operators (+, -, *, /, %, ^)
