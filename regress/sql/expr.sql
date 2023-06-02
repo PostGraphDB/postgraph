@@ -1113,9 +1113,7 @@ SELECT * FROM cypher('expr', $$ RETURN toString() $$) AS (results agtype);
 SELECT * FROM cypher('expr', $$
     RETURN reverse("gnirts a si siht")
 $$) AS (results agtype);
-SELECT * FROM age_reverse('gnirts a si siht');
-SELECT * FROM age_reverse('gnirts a si siht'::text);
-SELECT * FROM age_reverse('gnirts a si siht'::cstring);
+SELECT * FROM age_reverse('"gnirts a si siht"'::agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN reverse(null)
@@ -1335,8 +1333,6 @@ $$) AS (results agtype);
 SELECT * FROM cypher('expr', $$
     RETURN substring("0123456789", 0)
 $$) AS (results agtype);
-SELECT * FROM age_substring('0123456789', 3, 2);
-SELECT * FROM age_substring('0123456789', 1);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN substring(null, null, null)
@@ -1347,9 +1343,6 @@ $$) AS (results agtype);
 SELECT * FROM cypher('expr', $$
     RETURN substring(null, 1)
 $$) AS (results agtype);
-SELECT * FROM age_substring(null, null, null);
-SELECT * FROM age_substring(null, null);
-SELECT * FROM age_substring(null, 1);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN substring("123456789", null)
@@ -1363,10 +1356,6 @@ $$) AS (results agtype);
 SELECT * FROM cypher('expr', $$
     RETURN substring("123456789")
 $$) AS (results agtype);
-SELECT * FROM age_substring('123456789', null);
-SELECT * FROM age_substring('123456789', 0, -1);
-SELECT * FROM age_substring('123456789', -1);
-SELECT * FROM age_substring();
 
 --
 -- split()
@@ -1457,12 +1446,6 @@ $$) AS (results agtype);
 SELECT * FROM cypher('expr', $$
     RETURN replace("", "Hello", "Mellow")
 $$) AS (results agtype);
-SELECT * FROM age_replace(null, null, null);
-SELECT * FROM age_replace('Hello', null, null);
-SELECT * FROM age_replace('Hello', '', null);
-SELECT * FROM age_replace('', '', '');
-SELECT * FROM age_replace('Hello', 'Hello', '');
-SELECT * FROM age_replace('', 'Hello', 'Mellow');
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN replace()
@@ -1479,11 +1462,6 @@ $$) AS (results agtype);
 SELECT * FROM cypher('expr', $$
     RETURN replace("Hello", 1, "e")
 $$) AS (results agtype);
-SELECT * FROM age_replace();
-SELECT * FROM age_replace(null);
-SELECT * FROM age_replace(null, null);
-SELECT * FROM age_replace('Hello', 'e', 1);
-SELECT * FROM age_replace('Hello', 1, 'E');
 
 --
 -- sin, cos, tan, cot

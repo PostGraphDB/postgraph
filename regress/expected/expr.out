@@ -2543,19 +2543,7 @@ $$) AS (results agtype);
  "this is a string"
 (1 row)
 
-SELECT * FROM age_reverse('gnirts a si siht');
-    age_reverse     
---------------------
- "this is a string"
-(1 row)
-
-SELECT * FROM age_reverse('gnirts a si siht'::text);
-    age_reverse     
---------------------
- "this is a string"
-(1 row)
-
-SELECT * FROM age_reverse('gnirts a si siht'::cstring);
+SELECT * FROM age_reverse('"gnirts a si siht"'::agtype);
     age_reverse     
 --------------------
  "this is a string"
@@ -2659,13 +2647,19 @@ SELECT * FROM cypher('expr', $$
 $$) AS (results agtype);
 ERROR:  reverse() unsupported argument agtype 5
 SELECT * FROM age_reverse(true);
-ERROR:  reverse() unsupported argument type 16
+ERROR:  function age_reverse(boolean) does not exist
+LINE 1: SELECT * FROM age_reverse(true);
+                      ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN reverse(3.14)
 $$) AS (results agtype);
 ERROR:  reverse() unsupported argument agtype 4
 SELECT * FROM age_reverse(3.14);
-ERROR:  reverse() unsupported argument type 1700
+ERROR:  function age_reverse(numeric) does not exist
+LINE 1: SELECT * FROM age_reverse(3.14);
+                      ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN reverse()
 $$) AS (results agtype);
@@ -3129,18 +3123,6 @@ $$) AS (results agtype);
  "0123456789"
 (1 row)
 
-SELECT * FROM age_substring('0123456789', 3, 2);
- age_substring 
----------------
- "34"
-(1 row)
-
-SELECT * FROM age_substring('0123456789', 1);
- age_substring 
----------------
- "123456789"
-(1 row)
-
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN substring(null, null, null)
@@ -3166,24 +3148,6 @@ $$) AS (results agtype);
  
 (1 row)
 
-SELECT * FROM age_substring(null, null, null);
- age_substring 
----------------
- 
-(1 row)
-
-SELECT * FROM age_substring(null, null);
- age_substring 
----------------
- 
-(1 row)
-
-SELECT * FROM age_substring(null, 1);
- age_substring 
----------------
- 
-(1 row)
-
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN substring("123456789", null)
@@ -3200,17 +3164,9 @@ ERROR:  substring() negative values are not supported for offset or length
 SELECT * FROM cypher('expr', $$
     RETURN substring("123456789")
 $$) AS (results agtype);
-ERROR:  substring() invalid number of arguments
-SELECT * FROM age_substring('123456789', null);
-ERROR:  substring() offset or length cannot be null
-SELECT * FROM age_substring('123456789', 0, -1);
-ERROR:  substring() negative values are not supported for offset or length
-SELECT * FROM age_substring('123456789', -1);
-ERROR:  substring() negative values are not supported for offset or length
-SELECT * FROM age_substring();
-ERROR:  function age_substring() does not exist
-LINE 1: SELECT * FROM age_substring();
-                      ^
+ERROR:  function postgraph.age_substring(agtype) does not exist
+LINE 2:     RETURN substring("123456789")
+                   ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
 -- split()
@@ -3435,42 +3391,6 @@ $$) AS (results agtype);
  
 (1 row)
 
-SELECT * FROM age_replace(null, null, null);
- age_replace 
--------------
- 
-(1 row)
-
-SELECT * FROM age_replace('Hello', null, null);
- age_replace 
--------------
- 
-(1 row)
-
-SELECT * FROM age_replace('Hello', '', null);
- age_replace 
--------------
- 
-(1 row)
-
-SELECT * FROM age_replace('', '', '');
- age_replace 
--------------
- 
-(1 row)
-
-SELECT * FROM age_replace('Hello', 'Hello', '');
- age_replace 
--------------
- 
-(1 row)
-
-SELECT * FROM age_replace('', 'Hello', 'Mellow');
- age_replace 
--------------
- 
-(1 row)
-
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN replace()
@@ -3482,11 +3402,17 @@ HINT:  No function matches the given name and argument types. You might need to 
 SELECT * FROM cypher('expr', $$
     RETURN replace("Hello")
 $$) AS (results agtype);
-ERROR:  replace() invalid number of arguments
+ERROR:  function postgraph.age_replace(agtype) does not exist
+LINE 2:     RETURN replace("Hello")
+                   ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN replace("Hello", null)
 $$) AS (results agtype);
-ERROR:  replace() invalid number of arguments
+ERROR:  function postgraph.age_replace(agtype, agtype) does not exist
+LINE 2:     RETURN replace("Hello", null)
+                   ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN replace("Hello", "e", 1)
 $$) AS (results agtype);
@@ -3495,19 +3421,6 @@ SELECT * FROM cypher('expr', $$
     RETURN replace("Hello", 1, "e")
 $$) AS (results agtype);
 ERROR:  replace() unsupported argument agtype 3
-SELECT * FROM age_replace();
-ERROR:  function age_replace() does not exist
-LINE 1: SELECT * FROM age_replace();
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_replace(null);
-ERROR:  replace() invalid number of arguments
-SELECT * FROM age_replace(null, null);
-ERROR:  replace() invalid number of arguments
-SELECT * FROM age_replace('Hello', 'e', 1);
-ERROR:  replace() unsupported argument type 23
-SELECT * FROM age_replace('Hello', 1, 'E');
-ERROR:  replace() unsupported argument type 23
 --
 -- sin, cos, tan, cot
 --

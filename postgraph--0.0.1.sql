@@ -424,7 +424,7 @@ CREATE FUNCTION age_properties(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETUR
 CREATE FUNCTION age_startnode(agtype, agtype) RETURNS agtype LANGUAGE c STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_endnode(agtype, agtype) RETURNS agtype LANGUAGE c STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_length(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_size(variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_size(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_type(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME','age_label';
 CREATE FUNCTION age_label(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 
@@ -435,13 +435,14 @@ CREATE FUNCTION age_keys(agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SA
 CREATE FUNCTION age_labels(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_nodes(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_relationships(agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_range(variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_range(agtype, agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_range(agtype, agtype, agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_unnest(agtype, block_types boolean = false) RETURNS SETOF agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 
 --
 -- String functions
 --
-CREATE FUNCTION age_reverse(variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_reverse(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_toupper(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_tolower(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_ltrim(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
@@ -449,9 +450,10 @@ CREATE FUNCTION age_rtrim(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NU
 CREATE FUNCTION age_trim(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_right(agtype, agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_left(agtype, agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_substring(variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_substring(agtype, agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_substring(agtype, agtype, agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_split(agtype, agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_replace(variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_replace(agtype, agtype, agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 
 --
 -- Trig functions - radian input
@@ -466,16 +468,17 @@ CREATE FUNCTION age_atan(agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SA
 CREATE FUNCTION age_atan2(agtype, agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_degrees(agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_radians(agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_round(variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_round(agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_round(agtype, agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_ceil(agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_floor(variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_floor(agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_abs(agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_sign(variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_log(variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_log10(variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_sign(agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_log(agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_log10(agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_e() RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_exp(variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_sqrt(variadic "any") RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_exp(agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_sqrt(agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_pi() RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_rand() RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_timestamp() RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
@@ -484,38 +487,38 @@ CREATE FUNCTION age_timestamp() RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAF
 -- Agreggation
 --
 -- accumlates floats into an array for aggregation
-CREATE FUNCTION agtype_accum(_float8, agtype) RETURNS _float8 LANGUAGE c IMMUTABLE STRICT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION agtype_accum(float8[], agtype) RETURNS float8[] LANGUAGE c IMMUTABLE STRICT PARALLEL SAFE AS 'MODULE_PATHNAME';
 
--- count(agtype)
-CREATE AGGREGATE age_count(*) (stype = int8, sfunc = int8inc, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_WRITE, initcond = 0, parallel = safe);
-CREATE AGGREGATE age_count(agtype) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_WRITE, initcond = 0, parallel = safe);
--- stdev(internal, agtype)
+-- count
+CREATE AGGREGATE age_count(*) (stype = int8, sfunc = int8inc, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
+CREATE AGGREGATE age_count(agtype) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
+-- stdev
 CREATE FUNCTION agtype_stddev_samp_final(_float8) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE AGGREGATE age_stdev(agtype) (stype = _float8, sfunc = agtype_accum, finalfunc = agtype_stddev_samp_final, combinefunc = float8_combine, finalfunc_modify = read_only, initcond = '{0,0,0}', parallel = safe);
--- stdevp(internal, agtype)
+CREATE AGGREGATE age_stdev(agtype) (stype = float8[], sfunc = agtype_accum, finalfunc = agtype_stddev_samp_final, combinefunc = float8_combine, finalfunc_modify = READ_ONLY, initcond = '{0,0,0}', parallel = SAFE);
+-- stdevp
 CREATE FUNCTION agtype_stddev_pop_final(_float8) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE AGGREGATE age_stdevp(agtype) (stype = _float8, sfunc = agtype_accum, finalfunc = agtype_stddev_pop_final, combinefunc = float8_combine, finalfunc_modify = read_only, initcond = '{0,0,0}', parallel = safe);
--- avg(agytpe)
-CREATE AGGREGATE age_avg(agtype) (stype = _float8, sfunc = agtype_accum, finalfunc = float8_avg, combinefunc = float8_combine, finalfunc_modify = read_only, initcond = '{0,0,0}', parallel = safe);
+CREATE AGGREGATE age_stdevp(agtype) (stype = float8[], sfunc = agtype_accum, finalfunc = agtype_stddev_pop_final, combinefunc = float8_combine, finalfunc_modify = READ_ONLY, initcond = '{0,0,0}', parallel = SAFE);
+-- avg
+CREATE AGGREGATE age_avg(agtype) (stype = float8[], sfunc = agtype_accum, finalfunc = float8_avg, combinefunc = float8_combine, finalfunc_modify = READ_ONLY, initcond = '{0,0,0}', parallel = SAFE);
+-- sum
 CREATE FUNCTION age_agtype_sum(agtype, agtype) RETURNS agtype LANGUAGE c IMMUTABLE STRICT PARALLEL SAFE AS 'MODULE_PATHNAME';
--- sum(agtype)
-CREATE AGGREGATE age_sum(agtype) (stype = agtype, sfunc = age_agtype_sum, combinefunc = age_agtype_sum, finalfunc_modify = read_only, parallel = safe);
--- max(variadic "any")
+CREATE AGGREGATE age_sum(agtype) (stype = agtype, sfunc = age_agtype_sum, combinefunc = age_agtype_sum, finalfunc_modify = READ_ONLY, parallel = SAFE);
+-- max
 CREATE FUNCTION agtype_max_trans(agtype, agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE AGGREGATE age_max(agtype) (stype = agtype, sfunc = agtype_max_trans, combinefunc = agtype_max_trans, finalfunc_modify = READ_ONLY, parallel = SAFE);
--- min(agtype)
+-- min
 CREATE FUNCTION agtype_min_trans(agtype, agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE AGGREGATE age_min(agtype) (stype = agtype, sfunc = agtype_min_trans, combinefunc = agtype_min_trans, finalfunc_modify = READ_ONLY, parallel = SAFE);
--- percentileCont(internal, agtype) and percentileDisc(internal, agtype)
+-- percentileCont and percentileDisc
 CREATE FUNCTION age_percentile_aggtransfn(internal, agtype, agtype) RETURNS internal LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_percentile_cont_aggfinalfn(internal) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_percentile_disc_aggfinalfn(internal) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE AGGREGATE age_percentilecont(agtype, agtype) (stype = internal, sfunc = age_percentile_aggtransfn, finalfunc = age_percentile_cont_aggfinalfn, parallel = safe);
-CREATE AGGREGATE age_percentiledisc(agtype, agtype) (stype = internal, sfunc = age_percentile_aggtransfn, finalfunc = age_percentile_disc_aggfinalfn, parallel = safe);
--- collect(variadic "any")
-CREATE FUNCTION age_collect_aggtransfn(internal, variadic "any") RETURNS internal LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE AGGREGATE age_percentilecont(agtype, agtype) (stype = internal, sfunc = age_percentile_aggtransfn, finalfunc = age_percentile_cont_aggfinalfn, parallel = SAFE);
+CREATE AGGREGATE age_percentiledisc(agtype, agtype) (stype = internal, sfunc = age_percentile_aggtransfn, finalfunc = age_percentile_disc_aggfinalfn, parallel = SAFE);
+-- collect
+CREATE FUNCTION age_collect_aggtransfn(internal, agtype) RETURNS internal LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_collect_aggfinalfn(internal) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE AGGREGATE age_collect(variadic "any") (stype = internal, sfunc = age_collect_aggtransfn, finalfunc = age_collect_aggfinalfn, parallel = safe);
+CREATE AGGREGATE age_collect(agtype) (stype = internal, sfunc = age_collect_aggtransfn, finalfunc = age_collect_aggfinalfn, parallel = safe);
 
 --
 -- John's crap
