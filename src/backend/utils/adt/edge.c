@@ -117,11 +117,9 @@ build_edge(PG_FUNCTION_ARGS) {
     AG_RETURN_EDGE(v);
 }
        
-
 /*
  * Functions
  */
-// id function
 PG_FUNCTION_INFO_V1(edge_id);
 Datum
 edge_id(PG_FUNCTION_ARGS) {
@@ -129,6 +127,24 @@ edge_id(PG_FUNCTION_ARGS) {
 
     AG_RETURN_GRAPHID((graphid)e->children[0]);
 }
+
+PG_FUNCTION_INFO_V1(edge_start_id);
+Datum
+edge_start_id(PG_FUNCTION_ARGS) {
+    edge *e = AG_GET_ARG_EDGE(0);
+
+    AG_RETURN_GRAPHID((graphid)e->children[2]);
+}
+
+
+PG_FUNCTION_INFO_V1(edge_end_id);
+Datum
+edge_end_id(PG_FUNCTION_ARGS) {
+    edge *e = AG_GET_ARG_EDGE(0);
+
+    AG_RETURN_GRAPHID((graphid)e->children[4]);
+}
+
 
 PG_FUNCTION_INFO_V1(edge_label);
 Datum
