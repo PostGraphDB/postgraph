@@ -6128,9 +6128,9 @@ Datum age_agtype_sum(PG_FUNCTION_ARGS)
  * This function is defined as STRICT so it does not need to check
  * for NULL input parameters
  */
-PG_FUNCTION_INFO_V1(age_agtype_float8_accum);
+PG_FUNCTION_INFO_V1(agtype_accum);
 
-Datum age_agtype_float8_accum(PG_FUNCTION_ARGS)
+Datum agtype_accum(PG_FUNCTION_ARGS)
 {
     Datum dfloat;
     Datum result;
