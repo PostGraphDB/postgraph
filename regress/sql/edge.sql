@@ -50,3 +50,6 @@ SELECT end_id(build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, a
 SELECT label(build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label$$, agtype_build_map()));
 SELECT label(build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, agtype_build_map('id', 2)));
 
+--properties
+SELECT properties(build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label$$, agtype_build_map()));
+SELECT properties(build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, agtype_build_map('id', 2)));
