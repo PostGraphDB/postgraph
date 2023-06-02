@@ -117,6 +117,30 @@ build_edge(PG_FUNCTION_ARGS) {
     AG_RETURN_EDGE(v);
 }
        
+
+/*
+ * Functions
+ */
+// id function
+PG_FUNCTION_INFO_V1(edge_id);
+Datum
+edge_id(PG_FUNCTION_ARGS) {
+    edge *e = AG_GET_ARG_EDGE(0);
+
+    AG_RETURN_GRAPHID((graphid)e->children[0]);
+}
+
+PG_FUNCTION_INFO_V1(edge_label);
+Datum
+edge_label(PG_FUNCTION_ARGS) {
+    edge *e = AG_GET_ARG_EDGE(0);
+    char *label = extract_label(e);
+
+    Datum d = string_to_agtype(label);
+
+    PG_RETURN_DATUM(d);
+}
+
 static void
 append_to_buffer(StringInfo buffer, const char *data, int len) {
     int offset = reserve_from_buffer(buffer, len);

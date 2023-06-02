@@ -34,3 +34,11 @@ SELECT build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, agtype_b
 SELECT build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label_name$$, NULL);
 SELECT build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, agtype_build_list());
 
+-- id
+SELECT id(build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label$$, agtype_build_map()));
+SELECT id(build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, agtype_build_map('id', 2)));
+
+-- label
+SELECT label(build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label$$, agtype_build_map()));
+SELECT label(build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, agtype_build_map('id', 2)));
+
