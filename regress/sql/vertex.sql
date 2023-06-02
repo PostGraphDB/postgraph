@@ -48,6 +48,12 @@ SELECT label(build_vertex('1'::graphid, $$label$$, agtype_build_map()));
 SELECT label(NULL);
 
 --
+-- properties function
+--
+SELECT properties(build_vertex('1'::graphid, $$label$$, agtype_build_map()));
+SELECT properties(build_vertex('1'::graphid, $$label$$, agtype_build_map('id', 2)));
+
+--
 -- -> operator
 --
 SELECT build_vertex('1'::graphid, $$label$$, agtype_build_map())->'id';
