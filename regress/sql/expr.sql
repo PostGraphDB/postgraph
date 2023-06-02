@@ -2014,13 +2014,13 @@ AS (min agtype, max agtype, count agtype, count_star agtype);
 -- check that min() & max() can work against mixed types
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN min(u.zip), max(u.zip), count(u.zip), count(*) $$)
 AS (min agtype, max agtype, count agtype, count_star agtype);
-CREATE TABLE min_max_tbl (oid oid);
-insert into min_max_tbl VALUES (16), (17188), (1000), (869);
+CREATE TABLE min_max_tbl (id agtype);
+insert into min_max_tbl VALUES ('16'::agtype), ('17188'::agtype), ('1000'::agtype), ('869'::agtype);
 
-SELECT age_min(oid::int), age_max(oid::int) FROM min_max_tbl;
-SELECT age_min(oid::int::float), age_max(oid::int::float) FROM min_max_tbl;
-SELECT age_min(oid::int::float::numeric), age_max(oid::int::float::numeric) FROM min_max_tbl;
-SELECT age_min(oid::text), age_max(oid::text) FROM min_max_tbl;
+SELECT age_min(id), age_max(id) FROM min_max_tbl;
+SELECT age_min(age_tofloat(id)), age_max(age_tofloat(id)) FROM min_max_tbl;
+SELECT age_min(age_tonumeric(id)), age_max(age_tonumeric(id)) FROM min_max_tbl;
+SELECT age_min(age_tostring(id)), age_max(age_tostring(id)) FROM min_max_tbl;
 
 DROP TABLE min_max_tbl;
 -- should return null
