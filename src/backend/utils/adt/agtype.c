@@ -3909,81 +3909,27 @@ age_toboolean(PG_FUNCTION_ARGS) {
 }
 
 PG_FUNCTION_INFO_V1(age_size);
-
-Datum age_size(PG_FUNCTION_ARGS)
-{
-    int nargs;
-    Datum *args;
-    Datum arg;
-    bool *nulls;
-    Oid *types;
-    agtype_value agtv_result;
-    char *string = NULL;
-    Oid type;
+Datum age_size(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
     int64 result;
 
-    /* extract argument values */
-    nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
-
-    /* check number of args */
-    if (nargs > 1)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("size() only supports one argument")));
-
-    /* check for null */
-    if (nargs < 0 || nulls[0])
+    if (is_agtype_null(agt))
         PG_RETURN_NULL();
 
-    /*
-     * size() supports cstring, text, or the agtype string or list input
-     */
-    arg = args[0];
-    type = types[0];
+    if ((AGT_ROOT_IS_SCALAR(agt) && !is_agtype_string(agt)) || (!AGT_ROOT_IS_SCALAR(agt) && !AGT_ROOT_IS_ARRAY(agt)))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("size() unsupported argument")));
 
-    if (type == CSTRINGOID)
-    {
-        string = DatumGetCString(arg);
-        result = strlen(string);
+    if (AGT_ROOT_IS_SCALAR(agt)) {
+        agtype_value *agtv_value = get_ith_agtype_value_from_container(&agt->root, 0);
+
+        result = agtv_value->val.string.len;
+    } else {
+        result = AGT_ROOT_COUNT(agt);
     }
-    else if (type == TEXTOID)
-    {
-        string = text_to_cstring(DatumGetTextPP(arg));
-        result = strlen(string);
-    }
-    else if (type == AGTYPEOID)
-    {
-        agtype *agt_arg;
 
-        /* get the agtype argument */
-        agt_arg = DATUM_GET_AGTYPE_P(arg);
+    agtype_value agtv = { .type = AGTV_INTEGER, .val.int_value = result };
 
-        if (AGT_ROOT_IS_SCALAR(agt_arg))
-        {
-            agtype_value *agtv_value;
-
-            agtv_value = get_ith_agtype_value_from_container(&agt_arg->root, 0);
-
-            if (agtv_value->type == AGTV_STRING)
-                result = agtv_value->val.string.len;
-            else
-                ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                                        errmsg("size() unsupported argument")));
-        }
-        else if (AGT_ROOT_IS_ARRAY(agt_arg))
-            result = AGT_ROOT_COUNT(agt_arg);
-        else
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("size() unsupported argument")));
-    }
-    else
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("size() unsupported argument")));
-
-    /* build the result */
-    agtv_result.type = AGTV_INTEGER;
-    agtv_result.val.int_value = result;
-
-    PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
+    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv));
 }
 
 PG_FUNCTION_INFO_V1(graphid_to_agtype);
