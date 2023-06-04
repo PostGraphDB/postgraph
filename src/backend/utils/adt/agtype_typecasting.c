@@ -32,29 +32,25 @@
 #include "catalog/pg_collation.h"
 #include "catalog/pg_operator.h"
 #include "catalog/pg_type.h"
-#include "catalog/pg_aggregate_d.h"
 #include "catalog/pg_collation_d.h"
 #include "parser/parse_coerce.h"
-#include "nodes/pg_list.h"
 #include "utils/builtins.h"
+#include "utils/int8.h"
 #include "utils/float.h"
 #include "utils/fmgroids.h"
-#include "utils/int8.h"
-#include "utils/lsyscache.h"
+#include "utils/numeric.h"
 
 #include "utils/agtype.h"
-#include "catalog/ag_graph.h"
-#include "catalog/ag_label.h"
-#include "utils/graphid.h"
-#include "utils/numeric.h"
 
 #define int8_to_int4 int84
 #define int8_to_int2 int82
+#define int8_to_numeric int8_numeric
 #define int8_to_string int8out
 
 #define float8_to_int8 dtoi8
 #define float8_to_int4 dtoi4
 #define float8_to_int2 dtoi2
+#define float8_to_numeric float8_numeric
 #define float8_to_string float8out
 
 #define numeric_to_int8 numeric_int8
@@ -65,6 +61,7 @@
 #define string_to_int8 int8in
 #define string_to_int4 int4in
 #define string_to_int2 int2in
+#define string_to_numeric numeric_in
 
 typedef Datum (*coearce_function) (agtype_value *);
 static Datum convert_to_scalar(coearce_function func, agtype *agt, char *type);
@@ -72,6 +69,9 @@ static ArrayType *agtype_to_array(coearce_function func, agtype *agt, char *type
 
 static Datum agtype_to_int8_internal(agtype_value *agtv);
 static Datum agtype_to_int4_internal(agtype_value *agtv);
+static Datum agtype_to_int2_internal(agtype_value *agtv);
+static Datum agtype_to_float8_internal(agtype_value *agtv);
+static Datum agtype_to_numeric_internal(agtype_value *agtv);
 static Datum agtype_to_string_internal(agtype_value *agtv);
 
 static void cannot_cast_agtype_value(enum agtype_value_type type, const char *sqltype);
@@ -107,6 +107,43 @@ agtype_tointeger(PG_FUNCTION_ARGS) {
     PG_FREE_IF_COPY(agt, 0);
 
     AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv));
+}
+
+PG_FUNCTION_INFO_V1(age_tofloat);
+Datum
+age_tofloat(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+
+    if (is_agtype_null(agt))
+        PG_RETURN_NULL();
+
+    agtype_value agtv = {
+        .type = AGTV_FLOAT,
+        .val.float_value = DatumGetFloat8(convert_to_scalar(agtype_to_float8_internal, agt, "agtype float"))
+    };
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv));
+}
+
+
+PG_FUNCTION_INFO_V1(age_tonumeric);
+// agtype -> agtype numeric
+Datum
+age_tonumeric(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+
+    if (is_agtype_null(agt))
+        PG_RETURN_NULL();
+
+
+    agtype_value agtv = {
+        .type = AGTV_NUMERIC,
+        .val.numeric = DatumGetNumeric(convert_to_scalar(agtype_to_numeric_internal, agt, "agtype numeric"))
+    };
+
+    PG_RETURN_POINTER(agtype_value_to_agtype(&agtv));
 }
 
 PG_FUNCTION_INFO_V1(age_tostring);
@@ -158,6 +195,39 @@ agtype_to_int4(PG_FUNCTION_ARGS) {
         PG_RETURN_NULL();
 
     Datum d = convert_to_scalar(agtype_to_int4_internal, agt, "int4");
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    PG_RETURN_DATUM(d);
+}
+
+PG_FUNCTION_INFO_V1(agtype_to_int2);
+// agtype -> int2
+Datum
+agtype_to_int2(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+
+    if (is_agtype_null(agt))
+        PG_RETURN_NULL();
+
+    Datum d = convert_to_scalar(agtype_to_int2_internal, agt, "int2");
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    PG_RETURN_DATUM(d);
+}
+
+
+PG_FUNCTION_INFO_V1(agtype_to_float8);
+// agtype -> float8.
+Datum
+agtype_to_float8(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+
+    if (is_agtype_null(agt))
+        PG_RETURN_NULL();
+
+    Datum d = convert_to_scalar(agtype_to_float8_internal, agt, "float8");
 
     PG_FREE_IF_COPY(agt, 0);
 
@@ -265,6 +335,65 @@ agtype_to_int4_internal(agtype_value *agtv) {
         cannot_cast_agtype_value(agtv->type, "int4");
 
     // cannot reach
+    return 0;
+}
+
+static Datum
+agtype_to_int2_internal(agtype_value *agtv) {
+    if (agtv->type == AGTV_INTEGER)
+        return DirectFunctionCall1(int8_to_int2, Int64GetDatum(agtv->val.int_value));
+    else if (agtv->type == AGTV_FLOAT)
+        return DirectFunctionCall1(float8_to_int2, Float8GetDatum(agtv->val.float_value));
+    else if (agtv->type == AGTV_NUMERIC)
+        return DirectFunctionCall1(numeric_to_int2, NumericGetDatum(agtv->val.numeric));
+    else if (agtv->type == AGTV_STRING)
+        return DirectFunctionCall1(string_to_int2, CStringGetDatum(agtv->val.string.val));
+    else
+        cannot_cast_agtype_value(agtv->type, "int2");
+
+    // cannot reach
+    return 0;
+}
+
+static Datum
+agtype_to_float8_internal(agtype_value *agtv) {
+    if (agtv->type == AGTV_FLOAT)
+        return Float8GetDatum(agtv->val.float_value);
+    else if (agtv->type == AGTV_INTEGER)
+        return DirectFunctionCall1(i8tod, Int64GetDatum(agtv->val.int_value));
+    else if (agtv->type == AGTV_NUMERIC)
+        return DirectFunctionCall1(numeric_float8, NumericGetDatum(agtv->val.numeric));
+    else if (agtv->type == AGTV_STRING)
+        return DirectFunctionCall1(float8in, CStringGetDatum(agtv->val.string.val));
+    else
+        cannot_cast_agtype_value(agtv->type, "float8");
+
+    // unreachable
+    return 0;
+}
+
+static Datum
+agtype_to_numeric_internal(agtype_value *agtv) {
+    if (agtv->type == AGTV_INTEGER)
+        return DirectFunctionCall1(int8_to_numeric, Int64GetDatum(agtv->val.int_value));
+    else if (agtv->type == AGTV_FLOAT)
+        return DirectFunctionCall1(float8_to_numeric, Float8GetDatum(agtv->val.float_value));
+    else if (agtv->type == AGTV_NUMERIC)
+        return NumericGetDatum(agtv->val.numeric);
+    else if (agtv->type == AGTV_STRING) {
+        char *string = (char *) palloc(sizeof(char) * (agtv->val.string.len + 1));
+        string = strncpy(string, agtv->val.string.val, agtv->val.string.len);
+        string[agtv->val.string.len] = '\0';
+
+        Datum numd = DirectFunctionCall3(string_to_numeric, CStringGetDatum(string), ObjectIdGetDatum(InvalidOid), Int32GetDatum(-1));
+
+        pfree(string);
+
+        return numd;
+    } else
+        cannot_cast_agtype_value(agtv->type, "numerivc");
+
+    // unreachable
     return 0;
 }
 
