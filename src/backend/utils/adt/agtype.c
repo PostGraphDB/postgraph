@@ -203,21 +203,16 @@ bool is_agtype_string(agtype *agt) {
  */
 PG_FUNCTION_INFO_V1(agtype_recv);
 
-Datum agtype_recv(PG_FUNCTION_ARGS)
-{
+Datum agtype_recv(PG_FUNCTION_ARGS) {
     StringInfo buf = (StringInfo) PG_GETARG_POINTER(0);
     int version = pq_getmsgint(buf, 1);
     char *str = NULL;
     int nbytes = 0;
 
     if (version == 1)
-    {
         str = pq_getmsgtext(buf, buf->len - buf->cursor, &nbytes);
-    }
     else
-    {
         elog(ERROR, "unsupported agtype version number %d", version);
-    }
 
     return agtype_from_cstring(str, nbytes);
 }
@@ -229,9 +224,7 @@ Datum agtype_recv(PG_FUNCTION_ARGS)
  * Just send agtype as a version number, then a string of text
  */
 PG_FUNCTION_INFO_V1(agtype_send);
-
-Datum agtype_send(PG_FUNCTION_ARGS)
-{
+Datum agtype_send(PG_FUNCTION_ARGS) {
     agtype *agt = AG_GET_ARG_AGTYPE_P(0);
     StringInfoData buf;
     StringInfo agtype_text = makeStringInfo();
@@ -249,24 +242,20 @@ Datum agtype_send(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(agtype_in);
-
 /*
  * agtype type input function
  */
-Datum agtype_in(PG_FUNCTION_ARGS)
-{
+Datum agtype_in(PG_FUNCTION_ARGS) {
     char *str = PG_GETARG_CSTRING(0);
 
     return agtype_from_cstring(str, strlen(str));
 }
 
 PG_FUNCTION_INFO_V1(agtype_out);
-
 /*
  * agtype type output function
  */
-Datum agtype_out(PG_FUNCTION_ARGS)
-{
+Datum agtype_out(PG_FUNCTION_ARGS) {
     agtype *agt = NULL;
     char *out = NULL;
 
@@ -311,50 +300,39 @@ Datum agtype_from_cstring(char *str, int len)
     PG_RETURN_POINTER(agtype_value_to_agtype(state.res));
 }
 
-size_t check_string_length(size_t len)
-{
+size_t check_string_length(size_t len) {
     if (len > AGTENTRY_OFFLENMASK)
-    {
-        ereport(ERROR,
-                (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-                 errmsg("string too long to represent as agtype string"),
-                 errdetail("Due to an implementation restriction, agtype strings cannot exceed %d bytes.",
-                           AGTENTRY_OFFLENMASK)));
-    }
+        ereport(ERROR, (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED), errmsg("string too long to represent as agtype string"),
+                 errdetail("Due to an implementation restriction, agtype strings cannot exceed %d bytes.", AGTENTRY_OFFLENMASK)));
 
     return len;
 }
 
-static void agtype_in_object_start(void *pstate)
-{
+static void agtype_in_object_start(void *pstate) {
     agtype_in_state *_state = (agtype_in_state *)pstate;
 
     _state->res = push_agtype_value(&_state->parse_state, WAGT_BEGIN_OBJECT, NULL);
 }
 
-static void agtype_in_object_end(void *pstate)
-{
+static void agtype_in_object_end(void *pstate) {
     agtype_in_state *_state = (agtype_in_state *)pstate;
 
     _state->res = push_agtype_value(&_state->parse_state, WAGT_END_OBJECT, NULL);
 }
 
-static void agtype_in_array_start(void *pstate)
-{
+static void agtype_in_array_start(void *pstate) {
     agtype_in_state *_state = (agtype_in_state *)pstate;
 
     _state->res = push_agtype_value(&_state->parse_state, WAGT_BEGIN_ARRAY, NULL);
 }
 
-static void agtype_in_array_end(void *pstate)
-{
+static void agtype_in_array_end(void *pstate) {
     agtype_in_state *_state = (agtype_in_state *)pstate;
 
     _state->res = push_agtype_value(&_state->parse_state, WAGT_END_ARRAY, NULL);
 }
 
-static void agtype_in_object_field_start(void *pstate, char *fname, bool isnull)
-{
+static void agtype_in_object_field_start(void *pstate, char *fname, bool isnull) {
     agtype_in_state *_state = (agtype_in_state *)pstate;
     agtype_value v;
 
@@ -397,8 +375,7 @@ static void agtype_in_agtype_annotation(void *pstate, char *annotation)
 }
 
 /* function to handle object typecasts */
-static void agtype_typecast_object(agtype_in_state *state, char *annotation)
-{
+static void agtype_typecast_object(agtype_in_state *state, char *annotation) {
     agtype_value *agtv = NULL;
     agtype_value *last_updated_value = NULL;
     int len;
@@ -416,65 +393,43 @@ static void agtype_typecast_object(agtype_in_state *state, char *annotation)
      * and the following must be valid for a nested object with a typecast
      * at the end.
      */
-    if (state->parse_state != NULL)
-    {
+    if (state->parse_state != NULL) {
         top = false;
         last_updated_value = state->parse_state->last_updated_value;
-        /* make sure there is a value just copied in */
         Assert(last_updated_value != NULL);
-        /* and that it is of type object */
         Assert(last_updated_value->type == AGTV_OBJECT);
     }
 
     /* check for a cast to a vertex */
-    if (len == 6 && pg_strncasecmp(annotation, "vertex", len) == 0)
-    {
-        /* verify that the structure conforms to a valid vertex */
-        if (is_object_vertex(agtv))
-        {
+    if (len == 6 && pg_strncasecmp(annotation, "vertex", len) == 0) {
+        if (is_object_vertex(agtv)) {
             agtv->type = AGTV_VERTEX;
-            /* if it isn't the top, we need to adjust the copied value */
             if (!top)
                 last_updated_value->type = AGTV_VERTEX;
-        }
-        else
-        {
-            ereport(ERROR,
-                    (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                     errmsg("object is not a vertex")));
+        } else {
+            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("object is not a vertex")));
         }
 
     }
-    /* check for a cast to an edge */
-    else if (len == 4 && pg_strncasecmp(annotation, "edge", len) == 0)
-    {
-        /* verify that the structure conforms to a valid edge */
-        if (is_object_edge(agtv))
-        {
+    else if (len == 4 && pg_strncasecmp(annotation, "edge", len) == 0) {
+        if (is_object_edge(agtv)) {
             agtv->type = AGTV_EDGE;
-            /* if it isn't the top, we need to adjust the copied value */
             if (!top)
                 last_updated_value->type = AGTV_EDGE;
-        }
-        else
-        {
-            ereport(ERROR,
-                    (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                     errmsg("object is not a edge")));
+        } else {
+            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("object is not a edge")));
         }
     }
     /* otherwise this isn't a supported typecast */
     else
     {
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("invalid annotation value for object")));
     }
 }
 
 /* helper function to check if an object fits a vertex */
-static bool is_object_vertex(agtype_value *agtv)
-{
+static bool is_object_vertex(agtype_value *agtv) {
     bool has_id = false;
     bool has_label = false;
     bool has_properties = false;
@@ -486,13 +441,10 @@ static bool is_object_vertex(agtype_value *agtv)
 
     /* we need 3 pairs for a vertex */
     if (agtv->val.object.num_pairs != 3)
-    {
         return false;
-    }
 
     /* iterate through all pairs */
-    for (i = 0; i < agtv->val.object.num_pairs; i++)
-    {
+    for (i = 0; i < agtv->val.object.num_pairs; i++) {
         agtype_value *key = &agtv->val.object.pairs[i].key;
         agtype_value *value = &agtv->val.object.pairs[i].value;
 
@@ -502,29 +454,13 @@ static bool is_object_vertex(agtype_value *agtv)
         Assert(key->type == AGTV_STRING);
 
         /* check for an id of type integer */
-        if (key_len == 2 &&
-            pg_strncasecmp(key_val, "id", key_len) == 0 &&
-            value->type == AGTV_INTEGER)
-        {
+        if (key_len == 2 && pg_strncasecmp(key_val, "id", key_len) == 0 && value->type == AGTV_INTEGER) {
             has_id = true;
-        }
-        /* check for a label of type string */
-        else if (key_len == 5 &&
-                 pg_strncasecmp(key_val, "label", key_len) == 0 &&
-                 value->type == AGTV_STRING)
-        {
+        } else if (key_len == 5 && pg_strncasecmp(key_val, "label", key_len) == 0 && value->type == AGTV_STRING) {
             has_label = true;
-        }
-        /* check for properties of type object */
-        else if (key_len == 10 &&
-                 pg_strncasecmp(key_val, "properties", key_len) == 0 &&
-                 value->type == AGTV_OBJECT)
-        {
+        } else if (key_len == 10 && pg_strncasecmp(key_val, "properties", key_len) == 0 && value->type == AGTV_OBJECT) {
             has_properties = true;
-        }
-        /* if it gets to this point, it can't be a vertex */
-        else
-        {
+        } else {
             return false;
         }
     }
@@ -547,9 +483,7 @@ static bool is_object_edge(agtype_value *agtv)
 
     /* we need 5 pairs for an edge */
     if (agtv->val.object.num_pairs != 5)
-    {
         return false;
-    }
 
     /* iterate through the pairs */
     for (i = 0; i < agtv->val.object.num_pairs; i++)
@@ -562,49 +496,21 @@ static bool is_object_edge(agtype_value *agtv)
 
         Assert(key->type == AGTV_STRING);
 
-        /* check for an id of type integer */
-        if (key_len == 2 &&
-            pg_strncasecmp(key_val, "id", key_len) == 0 &&
-            value->type == AGTV_INTEGER)
-        {
+        if (key_len == 2 && pg_strncasecmp(key_val, "id", key_len) == 0 && value->type == AGTV_INTEGER) {
             has_id = true;
-        }
-        /* check for a label of type string */
-        else if (key_len == 5 &&
-                 pg_strncasecmp(key_val, "label", key_len) == 0 &&
-                 value->type == AGTV_STRING)
-        {
+        } else if (key_len == 5 && pg_strncasecmp(key_val, "label", key_len) == 0 && value->type == AGTV_STRING) {
             has_label = true;
-        }
-        /* check for properties of type object */
-        else if (key_len == 10 &&
-                 pg_strncasecmp(key_val, "properties", key_len) == 0 &&
-                 value->type == AGTV_OBJECT)
-        {
+        } else if (key_len == 10 && pg_strncasecmp(key_val, "properties", key_len) == 0 && value->type == AGTV_OBJECT) {
             has_properties = true;
-        }
-        /* check for a start_id of type integer */
-        else if (key_len == 8 &&
-                 pg_strncasecmp(key_val, "start_id", key_len) == 0 &&
-                 value->type == AGTV_INTEGER)
-        {
+        } else if (key_len == 8 && pg_strncasecmp(key_val, "start_id", key_len) == 0 && value->type == AGTV_INTEGER) {
             has_start_id = true;
-        }
-        /* check for an end_id of type integer */
-        else if (key_len == 6 &&
-                 pg_strncasecmp(key_val, "end_id", key_len) == 0 &&
-                 value->type == AGTV_INTEGER)
-        {
+        } else if (key_len == 6 && pg_strncasecmp(key_val, "end_id", key_len) == 0 && value->type == AGTV_INTEGER) {
             has_end_id = true;
-        }
-        /* if it gets to this point, it can't be an edge */
-        else
-        {
+        } else {
             return false;
         }
     }
-    return (has_id && has_label && has_properties &&
-            has_start_id && has_end_id);
+    return (has_id && has_label && has_properties && has_start_id && has_end_id);
 }
 
 static void agtype_put_array(StringInfo out, agtype_value *scalar_val) {
@@ -675,23 +581,19 @@ void agtype_put_escaped_value(StringInfo out, agtype_value *scalar_val)
         appendBinaryStringInfo(out, "null", 4);
         break;
     case AGTV_STRING:
-        escape_agtype(out, pnstrdup(scalar_val->val.string.val,
-                                    scalar_val->val.string.len));
+        escape_agtype(out, pnstrdup(scalar_val->val.string.val, scalar_val->val.string.len));
         break;
     case AGTV_NUMERIC:
         appendStringInfoString(
-            out, DatumGetCString(DirectFunctionCall1(
-                     numeric_out, PointerGetDatum(scalar_val->val.numeric))));
+            out, DatumGetCString(DirectFunctionCall1(numeric_out, PointerGetDatum(scalar_val->val.numeric))));
         appendBinaryStringInfo(out, "::numeric", 9);
         break;
     case AGTV_INTEGER:
         appendStringInfoString(
-            out, DatumGetCString(DirectFunctionCall1(
-                     int8out, Int64GetDatum(scalar_val->val.int_value))));
+            out, DatumGetCString(DirectFunctionCall1(int8out, Int64GetDatum(scalar_val->val.int_value))));
         break;
     case AGTV_FLOAT:
-        numstr = DatumGetCString(DirectFunctionCall1(
-            float8out, Float8GetDatum(scalar_val->val.float_value)));
+        numstr = DatumGetCString(DirectFunctionCall1(float8out, Float8GetDatum(scalar_val->val.float_value)));
         appendStringInfoString(out, numstr);
 
         if (is_decimal_needed(numstr))
@@ -724,8 +626,7 @@ void agtype_put_escaped_value(StringInfo out, agtype_value *scalar_val)
 /*
  * Produce an agtype string literal, properly escaping characters in the text.
  */
-static void escape_agtype(StringInfo buf, const char *str)
-{
+static void escape_agtype(StringInfo buf, const char *str) {
     const char *p;
 
     appendStringInfoCharMacro(buf, '"');
@@ -765,16 +666,14 @@ static void escape_agtype(StringInfo buf, const char *str)
     appendStringInfoCharMacro(buf, '"');
 }
 
-bool is_decimal_needed(char *numstr)
-{
+bool is_decimal_needed(char *numstr) {
     int i;
 
     Assert(numstr);
 
     i = (numstr[0] == '-') ? 1 : 0;
 
-    while (numstr[i] != '\0')
-    {
+    while (numstr[i] != '\0') {
         if (numstr[i] < '0' || numstr[i] > '9')
             return false;
 
@@ -787,10 +686,7 @@ bool is_decimal_needed(char *numstr)
 /*
  * For agtype we always want the de-escaped value - that's what's in token
  */
-static void agtype_in_scalar(void *pstate, char *token,
-                             agtype_token_type tokentype,
-                             char *annotation)
-{
+static void agtype_in_scalar(void *pstate, char *token, agtype_token_type tokentype, char *annotation) {
     agtype_in_state *_state = (agtype_in_state *)pstate;
     agtype_value v;
     Datum numd;
@@ -799,8 +695,7 @@ static void agtype_in_scalar(void *pstate, char *token,
      * Process the scalar typecast annotations, if present, but not if the
      * argument is a null. Typecasting a null is a null.
      */
-    if (annotation != NULL && tokentype != AGTYPE_TOKEN_NULL)
-    {
+    if (annotation != NULL && tokentype != AGTYPE_TOKEN_NULL) {
         int len = strlen(annotation);
 
         if (len == 7 && pg_strcasecmp(annotation, "numeric") == 0)
@@ -810,8 +705,7 @@ static void agtype_in_scalar(void *pstate, char *token,
         else if (len == 5 && pg_strcasecmp(annotation, "float") == 0)
             tokentype = AGTYPE_TOKEN_FLOAT;
         else
-            ereport(ERROR,
-                    (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                      errmsg("invalid annotation value for scalar")));
     }
 
@@ -831,16 +725,12 @@ static void agtype_in_scalar(void *pstate, char *token,
     case AGTYPE_TOKEN_FLOAT:
         Assert(token != NULL);
         v.type = AGTV_FLOAT;
-        v.val.float_value = float8in_internal(token, NULL, "double precision",
-                                              token);
+        v.val.float_value = float8in_internal(token, NULL, "double precision", token);
         break;
     case AGTYPE_TOKEN_NUMERIC:
         Assert(token != NULL);
         v.type = AGTV_NUMERIC;
-        numd = DirectFunctionCall3(numeric_in,
-                                   CStringGetDatum(token),
-                                   ObjectIdGetDatum(InvalidOid),
-                                   Int32GetDatum(-1));
+        numd = DirectFunctionCall3(numeric_in, CStringGetDatum(token), ObjectIdGetDatum(InvalidOid), Int32GetDatum(-1));
         v.val.numeric = DatumGetNumeric(numd);
         break;
 
@@ -861,8 +751,7 @@ static void agtype_in_scalar(void *pstate, char *token,
         break;
     }
 
-    if (_state->parse_state == NULL)
-    {
+    if (_state->parse_state == NULL) {
         /* single scalar */
         agtype_value va;
 
@@ -870,25 +759,19 @@ static void agtype_in_scalar(void *pstate, char *token,
         va.val.array.raw_scalar = true;
         va.val.array.num_elems = 1;
 
-        _state->res = push_agtype_value(&_state->parse_state, WAGT_BEGIN_ARRAY,
-                                        &va);
+        _state->res = push_agtype_value(&_state->parse_state, WAGT_BEGIN_ARRAY, &va);
         _state->res = push_agtype_value(&_state->parse_state, WAGT_ELEM, &v);
-        _state->res = push_agtype_value(&_state->parse_state, WAGT_END_ARRAY,
-                                        NULL);
-    }
-    else
-    {
+        _state->res = push_agtype_value(&_state->parse_state, WAGT_END_ARRAY, NULL);
+    } else {
         agtype_value *o = &_state->parse_state->cont_val;
 
         switch (o->type)
         {
         case AGTV_ARRAY:
-            _state->res = push_agtype_value(&_state->parse_state, WAGT_ELEM,
-                                            &v);
+            _state->res = push_agtype_value(&_state->parse_state, WAGT_ELEM, &v);
             break;
         case AGTV_OBJECT:
-            _state->res = push_agtype_value(&_state->parse_state, WAGT_VALUE,
-                                            &v);
+            _state->res = push_agtype_value(&_state->parse_state, WAGT_VALUE, &v);
             break;
         default:
             elog(ERROR, "unexpected parent of nested structure");
@@ -907,26 +790,21 @@ static void agtype_in_scalar(void *pstate, char *token,
  * caller wants access to the len attribute without having to call strlen, e.g.
  * if they are converting it to a text* object.
  */
-char *agtype_to_cstring(StringInfo out, agtype_container *in,
-                        int estimated_len)
-{
+char *agtype_to_cstring(StringInfo out, agtype_container *in, int estimated_len) {
     return agtype_to_cstring_worker(out, in, estimated_len, false);
 }
 
 /*
  * same thing but with indentation turned on
  */
-char *agtype_to_cstring_indent(StringInfo out, agtype_container *in,
-                               int estimated_len)
-{
+char *agtype_to_cstring_indent(StringInfo out, agtype_container *in, int estimated_len) {
     return agtype_to_cstring_worker(out, in, estimated_len, true);
 }
 
 /*
  * common worker for above two functions
  */
-static char *agtype_to_cstring_worker(StringInfo out, agtype_container *in,
-                                      int estimated_len, bool indent)
+static char *agtype_to_cstring_worker(StringInfo out, agtype_container *in, int estimated_len, bool indent)
 {
     bool first = true;
     agtype_iterator *it;
@@ -963,13 +841,10 @@ static char *agtype_to_cstring_worker(StringInfo out, agtype_container *in,
             if (!first)
                 appendBinaryStringInfo(out, ", ", ispaces);
 
-            if (!v.val.array.raw_scalar)
-            {
+            if (!v.val.array.raw_scalar) {
                 add_indent(out, use_indent && !last_was_key, level);
                 appendStringInfoCharMacro(out, '[');
-            }
-            else
-            {
+            } else {
                 raw_scalar = true;
             }
 
@@ -998,13 +873,10 @@ static char *agtype_to_cstring_worker(StringInfo out, agtype_container *in,
             appendBinaryStringInfo(out, ": ", 2);
 
             type = agtype_iterator_next(&it, &v, false);
-            if (type == WAGT_VALUE)
-            {
+            if (type == WAGT_VALUE) {
                 first = false;
                 agtype_put_escaped_value(out, &v);
-            }
-            else
-            {
+            } else {
                 Assert(type == WAGT_BEGIN_OBJECT || type == WAGT_BEGIN_ARRAY);
 
                 /*
@@ -1026,8 +898,7 @@ static char *agtype_to_cstring_worker(StringInfo out, agtype_container *in,
             break;
         case WAGT_END_ARRAY:
             level--;
-            if (!raw_scalar)
-            {
+            if (!raw_scalar) {
                 add_indent(out, use_indent, level);
                 appendStringInfoCharMacro(out, ']');
             }
@@ -1054,27 +925,22 @@ static char *agtype_to_cstring_worker(StringInfo out, agtype_container *in,
 /*
  * Convert agtype_value(scalar) to text
  */
-static text *agtype_value_to_text(agtype_value *scalar_val,
-                                  bool err_not_scalar)
+static text *agtype_value_to_text(agtype_value *scalar_val, bool err_not_scalar)
 {
     text *result = NULL;
     switch (scalar_val->type)
     {
     case AGTV_INTEGER:
-        result = cstring_to_text(DatumGetCString(DirectFunctionCall1(
-            int8out, Int64GetDatum(scalar_val->val.int_value))));
+        result = cstring_to_text(DatumGetCString(DirectFunctionCall1(int8out, Int64GetDatum(scalar_val->val.int_value))));
         break;
     case AGTV_FLOAT:
-        result = cstring_to_text(DatumGetCString(DirectFunctionCall1(
-            float8out, Float8GetDatum(scalar_val->val.float_value))));
+        result = cstring_to_text(DatumGetCString(DirectFunctionCall1(float8out, Float8GetDatum(scalar_val->val.float_value))));
         break;
     case AGTV_STRING:
-        result = cstring_to_text_with_len(scalar_val->val.string.val,
-                                          scalar_val->val.string.len);
+        result = cstring_to_text_with_len(scalar_val->val.string.val, scalar_val->val.string.len);
         break;
     case AGTV_NUMERIC:
-        result = cstring_to_text(DatumGetCString(DirectFunctionCall1(
-            numeric_out, PointerGetDatum(scalar_val->val.numeric))));
+        result = cstring_to_text(DatumGetCString(DirectFunctionCall1(numeric_out, PointerGetDatum(scalar_val->val.numeric))));
         break;
     case AGTV_BOOL:
         result = cstring_to_text((scalar_val->val.boolean) ? "true" : "false");
@@ -1083,22 +949,16 @@ static text *agtype_value_to_text(agtype_value *scalar_val,
         result = NULL;
         break;
     default:
-        if (err_not_scalar)
-        {
-            ereport(
-                ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("agtype_value_to_text: unsupported argument agtype %d",
-                        scalar_val->type)));
+        if (err_not_scalar) {
+            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                 errmsg("agtype_value_to_text: unsupported argument agtype %d", scalar_val->type)));
         }
     }
     return result;
 }
 
-static void add_indent(StringInfo out, bool indent, int level)
-{
-    if (indent)
-    {
+static void add_indent(StringInfo out, bool indent, int level) {
+    if (indent) {
         int i;
 
         appendStringInfoCharMacro(out, '\n');
@@ -1107,8 +967,7 @@ static void add_indent(StringInfo out, bool indent, int level)
     }
 }
 
-Datum integer_to_agtype(int64 i)
-{
+Datum integer_to_agtype(int64 i) {
     agtype_value agtv;
     agtype *agt;
 
@@ -1119,8 +978,7 @@ Datum integer_to_agtype(int64 i)
     return AGTYPE_P_GET_DATUM(agt);
 }
 
-Datum float_to_agtype(float8 f)
-{
+Datum float_to_agtype(float8 f) {
     agtype_value agtv;
     agtype *agt;
 
@@ -1135,8 +993,7 @@ Datum float_to_agtype(float8 f)
  * s must be a UTF-8 encoded, unescaped, and null-terminated string which is
  * a valid string for internal storage of agtype.
  */
-Datum string_to_agtype(char *s)
-{
+Datum string_to_agtype(char *s) {
     agtype_value agtv;
     agtype *agt;
 
@@ -1148,8 +1005,7 @@ Datum string_to_agtype(char *s)
     return AGTYPE_P_GET_DATUM(agt);
 }
 
-Datum boolean_to_agtype(bool b)
-{
+Datum boolean_to_agtype(bool b) {
     agtype_value agtv;
     agtype *agt;
 
@@ -1167,9 +1023,7 @@ Datum boolean_to_agtype(bool b)
  * output function OID.  If the returned category is AGT_TYPE_JSONCAST,
  * we return the OID of the relevant cast function instead.
  */
-static void agtype_categorize_type(Oid typoid, agt_type_category *tcategory,
-                                   Oid *outfuncoid)
-{
+static void agtype_categorize_type(Oid typoid, agt_type_category *tcategory, Oid *outfuncoid) {
     bool typisvarlena;
 
     /* Look through any domain */
@@ -1230,26 +1084,16 @@ static void agtype_categorize_type(Oid typoid, agt_type_category *tcategory,
 
     default:
         /* Check for arrays and composites */
-        if (typoid == AGTYPEOID)
-        {
+        if (typoid == AGTYPEOID) {
             *tcategory = AGT_TYPE_AGTYPE;
-        }
-        else if (OidIsValid(get_element_type(typoid)) ||
-                 typoid == ANYARRAYOID || typoid == RECORDARRAYOID)
-        {
+        } else if (OidIsValid(get_element_type(typoid)) || typoid == ANYARRAYOID || typoid == RECORDARRAYOID) {
             *tcategory = AGT_TYPE_ARRAY;
-        }
-        else if (type_is_rowtype(typoid)) /* includes RECORDOID */
-        {
+        } else if (type_is_rowtype(typoid)) /* includes RECORDOID */ {
             *tcategory = AGT_TYPE_COMPOSITE;
-        }
-        else if (typoid == GRAPHIDOID)
-        {
+        } else if (typoid == GRAPHIDOID) {
             getTypeOutputInfo(typoid, outfuncoid, &typisvarlena);
             *tcategory = AGT_TYPE_INTEGER;
-        }
-        else
-        {
+        } else {
             /* It's probably the general case ... */
             *tcategory = AGT_TYPE_OTHER;
 
@@ -1257,26 +1101,19 @@ static void agtype_categorize_type(Oid typoid, agt_type_category *tcategory,
              * but first let's look for a cast to json (note: not to
              * jsonb) if it's not built-in.
              */
-            if (typoid >= FirstNormalObjectId)
-            {
+            if (typoid >= FirstNormalObjectId) {
                 Oid castfunc;
                 CoercionPathType ctype;
 
-                ctype = find_coercion_pathway(JSONOID, typoid,
-                                              COERCION_EXPLICIT, &castfunc);
-                if (ctype == COERCION_PATH_FUNC && OidIsValid(castfunc))
-                {
+                ctype = find_coercion_pathway(JSONOID, typoid, COERCION_EXPLICIT, &castfunc);
+                if (ctype == COERCION_PATH_FUNC && OidIsValid(castfunc)) {
                     *tcategory = AGT_TYPE_JSONCAST;
                     *outfuncoid = castfunc;
-                }
-                else
-                {
+                } else {
                     /* not a cast type, so just get the usual output func */
                     getTypeOutputInfo(typoid, outfuncoid, &typisvarlena);
                 }
-            }
-            else
-            {
+            } else {
                 /* any other builtin type */
                 getTypeOutputInfo(typoid, outfuncoid, &typisvarlena);
             }
@@ -1294,10 +1131,7 @@ static void agtype_categorize_type(Oid typoid, agt_type_category *tcategory,
  * If key_scalar is true, the value is stored as a key, so insist
  * it's of an acceptable type, and force it to be a AGTV_STRING.
  */
-static void datum_to_agtype(Datum val, bool is_null, agtype_in_state *result,
-                            agt_type_category tcategory, Oid outfuncoid,
-                            bool key_scalar)
-{
+static void datum_to_agtype(Datum val, bool is_null, agtype_in_state *result, agt_type_category tcategory, Oid outfuncoid, bool key_scalar) {
     char *outputstr;
     bool numeric_error;
     agtype_value agtv;
@@ -1306,24 +1140,15 @@ static void datum_to_agtype(Datum val, bool is_null, agtype_in_state *result,
     check_stack_depth();
 
     /* Convert val to an agtype_value in agtv (in most cases) */
-    if (is_null)
-    {
+    if (is_null) {
         Assert(!key_scalar);
         agtv.type = AGTV_NULL;
-    }
-    else if (key_scalar &&
+    } else if (key_scalar &&
              (tcategory == AGT_TYPE_ARRAY || tcategory == AGT_TYPE_COMPOSITE ||
               tcategory == AGT_TYPE_JSON || tcategory == AGT_TYPE_JSONB ||
-              tcategory == AGT_TYPE_AGTYPE || tcategory == AGT_TYPE_JSONCAST))
-    {
-        ereport(
-            ERROR,
-            (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-             errmsg(
-                 "key value must be scalar, not array, composite, or json")));
-    }
-    else
-    {
+              tcategory == AGT_TYPE_AGTYPE || tcategory == AGT_TYPE_JSONCAST)) {
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("key value must be scalar, not array, composite, or json")));
+    } else {
         if (tcategory == AGT_TYPE_JSONCAST)
             val = OidFunctionCall1(outfuncoid, val);
 
@@ -1336,29 +1161,23 @@ static void datum_to_agtype(Datum val, bool is_null, agtype_in_state *result,
             composite_to_agtype(val, result);
             break;
         case AGT_TYPE_BOOL:
-            if (key_scalar)
-            {
+            if (key_scalar) {
                 outputstr = DatumGetBool(val) ? "true" : "false";
                 agtv.type = AGTV_STRING;
                 agtv.val.string.len = strlen(outputstr);
                 agtv.val.string.val = outputstr;
-            }
-            else
-            {
+            } else {
                 agtv.type = AGTV_BOOL;
                 agtv.val.boolean = DatumGetBool(val);
             }
             break;
         case AGT_TYPE_INTEGER:
             outputstr = OidOutputFunctionCall(outfuncoid, val);
-            if (key_scalar)
-            {
+            if (key_scalar) {
                 agtv.type = AGTV_STRING;
                 agtv.val.string.len = strlen(outputstr);
                 agtv.val.string.val = outputstr;
-            }
-            else
-            {
+            } else {
                 Datum intd;
 
                 intd = DirectFunctionCall1(int8in, CStringGetDatum(outputstr));
@@ -1369,50 +1188,37 @@ static void datum_to_agtype(Datum val, bool is_null, agtype_in_state *result,
             break;
         case AGT_TYPE_FLOAT:
             outputstr = OidOutputFunctionCall(outfuncoid, val);
-            if (key_scalar)
-            {
+            if (key_scalar) {
                 agtv.type = AGTV_STRING;
                 agtv.val.string.len = strlen(outputstr);
                 agtv.val.string.val = outputstr;
-            }
-            else
-            {
+            } else {
                 agtv.type = AGTV_FLOAT;
                 agtv.val.float_value = DatumGetFloat8(val);
             }
             break;
         case AGT_TYPE_NUMERIC:
             outputstr = OidOutputFunctionCall(outfuncoid, val);
-            if (key_scalar)
-            {
+            if (key_scalar) {
                 /* always quote keys */
                 agtv.type = AGTV_STRING;
                 agtv.val.string.len = strlen(outputstr);
                 agtv.val.string.val = outputstr;
-            }
-            else
-            {
+            } else {
                 /*
                  * Make it numeric if it's a valid agtype number, otherwise
                  * a string. Invalid numeric output will always have an
                  * 'N' or 'n' in it (I think).
                  */
-                numeric_error = (strchr(outputstr, 'N') != NULL ||
-                                 strchr(outputstr, 'n') != NULL);
-                if (!numeric_error)
-                {
+                numeric_error = (strchr(outputstr, 'N') != NULL || strchr(outputstr, 'n') != NULL);
+                if (!numeric_error) {
                     Datum numd;
 
                     agtv.type = AGTV_NUMERIC;
-                    numd = DirectFunctionCall3(numeric_in,
-                                               CStringGetDatum(outputstr),
-                                               ObjectIdGetDatum(InvalidOid),
-                                               Int32GetDatum(-1));
+                    numd = DirectFunctionCall3(numeric_in, CStringGetDatum(outputstr), ObjectIdGetDatum(InvalidOid), Int32GetDatum(-1));
                     agtv.val.numeric = DatumGetNumeric(numd);
                     pfree(outputstr);
-                }
-                else
-                {
+                } else {
                     agtv.type = AGTV_STRING;
                     agtv.val.string.len = strlen(outputstr);
                     agtv.val.string.val = outputstr;
@@ -1426,14 +1232,12 @@ static void datum_to_agtype(Datum val, bool is_null, agtype_in_state *result,
             break;
         case AGT_TYPE_TIMESTAMP:
             agtv.type = AGTV_STRING;
-            agtv.val.string.val = agtype_encode_date_time(NULL, val,
-                                                          TIMESTAMPOID);
+            agtv.val.string.val = agtype_encode_date_time(NULL, val, TIMESTAMPOID);
             agtv.val.string.len = strlen(agtv.val.string.val);
             break;
         case AGT_TYPE_TIMESTAMPTZ:
             agtv.type = AGTV_STRING;
-            agtv.val.string.val = agtype_encode_date_time(NULL, val,
-                                                          TIMESTAMPTZOID);
+            agtv.val.string.val = agtype_encode_date_time(NULL, val, TIMESTAMPTZOID);
             agtv.val.string.len = strlen(agtv.val.string.val);
             break;
         case AGT_TYPE_JSONCAST:
@@ -1479,30 +1283,19 @@ static void datum_to_agtype(Datum val, bool is_null, agtype_in_state *result,
 
             it = agtype_iterator_init(&jsonb->root);
 
-            if (AGT_ROOT_IS_SCALAR(jsonb))
-            {
+            if (AGT_ROOT_IS_SCALAR(jsonb)) {
                 agtype_iterator_next(&it, &agtv, true);
                 Assert(agtv.type == AGTV_ARRAY);
                 agtype_iterator_next(&it, &agtv, true);
                 scalar_agtype = true;
-            }
-            else
-            {
+            } else {
                 agtype_iterator_token type;
 
-                while ((type = agtype_iterator_next(&it, &agtv, false)) !=
-                       WAGT_DONE)
-                {
-                    if (type == WAGT_END_ARRAY || type == WAGT_END_OBJECT ||
-                        type == WAGT_BEGIN_ARRAY || type == WAGT_BEGIN_OBJECT)
-                    {
-                        result->res = push_agtype_value(&result->parse_state,
-                                                        type, NULL);
-                    }
-                    else
-                    {
-                        result->res = push_agtype_value(&result->parse_state,
-                                                        type, &agtv);
+                while ((type = agtype_iterator_next(&it, &agtv, false)) != WAGT_DONE) {
+                    if (type == WAGT_END_ARRAY || type == WAGT_END_OBJECT || type == WAGT_BEGIN_ARRAY || type == WAGT_BEGIN_OBJECT) {
+                        result->res = push_agtype_value(&result->parse_state, type, NULL);
+                    } else {
+                        result->res = push_agtype_value(&result->parse_state, type, &agtv);
                     }
                 }
             }
@@ -1518,14 +1311,10 @@ static void datum_to_agtype(Datum val, bool is_null, agtype_in_state *result,
     }
 
     /* Now insert agtv into result, unless we did it recursively */
-    if (!is_null && !scalar_agtype && tcategory >= AGT_TYPE_AGTYPE &&
-        tcategory <= AGT_TYPE_JSONCAST)
-    {
+    if (!is_null && !scalar_agtype && tcategory >= AGT_TYPE_AGTYPE && tcategory <= AGT_TYPE_JSONCAST) {
         /* work has been done recursively */
         return;
-    }
-    else if (result->parse_state == NULL)
-    {
+    } else if (result->parse_state == NULL) {
         /* single root scalar */
         agtype_value va;
 
@@ -1533,27 +1322,18 @@ static void datum_to_agtype(Datum val, bool is_null, agtype_in_state *result,
         va.val.array.raw_scalar = true;
         va.val.array.num_elems = 1;
 
-        result->res = push_agtype_value(&result->parse_state, WAGT_BEGIN_ARRAY,
-                                        &va);
-        result->res = push_agtype_value(&result->parse_state, WAGT_ELEM,
-                                        &agtv);
-        result->res = push_agtype_value(&result->parse_state, WAGT_END_ARRAY,
-                                        NULL);
-    }
-    else
-    {
+        result->res = push_agtype_value(&result->parse_state, WAGT_BEGIN_ARRAY, &va);
+        result->res = push_agtype_value(&result->parse_state, WAGT_ELEM, &agtv);
+        result->res = push_agtype_value(&result->parse_state, WAGT_END_ARRAY, NULL);
+    } else {
         agtype_value *o = &result->parse_state->cont_val;
 
-        switch (o->type)
-        {
+        switch (o->type) {
         case AGTV_ARRAY:
-            result->res = push_agtype_value(&result->parse_state, WAGT_ELEM,
-                                            &agtv);
+            result->res = push_agtype_value(&result->parse_state, WAGT_ELEM, &agtv);
             break;
         case AGTV_OBJECT:
-            result->res = push_agtype_value(&result->parse_state,
-                                            key_scalar ? WAGT_KEY : WAGT_VALUE,
-                                            &agtv);
+            result->res = push_agtype_value(&result->parse_state, key_scalar ? WAGT_KEY : WAGT_VALUE, &agtv);
             break;
         default:
             elog(ERROR, "unexpected parent of nested structure");
@@ -1569,32 +1349,24 @@ static void datum_to_agtype(Datum val, bool is_null, agtype_in_state *result,
 static void array_dim_to_agtype(agtype_in_state *result, int dim, int ndims,
                                 int *dims, Datum *vals, bool *nulls,
                                 int *valcount, agt_type_category tcategory,
-                                Oid outfuncoid)
-{
+                                Oid outfuncoid) {
     int i;
 
     Assert(dim < ndims);
 
-    result->res = push_agtype_value(&result->parse_state, WAGT_BEGIN_ARRAY,
-                                    NULL);
+    result->res = push_agtype_value(&result->parse_state, WAGT_BEGIN_ARRAY, NULL);
 
     for (i = 1; i <= dims[dim]; i++)
     {
-        if (dim + 1 == ndims)
-        {
-            datum_to_agtype(vals[*valcount], nulls[*valcount], result,
-                            tcategory, outfuncoid, false);
+        if (dim + 1 == ndims) {
+            datum_to_agtype(vals[*valcount], nulls[*valcount], result, tcategory, outfuncoid, false);
             (*valcount)++;
-        }
-        else
-        {
-            array_dim_to_agtype(result, dim + 1, ndims, dims, vals, nulls,
-                                valcount, tcategory, outfuncoid);
+        } else {
+            array_dim_to_agtype(result, dim + 1, ndims, dims, vals, nulls, valcount, tcategory, outfuncoid);
         }
     }
 
-    result->res = push_agtype_value(&result->parse_state, WAGT_END_ARRAY,
-                                    NULL);
+    result->res = push_agtype_value(&result->parse_state, WAGT_END_ARRAY, NULL);
 }
 
 /*
@@ -1620,12 +1392,9 @@ static void array_to_agtype_internal(Datum array, agtype_in_state *result)
     dim = ARR_DIMS(v);
     nitems = ArrayGetNItems(ndim, dim);
 
-    if (nitems <= 0)
-    {
-        result->res = push_agtype_value(&result->parse_state, WAGT_BEGIN_ARRAY,
-                                        NULL);
-        result->res = push_agtype_value(&result->parse_state, WAGT_END_ARRAY,
-                                        NULL);
+    if (nitems <= 0) {
+        result->res = push_agtype_value(&result->parse_state, WAGT_BEGIN_ARRAY, NULL);
+        result->res = push_agtype_value(&result->parse_state, WAGT_END_ARRAY, NULL);
         return;
     }
 
@@ -1633,11 +1402,9 @@ static void array_to_agtype_internal(Datum array, agtype_in_state *result)
 
     agtype_categorize_type(element_type, &tcategory, &outfuncoid);
 
-    deconstruct_array(v, element_type, typlen, typbyval, typalign, &elements,
-                      &nulls, &nitems);
+    deconstruct_array(v, element_type, typlen, typbyval, typalign, &elements, &nulls, &nitems);
 
-    array_dim_to_agtype(result, 0, ndim, dim, elements, nulls, &count,
-                        tcategory, outfuncoid);
+    array_dim_to_agtype(result, 0, ndim, dim, elements, nulls, &count, tcategory, outfuncoid);
 
     pfree(elements);
     pfree(nulls);
@@ -2403,73 +2170,6 @@ Datum agtype_to_bool(PG_FUNCTION_ARGS)
 
     PG_RETURN_BOOL(agtv.val.boolean);
 }
-
-#define float8_to_int8 dtoi8
-#define numeric_to_int8 numeric_int8
-#define string_to_int8 int8in
-
-static Datum
-agtype_to_int8_internal(agtype_value *agtv) {
-    if (agtv->type == AGTV_INTEGER)
-        return Int64GetDatum(agtv->val.int_value);
-    else if (agtv->type == AGTV_FLOAT)
-        return DirectFunctionCall1(float8_to_int8, Float8GetDatum(agtv->val.float_value));
-    else if (agtv->type == AGTV_NUMERIC)
-        return DirectFunctionCall1(numeric_to_int8, NumericGetDatum(agtv->val.numeric));
-    else if (agtv->type == AGTV_STRING)
-        return DirectFunctionCall1(string_to_int8, CStringGetDatum(agtv->val.string.val));
-    else
-        cannot_cast_agtype_value(agtv->type, "int");
-
-    // cannot reach
-    return 0;
-}
-
-PG_FUNCTION_INFO_V1(agtype_to_int8);
-// agtype -> int8.
-Datum agtype_to_int8(PG_FUNCTION_ARGS)
-{
-    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
-    
-    if (is_agtype_null(agt))
-        PG_RETURN_NULL();
-
-    if (!AGT_ROOT_IS_SCALAR(agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("cannot cast non-scalar agtype to int8")));
-
-    agtype_value *agtv = get_ith_agtype_value_from_container(&agt->root, 0);
-    
-    Datum d = agtype_to_int8_internal(agtv);
-    
-    PG_FREE_IF_COPY(agt, 0);
-    
-    PG_RETURN_DATUM(d);
-}
-
-PG_FUNCTION_INFO_V1(age_tointeger);
-Datum
-age_tointeger(PG_FUNCTION_ARGS) {
-    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
-
-    if (is_agtype_null(agt))
-        PG_RETURN_NULL();
-
-    if (!AGT_ROOT_IS_SCALAR(agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("cannot cast non-scalar agtype to int8")));
-    
-    agtype_value *agtv = get_ith_agtype_value_from_container(&agt->root, 0);
-    
-    agtype_value agtv_result = {
-        .type = AGTV_INTEGER,
-        .val.int_value = DatumGetInt64(agtype_to_int8_internal(agtv))
-    };
-    
-    PG_FREE_IF_COPY(agt, 0);
-    
-    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv_result));
-}
-
-
 
 #define int8_to_int4 int84
 #define int8_to_int2 int82
@@ -4059,19 +3759,6 @@ Datum age_reverse(PG_FUNCTION_ARGS)
     arg = args[0];
     type = types[0];
 
-    if (type != AGTYPEOID)
-    {
-        if (type == CSTRINGOID)
-            text_string = cstring_to_text(DatumGetCString(arg));
-        else if (type == TEXTOID)
-            text_string = DatumGetTextPP(arg);
-        else
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("reverse() unsupported argument type %d",
-                                   type)));
-    }
-    else
-    {
         agtype *agt_arg = NULL;
         agtype_value *agtv_value = NULL;
         agtype_parse_state *parse_state = NULL;
@@ -4129,7 +3816,6 @@ Datum age_reverse(PG_FUNCTION_ARGS)
             ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                             errmsg("reverse() unsupported argument agtype %d",
                                    agtv_value->type)));
-    }
 
     /*
      * We need the string as a text string so that we can let PG deal with

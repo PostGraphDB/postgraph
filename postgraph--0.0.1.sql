@@ -245,7 +245,7 @@ CREATE FUNCTION agtype_hash_cmp(agtype) RETURNS INTEGER LANGUAGE c IMMUTABLE PAR
 CREATE OPERATOR CLASS agtype_ops_hash DEFAULT FOR TYPE agtype USING hash AS OPERATOR 1 =, FUNCTION 1 agtype_hash_cmp(agtype);
 
 --
--- agtype - access operators (->, ->> )
+-- agtype - access operators (->, ->>)
 --
 CREATE FUNCTION agtype_object_field(agtype, text) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE OPERATOR -> (LEFTARG = agtype, RIGHTARG = text, FUNCTION = agtype_object_field);
@@ -257,7 +257,7 @@ CREATE FUNCTION agtype_array_element_text(agtype, int4) RETURNS text LANGUAGE c 
 CREATE OPERATOR ->> (LEFTARG = agtype, RIGHTARG = int4, FUNCTION = agtype_array_element_text);
 
 --
--- agtype - contains operators (@> <@)
+-- agtype - contains operators (@>, <@)
 --
 CREATE FUNCTION agtype_contains(agtype, agtype) RETURNS boolean LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE OPERATOR @> (LEFTARG = agtype, RIGHTARG = agtype, FUNCTION = agtype_contains, COMMUTATOR = '<@', RESTRICT = contsel, JOIN = contjoinsel);
@@ -265,7 +265,7 @@ CREATE FUNCTION agtype_contained_by(agtype, agtype) RETURNS boolean LANGUAGE c I
 CREATE OPERATOR <@ (LEFTARG = agtype, RIGHTARG = agtype, FUNCTION = agtype_contained_by, COMMUTATOR = '@>', RESTRICT = contsel, JOIN = contjoinsel);
 
 --
--- Key Existence Operators ? ?| ?&
+-- Key Existence Operators (?, ?|, ?&)
 --
 CREATE FUNCTION agtype_exists(agtype, text) RETURNS boolean LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE OPERATOR ? (LEFTARG = agtype, RIGHTARG = text, FUNCTION = agtype_exists, COMMUTATOR = '?', RESTRICT = contsel, JOIN = contjoinsel);
@@ -357,6 +357,9 @@ CREATE CAST (int8 AS agtype) WITH FUNCTION int8_to_agtype(int8);
 -- agtype -> int8
 CREATE FUNCTION agtype_to_int8(agtype) RETURNS bigint LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE CAST (agtype AS bigint) WITH FUNCTION agtype_to_int8(agtype) AS ASSIGNMENT;
+-- agtype -> int8[]
+CREATE FUNCTION agtype_to_int8_array(agtype) RETURNS bigint[] LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE CAST (agtype AS bigint[]) WITH FUNCTION agtype_to_int8_array(agtype);
 -- agtype -> int4
 CREATE FUNCTION agtype_to_int4(agtype) RETURNS int LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE CAST (agtype AS int) WITH FUNCTION agtype_to_int4(agtype);
@@ -374,7 +377,7 @@ CREATE CAST (agtype AS int[]) WITH FUNCTION agtype_to_int4_array(agtype);
 --
 CREATE FUNCTION age_toboolean(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_tofloat(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_tointeger(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_tointeger(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'agtype_tointeger';
 CREATE FUNCTION age_tostring(agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_tonumeric(agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
 
