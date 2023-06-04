@@ -48,6 +48,185 @@
 #include "utils/graphid.h"
 #include "utils/numeric.h"
 
+#define int8_to_int4 int84
+#define int8_to_int2 int82
+
+#define float8_to_int8 dtoi8
+#define float8_to_int4 dtoi4
+#define float8_to_int2 dtoi2
+
+#define numeric_to_int8 numeric_int8
+#define numeric_to_int4 numeric_int4
+#define numeric_to_int2 numeric_int2
+
+#define string_to_int8 int8in
+#define string_to_int4 int4in
+#define string_to_int2 int2in
+
+typedef Datum (*coearce_function) (agtype_value *);
+static Datum convert_to_scalar(coearce_function func, agtype *agt, char *type);
+static ArrayType *agtype_to_array(coearce_function func, agtype *agt, char *type); 
+
+static Datum agtype_to_int8_internal(agtype_value *agtv);
+static Datum agtype_to_int4_internal(agtype_value *agtv);
+
+static void cannot_cast_agtype_value(enum agtype_value_type type, const char *sqltype);
+
+Datum convert_to_scalar(coearce_function func, agtype *agt, char *type) {
+    if (!AGT_ROOT_IS_SCALAR(agt))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("cannot cast non-scalar agtype to %s", type)));
+
+    agtype_value *agtv = get_ith_agtype_value_from_container(&agt->root, 0);
+
+    Datum d = func(agtv);
+
+    return d;
+}
+
+/*
+ * agtype to other agtype functions
+ */
+
+PG_FUNCTION_INFO_V1(agtype_tointeger);
+Datum
+agtype_tointeger(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+
+    if (is_agtype_null(agt))
+        PG_RETURN_NULL();
+
+    agtype_value agtv = {
+        .type = AGTV_INTEGER,
+        .val.int_value = DatumGetInt64(convert_to_scalar(agtype_to_int8_internal, agt, "agtype integer"))
+    };
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv));
+}
+
+/*
+ * agtype to postgres functions
+ */
+PG_FUNCTION_INFO_V1(agtype_to_int8);
+// agtype -> int8.
+Datum
+agtype_to_int8(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+
+    if (is_agtype_null(agt))
+        PG_RETURN_NULL();
+
+    Datum d = convert_to_scalar(agtype_to_int8_internal, agt, "int8");
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    PG_RETURN_DATUM(d);
+}
+
+PG_FUNCTION_INFO_V1(agtype_to_int4);
+// agtype -> int4
+Datum
+agtype_to_int4(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+
+    if (is_agtype_null(agt))
+        PG_RETURN_NULL();
+
+    Datum d = convert_to_scalar(agtype_to_int4_internal, agt, "int4");
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    PG_RETURN_DATUM(d);
+}
+
+/*
+ * agtype to postgres array functions
+ */
+
+PG_FUNCTION_INFO_V1(agtype_to_int8_array);
+// agtype -> int8[]
+Datum
+agtype_to_int8_array(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+
+    ArrayType *result = agtype_to_array(agtype_to_int8_internal, agt, "int8[]");
+
+    PG_FREE_IF_COPY(agt, 0);
+    
+    PG_RETURN_ARRAYTYPE_P(result);
+}
+
+PG_FUNCTION_INFO_V1(agtype_to_int4_array);
+// agtype -> int4[]
+Datum agtype_to_int4_array(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+    
+    ArrayType *result = agtype_to_array(agtype_to_int4_internal, agt, "int4[]");
+
+    PG_FREE_IF_COPY(agt, 0);
+    
+    PG_RETURN_ARRAYTYPE_P(result);
+}
+
+static ArrayType *
+agtype_to_array(coearce_function func, agtype *agt, char *type) {
+    agtype_value agtv;
+    Datum *array_value;
+
+    agtype_iterator *agtype_iterator = agtype_iterator_init(&agt->root);
+    agtype_iterator_token agtv_token = agtype_iterator_next(&agtype_iterator, &agtv, false);
+
+    if (agtv.type != AGTV_ARRAY)
+        cannot_cast_agtype_value(agtv.type, type);
+
+    array_value = (Datum *) palloc(sizeof(Datum) * AGT_ROOT_COUNT(agt));
+
+    int i = 0;
+    while ((agtv_token = agtype_iterator_next(&agtype_iterator, &agtv, true)) != WAGT_END_ARRAY)
+        array_value[i++] = func(&agtv);
+
+    ArrayType *result = construct_array(array_value, AGT_ROOT_COUNT(agt), INT4OID, 4, true, 'i');
+
+    return result;
+}
+
+/*
+ * internal scalar conversion functions
+ */
+static Datum
+agtype_to_int8_internal(agtype_value *agtv) {
+    if (agtv->type == AGTV_INTEGER)
+        return Int64GetDatum(agtv->val.int_value);
+    else if (agtv->type == AGTV_FLOAT)
+        return DirectFunctionCall1(float8_to_int8, Float8GetDatum(agtv->val.float_value));
+    else if (agtv->type == AGTV_NUMERIC)
+        return DirectFunctionCall1(numeric_to_int8, NumericGetDatum(agtv->val.numeric));
+    else if (agtv->type == AGTV_STRING)
+        return DirectFunctionCall1(string_to_int8, CStringGetDatum(agtv->val.string.val));
+    else
+        cannot_cast_agtype_value(agtv->type, "int8");
+
+    // cannot reach
+    return 0;
+}
+
+static Datum
+agtype_to_int4_internal(agtype_value *agtv) {
+    if (agtv->type == AGTV_INTEGER)
+        return DirectFunctionCall1(int8_to_int4, Int64GetDatum(agtv->val.int_value));
+    else if (agtv->type == AGTV_FLOAT)
+        return DirectFunctionCall1(float8_to_int4, Float8GetDatum(agtv->val.float_value));
+    else if (agtv->type == AGTV_NUMERIC)
+        return DirectFunctionCall1(numeric_to_int4, NumericGetDatum(agtv->val.numeric));
+    else if (agtv->type == AGTV_STRING)
+        return DirectFunctionCall1(string_to_int4, CStringGetDatum(agtv->val.string.val));
+    else
+        cannot_cast_agtype_value(agtv->type, "int4");
+
+    // cannot reach
+    return 0;
+}
 
 /*
  * Emit correct, translatable cast error message
@@ -71,108 +250,12 @@ cannot_cast_agtype_value(enum agtype_value_type type, const char *sqltype) {
         {AGTV_PATH, gettext_noop("cannot cast agtype path to type %s")},
         {AGTV_BINARY,
          gettext_noop("cannot cast agtype array or object to type %s")}};
-    int i;
 
-    for (i = 0; i < lengthof(messages); i++)
-    {
+    for (int i = 0; i < lengthof(messages); i++) {
         if (messages[i].type == type) {
             ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg(messages[i].msg, sqltype)));
         }
     }
 
-    // unreachable
     elog(ERROR, "unknown agtype type: %d", (int)type);
 }
-
-#define float8_to_int8 dtoi8
-#define numeric_to_int8 numeric_int8
-#define string_to_int8 int8in
-
-static Datum
-agtype_to_int8_internal(agtype_value *agtv) {
-    if (agtv->type == AGTV_INTEGER)
-        return Int64GetDatum(agtv->val.int_value);
-    else if (agtv->type == AGTV_FLOAT)
-        return DirectFunctionCall1(float8_to_int8, Float8GetDatum(agtv->val.float_value));
-    else if (agtv->type == AGTV_NUMERIC)
-        return DirectFunctionCall1(numeric_to_int8, NumericGetDatum(agtv->val.numeric));
-    else if (agtv->type == AGTV_STRING)
-        return DirectFunctionCall1(string_to_int8, CStringGetDatum(agtv->val.string.val));
-    else
-        cannot_cast_agtype_value(agtv->type, "int");
-
-    // cannot reach
-    return 0;
-}
-
-PG_FUNCTION_INFO_V1(agtype_to_int8);
-// agtype -> int8.
-Datum
-agtype_to_int8(PG_FUNCTION_ARGS) {
-    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
-
-    if (is_agtype_null(agt))
-        PG_RETURN_NULL();
-
-    if (!AGT_ROOT_IS_SCALAR(agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("cannot cast non-scalar agtype to int8")));
-
-    agtype_value *agtv = get_ith_agtype_value_from_container(&agt->root, 0);
-
-    Datum d = agtype_to_int8_internal(agtv);
-
-    PG_FREE_IF_COPY(agt, 0);
-
-    PG_RETURN_DATUM(d);
-}
-
-PG_FUNCTION_INFO_V1(agtype_tointeger);
-Datum
-agtype_tointeger(PG_FUNCTION_ARGS) {
-    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
-
-    if (is_agtype_null(agt))
-        PG_RETURN_NULL();
-
-    if (!AGT_ROOT_IS_SCALAR(agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("cannot cast non-scalar agtype to int8")));
-
-    agtype_value *agtv = get_ith_agtype_value_from_container(&agt->root, 0);
-
-    agtype_value agtv_result = {
-        .type = AGTV_INTEGER,
-        .val.int_value = DatumGetInt64(agtype_to_int8_internal(agtv))
-    };
-
-    PG_FREE_IF_COPY(agt, 0);
-
-    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv_result));
-}
-
-PG_FUNCTION_INFO_V1(agtype_to_int8_array);
-// agtype -> int8[]
-Datum
-agtype_to_int8_array(PG_FUNCTION_ARGS) {
-    agtype *agt= AG_GET_ARG_AGTYPE_P(0);
-    agtype_value agtv;
-    Datum *array_value;
-
-    agtype_iterator *agtype_iterator = agtype_iterator_init(&agt->root);
-    agtype_iterator_token agtv_token = agtype_iterator_next(&agtype_iterator, &agtv, false);
-
-    if (agtv.type != AGTV_ARRAY)
-        cannot_cast_agtype_value(agtv.type, "int8[]");
-
-    array_value = (Datum *) palloc(sizeof(Datum) * AGT_ROOT_COUNT(agt));
-
-    int i = 0;
-    while ((agtv_token = agtype_iterator_next(&agtype_iterator, &agtv, true)) != WAGT_END_ARRAY)
-        array_value[i++] = agtype_to_int8_internal(&agtv);
-
-    ArrayType *result = construct_array(array_value, AGT_ROOT_COUNT(agt), INT4OID, 4, true, 'i');
-
-    PG_FREE_IF_COPY(agt, 0);
-
-    PG_RETURN_ARRAYTYPE_P(result);
-}
-

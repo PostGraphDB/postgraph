@@ -2182,69 +2182,6 @@ Datum agtype_to_bool(PG_FUNCTION_ARGS)
 
 #define string_to_int4 int4in
 #define string_to_int2 int2in
-static Datum
-agtype_to_int4_internal(agtype_value *agtv) {
-    if (agtv->type == AGTV_INTEGER)
-        return DirectFunctionCall1(int8_to_int4, Int64GetDatum(agtv->val.int_value));
-    else if (agtv->type == AGTV_FLOAT)
-        return DirectFunctionCall1(float8_to_int4, Float8GetDatum(agtv->val.float_value));
-    else if (agtv->type == AGTV_NUMERIC)
-        return DirectFunctionCall1(numeric_to_int4, NumericGetDatum(agtv->val.numeric));
-    else if (agtv->type == AGTV_STRING)
-        return DirectFunctionCall1(string_to_int4, CStringGetDatum(agtv->val.string.val));
-    else
-        cannot_cast_agtype_value(agtv->type, "int");
-
-    // cannot reach
-    return 0;
-}
-
-PG_FUNCTION_INFO_V1(agtype_to_int4);
-// agtype -> int4
-Datum
-agtype_to_int4(PG_FUNCTION_ARGS) {
-    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
-
-    if (is_agtype_null(agt))
-        PG_RETURN_NULL();
-
-    if (!AGT_ROOT_IS_SCALAR(agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("cannot cast non-scalar agtype to int4")));    
-
-    agtype_value *agtv = get_ith_agtype_value_from_container(&agt->root, 0);
-
-    Datum d = agtype_to_int4_internal(agtv);
-
-    PG_FREE_IF_COPY(agt, 0);
-
-    PG_RETURN_DATUM(d);
-}
-
-PG_FUNCTION_INFO_V1(agtype_to_int4_array);
-// agtype -> int4[]
-Datum agtype_to_int4_array(PG_FUNCTION_ARGS) {
-    agtype *agt= AG_GET_ARG_AGTYPE_P(0);
-    agtype_value agtv;
-    Datum *array_value;
-
-    agtype_iterator *agtype_iterator = agtype_iterator_init(&agt->root);
-    agtype_iterator_token agtv_token = agtype_iterator_next(&agtype_iterator, &agtv, false);
-
-    if (agtv.type != AGTV_ARRAY)
-        cannot_cast_agtype_value(agtv.type, "int4[]");
-
-    array_value = (Datum *) palloc(sizeof(Datum) * AGT_ROOT_COUNT(agt));
-
-    int i = 0;
-    while ((agtv_token = agtype_iterator_next(&agtype_iterator, &agtv, true)) != WAGT_END_ARRAY)
-        array_value[i++] = agtype_to_int4_internal(&agtv);
-
-    ArrayType *result = construct_array(array_value, AGT_ROOT_COUNT(agt), INT4OID, 4, true, 'i');
-
-    PG_FREE_IF_COPY(agt, 0);
-
-    PG_RETURN_ARRAYTYPE_P(result);
-}
 
 #define int8_to_numeric int8_numeric
 #define float8_to_numeric float8_numeric
