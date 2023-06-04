@@ -4425,11 +4425,7 @@ $$) as (result agtype);
 SELECT * from cypher('expr', $$
     RETURN log(0)
 $$) as (result agtype);
- result 
---------
- 
-(1 row)
-
+ERROR:  cannot take logarithm of zero
 SELECT * from cypher('expr', $$
     RETURN log10(0)
 $$) as (result agtype);
@@ -4441,11 +4437,7 @@ $$) as (result agtype);
 SELECT * from cypher('expr', $$
     RETURN log(-1)
 $$) as (result agtype);
- result 
---------
- 
-(1 row)
-
+ERROR:  cannot take logarithm of a negative number
 SELECT * from cypher('expr', $$
     RETURN log10(-1)
 $$) as (result agtype);
