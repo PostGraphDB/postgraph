@@ -5583,49 +5583,29 @@ PG_FUNCTION_INFO_V1(age_exp);
 
 Datum age_exp(PG_FUNCTION_ARGS)
 {
-    int nargs;
-    Datum *args;
-    bool *nulls;
-    Oid *types;
-    agtype_value agtv_result;
-    Numeric arg;
-    Numeric numeric_result;
-    float8 float_result;
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
     bool is_null = true;
 
-    /* extract argument values */
-    nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
-
-    /* check number of args */
-    if (nargs != 1)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("exp() invalid number of arguments")));
-
-    /* check for a null input */
-    if (nargs < 0 || nulls[0])
+    if (is_agtype_null(agt))
         PG_RETURN_NULL();
 
-    /*
-     * exp() supports integer, float, and numeric or the agtype integer,
-     * float, and numeric for the input expression.
-     */
-    arg = get_numeric_compatible_arg(args[0], types[0], "exp", &is_null, NULL);
+    if (is_agtype_numeric(agt)) {
+        Numeric arg = get_numeric_compatible_arg(AGTYPE_P_GET_DATUM(agt), AGTYPEOID, "exp", &is_null, NULL);
 
-    /* check for a agtype null input */
-    if (is_null)
-        PG_RETURN_NULL();
+        Numeric result = DatumGetNumeric(DirectFunctionCall1(numeric_exp, NumericGetDatum(arg)));
 
-    /* We need the input as a numeric so that we can pass it off to PG */
-    numeric_result = DatumGetNumeric(DirectFunctionCall1(numeric_exp,
-                                                         NumericGetDatum(arg)));
+        agtype_value agtv = { .type = AGTV_NUMERIC, .val.numeric = result };
 
-    float_result = DatumGetFloat8(DirectFunctionCall1(numeric_float8_no_overflow,
-                                                      NumericGetDatum(numeric_result)));
-    /* build the result */
-    agtv_result.type = AGTV_FLOAT;
-    agtv_result.val.float_value = float_result;
+        AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv));
+    } else {
+        float8 arg = get_float_compatible_arg(AGTYPE_P_GET_DATUM(agt), AGTYPEOID, "exp", &is_null);
 
-    PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
+        float8 result = DatumGetFloat8(DirectFunctionCall1(dexp, Float8GetDatum(arg)));
+
+        agtype_value agtv = { .type = AGTV_FLOAT, .val.float_value = result };
+
+        AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv));
+    }
 }
 
 PG_FUNCTION_INFO_V1(age_sqrt);
@@ -5642,6 +5622,7 @@ Datum age_sqrt(PG_FUNCTION_ARGS)
         Numeric arg = get_numeric_compatible_arg(AGTYPE_P_GET_DATUM(agt), AGTYPEOID, "sqrt", &is_null, NULL);
 
         Numeric result = DatumGetNumeric(DirectFunctionCall1(numeric_sqrt, NumericGetDatum(arg)));
+
         agtype_value agtv = { .type = AGTV_NUMERIC, .val.numeric = result };
 
         AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv));
