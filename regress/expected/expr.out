@@ -4559,11 +4559,7 @@ $$) as (result agtype);
 SELECT * from cypher('expr', $$
     RETURN sqrt(-1)
 $$) as (result agtype);
- result 
---------
- 
-(1 row)
-
+ERROR:  cannot take square root of a negative number
 SELECT * from cypher('expr', $$
     RETURN sqrt(null)
 $$) as (result agtype);

@@ -478,7 +478,7 @@ CREATE FUNCTION age_log(agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAF
 CREATE FUNCTION age_log10(agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_e() RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_exp(agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_sqrt(agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_sqrt(agtype) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_pi() RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_rand() RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_timestamp() RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
@@ -493,10 +493,10 @@ CREATE FUNCTION agtype_accum(float8[], agtype) RETURNS float8[] LANGUAGE c IMMUT
 CREATE AGGREGATE age_count(*) (stype = int8, sfunc = int8inc, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
 CREATE AGGREGATE age_count(agtype) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
 -- stdev
-CREATE FUNCTION agtype_stddev_samp_final(_float8) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION agtype_stddev_samp_final(float8[]) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE AGGREGATE age_stdev(agtype) (stype = float8[], sfunc = agtype_accum, finalfunc = agtype_stddev_samp_final, combinefunc = float8_combine, finalfunc_modify = READ_ONLY, initcond = '{0,0,0}', parallel = SAFE);
 -- stdevp
-CREATE FUNCTION agtype_stddev_pop_final(_float8) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION agtype_stddev_pop_final(float8[]) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE AGGREGATE age_stdevp(agtype) (stype = float8[], sfunc = agtype_accum, finalfunc = agtype_stddev_pop_final, combinefunc = float8_combine, finalfunc_modify = READ_ONLY, initcond = '{0,0,0}', parallel = SAFE);
 -- avg
 CREATE AGGREGATE age_avg(agtype) (stype = float8[], sfunc = agtype_accum, finalfunc = float8_avg, combinefunc = float8_combine, finalfunc_modify = READ_ONLY, initcond = '{0,0,0}', parallel = SAFE);
