@@ -1162,7 +1162,7 @@ ERROR:  integer out of range
 SELECT * FROM cypher('type_coercion', $$
 	RETURN true
 $$) AS (i bigint);
-ERROR:  cannot cast agtype boolean to type int
+ERROR:  cannot cast agtype boolean to type int8
 SELECT * FROM cypher('type_coercion', $$
 	RETURN {key: 1}
 $$) AS (i bigint);
@@ -1180,17 +1180,17 @@ SELECT * FROM cypher('type_coercion', $$
 	MATCH (v)
 	RETURN v
 $$) AS (i bigint);
-ERROR:  cannot cast agtype vertex to type int
+ERROR:  cannot cast agtype vertex to type int8
 SELECT * FROM cypher('type_coercion', $$
 	MATCH ()-[e]-()
 	RETURN e
 $$) AS (i bigint);
-ERROR:  cannot cast agtype edge to type int
+ERROR:  cannot cast agtype edge to type int8
 SELECT * FROM cypher('type_coercion', $$
 	MATCH p=()-[]-()
 	RETURN p
 $$) AS (i bigint);
-ERROR:  cannot cast agtype path to type int
+ERROR:  cannot cast agtype path to type int8
 --
 -- Test typecasting '::' transform and execution logic
 --
@@ -2428,7 +2428,7 @@ $$) AS (toInteger agtype);
 SELECT * FROM cypher('expr', $$
     RETURN toInteger(true)
 $$) AS (toInteger agtype);
-ERROR:  cannot cast agtype boolean to type int
+ERROR:  cannot cast agtype boolean to type int8
 SELECT * FROM cypher('expr', $$
     RETURN toInteger()
 $$) AS (toInteger agtype);
