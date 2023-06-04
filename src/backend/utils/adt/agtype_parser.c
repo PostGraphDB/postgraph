@@ -59,24 +59,16 @@ typedef enum /* contexts of agtype parser */
 
 static inline void agtype_lex(agtype_lex_context *lex);
 static inline void agtype_lex_string(agtype_lex_context *lex);
-static inline void agtype_lex_number(agtype_lex_context *lex, char *s,
-                                     bool *num_err, int *total_len);
-static void parse_scalar_annotation(agtype_lex_context *lex, void *func,
-                                    char **annotation);
+static inline void agtype_lex_number(agtype_lex_context *lex, char *s, bool *num_err, int *total_len);
+static void parse_scalar_annotation(agtype_lex_context *lex, void *func, char **annotation);
 static void parse_annotation(agtype_lex_context *lex, agtype_sem_action *sem);
-static inline void parse_scalar(agtype_lex_context *lex,
-                                agtype_sem_action *sem);
-static void parse_object_field(agtype_lex_context *lex,
-                               agtype_sem_action *sem);
+static inline void parse_scalar(agtype_lex_context *lex, agtype_sem_action *sem);
+static void parse_object_field(agtype_lex_context *lex, agtype_sem_action *sem);
 static void parse_object(agtype_lex_context *lex, agtype_sem_action *sem);
-static void parse_array_element(agtype_lex_context *lex,
-                                agtype_sem_action *sem);
+static void parse_array_element(agtype_lex_context *lex, agtype_sem_action *sem);
 static void parse_array(agtype_lex_context *lex, agtype_sem_action *sem);
-static void report_parse_error(agtype_parse_context ctx,
-                               agtype_lex_context *lex)
-    pg_attribute_noreturn();
-static void report_invalid_token(agtype_lex_context *lex)
-    pg_attribute_noreturn();
+static void report_parse_error(agtype_parse_context ctx, agtype_lex_context *lex) pg_attribute_noreturn();
+static void report_invalid_token(agtype_lex_context *lex) pg_attribute_noreturn();
 static int report_agtype_context(agtype_lex_context *lex);
 static char *extract_mb_char(char *s);
 
@@ -87,8 +79,7 @@ static char *extract_mb_char(char *s);
  *
  * what is the current look_ahead token?
 */
-static inline agtype_token_type lex_peek(agtype_lex_context *lex)
-{
+static inline agtype_token_type lex_peek(agtype_lex_context *lex) {
     return lex->token_type;
 }
 
@@ -101,20 +92,13 @@ static inline agtype_token_type lex_peek(agtype_lex_context *lex)
  *
  * returns true if the token matched, false otherwise.
  */
-static inline bool lex_accept(agtype_lex_context *lex, agtype_token_type token,
-                              char **lexeme)
-{
-    if (lex->token_type == token)
-    {
-        if (lexeme != NULL)
-        {
-            if (lex->token_type == AGTYPE_TOKEN_STRING)
-            {
+static inline bool lex_accept(agtype_lex_context *lex, agtype_token_type token, char **lexeme) {
+    if (lex->token_type == token) {
+        if (lexeme != NULL) {
+            if (lex->token_type == AGTYPE_TOKEN_STRING) {
                 if (lex->strval != NULL)
                     *lexeme = pstrdup(lex->strval->data);
-            }
-            else
-            {
+            } else {
                 int len = (lex->token_terminator - lex->token_start);
                 char *tokstr = palloc(len + 1);
 
@@ -135,9 +119,7 @@ static inline bool lex_accept(agtype_lex_context *lex, agtype_token_type token,
  * move the lexer to the next token if the current look_ahead token matches
  * the parameter token. Otherwise, report an error.
  */
-static inline void lex_expect(agtype_parse_context ctx,
-                              agtype_lex_context *lex, agtype_token_type token)
-{
+static inline void lex_expect(agtype_parse_context ctx, agtype_lex_context *lex, agtype_token_type token) {
     if (!lex_accept(lex, token, NULL))
         report_parse_error(ctx, lex);
 }
@@ -152,8 +134,7 @@ static inline void lex_expect(agtype_parse_context ctx,
  *
  * str is of length len, and need not be null-terminated.
  */
-bool is_valid_agtype_number(const char *str, int len)
-{
+bool is_valid_agtype_number(const char *str, int len) {
     bool numeric_error;
     int total_len;
     agtype_lex_context dummy_lex;
@@ -167,13 +148,10 @@ bool is_valid_agtype_number(const char *str, int len)
      * having to cast away the constness of str is ugly, but there's not much
      * easy alternative.
      */
-    if (*str == '-')
-    {
+    if (*str == '-') {
         dummy_lex.input = (char *)str + 1;
         dummy_lex.input_length = len - 1;
-    }
-    else
-    {
+    } else {
         dummy_lex.input = (char *)str;
         dummy_lex.input_length = len;
     }
@@ -195,15 +173,11 @@ bool is_valid_agtype_number(const char *str, int len)
  * If you already have the agtype as a text* value, use the first of these
  * functions, otherwise use agtype_lex_context_cstring_len().
  */
-agtype_lex_context *make_agtype_lex_context(text *t, bool need_escapes)
-{
-    return make_agtype_lex_context_cstring_len(
-        VARDATA_ANY(t), VARSIZE_ANY_EXHDR(t), need_escapes);
+agtype_lex_context *make_agtype_lex_context(text *t, bool need_escapes) {
+    return make_agtype_lex_context_cstring_len( VARDATA_ANY(t), VARSIZE_ANY_EXHDR(t), need_escapes);
 }
 
-agtype_lex_context *make_agtype_lex_context_cstring_len(char *str, int len,
-                                                        bool need_escapes)
-{
+agtype_lex_context *make_agtype_lex_context_cstring_len(char *str, int len, bool need_escapes) {
     agtype_lex_context *lex = palloc0(sizeof(agtype_lex_context));
 
     lex->input = lex->token_terminator = lex->line_start = str;
@@ -224,8 +198,7 @@ agtype_lex_context *make_agtype_lex_context_cstring_len(char *str, int len,
  * semantic action routines to be called at appropriate spots during parsing,
  * and a pointer to a state object to be passed to those routines.
  */
-void parse_agtype(agtype_lex_context *lex, agtype_sem_action *sem)
-{
+void parse_agtype(agtype_lex_context *lex, agtype_sem_action *sem) {
     agtype_token_type tok;
 
     /* get the initial token */
@@ -249,16 +222,12 @@ void parse_agtype(agtype_lex_context *lex, agtype_sem_action *sem)
     lex_expect(AGTYPE_PARSE_END, lex, AGTYPE_TOKEN_END);
 }
 
-static void parse_scalar_annotation(agtype_lex_context *lex, void *func,
-                                    char **annotation)
-{
+static void parse_scalar_annotation(agtype_lex_context *lex, void *func, char **annotation) {
     /* check next token for annotations (typecasts, etc.) */
-    if (lex_peek(lex) == AGTYPE_TOKEN_ANNOTATION)
-    {
+    if (lex_peek(lex) == AGTYPE_TOKEN_ANNOTATION) {
         /* eat the annotation token */
         lex_accept(lex, AGTYPE_TOKEN_ANNOTATION, NULL);
-        if (lex_peek(lex) == AGTYPE_TOKEN_IDENTIFIER)
-        {
+        if (lex_peek(lex) == AGTYPE_TOKEN_IDENTIFIER) {
             /* eat the identifier token and get the annotation value */
             if (func != NULL)
                 lex_accept(lex, AGTYPE_TOKEN_IDENTIFIER, annotation);
@@ -307,9 +276,7 @@ static void parse_annotation(agtype_lex_context *lex, agtype_sem_action *sem)
  *    - object ( { } )
  *    - object field
  */
-static inline void parse_scalar(agtype_lex_context *lex,
-                                agtype_sem_action *sem)
-{
+static inline void parse_scalar(agtype_lex_context *lex, agtype_sem_action *sem) {
     char *val = NULL;
     char *annotation = NULL;
     agtype_scalar_action sfunc = sem->scalar;
@@ -350,14 +317,12 @@ static inline void parse_scalar(agtype_lex_context *lex,
         (*sfunc)(sem->semstate, val, tok, annotation);
 }
 
-static void parse_object_field(agtype_lex_context *lex, agtype_sem_action *sem)
-{
+static void parse_object_field(agtype_lex_context *lex, agtype_sem_action *sem) {
     /*
      * An object field is "fieldname" : value where value can be a scalar,
      * object or array.  Note: in user-facing docs and error messages, we
      * generally call a field name a "key".
      */
-
     char *fname = NULL; /* keep compiler quiet */
     agtype_ofield_action ostart = sem->object_field_start;
     agtype_ofield_action oend = sem->object_field_end;
@@ -395,8 +360,7 @@ static void parse_object_field(agtype_lex_context *lex, agtype_sem_action *sem)
         (*oend)(sem->semstate, fname, isnull);
 }
 
-static void parse_object(agtype_lex_context *lex, agtype_sem_action *sem)
-{
+static void parse_object(agtype_lex_context *lex, agtype_sem_action *sem) {
     /*
      * an object is a possibly empty sequence of object fields, separated by
      * commas and surrounded by curly braces.
@@ -447,9 +411,7 @@ static void parse_object(agtype_lex_context *lex, agtype_sem_action *sem)
     parse_annotation(lex, sem);
 }
 
-static void parse_array_element(agtype_lex_context *lex,
-                                agtype_sem_action *sem)
-{
+static void parse_array_element(agtype_lex_context *lex, agtype_sem_action *sem) {
     agtype_aelem_action astart = sem->array_element_start;
     agtype_aelem_action aend = sem->array_element_end;
     agtype_token_type tok = lex_peek(lex);
@@ -478,8 +440,7 @@ static void parse_array_element(agtype_lex_context *lex,
         (*aend)(sem->semstate, isnull);
 }
 
-static void parse_array(agtype_lex_context *lex, agtype_sem_action *sem)
-{
+static void parse_array(agtype_lex_context *lex, agtype_sem_action *sem) {
     /*
      * an array is a possibly empty sequence of array elements, separated by
      * commas and surrounded by square brackets.
@@ -501,8 +462,7 @@ static void parse_array(agtype_lex_context *lex, agtype_sem_action *sem)
     lex->lex_level++;
 
     lex_expect(AGTYPE_PARSE_ARRAY_START, lex, AGTYPE_TOKEN_ARRAY_START);
-    if (lex_peek(lex) != AGTYPE_TOKEN_ARRAY_END)
-    {
+    if (lex_peek(lex) != AGTYPE_TOKEN_ARRAY_END) {
         parse_array_element(lex, sem);
 
         while (lex_accept(lex, AGTYPE_TOKEN_COMMA, NULL))
@@ -523,17 +483,14 @@ static void parse_array(agtype_lex_context *lex, agtype_sem_action *sem)
 /*
  * Lex one token from the input stream.
  */
-static inline void agtype_lex(agtype_lex_context *lex)
-{
+static inline void agtype_lex(agtype_lex_context *lex) {
     char *s;
     int len;
 
     /* Skip leading whitespace. */
     s = lex->token_terminator;
     len = s - lex->input;
-    while (len < lex->input_length &&
-           (*s == ' ' || *s == '\t' || *s == '\n' || *s == '\r'))
-    {
+    while (len < lex->input_length && (*s == ' ' || *s == '\t' || *s == '\n' || *s == '\r')) {
         if (*s == '\n')
             ++lex->line_number;
         ++s;
@@ -542,15 +499,12 @@ static inline void agtype_lex(agtype_lex_context *lex)
     lex->token_start = s;
 
     /* Determine token type. */
-    if (len >= lex->input_length)
-    {
+    if (len >= lex->input_length) {
         lex->token_start = NULL;
         lex->prev_token_terminator = lex->token_terminator;
         lex->token_terminator = s;
         lex->token_type = AGTYPE_TOKEN_END;
-    }
-    else
-    {
+    } else {
         switch (*s)
         {
             /* Single-character token, some kind of punctuation mark. */
@@ -581,15 +535,12 @@ static inline void agtype_lex(agtype_lex_context *lex)
             break;
         case ':':
             /* if this is an annotation '::' */
-            if ((len < lex->input_length - 1) && *(s + 1) == ':')
-            {
+            if ((len < lex->input_length - 1) && *(s + 1) == ':') {
                 s += 2;
                 lex->prev_token_terminator = lex->token_terminator;
                 lex->token_terminator = s;
                 lex->token_type = AGTYPE_TOKEN_ANNOTATION;
-            }
-            else
-            {
+            } else {
                 lex->prev_token_terminator = lex->token_terminator;
                 lex->token_terminator = s + 1;
                 lex->token_type = AGTYPE_TOKEN_COLON;
@@ -602,14 +553,12 @@ static inline void agtype_lex(agtype_lex_context *lex)
             break;
         case '-':
             /* Negative numbers and special float values. */
-            if (*(s + 1) == 'i' || *(s + 1) == 'I')
-            {
+            if (*(s + 1) == 'i' || *(s + 1) == 'I') {
                 char *s1 = s + 1;
                 char *p = s1;
 
                 /* advance p to the end of the token */
-                while (p - s < lex->input_length - len &&
-                       ((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z')))
+                while (p - s < lex->input_length - len && ((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z')))
                     p++;
 
                 /* update the terminators */
@@ -631,9 +580,7 @@ static inline void agtype_lex(agtype_lex_context *lex)
                 }
                 if (lex->token_type == AGTYPE_TOKEN_INVALID)
                     report_invalid_token(lex);
-            }
-            else
-            {
+            } else {
                 agtype_lex_number(lex, s + 1, NULL, NULL);
             }
             /* token is assigned in agtype_lex_number */
@@ -665,9 +612,7 @@ static inline void agtype_lex(agtype_lex_context *lex)
              * the whole word as an unexpected token, rather than just
              * some unintuitive prefix thereof.
              */
-            for (p = s; p - s < lex->input_length - len &&
-                        AGTYPE_ALPHANUMERIC_CHAR(*p);
-                 p++)
+            for (p = s; p - s < lex->input_length - len && AGTYPE_ALPHANUMERIC_CHAR(*p); p++)
                 /* skip */;
 
             /*
@@ -675,8 +620,7 @@ static inline void agtype_lex(agtype_lex_context *lex)
              * otherwise unexpected character, so just complain about
              * that one character.
              */
-            if (p == s)
-            {
+            if (p == s) {
                 lex->prev_token_terminator = lex->token_terminator;
                 lex->token_terminator = s + 1;
                 report_invalid_token(lex);
@@ -703,8 +647,7 @@ static inline void agtype_lex(agtype_lex_context *lex)
              * the mixture of the two.
              */
             case 3:
-                if ((pg_strncasecmp(s, "NaN", len) == 0) ||
-                    (pg_strncasecmp(s, "inf", len) == 0))
+                if ((pg_strncasecmp(s, "NaN", len) == 0) || (pg_strncasecmp(s, "inf", len) == 0))
                     lex->token_type = AGTYPE_TOKEN_FLOAT;
                 break;
             case 4:
@@ -730,8 +673,7 @@ static inline void agtype_lex(agtype_lex_context *lex)
 /*
  * The next token in the input stream is known to be a string; lex it.
  */
-static inline void agtype_lex_string(agtype_lex_context *lex)
-{
+static inline void agtype_lex_string(agtype_lex_context *lex) {
     char *s;
     int len;
     int hi_surrogate = -1;
@@ -742,22 +684,16 @@ static inline void agtype_lex_string(agtype_lex_context *lex)
     Assert(lex->input_length > 0);
     s = lex->token_start;
     len = lex->token_start - lex->input;
-    for (;;)
-    {
+    for (;;) {
         s++;
         len++;
         /* Premature end of the string. */
-        if (len >= lex->input_length)
-        {
+        if (len >= lex->input_length) {
             lex->token_terminator = s;
             report_invalid_token(lex);
-        }
-        else if (*s == '"')
-        {
+        } else if (*s == '"') {
             break;
-        }
-        else if ((unsigned char)*s < 32)
-        {
+        } else if ((unsigned char)*s < 32) {
             /* Per RFC4627, these characters MUST be escaped. */
             /* Since *s isn't printable, exclude it from the context string */
             lex->token_terminator = s;
@@ -767,45 +703,30 @@ static inline void agtype_lex_string(agtype_lex_context *lex)
                      errdetail("Character with value 0x%02x must be escaped.",
                                (unsigned char)*s),
                      report_agtype_context(lex)));
-        }
-        else if (*s == '\\')
-        {
+        } else if (*s == '\\') {
             /* OK, we have an escape character. */
             s++;
             len++;
-            if (len >= lex->input_length)
-            {
+            if (len >= lex->input_length) {
                 lex->token_terminator = s;
                 report_invalid_token(lex);
-            }
-            else if (*s == 'u')
-            {
+            } else if (*s == 'u') {
                 int i;
                 int ch = 0;
 
-                for (i = 1; i <= 4; i++)
-                {
+                for (i = 1; i <= 4; i++) {
                     s++;
                     len++;
-                    if (len >= lex->input_length)
-                    {
+                    if (len >= lex->input_length) {
                         lex->token_terminator = s;
                         report_invalid_token(lex);
-                    }
-                    else if (*s >= '0' && *s <= '9')
-                    {
+                    } else if (*s >= '0' && *s <= '9') {
                         ch = (ch * 16) + (*s - '0');
-                    }
-                    else if (*s >= 'a' && *s <= 'f')
-                    {
+                    } else if (*s >= 'a' && *s <= 'f') {
                         ch = (ch * 16) + (*s - 'a') + 10;
-                    }
-                    else if (*s >= 'A' && *s <= 'F')
-                    {
+                    } else if (*s >= 'A' && *s <= 'F') {
                         ch = (ch * 16) + (*s - 'A') + 10;
-                    }
-                    else
-                    {
+                    } else {
                         lex->token_terminator = s + pg_mblen(s);
                         ereport(
                             ERROR,
@@ -817,53 +738,37 @@ static inline void agtype_lex_string(agtype_lex_context *lex)
                              report_agtype_context(lex)));
                     }
                 }
-                if (lex->strval != NULL)
-                {
+                if (lex->strval != NULL) {
                     char utf8str[5];
                     int utf8len;
 
-                    if (ch >= 0xd800 && ch <= 0xdbff)
-                    {
-                        if (hi_surrogate != -1)
-                        {
-                            ereport(
-                                ERROR,
+                    if (ch >= 0xd800 && ch <= 0xdbff) {
+                        if (hi_surrogate != -1) {
+                            ereport( ERROR,
                                 (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
-                                 errmsg("invalid input syntax for type %s",
-                                        "agtype"),
-                                 errdetail(
-                                     "Unicode high surrogate must not follow a high surrogate."),
+                                 errmsg("invalid input syntax for type %s", "agtype"),
+                                 errdetail( "Unicode high surrogate must not follow a high surrogate."),
                                  report_agtype_context(lex)));
                         }
                         hi_surrogate = (ch & 0x3ff) << 10;
                         continue;
-                    }
-                    else if (ch >= 0xdc00 && ch <= 0xdfff)
-                    {
-                        if (hi_surrogate == -1)
-                        {
-                            ereport(
-                                ERROR,
+                    } else if (ch >= 0xdc00 && ch <= 0xdfff) {
+                        if (hi_surrogate == -1) {
+                            ereport( ERROR,
                                 (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
-                                 errmsg("invalid input syntax for type %s",
-                                        "agtype"),
-                                 errdetail(
-                                     "Unicode low surrogate must follow a high surrogate."),
+                                 errmsg("invalid input syntax for type %s", "agtype"),
+                                 errdetail( "Unicode low surrogate must follow a high surrogate."),
                                  report_agtype_context(lex)));
                         }
                         ch = 0x10000 + hi_surrogate + (ch & 0x3ff);
                         hi_surrogate = -1;
                     }
 
-                    if (hi_surrogate != -1)
-                    {
-                        ereport(
-                            ERROR,
+                    if (hi_surrogate != -1) {
+                        ereport( ERROR,
                             (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
-                             errmsg("invalid input syntax for type %s",
-                                    "agtype"),
-                             errdetail(
-                                 "Unicode low surrogate must follow a high surrogate."),
+                             errmsg("invalid input syntax for type %s", "agtype"),
+                             errdetail( "Unicode low surrogate must follow a high surrogate."),
                              report_agtype_context(lex)));
                     }
 
@@ -873,56 +778,40 @@ static inline void agtype_lex_string(agtype_lex_context *lex)
                      * encodings if the escape designates an ASCII character,
                      * otherwise raise an error.
                      */
-
-                    if (ch == 0)
-                    {
+                    if (ch == 0) {
                         /* We can't allow this, since our TEXT type doesn't */
-                        ereport(
-                            ERROR,
+                        ereport( ERROR,
                             (errcode(ERRCODE_UNTRANSLATABLE_CHARACTER),
                              errmsg("unsupported Unicode escape sequence"),
                              errdetail("\\u0000 cannot be converted to text."),
                              report_agtype_context(lex)));
-                    }
-                    else if (GetDatabaseEncoding() == PG_UTF8)
-                    {
+                    } else if (GetDatabaseEncoding() == PG_UTF8) {
                         unicode_to_utf8(ch, (unsigned char *)utf8str);
                         utf8len = pg_utf_mblen((unsigned char *)utf8str);
                         appendBinaryStringInfo(lex->strval, utf8str, utf8len);
-                    }
-                    else if (ch <= 0x007f)
-                    {
+                    } else if (ch <= 0x007f) {
                         /*
                          * This is the only way to designate things like a
                          * form feed character in agtype, so it's useful in all
                          * encodings.
                          */
                         appendStringInfoChar(lex->strval, (char)ch);
-                    }
-                    else
-                    {
+                    } else {
                         ereport(
                             ERROR,
                             (errcode(ERRCODE_UNTRANSLATABLE_CHARACTER),
                              errmsg("unsupported Unicode escape sequence"),
-                             errdetail(
-                                 "Unicode escape values cannot be used for code point values above 007F when the server encoding is not UTF8."),
+                             errdetail( "Unicode escape values cannot be used for code point values above 007F when the server encoding is not UTF8."),
                              report_agtype_context(lex)));
                     }
                 }
-            }
-            else if (lex->strval != NULL)
-            {
+            } else if (lex->strval != NULL) {
                 if (hi_surrogate != -1)
-                {
-                    ereport(
-                        ERROR,
+                    ereport( ERROR,
                         (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
                          errmsg("invalid input syntax for type %s", "agtype"),
-                         errdetail(
-                             "Unicode low surrogate must follow a high surrogate."),
+                         errdetail( "Unicode low surrogate must follow a high surrogate."),
                          report_agtype_context(lex)));
-                }
 
                 switch (*s)
                 {
@@ -949,17 +838,13 @@ static inline void agtype_lex_string(agtype_lex_context *lex)
                 default:
                     /* Not a valid string escape, so error out. */
                     lex->token_terminator = s + pg_mblen(s);
-                    ereport(
-                        ERROR,
+                    ereport( ERROR,
                         (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
                          errmsg("invalid input syntax for type %s", "agtype"),
-                         errdetail("Escape sequence \"\\%s\" is invalid.",
-                                   extract_mb_char(s)),
+                         errdetail("Escape sequence \"\\%s\" is invalid.", extract_mb_char(s)),
                          report_agtype_context(lex)));
                 }
-            }
-            else if (strchr("\"\\/bfnrt", *s) == NULL)
-            {
+            } else if (strchr("\"\\/bfnrt", *s) == NULL) {
                 /*
                  * Simpler processing if we're not bothered about de-escaping
                  *
@@ -971,37 +856,27 @@ static inline void agtype_lex_string(agtype_lex_context *lex)
                 ereport(ERROR,
                         (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
                          errmsg("invalid input syntax for type %s", "agtype"),
-                         errdetail("Escape sequence \"\\%s\" is invalid.",
-                                   extract_mb_char(s)),
+                         errdetail("Escape sequence \"\\%s\" is invalid.", extract_mb_char(s)),
                          report_agtype_context(lex)));
             }
-        }
-        else if (lex->strval != NULL)
-        {
+        } else if (lex->strval != NULL) {
             if (hi_surrogate != -1)
-            {
-                ereport(
-                    ERROR,
+                ereport( ERROR,
                     (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
                      errmsg("invalid input syntax for type %s", "agtype"),
-                     errdetail(
-                         "Unicode low surrogate must follow a high surrogate."),
+                     errdetail( "Unicode low surrogate must follow a high surrogate."),
                      report_agtype_context(lex)));
-            }
 
             appendStringInfoChar(lex->strval, *s);
         }
     }
 
     if (hi_surrogate != -1)
-    {
-        ereport(
-            ERROR,
+        ereport( ERROR,
             (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
              errmsg("invalid input syntax for type %s", "agtype"),
              errdetail("Unicode low surrogate must follow a high surrogate."),
              report_agtype_context(lex)));
-    }
 
     /* Hooray, we found the end of the string! */
     lex->prev_token_terminator = lex->token_terminator;
@@ -1036,9 +911,7 @@ static inline void agtype_lex_string(agtype_lex_context *lex)
  * raising an error for a badly-formed number.  Also, if total_len is not NULL
  * the distance from lex->input to the token end+1 is returned to *total_len.
  */
-static inline void agtype_lex_number(agtype_lex_context *lex, char *s,
-                                     bool *num_err, int *total_len)
-{
+static inline void agtype_lex_number(agtype_lex_context *lex, char *s, bool *num_err, int *total_len) {
     bool error = false;
     int len = s - lex->input;
 
@@ -1049,40 +922,29 @@ static inline void agtype_lex_number(agtype_lex_context *lex, char *s,
     /* Caller already did this for us; so do nothing. */
 
     /* Part (2): parse main digit string. */
-    if (len < lex->input_length && *s == '0')
-    {
+    if (len < lex->input_length && *s == '0') {
         s++;
         len++;
-    }
-    else if (len < lex->input_length && *s >= '1' && *s <= '9')
-    {
-        do
-        {
+    } else if (len < lex->input_length && *s >= '1' && *s <= '9') {
+        do {
             s++;
             len++;
         } while (len < lex->input_length && *s >= '0' && *s <= '9');
-    }
-    else
-    {
+    } else {
         error = true;
     }
 
     /* Part (3): parse optional decimal portion. */
-    if (len < lex->input_length && *s == '.')
-    {
+    if (len < lex->input_length && *s == '.') {
         /* since we have a decimal point, we have a float */
         lex->token_type = AGTYPE_TOKEN_FLOAT;
 
         s++;
         len++;
-        if (len == lex->input_length || *s < '0' || *s > '9')
-        {
+        if (len == lex->input_length || *s < '0' || *s > '9') {
             error = true;
-        }
-        else
-        {
-            do
-            {
+        } else {
+            do {
                 s++;
                 len++;
             } while (len < lex->input_length && *s >= '0' && *s <= '9');
@@ -1090,26 +952,20 @@ static inline void agtype_lex_number(agtype_lex_context *lex, char *s,
     }
 
     /* Part (4): parse optional exponent. */
-    if (len < lex->input_length && (*s == 'e' || *s == 'E'))
-    {
+    if (len < lex->input_length && (*s == 'e' || *s == 'E')) {
         /* since we have an exponent, we have a float */
         lex->token_type = AGTYPE_TOKEN_FLOAT;
 
         s++;
         len++;
-        if (len < lex->input_length && (*s == '+' || *s == '-'))
-        {
+        if (len < lex->input_length && (*s == '+' || *s == '-')) {
             s++;
             len++;
         }
-        if (len == lex->input_length || *s < '0' || *s > '9')
-        {
+        if (len == lex->input_length || *s < '0' || *s > '9') {
             error = true;
-        }
-        else
-        {
-            do
-            {
+        } else {
+            do {
                 s++;
                 len++;
             } while (len < lex->input_length && *s >= '0' && *s <= '9');
@@ -1127,13 +983,10 @@ static inline void agtype_lex_number(agtype_lex_context *lex, char *s,
     if (total_len != NULL)
         *total_len = len;
 
-    if (num_err != NULL)
-    {
+    if (num_err != NULL) {
         /* let the caller handle any error */
         *num_err = error;
-    }
-    else
-    {
+    } else {
         /* return token endpoint */
         lex->prev_token_terminator = lex->token_terminator;
         lex->token_terminator = s;
@@ -1148,20 +1001,16 @@ static inline void agtype_lex_number(agtype_lex_context *lex, char *s,
  *
  * lex->token_start and lex->token_terminator must identify the current token.
  */
-static void report_parse_error(agtype_parse_context ctx,
-                               agtype_lex_context *lex)
-{
+static void report_parse_error(agtype_parse_context ctx, agtype_lex_context *lex) {
     char *token;
     int toklen;
 
     /* Handle case where the input ended prematurely. */
     if (lex->token_start == NULL || lex->token_type == AGTYPE_TOKEN_END)
-    {
         ereport(ERROR, (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
                         errmsg("invalid input syntax for type %s", "agtype"),
                         errdetail("The input string ended unexpectedly."),
                         report_agtype_context(lex)));
-    }
 
     /* Separate out the current token. */
     toklen = lex->token_terminator - lex->token_start;
@@ -1170,16 +1019,13 @@ static void report_parse_error(agtype_parse_context ctx,
     token[toklen] = '\0';
 
     /* Complain, with the appropriate detail message. */
-    if (ctx == AGTYPE_PARSE_END)
-    {
+    if (ctx == AGTYPE_PARSE_END) {
         ereport(ERROR,
                 (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
                  errmsg("invalid input syntax for type %s", "agtype"),
                  errdetail("Expected end of input, but found \"%s\".", token),
                  report_agtype_context(lex)));
-    }
-    else
-    {
+    } else {
         switch (ctx)
         {
         case AGTYPE_PARSE_VALUE:
@@ -1255,8 +1101,7 @@ static void report_parse_error(agtype_parse_context ctx,
  *
  * lex->token_start and lex->token_terminator must identify the token.
  */
-static void report_invalid_token(agtype_lex_context *lex)
-{
+static void report_invalid_token(agtype_lex_context *lex) {
     char *token;
     int toklen;
 
@@ -1298,11 +1143,9 @@ static int report_agtype_context(agtype_lex_context *lex)
     context_end = lex->token_terminator;
     line_start = context_start;
     line_number = 1;
-    for (;;)
-    {
+    for (;;) {
         /* Always advance over newlines */
-        if (context_start < context_end && *context_start == '\n')
-        {
+        if (context_start < context_end && *context_start == '\n') {
             context_start++;
             line_start = context_start;
             line_number++;
@@ -1351,8 +1194,7 @@ static int report_agtype_context(agtype_lex_context *lex)
 /*
  * Extract a single, possibly multi-byte char from the input string.
  */
-static char *extract_mb_char(char *s)
-{
+static char *extract_mb_char(char *s) {
     char *res;
     int len;
 
@@ -1368,8 +1210,7 @@ static char *extract_mb_char(char *s)
  * Encode 'value' of datetime type 'typid' into agtype string in ISO format
  * using optionally preallocated buffer 'buf'.
  */
-char *agtype_encode_date_time(char *buf, Datum value, Oid typid)
-{
+char *agtype_encode_date_time(char *buf, Datum value, Oid typid) {
     if (!buf)
         buf = palloc(MAXDATELEN + 1);
 
@@ -1383,14 +1224,10 @@ char *agtype_encode_date_time(char *buf, Datum value, Oid typid)
         date = DatumGetDateADT(value);
 
         /* Same as date_out(), but forcing DateStyle */
-        if (DATE_NOT_FINITE(date))
-        {
+        if (DATE_NOT_FINITE(date)) {
             EncodeSpecialDate(date, buf);
-        }
-        else
-        {
-            j2date(date + POSTGRES_EPOCH_JDATE, &(tm.tm_year), &(tm.tm_mon),
-                   &(tm.tm_mday));
+        } else {
+            j2date(date + POSTGRES_EPOCH_JDATE, &(tm.tm_year), &(tm.tm_mon), &(tm.tm_mday));
             EncodeDateOnly(&tm, USE_XSD_DATES, buf);
         }
     }
@@ -1427,18 +1264,12 @@ char *agtype_encode_date_time(char *buf, Datum value, Oid typid)
         timestamp = DatumGetTimestamp(value);
         /* Same as timestamp_out(), but forcing DateStyle */
         if (TIMESTAMP_NOT_FINITE(timestamp))
-        {
             EncodeSpecialTimestamp(timestamp, buf);
-        }
         else if (timestamp2tm(timestamp, NULL, &tm, &fsec, NULL, NULL) == 0)
-        {
             EncodeDateTime(&tm, fsec, false, 0, NULL, USE_XSD_DATES, buf);
-        }
         else
-        {
             ereport(ERROR, (errcode(ERRCODE_DATETIME_VALUE_OUT_OF_RANGE),
                             errmsg("timestamp out of range")));
-        }
     }
     break;
     case TIMESTAMPTZOID:
@@ -1452,18 +1283,12 @@ char *agtype_encode_date_time(char *buf, Datum value, Oid typid)
         timestamp = DatumGetTimestampTz(value);
         /* Same as timestamptz_out(), but forcing DateStyle */
         if (TIMESTAMP_NOT_FINITE(timestamp))
-        {
             EncodeSpecialTimestamp(timestamp, buf);
-        }
         else if (timestamp2tm(timestamp, &tz, &tm, &fsec, &tzn, NULL) == 0)
-        {
             EncodeDateTime(&tm, fsec, true, tz, tzn, USE_XSD_DATES, buf);
-        }
         else
-        {
             ereport(ERROR, (errcode(ERRCODE_DATETIME_VALUE_OUT_OF_RANGE),
                             errmsg("timestamp out of range")));
-        }
     }
     break;
     default:

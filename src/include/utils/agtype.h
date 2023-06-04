@@ -321,6 +321,14 @@ typedef struct
      AGTE_IS_AGTYPE((agt)->root.children[0]) &&\
      (((agt)->root.children[1] & AGT_HEADER_EDGE) == AGT_HEADER_EDGE))
 
+#define AGT_IS_INTEGER(agte_) \
+    (((agte_) == AGT_HEADER_INTEGER))
+
+#define AGT_IS_FLOAT(agte_) \
+    (((agte_) == AGT_HEADER_FLOAT))
+
+#define AGT_IS_PATH(agt) \
+    (AGTE_IS_AGTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_PATH)
 enum agtype_value_type
 {
     /* Scalar types */
