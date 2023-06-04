@@ -50,14 +50,17 @@
 
 #define int8_to_int4 int84
 #define int8_to_int2 int82
+#define int8_to_string int8out
 
 #define float8_to_int8 dtoi8
 #define float8_to_int4 dtoi4
 #define float8_to_int2 dtoi2
+#define float8_to_string float8out
 
 #define numeric_to_int8 numeric_int8
 #define numeric_to_int4 numeric_int4
 #define numeric_to_int2 numeric_int2
+#define numeric_to_string numeric_out
 
 #define string_to_int8 int8in
 #define string_to_int4 int4in
@@ -69,6 +72,7 @@ static ArrayType *agtype_to_array(coearce_function func, agtype *agt, char *type
 
 static Datum agtype_to_int8_internal(agtype_value *agtv);
 static Datum agtype_to_int4_internal(agtype_value *agtv);
+static Datum agtype_to_string_internal(agtype_value *agtv);
 
 static void cannot_cast_agtype_value(enum agtype_value_type type, const char *sqltype);
 
@@ -105,6 +109,26 @@ agtype_tointeger(PG_FUNCTION_ARGS) {
     AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv));
 }
 
+PG_FUNCTION_INFO_V1(age_tostring);
+Datum
+age_tostring(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+
+    if (is_agtype_null(agt))
+        PG_RETURN_NULL();
+
+    char *string = DatumGetCString(convert_to_scalar(agtype_to_string_internal, agt, "string"));
+    
+    agtype_value agtv; 
+    agtv.type = AGTV_STRING;
+    agtv.val.string.val = string;
+    agtv.val.string.len = strlen(string);
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv));
+}
+
 /*
  * agtype to postgres functions
  */
@@ -134,6 +158,22 @@ agtype_to_int4(PG_FUNCTION_ARGS) {
         PG_RETURN_NULL();
 
     Datum d = convert_to_scalar(agtype_to_int4_internal, agt, "int4");
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    PG_RETURN_DATUM(d);
+}
+
+PG_FUNCTION_INFO_V1(agtype_to_text);
+// agtype -> text
+Datum
+agtype_to_text(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+
+    if (is_agtype_null(agt))
+        PG_RETURN_NULL();
+
+    Datum d = convert_to_scalar(agtype_to_string_internal, agt, "string");
 
     PG_FREE_IF_COPY(agt, 0);
 
@@ -226,6 +266,25 @@ agtype_to_int4_internal(agtype_value *agtv) {
 
     // cannot reach
     return 0;
+}
+
+static Datum
+agtype_to_string_internal(agtype_value *agtv) {
+    if (agtv->type == AGTV_INTEGER)
+        return DirectFunctionCall1(int8_to_string, Int64GetDatum(agtv->val.int_value));
+    else if (agtv->type == AGTV_FLOAT)
+        return DirectFunctionCall1(float8_to_string, Float8GetDatum(agtv->val.float_value));
+    else if (agtv->type == AGTV_STRING)
+        return CStringGetDatum(pnstrdup(agtv->val.string.val, agtv->val.string.len));
+    else if (agtv->type == AGTV_NUMERIC)
+        return DirectFunctionCall1(numeric_to_string, NumericGetDatum(agtv->val.numeric));
+    else if (agtv->type == AGTV_BOOL)
+        return CStringGetDatum((agtv->val.boolean) ? "true" : "false");
+    else
+        cannot_cast_agtype_value(agtv->type, "string");
+
+    // unreachable
+    return CStringGetDatum("");
 }
 
 /*

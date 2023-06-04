@@ -2230,63 +2230,6 @@ age_tonumeric(PG_FUNCTION_ARGS) {
     PG_RETURN_POINTER(agtype_value_to_agtype(&agtv));
 }
 
-#define int8_to_string int8out
-#define float8_to_string float8out
-#define numeric_to_string numeric_out
-
-static Datum
-agtype_to_string_internal(agtype_value *agtv) {
-    if (agtv->type == AGTV_INTEGER)
-        return DirectFunctionCall1(int8_to_string, Int64GetDatum(agtv->val.int_value));
-    else if (agtv->type == AGTV_FLOAT)
-        return DirectFunctionCall1(float8_to_string, Float8GetDatum(agtv->val.float_value));
-    else if (agtv->type == AGTV_STRING)
-        return CStringGetDatum(pnstrdup(agtv->val.string.val, agtv->val.string.len));
-    else if (agtv->type == AGTV_NUMERIC)
-        return DirectFunctionCall1(numeric_to_string, NumericGetDatum(agtv->val.numeric));
-    else if (agtv->type == AGTV_BOOL)
-        return CStringGetDatum((agtv->val.boolean) ? "true" : "false");
-    else                           
-        cannot_cast_agtype_value(agtv->type, "string");
-
-    // unreachable
-    return CStringGetDatum("");
-}
-
-PG_FUNCTION_INFO_V1(age_tostring);
-Datum age_tostring(PG_FUNCTION_ARGS)
-{
-    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
-    agtype_value agtv_result;
-    char *string = NULL;
-
-    if (is_agtype_null(agt))
-        PG_RETURN_NULL();
-
-   agtype_value *agtv_value;
-
-   agtv_value = get_ith_agtype_value_from_container(&agt->root, 0);
-
-    if (agtv_value->type == AGTV_INTEGER)
-        string = DatumGetCString(DirectFunctionCall1(int8_to_string, Int64GetDatum(agtv_value->val.int_value)));
-    else if (agtv_value->type == AGTV_FLOAT)
-        string = DatumGetCString(DirectFunctionCall1(float8_to_string, Float8GetDatum(agtv_value->val.float_value)));
-    else if (agtv_value->type == AGTV_STRING)
-        string = pnstrdup(agtv_value->val.string.val, agtv_value->val.string.len);
-    else if (agtv_value->type == AGTV_NUMERIC)
-        string = DatumGetCString(DirectFunctionCall1(numeric_to_string, PointerGetDatum(agtv_value->val.numeric)));
-    else if (agtv_value->type == AGTV_BOOL)
-        string = (agtv_value->val.boolean) ? "true" : "false";
-    else
-        cannot_cast_agtype_value(agtv_value->type, "string");
-
-    agtv_result.type = AGTV_STRING;
-    agtv_result.val.string.val = string;
-    agtv_result.val.string.len = strlen(string);
-
-    PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
-}
-
 PG_FUNCTION_INFO_V1(agtype_to_int2);
 // agtype -> int2
 Datum
@@ -2333,7 +2276,6 @@ agtype_to_float8_internal(agtype_value *agtv) {
 }
 
 PG_FUNCTION_INFO_V1(agtype_to_float8);
-
 /*
  * Cast agtype to float8.
  */
@@ -2351,7 +2293,6 @@ Datum agtype_to_float8(PG_FUNCTION_ARGS)
 
     PG_RETURN_DATUM(result);
 }
-
 
 PG_FUNCTION_INFO_V1(age_tofloat);
 Datum   
@@ -2371,42 +2312,6 @@ age_tofloat(PG_FUNCTION_ARGS) {
 
     AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv));
 }   
-
-PG_FUNCTION_INFO_V1(agtype_to_text);
-
-/*
- * Cast agtype to text.
- */
-Datum agtype_to_text(PG_FUNCTION_ARGS)
-{
-    agtype *arg_agt;
-    agtype_value *arg_value;
-    text *text_value;
-
-    /* get the agtype equivalence of any convertable input type */
-    arg_agt = get_one_agtype_from_variadic_args(fcinfo, 0, 1);
-
-    /* Return null if arg_agt is null. This covers SQL and Agtype NULLS */
-    if (arg_agt == NULL)
-        PG_RETURN_NULL();
-
-    /* check that we have a scalar value */
-    if (!AGT_ROOT_IS_SCALAR(arg_agt))
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("agtype argument must resolve to a scalar value")));
-
-    /* get the arg parameter */
-    arg_value = get_ith_agtype_value_from_container(&arg_agt->root, 0);
-
-    text_value = agtype_value_to_text(arg_value, true);
-    if (text_value == NULL)
-    {
-        PG_RETURN_NULL();
-    }
-
-    PG_RETURN_TEXT_P(text_value);
-}
 
 PG_FUNCTION_INFO_V1(bool_to_agtype);
 // boolean -> agtype
