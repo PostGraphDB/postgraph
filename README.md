@@ -23,3 +23,5 @@ The first step of PostGraph is to utilize what Postgres' offers in it's most bas
 ## Phase 2 - xxx What does the community have to offer
 
 We are limited in what PostGraph can be only by what the community has to offer. Which means the sky is the limit.
+
+For more information, [see the licensing information](https://github.com/PostGraphDB/postgraph/blob/PG14/LICENSE).
