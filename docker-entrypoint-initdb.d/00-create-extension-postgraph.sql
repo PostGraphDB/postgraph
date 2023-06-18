@@ -16,4 +16,4 @@
 -- limitations under the License.
 --
 
-CREATE EXTENSION age;
+CREATE EXTENSION postgraph;

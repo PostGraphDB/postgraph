@@ -26,9 +26,9 @@ RUN apt-get install --assume-yes --no-install-recommends --no-install-suggests \
   flex \
   postgresql-server-dev-14
 
-COPY . /age
-RUN cd /age && make install
+COPY . /postgraph
+RUN cd /postgraph && make install
 
-COPY docker-entrypoint-initdb.d/00-create-extension-age.sql /docker-entrypoint-initdb.d/00-create-extension-age.sql
+COPY docker-entrypoint-initdb.d/00-create-extension-postgraph.sql /docker-entrypoint-initdb.d/00-create-extension-postgraph.sql
 
-CMD ["postgres", "-c", "shared_preload_libraries=age"]
+CMD ["postgres", "-c", "shared_preload_libraries=postgraph"]
