@@ -1,21 +1,22 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (C) 2023 PostGraphDB
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Portions Copyright (c) 2020-2023, Apache Software Foundation
  */
+
 
 #include "postgres.h"
 
@@ -77,7 +78,7 @@ typedef struct edge_entry
  * Be aware that the global pointer will point to the root BUT that
  * the root will change as new graphs are added to the top.
  */
-typedef struct GRAPH_global_context
+typedef struct graph_context
 {
     char *graph_name;              /* graph name */
     Oid graph_oid;                 /* graph oid for searching */
@@ -89,42 +90,42 @@ typedef struct GRAPH_global_context
     int64 num_loaded_vertices;     /* number of loaded vertices in this graph */
     int64 num_loaded_edges;        /* number of loaded edges in this graph */
     ListGraphId *vertices;         /* vertices for vertex hashtable cleanup */
-    struct GRAPH_global_context *next; /* next graph */
-} GRAPH_global_context;
+    struct graph_context *next; /* next graph */
+} graph_context;
 
 /* global variable to hold the per process GRAPH global context */
-static GRAPH_global_context *global_graph_contexts = NULL;
+static graph_context *global_graph_contexts = NULL;
 
 /* declarations */
 /* GRAPH global context functions */
-static void free_specific_GRAPH_global_context(GRAPH_global_context *ggctx);
-static bool delete_specific_GRAPH_global_contexts(char *graph_name);
-static bool delete_GRAPH_global_contexts(void);
-static void create_GRAPH_global_hashtables(GRAPH_global_context *ggctx);
-static void load_GRAPH_global_hashtables(GRAPH_global_context *ggctx);
-static void load_vertex_hashtable(GRAPH_global_context *ggctx);
-static void load_edge_hashtable(GRAPH_global_context *ggctx);
-static void freeze_GRAPH_global_hashtables(GRAPH_global_context *ggctx);
+static void free_specific_graph_context(graph_context *ggctx);
+static bool delete_specific_graph_contexts(char *graph_name);
+static bool delete_graph_contexts(void);
+static void create_GRAPH_global_hashtables(graph_context *ggctx);
+static void load_GRAPH_global_hashtables(graph_context *ggctx);
+static void load_vertex_hashtable(graph_context *ggctx);
+static void load_edge_hashtable(graph_context *ggctx);
+static void freeze_GRAPH_global_hashtables(graph_context *ggctx);
 static List *get_ag_labels_names(Snapshot snapshot, Oid graph_oid,
                                  char label_type);
-static bool insert_edge(GRAPH_global_context *ggctx, graphid edge_id,
+static bool insert_edge(graph_context *ggctx, graphid edge_id,
                         Datum edge_properties, graphid start_vertex_id,
                         graphid end_vertex_id, Oid edge_label_table_oid);
-static bool insert_vertex_edge(GRAPH_global_context *ggctx,
+static bool insert_vertex_edge(graph_context *ggctx,
                                graphid start_vertex_id, graphid end_vertex_id,
                                graphid edge_id);
-static bool insert_vertex_entry(GRAPH_global_context *ggctx, graphid vertex_id,
+static bool insert_vertex_entry(graph_context *ggctx, graphid vertex_id,
                                 Oid vertex_label_table_oid,
                                 Datum vertex_properties);
 /* definitions */
 
 /*
- * Helper function to determine validity of the passed GRAPH_global_context.
+ * Helper function to determine validity of the passed graph_context.
  * This is based off of the current active snaphot, to see if the graph could
  * have been modified. Ideally, we should find a way to more accurately know
  * whether the particular graph was modified.
  */
-bool is_ggctx_invalid(GRAPH_global_context *ggctx)
+bool is_ggctx_invalid(graph_context *ggctx)
 {
     Snapshot snap = GetActiveSnapshot();
 
@@ -144,7 +145,7 @@ bool is_ggctx_invalid(GRAPH_global_context *ggctx)
  * list, and its properties datum. The other hashtable will hold the edge, its
  * properties datum, and its source and target vertex.
  */
-static void create_GRAPH_global_hashtables(GRAPH_global_context *ggctx)
+static void create_GRAPH_global_hashtables(graph_context *ggctx)
 {
     HASHCTL vertex_ctl;
     HASHCTL edge_ctl;
@@ -248,7 +249,7 @@ static List *get_ag_labels_names(Snapshot snapshot, Oid graph_oid,
  * Helper function to insert one edge/edge->vertex, key/value pair, in the
  * current GRAPH global edge hashtable.
  */
-static bool insert_edge(GRAPH_global_context *ggctx, graphid edge_id,
+static bool insert_edge(graph_context *ggctx, graphid edge_id,
                         Datum edge_properties, graphid start_vertex_id,
                         graphid end_vertex_id, Oid edge_label_table_oid)
 {
@@ -292,7 +293,7 @@ static bool insert_edge(GRAPH_global_context *ggctx, graphid edge_id,
  * Helper function to insert an entire vertex into the current GRAPH global
  * vertex hashtable. It will return false if there is a duplicate.
  */
-static bool insert_vertex_entry(GRAPH_global_context *ggctx, graphid vertex_id,
+static bool insert_vertex_entry(graph_context *ggctx, graphid vertex_id,
                                 Oid vertex_label_table_oid,
                                 Datum vertex_properties)
 {
@@ -339,7 +340,7 @@ static bool insert_vertex_entry(GRAPH_global_context *ggctx, graphid vertex_id,
  * Helper function to append one edge to an existing vertex in the current
  * global vertex hashtable.
  */
-static bool insert_vertex_edge(GRAPH_global_context *ggctx,
+static bool insert_vertex_edge(graph_context *ggctx,
                                graphid start_vertex_id, graphid end_vertex_id,
                                graphid edge_id)
 {
@@ -389,7 +390,7 @@ static bool insert_vertex_edge(GRAPH_global_context *ggctx,
 }
 
 /* helper routine to load all vertices into the GRAPH global vertex hashtable */
-static void load_vertex_hashtable(GRAPH_global_context *ggctx)
+static void load_vertex_hashtable(graph_context *ggctx)
 {
     Oid graph_oid;
     Oid graph_namespace_oid;
@@ -471,7 +472,7 @@ static void load_vertex_hashtable(GRAPH_global_context *ggctx)
  * Helper function to load all of the GRAPH global hashtables (vertex & edge)
  * for the current global context.
  */
-static void load_GRAPH_global_hashtables(GRAPH_global_context *ggctx)
+static void load_GRAPH_global_hashtables(graph_context *ggctx)
 {
     /* initialize statistics */
     ggctx->num_loaded_vertices = 0;
@@ -488,7 +489,7 @@ static void load_GRAPH_global_hashtables(GRAPH_global_context *ggctx)
  * Helper routine to load all edges into the GRAPH global edge and vertex
  * hashtables.
  */
-static void load_edge_hashtable(GRAPH_global_context *ggctx)
+static void load_edge_hashtable(graph_context *ggctx)
 {
     Oid graph_oid;
     Oid graph_namespace_oid;
@@ -593,7 +594,7 @@ static void load_edge_hashtable(GRAPH_global_context *ggctx)
  * inserts. This may, or may not, be useful. Currently, these hashtables are
  * only seen by the creating process and only for reading.
  */
-static void freeze_GRAPH_global_hashtables(GRAPH_global_context *ggctx)
+static void freeze_GRAPH_global_hashtables(graph_context *ggctx)
 {
     hash_freeze(ggctx->vertex_hashtable);
     hash_freeze(ggctx->edge_hashtable);
@@ -603,7 +604,7 @@ static void freeze_GRAPH_global_hashtables(GRAPH_global_context *ggctx)
  * Helper function to free the entire specified GRAPH global context. After
  * running this you should not use the pointer in ggctx.
  */
-static void free_specific_GRAPH_global_context(GRAPH_global_context *ggctx)
+static void free_specific_graph_context(graph_context *ggctx)
 {
     GraphIdNode *curr_vertex = NULL;
 
@@ -677,12 +678,12 @@ static void free_specific_GRAPH_global_context(GRAPH_global_context *ggctx)
  * During processing it will free (delete) all invalid GRAPH contexts. It
  * returns the GRAPH global context for the specified graph.
  */
-GRAPH_global_context *manage_GRAPH_global_contexts(char *graph_name,
+graph_context *manage_graph_contexts(char *graph_name,
                                                    Oid graph_oid)
 {
-    GRAPH_global_context *new_ggctx = NULL;
-    GRAPH_global_context *curr_ggctx = NULL;
-    GRAPH_global_context *prev_ggctx = NULL;
+    graph_context *new_ggctx = NULL;
+    graph_context *curr_ggctx = NULL;
+    graph_context *prev_ggctx = NULL;
     MemoryContext oldctx = NULL;
 
     /* we need a higher context, or one that isn't destroyed by SRF exit */
@@ -704,7 +705,7 @@ GRAPH_global_context *manage_GRAPH_global_contexts(char *graph_name,
     curr_ggctx = global_graph_contexts;
     while (curr_ggctx != NULL)
     {
-        GRAPH_global_context *next_ggctx = curr_ggctx->next;
+        graph_context *next_ggctx = curr_ggctx->next;
 
         /* if the transaction ids have changed, we have an invalid graph */
         if (is_ggctx_invalid(curr_ggctx))
@@ -724,7 +725,7 @@ GRAPH_global_context *manage_GRAPH_global_contexts(char *graph_name,
             }
 
             /* free the current graph context */
-            free_specific_GRAPH_global_context(curr_ggctx);
+            free_specific_graph_context(curr_ggctx);
         }
         else
         {
@@ -750,7 +751,7 @@ GRAPH_global_context *manage_GRAPH_global_contexts(char *graph_name,
     }
 
     /* otherwise, we need to create one and possibly attach it */
-    new_ggctx = palloc0(sizeof(GRAPH_global_context));
+    new_ggctx = palloc0(sizeof(graph_context));
 
     if (global_graph_contexts != NULL)
     {
@@ -791,9 +792,9 @@ GRAPH_global_context *manage_GRAPH_global_contexts(char *graph_name,
  * Helper function to delete all of the global graph contexts used by the
  * process. When done the global global_graph_contexts will be NULL.
  */
-static bool delete_GRAPH_global_contexts(void)
+static bool delete_graph_contexts(void)
 {
-    GRAPH_global_context *curr_ggctx = NULL;
+    graph_context *curr_ggctx = NULL;
     bool retval = false;
 
     /* get the first context, if any */
@@ -802,10 +803,10 @@ static bool delete_GRAPH_global_contexts(void)
     /* free all GRAPH global contexts */
     while (curr_ggctx != NULL)
     {
-        GRAPH_global_context *next_ggctx = curr_ggctx->next;
+        graph_context *next_ggctx = curr_ggctx->next;
 
         /* free the current graph context */
-        free_specific_GRAPH_global_context(curr_ggctx);
+        free_specific_graph_context(curr_ggctx);
 
         /* advance to the next context */
         curr_ggctx = next_ggctx;
@@ -823,10 +824,10 @@ static bool delete_GRAPH_global_contexts(void)
  * Helper function to delete a specific global graph context used by the
  * process.
  */
-static bool delete_specific_GRAPH_global_contexts(char *graph_name)
+static bool delete_specific_graph_contexts(char *graph_name)
 {
-    GRAPH_global_context *prev_ggctx = NULL;
-    GRAPH_global_context *curr_ggctx = NULL;
+    graph_context *prev_ggctx = NULL;
+    graph_context *curr_ggctx = NULL;
     Oid graph_oid = InvalidOid;
 
     if (graph_name == NULL)
@@ -843,7 +844,7 @@ static bool delete_specific_GRAPH_global_contexts(char *graph_name)
     /* find the specified GRAPH global context */
     while (curr_ggctx != NULL)
     {
-        GRAPH_global_context *next_ggctx = curr_ggctx->next;
+        graph_context *next_ggctx = curr_ggctx->next;
 
         if (curr_ggctx->graph_oid == graph_oid)
         {
@@ -862,7 +863,7 @@ static bool delete_specific_GRAPH_global_contexts(char *graph_name)
             }
 
             /* free the current graph context */
-            free_specific_GRAPH_global_context(curr_ggctx);
+            free_specific_graph_context(curr_ggctx);
 
             /* we found and freed it, return true */
             return true;
@@ -881,7 +882,7 @@ static bool delete_specific_GRAPH_global_contexts(char *graph_name)
  * table. If there isn't one, it returns a NULL. The latter is necessary for
  * checking if the vsid and veid entries exist.
  */
-vertex_entry *get_vertex_entry(GRAPH_global_context *ggctx, graphid vertex_id)
+vertex_entry *get_vertex_entry(graph_context *ggctx, graphid vertex_id)
 {
     vertex_entry *ve = NULL;
     bool found = false;
@@ -893,7 +894,7 @@ vertex_entry *get_vertex_entry(GRAPH_global_context *ggctx, graphid vertex_id)
 }
 
 /* helper function to retrieve an edge_entry from the graph's edge hash table */
-edge_entry *get_edge_entry(GRAPH_global_context *ggctx, graphid edge_id)
+edge_entry *get_edge_entry(graph_context *ggctx, graphid edge_id)
 {
     edge_entry *ee = NULL;
     bool found = false;
@@ -908,12 +909,12 @@ edge_entry *get_edge_entry(GRAPH_global_context *ggctx, graphid edge_id)
 }
 
 /*
- * Helper function to find the GRAPH_global_context used by the specified
+ * Helper function to find the graph_context used by the specified
  * graph_oid. If not found, it returns NULL.
  */
-GRAPH_global_context *find_GRAPH_global_context(Oid graph_oid)
+graph_context *find_graph_context(Oid graph_oid)
 {
-    GRAPH_global_context *ggctx = NULL;
+    graph_context *ggctx = NULL;
 
     /* get the root */
     ggctx = global_graph_contexts;
@@ -935,7 +936,7 @@ GRAPH_global_context *find_GRAPH_global_context(Oid graph_oid)
 }
 
 /* graph vertices accessor */
-ListGraphId *get_graph_vertices(GRAPH_global_context *ggctx)
+ListGraphId *get_graph_vertices(graph_context *ggctx)
 {
     return ggctx->vertices;
 }
@@ -1018,14 +1019,14 @@ Datum age_delete_global_graphs(PG_FUNCTION_ARGS)
 
     if (agtv_temp == NULL || agtv_temp->type == AGTV_NULL)
     {
-        success = delete_GRAPH_global_contexts();
+        success = delete_graph_contexts();
     }
     else if (agtv_temp->type == AGTV_STRING)
     {
         char *graph_name = NULL;
 
         graph_name = agtv_temp->val.string.val;
-        success = delete_specific_GRAPH_global_contexts(graph_name);
+        success = delete_specific_graph_contexts(graph_name);
     }
     else
     {
@@ -1042,7 +1043,7 @@ PG_FUNCTION_INFO_V1(age_vertex_stats);
 
 Datum age_vertex_stats(PG_FUNCTION_ARGS)
 {
-    GRAPH_global_context *ggctx = NULL;
+    graph_context *ggctx = NULL;
     vertex_entry *ve = NULL;
     ListGraphId *edges = NULL;
     agtype_value *agtv_vertex = NULL;
@@ -1089,7 +1090,7 @@ Datum age_vertex_stats(PG_FUNCTION_ARGS)
      * Create or retrieve the GRAPH global context for this graph. This function
      * will also purge off invalidated contexts.
      */
-    ggctx = manage_GRAPH_global_contexts(graph_name, graph_oid);
+    ggctx = manage_graph_contexts(graph_name, graph_oid);
 
     /* free the graph name */
     pfree(graph_name);

@@ -1,20 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (C) 2023 PostGraphDB
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Portions Copyright (c) 2020-2023, Apache Software Foundation
  */
 
 #ifndef AG_AGE_GLOBAL_GRAPH_H
@@ -35,18 +35,18 @@ typedef struct vertex_entry vertex_entry;
 /* edge entry for the edge_hashtable */
 typedef struct edge_entry edge_entry;
 
-typedef struct GRAPH_global_context GRAPH_global_context;
+typedef struct graph_context graph_context;
 
 /* GRAPH global context functions */
-GRAPH_global_context *manage_GRAPH_global_contexts(char *graph_name,
+graph_context *manage_graph_contexts(char *graph_name,
                                                    Oid graph_oid);
-GRAPH_global_context *find_GRAPH_global_context(Oid graph_oid);
-bool is_ggctx_invalid(GRAPH_global_context *ggctx);
+graph_context *find_graph_context(Oid graph_oid);
+bool is_ggctx_invalid(graph_context *ggctx);
 /* GRAPH retrieval functions */
-ListGraphId *get_graph_vertices(GRAPH_global_context *ggctx);
-vertex_entry *get_vertex_entry(GRAPH_global_context *ggctx,
+ListGraphId *get_graph_vertices(graph_context *ggctx);
+vertex_entry *get_vertex_entry(graph_context *ggctx,
                                graphid vertex_id);
-edge_entry *get_edge_entry(GRAPH_global_context *ggctx, graphid edge_id);
+edge_entry *get_edge_entry(graph_context *ggctx, graphid edge_id);
 /* vertex entry accessor functions*/
 graphid get_vertex_entry_id(vertex_entry *ve);
 ListGraphId *get_vertex_entry_edges_in(vertex_entry *ve);
