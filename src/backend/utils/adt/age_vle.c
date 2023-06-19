@@ -1,20 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (C) 2023 PostGraphDB
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Portions Copyright (c) 2020-2023, Apache Software Foundation
  */
 
 #include "postgres.h"
@@ -65,11 +65,11 @@ typedef enum
 } VLE_path_function;
 
 /* VLE local context per each unique age_vle function activation */
-typedef struct VLE_local_context
+typedef struct path_finding_context
 {
     char *graph_name;              /* name of the graph */
     Oid graph_oid;                 /* graph oid for searching */
-    GRAPH_global_context *ggctx;   /* global graph context pointer */
+    graph_context *ggctx;   /* global graph context pointer */
     graphid vsid;                  /* starting vertex id */
     graphid veid;                  /* ending vertex id */
     char *edge_label_name;         /* edge label name for match */
@@ -85,10 +85,10 @@ typedef struct VLE_local_context
     VLE_path_function path_function; /* which path function to use */
     GraphIdNode *next_vertex;      /* for VLE_FUNCTION_PATHS_TO */
     int64 vle_grammar_node_id;     /* the unique VLE grammar assigned node id */
-    bool use_cache;                /* are we using VLE_local_context cache */
-    struct VLE_local_context *next;  /* the next chained VLE_local_context */
+    bool use_cache;                /* are we using path_finding_context cache */
+    struct path_finding_context *next;  /* the next chained path_finding_context */
     bool is_dirty;                 /* is this VLE context reusable */
-} VLE_local_context;
+} path_finding_context;
 
 /*
  * Container to hold the graphid array that contains one valid path. This
@@ -96,7 +96,7 @@ typedef struct VLE_local_context
  * structure is set up to contains a BINARY container that can be accessed by
  * functions that need to process the path.
  */
-typedef struct VLE_path_container
+typedef struct path_container
 {
     char vl_len_[4]; /* Do not touch this field! */
     uint32 header;
@@ -104,41 +104,41 @@ typedef struct VLE_path_container
     int64 graphid_array_size;
     int64 container_size_bytes;
     graphid graphid_array_data;
-} VLE_path_container;
+} path_container;
 
 /* declarations */
 
 /* global variable to hold the per process global cached VLE_local contexts */
-static VLE_local_context *global_vle_local_contexts = NULL;
+static path_finding_context *global_vle_local_contexts = NULL;
 
 /* agtype functions */
-static bool is_an_edge_match(VLE_local_context *vlelctx, edge_entry *ee);
+static bool is_an_edge_match(path_finding_context *vlelctx, edge_entry *ee);
 /* VLE local context functions */
-static VLE_local_context *build_local_vle_context(FunctionCallInfo fcinfo,
+static path_finding_context *build_local_vle_context(FunctionCallInfo fcinfo,
                                                   FuncCallContext *funcctx);
-static void create_VLE_local_state_hashtable(VLE_local_context *vlelctx);
-static void free_VLE_local_context(VLE_local_context *vlelctx);
+static void create_VLE_local_state_hashtable(path_finding_context *vlelctx);
+static void free_path_finding_context(path_finding_context *vlelctx);
 /* VLE graph traversal functions */
-static edge_state_entry *get_edge_state(VLE_local_context *vlelctx,
+static edge_state_entry *get_edge_state(path_finding_context *vlelctx,
                                         graphid edge_id);
 /* graphid data structures */
-static void load_initial_dfs_stacks(VLE_local_context *vlelctx);
-static bool dfs_find_a_path_between(VLE_local_context *vlelctx);
-static bool dfs_find_a_path_from(VLE_local_context *vlelctx);
-static bool do_vsid_and_veid_exist(VLE_local_context *vlelctx);
-static void add_valid_vertex_edges(VLE_local_context *vlelctx,
+static void load_initial_dfs_stacks(path_finding_context *vlelctx);
+static bool dfs_find_a_path_between(path_finding_context *vlelctx);
+static bool dfs_find_a_path_from(path_finding_context *vlelctx);
+static bool do_vsid_and_veid_exist(path_finding_context *vlelctx);
+static void add_valid_vertex_edges(path_finding_context *vlelctx,
                                    graphid vertex_id);
-static graphid get_next_vertex(VLE_local_context *vlelctx, edge_entry *ee);
-static bool is_edge_in_path(VLE_local_context *vlelctx, graphid edge_id);
+static graphid get_next_vertex(path_finding_context *vlelctx, edge_entry *ee);
+static bool is_edge_in_path(path_finding_context *vlelctx, graphid edge_id);
 /* VLE path and edge building functions */
-static VLE_path_container *create_VLE_path_container(int64 path_size);
-static VLE_path_container *build_VLE_path_container(VLE_local_context *vlelctx);
-static VLE_path_container *build_VLE_zero_container(VLE_local_context *vlelctx);
-static agtype_value *build_path(VLE_path_container *vpc);
-static agtype_value *build_edge_list(VLE_path_container *vpc);
-/* VLE_local_context cache management */
-static VLE_local_context *get_cached_VLE_local_context(int64 vle_node_id);
-static void cache_VLE_local_context(VLE_local_context *vlelctx);
+static path_container *create_path_container(int64 path_size);
+static path_container *build_path_container(path_finding_context *vlelctx);
+static path_container *build_VLE_zero_container(path_finding_context *vlelctx);
+static agtype_value *build_path(path_container *vpc);
+static agtype_value *build_edge_list(path_container *vpc);
+/* path_finding_context cache management */
+static path_finding_context *get_cached_path_finding_context(int64 vle_node_id);
+static void cache_path_finding_context(path_finding_context *vlelctx);
 
 /* definitions */
 
@@ -149,11 +149,11 @@ static void cache_VLE_local_context(VLE_local_context *vlelctx);
  * the list. If a context doesn't exist or is dirty, it will purge it off and
  * return NULL.
  */
-static VLE_local_context *get_cached_VLE_local_context(int64 vle_grammar_node_id)
+static path_finding_context *get_cached_path_finding_context(int64 vle_grammar_node_id)
 {
-    VLE_local_context *vlelctx = global_vle_local_contexts;
-    VLE_local_context *prev = NULL;
-    VLE_local_context *next = NULL;
+    path_finding_context *vlelctx = global_vle_local_contexts;
+    path_finding_context *prev = NULL;
+    path_finding_context *next = NULL;
     int cache_size = 0;
 
     /* while we have contexts to check */
@@ -178,7 +178,7 @@ static VLE_local_context *get_cached_VLE_local_context(int64 vle_grammar_node_id
             }
 
             /* free the context */
-            free_VLE_local_context(vlelctx);
+            free_path_finding_context(vlelctx);
 
             /* set to the next one */
             vlelctx = next;
@@ -193,14 +193,14 @@ static VLE_local_context *get_cached_VLE_local_context(int64 vle_grammar_node_id
             /* and isn't dirty */
             if (vlelctx->is_dirty == false)
             {
-                GRAPH_global_context *ggctx = NULL;
+                graph_context *ggctx = NULL;
 
                 /*
                  * Get the GRAPH global context associated with this local VLE
                  * context. We need to verify it still exists and that the
                  * pointer is valid.
                  */
-                ggctx = find_GRAPH_global_context(vlelctx->graph_oid);
+                ggctx = find_graph_context(vlelctx->graph_oid);
 
                 /*
                  * If ggctx == NULL, vlelctx is bad and vlelctx needs to be
@@ -256,7 +256,7 @@ static VLE_local_context *get_cached_VLE_local_context(int64 vle_grammar_node_id
             }
 
             /* now free it and return NULL */
-            free_VLE_local_context(vlelctx);
+            free_path_finding_context(vlelctx);
             return NULL;
         }
         /* save the previous context */
@@ -269,7 +269,7 @@ static VLE_local_context *get_cached_VLE_local_context(int64 vle_grammar_node_id
     return vlelctx;
 }
 
-static void cache_VLE_local_context(VLE_local_context *vlelctx)
+static void cache_path_finding_context(path_finding_context *vlelctx)
 {
     /* if the context passed is null, just return */
     if (vlelctx == NULL)
@@ -290,7 +290,7 @@ static void cache_VLE_local_context(VLE_local_context *vlelctx)
 }
 
 /* helper function to create the local VLE edge state hashtable. */
-static void create_VLE_local_state_hashtable(VLE_local_context *vlelctx)
+static void create_VLE_local_state_hashtable(path_finding_context *vlelctx)
 {
     HASHCTL edge_state_ctl;
     char *graph_name = NULL;
@@ -326,7 +326,7 @@ static void create_VLE_local_state_hashtable(VLE_local_context *vlelctx)
  * Helper function to compare the edge constraint (properties we are looking
  * for in a matching edge) against an edge entry's property.
  */
-static bool is_an_edge_match(VLE_local_context *vlelctx, edge_entry *ee)
+static bool is_an_edge_match(path_finding_context *vlelctx, edge_entry *ee)
 {
     agtype *edge_property = NULL;
     agtype_container *agtc_edge_property = NULL;
@@ -388,14 +388,14 @@ static bool is_an_edge_match(VLE_local_context *vlelctx, edge_entry *ee)
 }
 
 /*
- * Helper function to free up the memory used by the VLE_local_context.
+ * Helper function to free up the memory used by the path_finding_context.
  *
  * Currently, the only structures that needs to be freed are the edge state
  * hashtable and the dfs stacks (vertex, edge, and path). The hashtable is easy
  * because hash_create packages everything into its own memory context. So, you
  * only need to do a destroy.
  */
-static void free_VLE_local_context(VLE_local_context *vlelctx)
+static void free_path_finding_context(path_finding_context *vlelctx)
 {
     /* if the VLE context is NULL, do nothing */
     if (vlelctx == NULL)
@@ -448,7 +448,7 @@ static void free_VLE_local_context(VLE_local_context *vlelctx)
 }
 
 /* helper function to check if our start and end vertices exist */
-static bool do_vsid_and_veid_exist(VLE_local_context *vlelctx)
+static bool do_vsid_and_veid_exist(path_finding_context *vlelctx)
 {
     /* if we are only using the starting vertex */
     if (vlelctx->path_function == VLE_FUNCTION_PATHS_FROM ||
@@ -469,7 +469,7 @@ static bool do_vsid_and_veid_exist(VLE_local_context *vlelctx)
 }
 
 /* load the initial edges into the dfs_edge_stack */
-static void load_initial_dfs_stacks(VLE_local_context *vlelctx)
+static void load_initial_dfs_stacks(path_finding_context *vlelctx)
 {
     /*
      * If either the vsid or veid don't exist - don't load anything because
@@ -488,12 +488,12 @@ static void load_initial_dfs_stacks(VLE_local_context *vlelctx)
  * Helper function to build the local VLE context. This is also the point
  * where, if necessary, the global GRAPH contexts are created and freed.
  */
-static VLE_local_context *build_local_vle_context(FunctionCallInfo fcinfo,
+static path_finding_context *build_local_vle_context(FunctionCallInfo fcinfo,
                                                   FuncCallContext *funcctx)
 {
     MemoryContext oldctx = NULL;
-    GRAPH_global_context *ggctx = NULL;
-    VLE_local_context *vlelctx = NULL;
+    graph_context *ggctx = NULL;
+    path_finding_context *vlelctx = NULL;
     agtype_value *agtv_temp = NULL;
     agtype_value *agtv_object = NULL;
     char *graph_name = NULL;
@@ -516,10 +516,10 @@ static VLE_local_context *build_local_vle_context(FunctionCallInfo fcinfo,
         use_cache = true;
     }
 
-    /* fetch the VLE_local_context if it is cached */
-    vlelctx = get_cached_VLE_local_context(vle_grammar_node_id);
+    /* fetch the path_finding_context if it is cached */
+    vlelctx = get_cached_path_finding_context(vle_grammar_node_id);
 
-    /* if we are caching VLE_local_contexts and this grammar node is cached */
+    /* if we are caching path_finding_contexts and this grammar node is cached */
     if (use_cache && vlelctx != NULL)
     {
         /*
@@ -589,7 +589,7 @@ static VLE_local_context *build_local_vle_context(FunctionCallInfo fcinfo,
         return vlelctx;
     }
 
-    /* we are not using a cached VLE_local_context, so create a new one */
+    /* we are not using a cached path_finding_context, so create a new one */
 
     /*
      * If we are going to cache this context, we need to use TopMemoryContext
@@ -617,10 +617,10 @@ static VLE_local_context *build_local_vle_context(FunctionCallInfo fcinfo,
      * Create or retrieve the GRAPH global context for this graph. This function
      * will also purge off invalidated contexts.
     */
-    ggctx = manage_GRAPH_global_contexts(graph_name, graph_oid);
+    ggctx = manage_graph_contexts(graph_name, graph_oid);
 
     /* allocate and initialize local VLE context */
-    vlelctx = palloc0(sizeof(VLE_local_context));
+    vlelctx = palloc0(sizeof(path_finding_context));
 
     /* store the cache usage */
     vlelctx->use_cache = use_cache;
@@ -784,7 +784,7 @@ static VLE_local_context *build_local_vle_context(FunctionCallInfo fcinfo,
     /* if this is to be cached, cache it */
     if (use_cache == true)
     {
-        cache_VLE_local_context(vlelctx);
+        cache_path_finding_context(vlelctx);
     }
 
     /* switch back to the original context */
@@ -798,7 +798,7 @@ static VLE_local_context *build_local_vle_context(FunctionCallInfo fcinfo,
  * Helper function to get the specified edge's state. If it does not find it, it
  * creates and initializes it.
  */
-static edge_state_entry *get_edge_state(VLE_local_context *vlelctx,
+static edge_state_entry *get_edge_state(path_finding_context *vlelctx,
                                         graphid edge_id)
 {
     edge_state_entry *ese = NULL;
@@ -824,7 +824,7 @@ static edge_state_entry *get_edge_state(VLE_local_context *vlelctx,
  * Helper function to get the id of the next vertex to move to. This is to
  * simplify finding the next vertex due to the VLE edge's direction.
  */
-static graphid get_next_vertex(VLE_local_context *vlelctx, edge_entry *ee)
+static graphid get_next_vertex(path_finding_context *vlelctx, edge_entry *ee)
 {
     graphid terminal_vertex_id;
 
@@ -887,7 +887,7 @@ static graphid get_next_vertex(VLE_local_context *vlelctx, edge_entry *ee)
  * the stack. Each successive invocation within the SRF will then look for the
  * next available path until there aren't any left.
  */
-static bool dfs_find_a_path_between(VLE_local_context *vlelctx)
+static bool dfs_find_a_path_between(path_finding_context *vlelctx)
 {
     ListGraphId *vertex_stack = NULL;
     ListGraphId *edge_stack = NULL;
@@ -1017,7 +1017,7 @@ static bool dfs_find_a_path_between(VLE_local_context *vlelctx)
  * the stack. Each successive invocation within the SRF will then look for the
  * next available path until there aren't any left.
  */
-static bool dfs_find_a_path_from(VLE_local_context *vlelctx)
+static bool dfs_find_a_path_from(path_finding_context *vlelctx)
 {
     ListGraphId *vertex_stack = NULL;
     ListGraphId *edge_stack = NULL;
@@ -1127,7 +1127,7 @@ static bool dfs_find_a_path_from(VLE_local_context *vlelctx)
  * smaller sized lists. But, it is O(n) so it should only be used for small
  * path_stacks and where appropriate.
  */
-static bool is_edge_in_path(VLE_local_context *vlelctx, graphid edge_id)
+static bool is_edge_in_path(path_finding_context *vlelctx, graphid edge_id)
 {
     GraphIdNode *edge = NULL;
 
@@ -1158,7 +1158,7 @@ static bool is_edge_in_path(VLE_local_context *vlelctx, graphid edge_id)
  *
  * Note: The vertex must exist.
  */
-static void add_valid_vertex_edges(VLE_local_context *vlelctx,
+static void add_valid_vertex_edges(path_finding_context *vlelctx,
                                    graphid vertex_id)
 {
     ListGraphId *vertex_stack = NULL;
@@ -1307,9 +1307,9 @@ static void add_valid_vertex_edges(VLE_local_context *vlelctx,
  * containing the found path. The path_size is the total number of vertices and
  * edges in the path.
  */
-static VLE_path_container *create_VLE_path_container(int64 path_size)
+static path_container *create_path_container(int64 path_size)
 {
-    VLE_path_container *vpc = NULL;
+    path_container *vpc = NULL;
     int container_size_bytes = 0;
 
     /*
@@ -1342,13 +1342,13 @@ static VLE_path_container *create_VLE_path_container(int64 path_size)
 }
 
 /*
- * Helper function to build a VLE_path_container containing the graphid array
+ * Helper function to build a path_container containing the graphid array
  * from the path_stack. The graphid array will be a complete path (vertices and
  * edges interleaved) -
  *
  *     start vertex, first edge,... nth edge, end vertex
  *
- * The VLE_path_container is allocated in such a way as to wrap the array and
+ * The path_container is allocated in such a way as to wrap the array and
  * include the following additional data -
  *
  *     The header is to allow the graphid array to be encoded as an agtype
@@ -1366,10 +1366,10 @@ static VLE_path_container *create_VLE_path_container(int64 path_size)
  *       exiting the SRF context.
  */
 
-static VLE_path_container *build_VLE_path_container(VLE_local_context *vlelctx)
+static path_container *build_path_container(path_finding_context *vlelctx)
 {
     ListGraphId *stack = vlelctx->dfs_path_stack;
-    VLE_path_container *vpc = NULL;
+    path_container *vpc = NULL;
     graphid *graphid_array = NULL;
     GraphIdNode *edge = NULL;
     graphid vid = 0;
@@ -1388,7 +1388,7 @@ static VLE_path_container *build_VLE_path_container(VLE_local_context *vlelctx)
      * Create the container. Note that the path size will always be 2 times the
      * number of edges plus 1 -> (u)-[e]-(v)
      */
-    vpc = create_VLE_path_container((ssize * 2) + 1);
+    vpc = create_path_container((ssize * 2) + 1);
 
     /* set the graph_oid */
     vpc->graph_oid = vlelctx->graph_oid;
@@ -1441,10 +1441,10 @@ static VLE_path_container *build_VLE_path_container(VLE_local_context *vlelctx)
 }
 
 /* helper function to build a VPC for just the start vertex */
-static VLE_path_container *build_VLE_zero_container(VLE_local_context *vlelctx)
+static path_container *build_VLE_zero_container(path_finding_context *vlelctx)
 {
     ListGraphId *stack = vlelctx->dfs_path_stack;
-    VLE_path_container *vpc = NULL;
+    path_container *vpc = NULL;
     graphid *graphid_array = NULL;
     graphid vid = 0;
 
@@ -1455,7 +1455,7 @@ static VLE_path_container *build_VLE_zero_container(VLE_local_context *vlelctx)
      * Create the container. Note that the path size will always be 1 as this is
      * just the starting vertex.
      */
-    vpc = create_VLE_path_container(1);
+    vpc = create_path_container(1);
 
     /* set the graph_oid */
     vpc->graph_oid = vlelctx->graph_oid;
@@ -1476,9 +1476,9 @@ static VLE_path_container *build_VLE_zero_container(VLE_local_context *vlelctx)
  * Note: You should free the array when done. Although, it should be freed
  *       when the context is destroyed from the return of the SRF call.
  */
-static agtype_value *build_edge_list(VLE_path_container *vpc)
+static agtype_value *build_edge_list(path_container *vpc)
 {
-    GRAPH_global_context *ggctx = NULL;
+    graph_context *ggctx = NULL;
     agtype_in_state edges_result;
     Oid graph_oid = InvalidOid;
     graphid *graphid_array = NULL;
@@ -1489,7 +1489,7 @@ static agtype_value *build_edge_list(VLE_path_container *vpc)
     graph_oid = vpc->graph_oid;
 
     /* get the GRAPH global context for this graph */
-    ggctx = find_GRAPH_global_context(graph_oid);
+    ggctx = find_graph_context(graph_oid);
     /* verify we got a global context */
     Assert(ggctx != NULL);
 
@@ -1540,9 +1540,9 @@ static agtype_value *build_edge_list(VLE_path_container *vpc)
  * Note: You should free the array when done. Although, it should be freed
  *       when the context is destroyed from the return of the SRF call.
  */
-static agtype_value *build_path(VLE_path_container *vpc)
+static agtype_value *build_path(path_container *vpc)
 {
-    GRAPH_global_context *ggctx = NULL;
+    graph_context *ggctx = NULL;
     agtype_in_state path_result;
     Oid graph_oid = InvalidOid;
     graphid *graphid_array = NULL;
@@ -1553,7 +1553,7 @@ static agtype_value *build_path(VLE_path_container *vpc)
     graph_oid = vpc->graph_oid;
 
     /* get the GRAPH global context for this graph */
-    ggctx = find_GRAPH_global_context(graph_oid);
+    ggctx = find_graph_context(graph_oid);
     /* verify we got a global context */
     Assert(ggctx != NULL);
 
@@ -1626,7 +1626,7 @@ static agtype_value *build_path(VLE_path_container *vpc)
 
 /*
  * PG VLE function that takes the following input and returns a row called edges
- * of type agtype BINARY VLE_path_container (this is an internal structure for
+ * of type agtype BINARY path_container (this is an internal structure for
  * returning a graphid array of the path. You need to use internal routines to
  * properly use this data) -
  *
@@ -1664,7 +1664,7 @@ PG_FUNCTION_INFO_V1(age_vle);
 Datum age_vle(PG_FUNCTION_ARGS)
 {
     FuncCallContext *funcctx;
-    VLE_local_context *vlelctx = NULL;
+    path_finding_context *vlelctx = NULL;
     bool found_a_path = false;
     bool done = false;
     bool is_zero_bound = false;
@@ -1707,7 +1707,7 @@ Datum age_vle(PG_FUNCTION_ARGS)
     funcctx = SRF_PERCALL_SETUP();
 
     /* restore our VLE local context */
-    vlelctx = (VLE_local_context *)funcctx->user_fctx;
+    vlelctx = (path_finding_context *)funcctx->user_fctx;
 
     /*
      * All work done in dfs_find_a_path needs to be done in a context that
@@ -1787,7 +1787,7 @@ Datum age_vle(PG_FUNCTION_ARGS)
      */
     if (found_a_path || is_zero_bound)
     {
-        VLE_path_container *vpc = NULL;
+        path_container *vpc = NULL;
 
         /* if this isn't the zero boundary case generate a normal vpc */
         if (!is_zero_bound)
@@ -1796,11 +1796,11 @@ Datum age_vle(PG_FUNCTION_ARGS)
             Assert(vlelctx->dfs_path_stack > 0);
 
             /*
-             * Build the graphid array into a VLE_path_container from the
+             * Build the graphid array into a path_container from the
              * path_stack. This will also correct for the path_stack being last
              * in, first out.
              */
-            vpc = build_VLE_path_container(vlelctx);
+            vpc = build_path_container(vlelctx);
         }
         /* otherwise, this is the zero boundary case [*0..x] */
         else
@@ -1820,7 +1820,7 @@ Datum age_vle(PG_FUNCTION_ARGS)
         /* free the local context, if we aren't caching it */
         if (vlelctx->use_cache == false)
         {
-            free_VLE_local_context(vlelctx);
+            free_path_finding_context(vlelctx);
         }
 
         /* signal that we are done */
@@ -1830,7 +1830,7 @@ Datum age_vle(PG_FUNCTION_ARGS)
 
 /*
  * Exposed helper function to make an agtype AGTV_PATH from a
- * VLE_path_container.
+ * path_container.
  */
 agtype *agt_materialize_vle_path(agtype *agt_arg_vpc)
 {
@@ -1840,11 +1840,11 @@ agtype *agt_materialize_vle_path(agtype *agt_arg_vpc)
 
 /*
  * Exposed helper function to make an agtype_value AGTV_PATH from a
- * VLE_path_container.
+ * path_container.
  */
 agtype_value *agtv_materialize_vle_path(agtype *agt_arg_vpc)
 {
-    VLE_path_container *vpc = NULL;
+    path_container *vpc = NULL;
     agtype_value *agtv_path = NULL;
 
     /* the passed argument should not be NULL */
@@ -1858,12 +1858,12 @@ agtype_value *agtv_materialize_vle_path(agtype *agt_arg_vpc)
     Assert(AGT_ROOT_BINARY_FLAGS(agt_arg_vpc) == AGT_FBINARY_TYPE_VLE_PATH);
 
     /* get the container */
-    vpc = (VLE_path_container *)agt_arg_vpc;
+    vpc = (path_container *)agt_arg_vpc;
 
     /* it should not be null */
     Assert(vpc != NULL);
 
-    /* build the AGTV_PATH from the VLE_path_container */
+    /* build the AGTV_PATH from the path_container */
     agtv_path = build_path(vpc);
 
     return agtv_path;
@@ -1875,11 +1875,11 @@ PG_FUNCTION_INFO_V1(age_match_two_vle_edges);
 Datum age_match_two_vle_edges(PG_FUNCTION_ARGS)
 {
     agtype *agt_arg_vpc = NULL;
-    VLE_path_container *left_path = NULL, *right_path = NULL;
+    path_container *left_path = NULL, *right_path = NULL;
     graphid *left_array, *right_array;
     int left_array_size;
 
-    /* get the VLE_path_container argument */
+    /* get the path_container argument */
     agt_arg_vpc = AG_GET_ARG_AGTYPE_P(0);
 
     if (!AGT_ROOT_IS_BINARY(agt_arg_vpc) ||
@@ -1891,7 +1891,7 @@ Datum age_match_two_vle_edges(PG_FUNCTION_ARGS)
     }
 
     /* cast argument as a VLE_Path_Container and extract graphid array */
-    left_path = (VLE_path_container *)agt_arg_vpc;
+    left_path = (path_container *)agt_arg_vpc;
     left_array_size = left_path->graphid_array_size;
     left_array = GET_GRAPHID_ARRAY_FROM_CONTAINER(left_path);
 
@@ -1906,7 +1906,7 @@ Datum age_match_two_vle_edges(PG_FUNCTION_ARGS)
     }
 
     /* cast argument as a VLE_Path_Container and extract graphid array */
-    right_path = (VLE_path_container *)agt_arg_vpc;
+    right_path = (path_container *)agt_arg_vpc;
     right_array = GET_GRAPHID_ARRAY_FROM_CONTAINER(right_path);
 
     if (left_array[left_array_size - 1] != right_array[0])
@@ -1935,7 +1935,7 @@ Datum age_match_vle_edge_to_id_qual(PG_FUNCTION_ARGS)
     agtype *edge_id = NULL;
     agtype *pos_agt = NULL;
     agtype_value *id, *position;
-    VLE_path_container *vle_path = NULL;
+    path_container *vle_path = NULL;
     graphid *array = NULL;
     bool vle_is_on_left = false;
     graphid gid = 0;
@@ -1957,7 +1957,7 @@ Datum age_match_vle_edge_to_id_qual(PG_FUNCTION_ARGS)
                  errmsg("age_match_vle_edge_to_id_qual() arguments must be non NULL")));
     }
 
-    /* get the VLE_path_container argument */
+    /* get the path_container argument */
     agt_arg_vpc = DATUM_GET_AGTYPE_P(args[0]);
 
     if (!AGT_ROOT_IS_BINARY(agt_arg_vpc) ||
@@ -1969,7 +1969,7 @@ Datum age_match_vle_edge_to_id_qual(PG_FUNCTION_ARGS)
     }
 
     /* cast argument as a VLE_Path_Container and extract graphid array */
-    vle_path = (VLE_path_container *)agt_arg_vpc;
+    vle_path = (path_container *)agt_arg_vpc;
     array = GET_GRAPHID_ARRAY_FROM_CONTAINER(vle_path);
 
     if (types[1] == AGTYPEOID)
@@ -2062,11 +2062,11 @@ Datum age_match_vle_edge_to_id_qual(PG_FUNCTION_ARGS)
 
 /*
  * Exposed helper function to make an agtype_value AGTV_ARRAY of edges from a
- * VLE_path_container.
+ * path_container.
  */
 agtype_value *agtv_materialize_vle_edges(agtype *agt_arg_vpc)
 {
-    VLE_path_container *vpc = NULL;
+    path_container *vpc = NULL;
     agtype_value *agtv_array = NULL;
 
     /* the passed argument should not be NULL */
@@ -2080,12 +2080,12 @@ agtype_value *agtv_materialize_vle_edges(agtype *agt_arg_vpc)
     Assert(AGT_ROOT_BINARY_FLAGS(agt_arg_vpc) == AGT_FBINARY_TYPE_VLE_PATH);
 
     /* get the container */
-    vpc = (VLE_path_container *)agt_arg_vpc;
+    vpc = (path_container *)agt_arg_vpc;
 
     /* it should not be null */
     Assert(vpc != NULL);
 
-    /* build the AGTV_ARRAY of edges from the VLE_path_container */
+    /* build the AGTV_ARRAY of edges from the path_container */
     agtv_array = build_edge_list(vpc);
 
     /* convert the agtype_value to agtype and return it */
@@ -2101,13 +2101,13 @@ Datum age_materialize_vle_edges(PG_FUNCTION_ARGS)
     agtype *agt_arg_vpc = NULL;
     agtype_value *agtv_array = NULL;
 
-    /* if we have a NULL VLE_path_container, return NULL */
+    /* if we have a NULL path_container, return NULL */
     if (PG_ARGISNULL(0))
     {
         PG_RETURN_NULL();
     }
 
-    /* get the VLE_path_container argument */
+    /* get the path_container argument */
     agt_arg_vpc = AG_GET_ARG_AGTYPE_P(0);
 
     /* if NULL, return NULL */
@@ -2128,13 +2128,13 @@ Datum age_materialize_vle_path(PG_FUNCTION_ARGS)
 {
     agtype *agt_arg_vpc = NULL;
 
-    /* if we have a NULL VLE_path_container, return NULL */
+    /* if we have a NULL path_container, return NULL */
     if (PG_ARGISNULL(0))
     {
         PG_RETURN_NULL();
     }
 
-    /* get the VLE_path_container argument */
+    /* get the path_container argument */
     agt_arg_vpc = AG_GET_ARG_AGTYPE_P(0);
 
     /* if NULL, return NULL */
@@ -2147,7 +2147,7 @@ Datum age_materialize_vle_path(PG_FUNCTION_ARGS)
 }
 
 /*
- * PG function to take a VLE_path_container and return whether the supplied end
+ * PG function to take a path_container and return whether the supplied end
  * vertex (target/veid) matches against the last edge in the VLE path. The VLE
  * path is encoded in a BINARY container.
  */
@@ -2159,7 +2159,7 @@ Datum age_match_vle_terminal_edge(PG_FUNCTION_ARGS)
     Datum *args = NULL;
     bool *nulls = NULL;
     Oid *types = NULL;
-    VLE_path_container *vpc = NULL;
+    path_container *vpc = NULL;
     agtype *agt_arg_vsid = NULL;
     agtype *agt_arg_veid = NULL;
     agtype *agt_arg_path = NULL;
@@ -2205,7 +2205,7 @@ Datum age_match_vle_terminal_edge(PG_FUNCTION_ARGS)
     Assert(AGT_ROOT_BINARY_FLAGS(agt_arg_path) == AGT_FBINARY_TYPE_VLE_PATH);
 
     /* get the container */
-    vpc = (VLE_path_container *)agt_arg_path;
+    vpc = (path_container *)agt_arg_path;
 
     /* get the graphid array from the container */
     gida = GET_GRAPHID_ARRAY_FROM_CONTAINER(vpc);
@@ -2372,7 +2372,7 @@ Datum age_build_vle_match_edge(PG_FUNCTION_ARGS)
 /*
  * This function checks the edges in a MATCH clause to see if they are unique or
  * not. Filters out all the paths where the edge uniques rules are not met.
- * Arguements can be a combination of agtype ints and VLE_path_containers.
+ * Arguements can be a combination of agtype ints and path_containers.
  */
 PG_FUNCTION_INFO_V1(_ag_enforce_edge_uniqueness);
 
@@ -2455,17 +2455,17 @@ Datum _ag_enforce_edge_uniqueness(PG_FUNCTION_ARGS)
             /* get the argument */
             agtype *agt_i = DATUM_GET_AGTYPE_P(args[i]);
 
-            /* if the argument is an AGTYPE VLE_path_container */
+            /* if the argument is an AGTYPE path_container */
             if (AGT_ROOT_IS_BINARY(agt_i) &&
                 AGT_ROOT_BINARY_FLAGS(agt_i) == AGT_FBINARY_TYPE_VLE_PATH)
             {
-                VLE_path_container *vpc = NULL;
+                path_container *vpc = NULL;
                 graphid *graphid_array = NULL;
                 int64 graphid_array_size = 0;
                 int64 j = 0;
 
-                /* cast to VLE_path_container */
-                vpc = (VLE_path_container *)agt_i;
+                /* cast to path_container */
+                vpc = (path_container *)agt_i;
 
                 /* get the graphid array */
                 graphid_array = GET_GRAPHID_ARRAY_FROM_CONTAINER(vpc);
@@ -2544,7 +2544,7 @@ Datum _ag_enforce_edge_uniqueness(PG_FUNCTION_ARGS)
                                 i)));
             }
         }
-        /* it is neither a VLE_path_container, AGTYPE, INT8, or a GRAPHIDOID */
+        /* it is neither a path_container, AGTYPE, INT8, or a GRAPHIDOID */
         else
         {
             ereport(ERROR,
