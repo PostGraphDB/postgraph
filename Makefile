@@ -78,6 +78,7 @@ REGRESS = scan \
           agtype \
           vertex \
           edge \
+          typecasting \
           catalog \
           cypher \
           expr \

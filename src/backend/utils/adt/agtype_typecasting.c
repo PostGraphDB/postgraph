@@ -251,6 +251,18 @@ agtype_to_text(PG_FUNCTION_ARGS) {
 }
 
 /*
+ * Postgres types to agtype
+ */
+PG_FUNCTION_INFO_V1(text_to_agtype);
+//text -> agtype
+Datum
+text_to_agtype(PG_FUNCTION_ARGS) {
+    Datum txt = PG_GETARG_DATUM(0);
+
+    return string_to_agtype(TextDatumGetCString(txt));
+}
+
+/*
  * agtype to postgres array functions
  */
 

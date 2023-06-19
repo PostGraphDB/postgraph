@@ -661,7 +661,7 @@ AS $$
 DECLARE
     ag_param agtype;
 BEGIN
-    ag_param = FORMAT('{"list_name": "%s"}', $1)::agtype;
+    ag_param = FORMAT('{"list_name": %s}', $1::agtype);
     PERFORM * FROM cypher('mygraph', $CYPHER$
         MERGE (:head {name: $list_name})-[:next]->(:tail {name: $list_name})
     $CYPHER$, ag_param) AS (a agtype);
@@ -673,7 +673,7 @@ AS $$
 DECLARE
     ag_param agtype;
 BEGIN
-    ag_param = FORMAT('{"list_name": "%s", "node_content": "%s"}', $1, $2)::agtype;
+    ag_param = FORMAT('{"list_name": %s, "node_content": %s}', $1::agtype, $2::agtype);
     PERFORM * FROM cypher('mygraph', $CYPHER$
         MATCH (h:head {name: $list_name})-[e:next]->(v)
         DELETE e
@@ -687,7 +687,7 @@ AS $$
 DECLARE
     ag_param agtype;
 BEGIN
-    ag_param = FORMAT('{"list_name": "%s"}', $1)::agtype;
+    ag_param = FORMAT('{"list_name": %s}', $1::agtype);
     RETURN QUERY
     SELECT * FROM cypher('mygraph', $CYPHER$
         MATCH (h:head {name: $list_name})-[e:next*]->(v:node)
@@ -746,6 +746,9 @@ SELECT * FROM show_list_use_vle('list01');
  {"id": 1407374883553283, "label": "node", "properties": {"content": "c"}}::vertex
 (3 rows)
 
+--
+-- Clean up
+--
 DROP FUNCTION show_list_use_vle;
 SELECT drop_graph('mygraph', true);
 NOTICE:  drop cascades to 6 other objects
@@ -761,9 +764,6 @@ NOTICE:  graph "mygraph" has been dropped
  
 (1 row)
 
---
--- Clean up
---
 DROP TABLE start_and_end_points;
 SELECT drop_graph('cypher_vle', true);
 NOTICE:  drop cascades to 9 other objects
