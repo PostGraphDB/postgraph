@@ -232,7 +232,7 @@ AS $$
 DECLARE
     ag_param agtype;
 BEGIN
-    ag_param = FORMAT('{"list_name": "%s"}', $1)::agtype;
+    ag_param = FORMAT('{"list_name": %s}', $1::agtype);
     PERFORM * FROM cypher('mygraph', $CYPHER$
         MERGE (:head {name: $list_name})-[:next]->(:tail {name: $list_name})
     $CYPHER$, ag_param) AS (a agtype);
@@ -245,7 +245,7 @@ AS $$
 DECLARE
     ag_param agtype;
 BEGIN
-    ag_param = FORMAT('{"list_name": "%s", "node_content": "%s"}', $1, $2)::agtype;
+    ag_param = FORMAT('{"list_name": %s, "node_content": %s}', $1::agtype, $2::agtype);
     PERFORM * FROM cypher('mygraph', $CYPHER$
         MATCH (h:head {name: $list_name})-[e:next]->(v)
         DELETE e
@@ -260,7 +260,7 @@ AS $$
 DECLARE
     ag_param agtype;
 BEGIN
-    ag_param = FORMAT('{"list_name": "%s"}', $1)::agtype;
+    ag_param = FORMAT('{"list_name": %s}', $1::agtype);
     RETURN QUERY
     SELECT * FROM cypher('mygraph', $CYPHER$
         MATCH (h:head {name: $list_name})-[e:next*]->(v:node)
@@ -286,13 +286,12 @@ SELECT * FROM show_list_use_vle('list01');
 SELECT prepend_node('list01', 'c');
 SELECT * FROM show_list_use_vle('list01');
 
-DROP FUNCTION show_list_use_vle;
-
-SELECT drop_graph('mygraph', true);
-
 --
 -- Clean up
 --
+DROP FUNCTION show_list_use_vle;
+
+SELECT drop_graph('mygraph', true);
 
 DROP TABLE start_and_end_points;
 

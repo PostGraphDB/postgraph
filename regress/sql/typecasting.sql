@@ -13,11 +13,12 @@
  *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
- * For PostgreSQL Database Management System:
- * (formerly known as Postgres, then as Postgres95)
- *
- * Portions Copyright (c) 2020-2023, Apache Software Foundation
  */
 
-CREATE EXTENSION postgraph;
+LOAD 'postgraph';
+SET extra_float_digits = 0;
+SET search_path TO postgraph;
+
+
+SELECT text_to_agtype(NULL::text);
+SELECT 'Hello World' ::text::agtype;
