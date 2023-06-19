@@ -1,5 +1,3 @@
-\! cp -r regress/age_load/data regress/instance/data/age_load
-
 LOAD 'postgraph';
 SET search_path TO postgraph;
 

@@ -60,8 +60,6 @@ CREATE FUNCTION create_vlabel(graph_name name, label_name name) RETURNS void LAN
 CREATE FUNCTION create_elabel(graph_name name, label_name name) RETURNS void LANGUAGE c AS 'MODULE_PATHNAME';
 CREATE FUNCTION alter_graph(graph_name name, operation cstring, new_value name) RETURNS void LANGUAGE c AS 'MODULE_PATHNAME';
 CREATE FUNCTION drop_label(graph_name name, label_name name, force boolean = false) RETURNS void LANGUAGE c AS 'MODULE_PATHNAME';
-CREATE FUNCTION load_labels_from_file(graph_name name, label_name name, file_path text, id_field_exists bool default true) RETURNS void LANGUAGE c AS 'MODULE_PATHNAME';
-CREATE FUNCTION load_edges_from_file(graph_name name, label_name name, file_path text) RETURNS void LANGUAGE c AS 'MODULE_PATHNAME';
 
 --
 -- graphid type
