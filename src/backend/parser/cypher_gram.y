@@ -1,21 +1,25 @@
 %{
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (C) 2023 PostGraphDB
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * For PostgreSQL Database Management System:
+ * (formerly known as Postgres, then as Postgres95)
+ *
+ * Portions Copyright (c) 2020-2023, Apache Software Foundation
+ * Portions Copyright (c) 2019-2020, Bitnine Global
  */
 
 #include "postgraph.h"
@@ -77,11 +81,11 @@
 %token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ EQ_TILDE
 
 /* keywords in alphabetical order */
-%token <keyword> ALL ANALYZE AND AS ASC ASCENDING
+%token <keyword> ALL AND AS ASC ASCENDING
                  BY
                  CALL CASE COALESCE CONTAINS CREATE
                  DELETE DESC DESCENDING DETACH DISTINCT
-                 ELSE END_P ENDS EXISTS EXPLAIN
+                 ELSE END_P ENDS EXISTS
                  FALSE_P
                  IN IS
                  LIMIT
@@ -92,7 +96,6 @@
                  SET SKIP STARTS
                  THEN TRUE_P
                  UNION UNWIND
-                 VERBOSE
                  WHEN WHERE WITH
                  XOR
                  YIELD
@@ -1618,7 +1621,6 @@ reserved_keyword:
 
 safe_keywords:
     ALL          { $$ = pnstrdup($1, 3); }
-    | ANALYZE    { $$ = pnstrdup($1, 7); }
     | AND        { $$ = pnstrdup($1, 3); }
     | AS         { $$ = pnstrdup($1, 2); }
     | ASC        { $$ = pnstrdup($1, 3); }
@@ -1637,7 +1639,6 @@ safe_keywords:
     | ELSE       { $$ = pnstrdup($1, 4); }
     | ENDS       { $$ = pnstrdup($1, 4); }
     | EXISTS     { $$ = pnstrdup($1, 6); }
-    | EXPLAIN    { $$ = pnstrdup($1, 7); }
     | IN         { $$ = pnstrdup($1, 2); }
     | IS         { $$ = pnstrdup($1, 2); }
     | LIMIT      { $$ = pnstrdup($1, 6); }
@@ -1655,7 +1656,6 @@ safe_keywords:
     | THEN       { $$ = pnstrdup($1, 4); }
     | UNION      { $$ = pnstrdup($1, 5); }
     | WHEN       { $$ = pnstrdup($1, 4); }
-    | VERBOSE    { $$ = pnstrdup($1, 7); }
     | WHERE      { $$ = pnstrdup($1, 5); }
     | WITH       { $$ = pnstrdup($1, 4); }
     | XOR        { $$ = pnstrdup($1, 3); }
