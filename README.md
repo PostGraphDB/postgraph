@@ -2,6 +2,8 @@
 
 [![discord badge](https://img.shields.io/discord/1036610864071053413?label=discord&logo=discord&style=plastic)](https://discord.gg/KDTTx2vz2m)
 
+You can view the full manual [here](https://github.com/PostGraphDB/postgraph/wiki)
+
 Postgraph is an extension for Postgres with the explicit goal of combining the power of graph modeling together with the full fledged power of the Postgres ecosystem. Originally a fork of Apache AGE, PostGraph will combine a graph based model and query language with the power of the open source Postgres community.
 
 PostGraph is and will always be open source and free. If you would like to contribute to the project in any way, that would be greatly appreciated. We use [github projects](https://github.com/PostGraphDB/postgraph/projects?query=is%3Aopen) for all our work. If you wanna help the developer focus more on this rather than a real job you can contribute to the [patreon](https://www.patreon.com/PostGraph). The [wiki](https://github.com/PostGraphDB/postgraph/wiki) could definitely use some work and I'm sure you will find some [bugs](https://github.com/PostGraphDB/postgraph/issues) at some point, or just join the [discord](https://discord.gg/XEp56VaqZs) and hangout.
