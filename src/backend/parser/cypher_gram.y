@@ -1952,29 +1952,18 @@ static bool is_A_Expr_a_comparison_operation(A_Expr *a)
 
     /* verify it is a comparison operation */
     if (strcmp(opr_name, "<") == 0)
-    {
         return true;
-    }
-    if (strcmp(opr_name, ">") == 0)
-    {
+    else if (strcmp(opr_name, ">") == 0)
         return true;
-    }
-    if (strcmp(opr_name, "<=") == 0)
-    {
+    else if (strcmp(opr_name, "<=") == 0)
         return true;
-    }
-    if (strcmp(opr_name, "=>") == 0)
-    {
+    else if (strcmp(opr_name, "=>") == 0)
         return true;
-    }
-    if (strcmp(opr_name, "=") == 0)
-    {
+    else if (strcmp(opr_name, "=") == 0)
         return true;
-    }
-    if (strcmp(opr_name, "<>") == 0)
-    {
+    else if (strcmp(opr_name, "<>") == 0)
         return true;
-    }
+
 
     return false;
 }
@@ -1984,10 +1973,7 @@ static bool is_A_Expr_a_comparison_operation(A_Expr *a)
  * build a chained comparison operator expression if it detects a chained
  * comparison.
  */
-static Node *build_comparison_expression(Node *left_grammar_node,
-                                         Node *right_grammar_node,
-                                         char *opr_name, int location)
-{
+static Node *build_comparison_expression(Node *left_grammar_node, Node *right_grammar_node, char *opr_name, int location) {
     Node *result_expr = NULL;
 
     Assert(left_grammar_node != NULL);
@@ -2062,21 +2048,12 @@ static Node *build_comparison_expression(Node *left_grammar_node,
      *    it as a regular comparison expression.
      */
     if (result_expr == NULL)
-    {
-        result_expr = (Node *)makeSimpleA_Expr(AEXPR_OP, opr_name,
-                                               left_grammar_node,
-                                               right_grammar_node, location);
-    }
+        result_expr = (Node *)makeSimpleA_Expr(AEXPR_OP, opr_name, left_grammar_node, right_grammar_node, location);
 
     return result_expr;
 }
 
-static cypher_relationship *build_VLE_relation(List *left_arg,
-                                               cypher_relationship *cr,
-                                               Node *right_arg,
-                                               int left_arg_location,
-                                               int cr_location)
-{
+static cypher_relationship *build_VLE_relation(List *left_arg, cypher_relationship *cr, Node *right_arg, int left_arg_location, int cr_location) {
     ColumnRef *cref = NULL;
     A_Indices *ai = NULL;
     List *args = NIL;
@@ -2085,12 +2062,7 @@ static cypher_relationship *build_VLE_relation(List *left_arg,
     cypher_node *cnl = NULL;
     cypher_node *cnr = NULL;
     Node *node = NULL;
-    int length = 0;
-    unsigned long unique_number = 0;
     int location = 0;
-
-    /* get a unique number to identify this VLE node */
-    unique_number = get_a_unique_number();
 
     /* get the location */
     location = cr->location;
@@ -2099,42 +2071,17 @@ static cypher_relationship *build_VLE_relation(List *left_arg,
     cnl = (cypher_node*)llast(left_arg);
     cnr = (cypher_node*)right_arg;
 
-    /* get the length of the left path */
-    length = list_length(left_arg);
-
-    /*
-     * If the left name is NULL and the left path is greater than 1
-     * If the left name is NULL and the left label is not NULL
-     * If the left name is NULL and the left props is not NULL
-     * If the left name is NULL and the right name is not NULL
-     * If the left name is NULL and the right label is not NULL
-     * If the left name is NULL and the right props is not NULL
-     * we need to create a variable name for the left node.
-     */
-    if ((cnl->name == NULL && length > 1) ||
-        (cnl->name == NULL && cnl->label != NULL) ||
-        (cnl->name == NULL && cnl->props != NULL) ||
-        (cnl->name == NULL && cnr->name != NULL) ||
-        (cnl->name == NULL && cnr->label != NULL) ||
-        (cnl->name == NULL && cnr->props != NULL))
-    {
+    // If the left name is NULL we need to create a variable name for the left node.
+    if (cnl->name == NULL)
         cnl->name = create_unique_name("_vle_function_start_var");
-    }
 
     /* add in the start vertex as a ColumnRef if necessary */
-    if (cnl->name != NULL)
-    {
+    if (cnl->name != NULL) {
         cref = makeNode(ColumnRef);
         cref->fields = list_make2(makeString(cnl->name), makeString("id"));
         cref->location = left_arg_location;
         args = lappend(args, cref);
-    }
-    /*
-     * If there aren't any variables in the VLE path, we can use
-     * the FROM_ALL algorithm.
-     */
-    else
-    {
+    } else {
         args = lappend(args, make_null_const(-1));
     }
 
@@ -2147,19 +2094,14 @@ static cypher_relationship *build_VLE_relation(List *left_arg,
      * We need this so the addition of match_vle_terminal_edge is
      * done in the transform phase.
      */
-    if (cnr->name == NULL &&
-        (cnr->label != NULL || cnr->props != NULL))
-    {
+    if (cnr->name == NULL && (cnr->label != NULL || cnr->props != NULL))
         cnr->name = create_unique_name("_vle_function_end_var");
-    }
+
     /*
      * We need a NULL for the target vertex in the VLE match to
      * force the dfs_find_a_path_from algorithm. However, for now,
      * the default will be to only do that when a target isn't
      * supplied.
-     *
-     * TODO: We will likely want to force it to use
-     * dfs_find_a_path_from.
      */
     if (cnl->name == NULL && cnr->name != NULL)
     {
@@ -2167,64 +2109,47 @@ static cypher_relationship *build_VLE_relation(List *left_arg,
         cref->fields = list_make2(makeString(cnr->name), makeString("id"));
         cref->location = left_arg_location;
         args = lappend(args, cref);
-    }
-    else
-    {
+    } else {
         args = lappend(args, make_null_const(-1));
     }
 
     /* build the required edge arguments */
-    if (cr->label == NULL)
-    {
+    if (!cr->label)
         eargs = lappend(eargs, make_null_const(location));
-    }
     else
-    {
         eargs = lappend(eargs, make_string_const(cr->label, location));
-    }
 
-    if (cr->props == NULL)
-    {
+    if (!cr->props)
         eargs = lappend(eargs, make_null_const(location));
-    }
     else
-    {
         eargs = lappend(eargs, cr->props);
-    }
+
     /* build the edge function name (schema.funcname) */
-    fname = list_make2(makeString(CATALOG_SCHEMA),
-                       makeString("age_build_vle_match_edge"));
+    fname = list_make2(makeString(CATALOG_SCHEMA), makeString("age_build_vle_match_edge"));
+
     /* build the edge function node */
     node = (Node *)makeFuncCall(fname, eargs, COERCE_SQL_SYNTAX, location);
+
     /* add in the edge*/
     args = lappend(args, node);
+    
     /* add in the lidx and uidx range as Const */
     ai = (A_Indices*)cr->varlen;
-    if (ai == NULL || ai->lidx == NULL)
-    {
+    if (!ai || !ai->lidx)
         args = lappend(args, make_null_const(location));
-    }
     else
-    {
         args = lappend(args, ai->lidx);
-    }
-    if (ai == NULL || ai->uidx == NULL)
-    {
+
+    if (!ai || !ai->uidx)
         args = lappend(args, make_null_const(location));
-    }
     else
-    {
         args = lappend(args, ai->uidx);
-    }
+
     /* add in the direction as Const */
     args = lappend(args, make_int_const(cr->dir, cr_location));
 
-    /* add in the unique number used to identify this VLE node */
-    args = lappend(args, make_int_const(unique_number, -1));
-
     /* build the VLE function node */
-    cr->varlen = (Node *)makeFuncCall(list_make1(makeString("vle")), args, COERCE_SQL_SYNTAX,
-                                    cr_location);
-    /* return the VLE relation node */
+    cr->varlen = (Node *)makeFuncCall(list_make1(makeString("vle")), args, COERCE_SQL_SYNTAX, cr_location);
+
     return cr;
 }

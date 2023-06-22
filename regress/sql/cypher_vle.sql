@@ -174,6 +174,11 @@ SELECT * FROM cypher('cypher_vle', $$MATCH p=(u)-[e*0..0]->(v) RETURN id(u), p, 
 SELECT * FROM cypher('cypher_vle', $$MATCH p=()-[*0..0]->()-[]->() RETURN p $$) AS (p agtype);
 SELECT * FROM cypher('cypher_vle', $$MATCH p=()-[]->()-[*0..0]->() RETURN p $$) AS (p agtype);
 
+SELECT count(*) FROM cypher('cypher_vle', $$MATCH (u)-[*]-(v) RETURN u, v$$) AS (u agtype, v agtype);
+SELECT count(*) FROM cypher('cypher_vle', $$MATCH (u)-[*0..1]-(v) RETURN u, v$$) AS (u agtype, v agtype);
+SELECT count(*) FROM cypher('cypher_vle', $$MATCH (u)-[*..1]-(v) RETURN u, v$$) AS (u agtype, v agtype);
+SELECT count(*) FROM cypher('cypher_vle', $$MATCH (u)-[*..5]-(v) RETURN u, v$$) AS (u agtype, v agtype);
+
 --
 -- Test VLE inside of a BEGIN/COMMIT block
 --

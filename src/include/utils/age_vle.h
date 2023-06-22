@@ -31,19 +31,9 @@
 typedef struct path_container path_container;
 
 /*
- * Function to take an AGTV_BINARY path_container and return a path as an
- * agtype.
- */
-agtype *agt_materialize_vle_path(agtype *agt_arg_vpc);
-/*
  * Function to take a AGTV_BINARY path_container and return a path as an
  * agtype_value.
  */
 agtype_value *agtv_materialize_vle_path(agtype *agt_arg_vpc);
-/*
- * Exposed helper function to make an agtype_value AGTV_ARRAY of edges from a
- * path_container.
- */
-agtype_value *agtv_materialize_vle_edges(agtype *agt_arg_vpc);
 
 #endif
