@@ -527,25 +527,14 @@ CREATE AGGREGATE age_collect(agtype) (stype = internal, sfunc = age_collect_aggt
 --
 -- John's crap
 --
--- original VLE function definition
-CREATE FUNCTION age_vle(IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, OUT edges agtype)
-RETURNS SETOF agtype LANGUAGE C STABLE CALLED ON NULL INPUT PARALLEL UNSAFE AS 'MODULE_PATHNAME';
-
--- This is an overloaded function definition to allow for the VLE local context
--- caching mechanism to coexist with the previous VLE version.
-CREATE FUNCTION age_vle(IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, OUT edges agtype)
-RETURNS SETOF agtype LANGUAGE C STABLE CALLED ON NULL INPUT PARALLEL UNSAFE AS 'MODULE_PATHNAME';
--- function to build an edge for a VLE match
-
+CREATE FUNCTION age_vle(IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, OUT edges agtype) RETURNS SETOF agtype LANGUAGE C STABLE CALLED ON NULL INPUT PARALLEL UNSAFE AS 'MODULE_PATHNAME';
 -- TODO: remove
-CREATE FUNCTION age_build_vle_match_edge(agtype, agtype) RETURNS agtype LANGUAGE C STABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_match_vle_terminal_edge(variadic "any") RETURNS boolean LANGUAGE C STABLE CALLED ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_materialize_vle_path(agtype) RETURNS agtype LANGUAGE C STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_materialize_vle_edges(agtype) RETURNS agtype LANGUAGE C STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_match_vle_edge_to_id_qual(variadic "any") RETURNS boolean LANGUAGE C STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_match_two_vle_edges(agtype, agtype) RETURNS boolean LANGUAGE C STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_vertex_stats(agtype, agtype) RETURNS agtype LANGUAGE c STABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_delete_global_graphs(agtype) RETURNS boolean LANGUAGE c VOLATILE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_build_vle_match_edge(agtype, agtype) RETURNS agtype LANGUAGE C IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_match_vle_terminal_edge("any", "any", agtype) RETURNS boolean LANGUAGE C STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_materialize_vle_path(agtype) RETURNS agtype LANGUAGE C IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_materialize_vle_edges(agtype) RETURNS agtype LANGUAGE C IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_match_vle_edge_to_id_qual(agtype, graphid, agtype) RETURNS boolean LANGUAGE C STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_match_two_vle_edges(agtype, agtype) RETURNS boolean LANGUAGE C IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 
 --
 -- End

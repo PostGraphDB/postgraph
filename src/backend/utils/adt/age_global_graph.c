@@ -99,8 +99,6 @@ static graph_context *global_graph_contexts = NULL;
 /* declarations */
 /* GRAPH global context functions */
 static void free_specific_graph_context(graph_context *ggctx);
-static bool delete_specific_graph_contexts(char *graph_name);
-static bool delete_graph_contexts(void);
 static void create_GRAPH_global_hashtables(graph_context *ggctx);
 static void load_GRAPH_global_hashtables(graph_context *ggctx);
 static void load_vertex_hashtable(graph_context *ggctx);
@@ -673,208 +671,73 @@ static void free_specific_graph_context(graph_context *ggctx)
 }
 
 /*
- * Helper function to manage the GRAPH global contexts. It will create the
+ * It will create the
  * context for the graph specified, provided it isn't already built and valid.
  * During processing it will free (delete) all invalid GRAPH contexts. It
  * returns the GRAPH global context for the specified graph.
  */
-graph_context *manage_graph_contexts(char *graph_name,
-                                                   Oid graph_oid)
-{
+graph_context *manage_graph_contexts(char *graph_name, Oid graph_oid) {
     graph_context *new_ggctx = NULL;
     graph_context *curr_ggctx = NULL;
     graph_context *prev_ggctx = NULL;
-    MemoryContext oldctx = NULL;
 
     /* we need a higher context, or one that isn't destroyed by SRF exit */
-    oldctx = MemoryContextSwitchTo(TopMemoryContext);
-
-    /*
-     * We need to see if any GRAPH global contexts already exist and if any do
-     * for this particular graph. There are 5 possibilities -
-     *
-     *     1) There are no global contexts.
-     *     2) One does exist for this graph but, is invalid.
-     *     3) One does exist for this graph and is valid.
-     *     4) One or more other contexts do exist and all are valid.
-     *     5) One or more other contexts do exist but, one or more are invalid.
-     */
+    MemoryContext oldctx = MemoryContextSwitchTo(TopMemoryContext);
 
     /* free the invalidated GRAPH global contexts first */
     prev_ggctx = NULL;
     curr_ggctx = global_graph_contexts;
-    while (curr_ggctx != NULL)
-    {
+    while (curr_ggctx) {
         graph_context *next_ggctx = curr_ggctx->next;
 
-        /* if the transaction ids have changed, we have an invalid graph */
-        if (is_ggctx_invalid(curr_ggctx))
-        {
-            /*
-             * If prev_ggctx is NULL then we are freeing the top of the
-             * contexts. So, we need to point the global variable to the
-             * new (next) top context, if there is one.
-             */
+        if (is_ggctx_invalid(curr_ggctx)) {
             if (prev_ggctx == NULL)
-            {
                 global_graph_contexts = next_ggctx;
-            }
             else
-            {
                 prev_ggctx->next = curr_ggctx->next;
-            }
 
-            /* free the current graph context */
             free_specific_graph_context(curr_ggctx);
-        }
-        else
-        {
+        } else {
             prev_ggctx = curr_ggctx;
         }
 
-        /* advance to the next context */
         curr_ggctx = next_ggctx;
     }
 
-    /* find our graph's context. if it exists, we are done */
     curr_ggctx = global_graph_contexts;
-    while (curr_ggctx != NULL)
-    {
-        if (curr_ggctx->graph_oid == graph_oid)
-        {
-            /* switch our context back */
+    while (curr_ggctx) {
+        if (curr_ggctx->graph_oid == graph_oid) {
             MemoryContextSwitchTo(oldctx);
-            /* we are done */
             return curr_ggctx;
         }
         curr_ggctx = curr_ggctx->next;
     }
 
-    /* otherwise, we need to create one and possibly attach it */
     new_ggctx = palloc0(sizeof(graph_context));
 
-    if (global_graph_contexts != NULL)
-    {
+    if (global_graph_contexts)
         new_ggctx->next = global_graph_contexts;
-    }
     else
-    {
         new_ggctx->next = NULL;
-    }
 
-    /* set the global context variable */
     global_graph_contexts = new_ggctx;
 
-    /* set the graph name and oid */
     new_ggctx->graph_name = pstrdup(graph_name);
     new_ggctx->graph_oid = graph_oid;
 
-    /* set the transaction ids */
     new_ggctx->xmin = GetActiveSnapshot()->xmin;
     new_ggctx->xmax = GetActiveSnapshot()->xmax;
     new_ggctx->curcid = GetActiveSnapshot()->curcid;
 
-    /* initialize our vertices list */
     new_ggctx->vertices = NULL;
 
-    /* build the hashtables for this graph */
     create_GRAPH_global_hashtables(new_ggctx);
     load_GRAPH_global_hashtables(new_ggctx);
     freeze_GRAPH_global_hashtables(new_ggctx);
 
-    /* switch back to the previous memory context */
     MemoryContextSwitchTo(oldctx);
 
     return new_ggctx;
-}
-
-/*
- * Helper function to delete all of the global graph contexts used by the
- * process. When done the global global_graph_contexts will be NULL.
- */
-static bool delete_graph_contexts(void)
-{
-    graph_context *curr_ggctx = NULL;
-    bool retval = false;
-
-    /* get the first context, if any */
-    curr_ggctx = global_graph_contexts;
-
-    /* free all GRAPH global contexts */
-    while (curr_ggctx != NULL)
-    {
-        graph_context *next_ggctx = curr_ggctx->next;
-
-        /* free the current graph context */
-        free_specific_graph_context(curr_ggctx);
-
-        /* advance to the next context */
-        curr_ggctx = next_ggctx;
-
-        retval = true;
-    }
-
-    /* clear the global variable */
-    global_graph_contexts = NULL;
-
-    return retval;
-}
-
-/*
- * Helper function to delete a specific global graph context used by the
- * process.
- */
-static bool delete_specific_graph_contexts(char *graph_name)
-{
-    graph_context *prev_ggctx = NULL;
-    graph_context *curr_ggctx = NULL;
-    Oid graph_oid = InvalidOid;
-
-    if (graph_name == NULL)
-    {
-        return false;
-    }
-
-    /* get the graph oid */
-    graph_oid = get_graph_oid(graph_name);
-
-    /* get the first context, if any */
-    curr_ggctx = global_graph_contexts;
-
-    /* find the specified GRAPH global context */
-    while (curr_ggctx != NULL)
-    {
-        graph_context *next_ggctx = curr_ggctx->next;
-
-        if (curr_ggctx->graph_oid == graph_oid)
-        {
-            /*
-             * If prev_ggctx is NULL then we are freeing the top of the
-             * contexts. So, we need to point the global variable to the
-             * new (next) top context, if there is one.
-             */
-            if (prev_ggctx == NULL)
-            {
-                global_graph_contexts = next_ggctx;
-            }
-            else
-            {
-                prev_ggctx->next = curr_ggctx->next;
-            }
-
-            /* free the current graph context */
-            free_specific_graph_context(curr_ggctx);
-
-            /* we found and freed it, return true */
-            return true;
-        }
-
-        /* advance to the next one */
-        curr_ggctx = next_ggctx;
-    }
-
-    /* we didn't find it, return false */
-    return false;
 }
 
 /*
@@ -997,161 +860,4 @@ graphid get_edge_entry_start_vertex_id(edge_entry *ee)
 graphid get_edge_entry_end_vertex_id(edge_entry *ee)
 {
     return ee->end_vertex_id;
-}
-
-/* PostgreSQL SQL facing functions */
-
-/* PG wrapper function for age_delete_global_graphs */
-PG_FUNCTION_INFO_V1(age_delete_global_graphs);
-
-Datum age_delete_global_graphs(PG_FUNCTION_ARGS)
-{
-    agtype_value *agtv_temp = NULL;
-    bool success = false;
-
-    /* get the graph name if supplied */
-    if (!PG_ARGISNULL(0))
-    {
-        agtv_temp = get_agtype_value("delete_global_graphs",
-                                     AG_GET_ARG_AGTYPE_P(0),
-                                     AGTV_STRING, false);
-    }
-
-    if (agtv_temp == NULL || agtv_temp->type == AGTV_NULL)
-    {
-        success = delete_graph_contexts();
-    }
-    else if (agtv_temp->type == AGTV_STRING)
-    {
-        char *graph_name = NULL;
-
-        graph_name = agtv_temp->val.string.val;
-        success = delete_specific_graph_contexts(graph_name);
-    }
-    else
-    {
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("delete_global_graphs: invalid graph name type")));
-    }
-
-    PG_RETURN_BOOL(success);
-}
-
-/* PG wrapper function for age_vertex_degree */
-PG_FUNCTION_INFO_V1(age_vertex_stats);
-
-Datum age_vertex_stats(PG_FUNCTION_ARGS)
-{
-    graph_context *ggctx = NULL;
-    vertex_entry *ve = NULL;
-    ListGraphId *edges = NULL;
-    agtype_value *agtv_vertex = NULL;
-    agtype_value *agtv_temp = NULL;
-    agtype_value agtv_integer;
-    agtype_in_state result;
-    char *graph_name = NULL;
-    Oid graph_oid = InvalidOid;
-    graphid vid = 0;
-    int64 self_loops = 0;
-    int64 degree = 0;
-
-    /* the graph name is required, but this generally isn't user supplied */
-    if (PG_ARGISNULL(0))
-    {
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("vertex_stats: graph name cannot be NULL")));
-    }
-
-    /* get the graph name */
-    agtv_temp = get_agtype_value("vertex_stats", AG_GET_ARG_AGTYPE_P(0),
-                                 AGTV_STRING, true);
-
-    /* we need the vertex */
-    if (PG_ARGISNULL(1))
-    {
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("vertex_stats: vertex cannot be NULL")));
-    }
-
-    /* get the vertex */
-    agtv_vertex = get_agtype_value("vertex_stats", AG_GET_ARG_AGTYPE_P(1),
-                                   AGTV_VERTEX, true);
-
-    graph_name = pnstrdup(agtv_temp->val.string.val,
-                          agtv_temp->val.string.len);
-
-    /* get the graph oid */
-    graph_oid = get_graph_oid(graph_name);
-
-    /*
-     * Create or retrieve the GRAPH global context for this graph. This function
-     * will also purge off invalidated contexts.
-     */
-    ggctx = manage_graph_contexts(graph_name, graph_oid);
-
-    /* free the graph name */
-    pfree(graph_name);
-
-    /* get the id */
-    agtv_temp = GET_AGTYPE_VALUE_OBJECT_VALUE(agtv_vertex, "id");
-    vid = agtv_temp->val.int_value;
-
-    /* get the vertex entry */
-    ve = get_vertex_entry(ggctx, vid);
-
-    /* zero the state */
-    memset(&result, 0, sizeof(agtype_in_state));
-
-    /* start the object */
-    result.res = push_agtype_value(&result.parse_state, WAGT_BEGIN_OBJECT,
-                                   NULL);
-    /* store the id */
-    result.res = push_agtype_value(&result.parse_state, WAGT_KEY,
-                                   string_to_agtype_value("id"));
-    result.res = push_agtype_value(&result.parse_state, WAGT_VALUE, agtv_temp);
-
-    /* store the label */
-    agtv_temp = GET_AGTYPE_VALUE_OBJECT_VALUE(agtv_vertex, "label");
-    result.res = push_agtype_value(&result.parse_state, WAGT_KEY,
-                                   string_to_agtype_value("label"));
-    result.res = push_agtype_value(&result.parse_state, WAGT_VALUE, agtv_temp);
-
-    /* set up an integer for returning values */
-    agtv_temp = &agtv_integer;
-    agtv_temp->type = AGTV_INTEGER;
-    agtv_temp->val.int_value = 0;
-
-    /* get and store the self_loops */
-    edges = get_vertex_entry_edges_self(ve);
-    self_loops = (edges != NULL) ? get_list_size(edges) : 0;
-    agtv_temp->val.int_value = self_loops;
-    result.res = push_agtype_value(&result.parse_state, WAGT_KEY,
-                                   string_to_agtype_value("self_loops"));
-    result.res = push_agtype_value(&result.parse_state, WAGT_VALUE, agtv_temp);
-
-    /* get and store the in_degree */
-    edges = get_vertex_entry_edges_in(ve);
-    degree = (edges != NULL) ? get_list_size(edges) : 0;
-    agtv_temp->val.int_value = degree + self_loops;
-    result.res = push_agtype_value(&result.parse_state, WAGT_KEY,
-                                   string_to_agtype_value("in_degree"));
-    result.res = push_agtype_value(&result.parse_state, WAGT_VALUE, agtv_temp);
-
-    /* get and store the out_degree */
-    edges = get_vertex_entry_edges_out(ve);
-    degree = (edges != NULL) ? get_list_size(edges) : 0;
-    agtv_temp->val.int_value = degree + self_loops;
-    result.res = push_agtype_value(&result.parse_state, WAGT_KEY,
-                                   string_to_agtype_value("out_degree"));
-    result.res = push_agtype_value(&result.parse_state, WAGT_VALUE, agtv_temp);
-
-    /* close the object */
-    result.res = push_agtype_value(&result.parse_state, WAGT_END_OBJECT, NULL);
-
-    result.res->type = AGTV_OBJECT;
-
-    PG_RETURN_POINTER(agtype_value_to_agtype(result.res));
 }
