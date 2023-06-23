@@ -1579,7 +1579,7 @@ Datum _agtype_build_path(PG_FUNCTION_ARGS)
             if (AGT_ROOT_IS_BINARY(agt) &&
                 AGT_ROOT_BINARY_FLAGS(agt) == AGT_FBINARY_TYPE_VLE_PATH)
             {
-                agtype *path = agt_materialize_vle_path(agt);
+                agtype *path = agtype_value_to_agtype(agtv_materialize_vle_path(agt));
                 PG_RETURN_POINTER(path);
             }
         }

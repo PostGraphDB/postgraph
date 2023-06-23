@@ -319,7 +319,7 @@ static ParseNamespaceItem *append_VLE_Func_to_FromClause(cypher_parsestate *cpst
                                                     Node *n);
 static void setNamespaceLateralState(List *namespace, bool lateral_only,
                                      bool lateral_ok);
-static bool isa_special_VLE_case(cypher_path *path);
+static bool is_vle_case(cypher_path *path);
 
 ParseNamespaceItem *find_pnsi(cypher_parsestate *cpstate, char *varname);
 
@@ -3226,11 +3226,8 @@ static List *transform_match_path(cypher_parsestate *cpstate, Query *query,
     return qual;
 }
 
-static transform_entity *transform_VLE_edge_entity(cypher_parsestate *cpstate,
-                                                   cypher_relationship *rel,
-                                                   Query *query)
-{
-    ParseState *pstate = NULL;
+static transform_entity *transform_VLE_edge_entity(cypher_parsestate *cpstate, cypher_relationship *rel, Query *query) {
+    ParseState *pstate = (ParseState *)cpstate;
     TargetEntry *te = NULL;
     RangeFunction *rf = NULL;
     FuncCall *func = NULL;
@@ -3247,14 +3244,9 @@ static transform_entity *transform_VLE_edge_entity(cypher_parsestate *cpstate,
 
     /* only our functions are supported here */
     if (list_length(func->funcname) != 1)
-    {
         ereport(ERROR,
                 (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
                  errmsg("only AGE functions are supported here")));
-    }
-
-    /* set the pstate */
-    pstate = &cpstate->pstate;
 
     /* make a RangeFunction node */
     rf = makeNode(RangeFunction);
@@ -3276,70 +3268,45 @@ static transform_entity *transform_VLE_edge_entity(cypher_parsestate *cpstate,
      * Add the RangeFunction to the FROM clause
      */
     pnsi = append_VLE_Func_to_FromClause(cpstate, (Node*)rf);
-    Assert(pnsi != NULL);
 
     /* Get the var node for the VLE functions column name. */
-    Assert(pnsi != NULL);
     var = scanNSItemForColumn(pstate, pnsi, 0, "edges", -1);
-    Assert(var != NULL);
 
-    /*
-     * If we have a variable name (rel name), make the target entry. Otherwise,
-     * there isn't a reason to create one.
-     */
-    if (rel->name != NULL)
-    {
+    if (rel->name) {
         FuncExpr *fexpr;
         List *args = list_make1(var);
         Oid func_oid = InvalidOid;
 
-        /*
-         * Get the oid for the materialize function that returns a list of
-         * edges. For a VLE edge variable we need to return a list of edges,
-         * not a path.
-         */
         func_oid = get_ag_func_oid("age_materialize_vle_edges", 1, AGTYPEOID);
 
-        /* build the expr node for the function */
-        fexpr = makeFuncExpr(func_oid, AGTYPEOID, args, InvalidOid, InvalidOid,
-                             COERCE_EXPLICIT_CALL);
+        fexpr = makeFuncExpr(func_oid, AGTYPEOID, args, InvalidOid, InvalidOid, COERCE_EXPLICIT_CALL);
 
-        /* make the target entry and apply the provided variable */
-        te = makeTargetEntry((Expr*)fexpr, pstate->p_next_resno++, rel->name,
-                             false);
-        /* add it to the query */
+        te = makeTargetEntry((Expr*)fexpr, pstate->p_next_resno++, rel->name, false);
         query->targetList = lappend(query->targetList, te);
     }
 
     /* Make a transform entity for the vle. */
-    vle_entity = make_transform_entity(cpstate, ENT_VLE_EDGE, (Node *)rel,
-                                       (Expr *)var);
+    vle_entity = make_transform_entity(cpstate, ENT_VLE_EDGE, (Node *)rel, (Expr *)var);
 
     /* return the vle entity */
     return vle_entity;
 }
 
 /* helper function to check for specific VLE cases */
-static bool isa_special_VLE_case(cypher_path *path)
+static bool is_vle_case(cypher_path *path)
 {
     cypher_relationship *cr = NULL;
 
     if (path->var_name == NULL)
-    {
         return false;
-    }
 
     if (list_length(path->path) != 3)
-    {
         return false;
-    }
 
     cr = (cypher_relationship*)lfirst(lnext(path->path, list_head(path->path)));
 
     if (cr->varlen != NULL)
-    {
         return true;
-    }
 
     return false;
 }
@@ -3358,7 +3325,7 @@ static List *transform_match_entities(cypher_parsestate *cpstate, Query *query,
     transform_entity *prev_entity = NULL;
     bool special_VLE_case = false;
 
-    special_VLE_case = isa_special_VLE_case(path);
+    special_VLE_case = is_vle_case(path);
 
     /*
      * Iterate through every node in the path, construct the expr node
