@@ -1,23 +1,18 @@
 /*
- * PostGraph
- * Copyright (C) 2023 by PostGraph
+ * Copyright (C) 2023 PostGraphDB
  *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  * For PostgreSQL Database Management System:
  * (formerly known as Postgres, then as Postgres95)
@@ -636,22 +631,15 @@ transform_cypher_typecast(cypher_parsestate *cpstate, cypher_typecast *ctypecast
 
     /* append the name of the requested typecast function */
     if (pg_strcasecmp(ctypecast->typecast, "numeric") == 0)
-    {
         fname = lappend(fname, makeString("age_tonumeric"));
-    }
     else if (pg_strcasecmp(ctypecast->typecast, "float") == 0)
-    {
         fname = lappend(fname, makeString("age_tofloat"));
-    }
-    else if (pg_strcasecmp(ctypecast->typecast, "int") == 0 ||
-             pg_strcasecmp(ctypecast->typecast, "integer") == 0)
-    {
+    else if (pg_strcasecmp(ctypecast->typecast, "int") == 0 || pg_strcasecmp(ctypecast->typecast, "integer") == 0)
         fname = lappend(fname, makeString("age_tointeger"));
-    }
+    else if (pg_strcasecmp(ctypecast->typecast, "timestamp") == 0)
+        fname = lappend(fname, makeString("age_totimestamp"));
     else
-    {
         ereport(ERROR, (errmsg_internal("typecast \'%s\' not supported", ctypecast->typecast)));
-    }
 
     // make a function call node
     fnode = makeFuncCall(fname, list_make1(ctypecast->expr), COERCE_SQL_SYNTAX, ctypecast->location);

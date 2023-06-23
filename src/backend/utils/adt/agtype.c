@@ -594,6 +594,10 @@ void agtype_put_escaped_value(StringInfo out, agtype_value *scalar_val)
         if (is_decimal_needed(numstr))
             appendBinaryStringInfo(out, ".0", 2);
         break;
+    case AGTV_TIMESTAMP:
+	numstr = DatumGetCString(DirectFunctionCall1(timestamp_out, TimestampGetDatum(scalar_val->val.int_value)));
+	appendStringInfoString(out, numstr);
+	break;
     case AGTV_BOOL:
         if (scalar_val->val.boolean)
             appendBinaryStringInfo(out, "true", 4);
@@ -693,13 +697,15 @@ static void agtype_in_scalar(void *pstate, char *token, agtype_token_type tokent
     if (annotation != NULL && tokentype != AGTYPE_TOKEN_NULL) {
         int len = strlen(annotation);
 
-        if (len == 7 && pg_strcasecmp(annotation, "numeric") == 0)
+        if (pg_strcasecmp(annotation, "numeric") == 0)
             tokentype = AGTYPE_TOKEN_NUMERIC;
-        else if (len == 7 && pg_strcasecmp(annotation, "integer") == 0)
+        else if (pg_strcasecmp(annotation, "integer") == 0)
             tokentype = AGTYPE_TOKEN_INTEGER;
-        else if (len == 5 && pg_strcasecmp(annotation, "float") == 0)
+        else if (pg_strcasecmp(annotation, "float") == 0)
             tokentype = AGTYPE_TOKEN_FLOAT;
-        else
+        else if (pg_strcasecmp(annotation, "timestamp") == 0)
+            tokentype = AGTYPE_TOKEN_TIMESTAMP;
+	else
             ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                      errmsg("invalid annotation value for scalar")));
     }
@@ -727,6 +733,11 @@ static void agtype_in_scalar(void *pstate, char *token, agtype_token_type tokent
         v.type = AGTV_NUMERIC;
         numd = DirectFunctionCall3(numeric_in, CStringGetDatum(token), ObjectIdGetDatum(InvalidOid), Int32GetDatum(-1));
         v.val.numeric = DatumGetNumeric(numd);
+        break;
+    case AGTYPE_TOKEN_TIMESTAMP:
+        Assert(token != NULL);
+        v.type = AGTV_TIMESTAMP;
+        v.val.int_value = DatumGetInt64(DirectFunctionCall3(timestamp_in, CStringGetDatum(token), ObjectIdGetDatum(InvalidOid), Int32GetDatum(-1)));
         break;
 
     case AGTYPE_TOKEN_TRUE:
@@ -1226,9 +1237,8 @@ static void datum_to_agtype(Datum val, bool is_null, agtype_in_state *result, ag
             agtv.val.string.len = strlen(agtv.val.string.val);
             break;
         case AGT_TYPE_TIMESTAMP:
-            agtv.type = AGTV_STRING;
-            agtv.val.string.val = agtype_encode_date_time(NULL, val, TIMESTAMPOID);
-            agtv.val.string.len = strlen(agtv.val.string.val);
+	    agtv.type = AGTV_TIMESTAMP;
+            agtv.val.int_value = DatumGetInt64(val);
             break;
         case AGT_TYPE_TIMESTAMPTZ:
             agtv.type = AGTV_STRING;

@@ -310,6 +310,7 @@ typedef struct
 #define AGT_HEADER_VERTEX  0x0002
 #define AGT_HEADER_EDGE    0x0003
 #define AGT_HEADER_PATH    0x0004
+#define AGT_HEADER_TIMESTAMP 0x0005
 
 #define AGT_IS_VERTEX(agt) \
     (AGT_ROOT_IS_SCALAR(agt) &&\
@@ -327,6 +328,9 @@ typedef struct
 #define AGT_IS_FLOAT(agte_) \
     (((agte_) == AGT_HEADER_FLOAT))
 
+#define AGT_IS_TIMESTAMP(agt) \
+    (AGTE_IS_AGTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_TIMESTAMP)
+
 #define AGT_IS_PATH(agt) \
     (AGTE_IS_AGTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_PATH)
 enum agtype_value_type
@@ -338,11 +342,12 @@ enum agtype_value_type
     AGTV_INTEGER,
     AGTV_FLOAT,
     AGTV_BOOL,
+    AGTV_TIMESTAMP,
     AGTV_VERTEX,
     AGTV_EDGE,
     AGTV_PATH,
     /* Composite types */
-    AGTV_ARRAY = 0x10,
+    AGTV_ARRAY = 0x20,
     AGTV_OBJECT,
     /* Binary (i.e. struct agtype) AGTV_ARRAY/AGTV_OBJECT */
     AGTV_BINARY
