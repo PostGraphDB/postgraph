@@ -73,6 +73,7 @@ static Datum agtype_to_int2_internal(agtype_value *agtv);
 static Datum agtype_to_float8_internal(agtype_value *agtv);
 static Datum agtype_to_numeric_internal(agtype_value *agtv);
 static Datum agtype_to_string_internal(agtype_value *agtv);
+static Datum agtype_to_timestamp_internal(agtype_value *agtv);
 
 static void cannot_cast_agtype_value(enum agtype_value_type type, const char *sqltype);
 
@@ -165,6 +166,26 @@ age_tostring(PG_FUNCTION_ARGS) {
 
     AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv));
 }
+
+PG_FUNCTION_INFO_V1(age_totimestamp);
+Datum
+age_totimestamp(PG_FUNCTION_ARGS) {
+    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+
+    if (is_agtype_null(agt))
+        PG_RETURN_NULL();
+
+    int64 ts = DatumGetInt64(convert_to_scalar(agtype_to_timestamp_internal, agt, "string"));
+
+    agtype_value agtv;
+    agtv.type = AGTV_TIMESTAMP;
+    agtv.val.int_value = ts;
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv));
+}
+
 
 /*
  * agtype to postgres functions
@@ -427,6 +448,20 @@ agtype_to_string_internal(agtype_value *agtv) {
     // unreachable
     return CStringGetDatum("");
 }
+
+static Datum
+agtype_to_timestamp_internal(agtype_value *agtv) {
+    if (agtv->type == AGTV_INTEGER || agtv->type == AGTV_TIMESTAMP)
+        return TimestampGetDatum(agtv->val.int_value);
+    else if (agtv->type == AGTV_STRING)
+        return TimestampGetDatum(DirectFunctionCall3(timestamp_in, CStringGetDatum(pnstrdup(agtv->val.string.val, agtv->val.string.len)), ObjectIdGetDatum(InvalidOid), Int32GetDatum(-1)));
+    else
+        cannot_cast_agtype_value(agtv->type, "timestamp");
+
+    // unreachable
+    return CStringGetDatum("");
+}
+
 
 /*
  * Emit correct, translatable cast error message

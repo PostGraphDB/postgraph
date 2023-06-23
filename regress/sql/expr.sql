@@ -57,6 +57,31 @@ SELECT * FROM cypher('expr', $$
 RETURN [['str'], [1, [1.0], [[true]]], null]
 $$) AS r(c agtype);
 
+
+--
+-- Timestamp
+--
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp
+$$) AS r(c agtype);
+SELECT * FROM cypher('expr', $$
+RETURN '06/23/2023 13:39:40.00'::timestamp
+$$) AS r(c agtype);
+SELECT * FROM cypher('expr', $$
+RETURN 'Fri Jun 23 13:39:40.00 2023"'::timestamp
+$$) AS r(c agtype);
+SELECT * FROM cypher('expr', $$
+RETURN '06/23/1970 13:39:40.00'::timestamp
+$$) AS r(c agtype);
+SELECT * FROM cypher('expr', $$
+RETURN 0::timestamp
+$$) AS r(c agtype);
+SELECT * FROM cypher('expr', $$
+RETURN NULL::timestamp
+$$) AS r(c agtype);
+
+
+
 --
 -- parameter
 --

@@ -49,6 +49,9 @@ INSERT INTO agtype_table VALUES ('float', '0.00000000000000012345');
 INSERT INTO agtype_table VALUES ('float', '-0.00000000000000012345');
 INSERT INTO agtype_table VALUES ('numeric', '100000000000.0000000000001::numeric');
 INSERT INTO agtype_table VALUES ('numeric', '-100000000000.0000000000001::numeric');
+INSERT INTO agtype_table VALUES ('timestamp', '"2023-06-23 13:39:40.00"::timestamp');
+INSERT INTO agtype_table VALUES ('timestamp', '"06/23/2023 13:39:40.00"::timestamp');
+INSERT INTO agtype_table VALUES ('timestamp', '"Fri Jun 23 13:39:40.00 2023"::timestamp');
 INSERT INTO agtype_table VALUES ('integer array',
 	'[-9223372036854775808, -1, 0, 1, 9223372036854775807]');
 INSERT INTO agtype_table VALUES('float array',
@@ -85,6 +88,9 @@ SELECT * FROM agtype_table;
  float           | -1.2345e-16
  numeric         | 100000000000.0000000000001::numeric
  numeric         | -100000000000.0000000000001::numeric
+ timestamp       | Fri Jun 23 13:39:40 2023
+ timestamp       | Fri Jun 23 13:39:40 2023
+ timestamp       | Fri Jun 23 13:39:40 2023
  integer array   | [-9223372036854775808, -1, 0, 1, 9223372036854775807]
  float array     | [-1.2345e-16, -100000000.000001, -1.0, 0.0, 1.0, 100000000.000001, 1.2345e-16]
  mixed array     | [true, false, null, "string", 1, 1.0, {"bool": true}, -1::numeric, [1, 3, 5]]
@@ -95,7 +101,7 @@ SELECT * FROM agtype_table;
  float -Infinity | -Infinity
  float  inf      | Infinity
  float -inf      | -Infinity
-(27 rows)
+(30 rows)
 
 --
 -- These should fail

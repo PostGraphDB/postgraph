@@ -1,20 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (C) 2023 PostGraphDB
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * For PostgreSQL Database Management System:
+ * (formerly known as Postgres, then as Postgres95)
+ *
+ * Portions Copyright (c) 2020-2023, Apache Software Foundation
+ * Portions Copyright (c) 1996-2010, Bitnine Global
  */
 
 #include "utils/agtype_ext.h"
@@ -74,7 +78,14 @@ bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
 
         *agtentry = AGTENTRY_IS_AGTYPE | (padlen + numlen + AGT_HEADER_SIZE);
         break;
+    case AGTV_TIMESTAMP:
+        padlen = ag_serialize_header(buffer, AGT_HEADER_TIMESTAMP);
 
+        offset = reserve_from_buffer(buffer, sizeof(int64));
+        *((int64 *)(buffer->data + offset)) = scalar_val->val.int_value;
+
+	*agtentry = AGTENTRY_IS_AGTYPE | (sizeof(int64) + AGT_HEADER_SIZE);
+        break;
     case AGTV_VERTEX:
     {
         uint32 object_ae = 0;
@@ -162,6 +173,11 @@ void ag_deserialize_extended_type(char *base_addr, uint32 offset,
     case AGT_HEADER_FLOAT:
         result->type = AGTV_FLOAT;
         result->val.float_value = *((float8 *)(base + AGT_HEADER_SIZE));
+        break;
+
+    case AGT_HEADER_TIMESTAMP:
+        result->type = AGTV_TIMESTAMP;
+        result->val.int_value = *((int64 *)(base + AGT_HEADER_SIZE));
         break;
 
     case AGT_HEADER_VERTEX:
