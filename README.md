@@ -2,7 +2,7 @@
 
 [![discord badge](https://img.shields.io/discord/1036610864071053413?label=discord&logo=discord&style=plastic)](https://discord.gg/KDTTx2vz2m)
 
-You can view the full manual [here](https://github.com/PostGraphDB/postgraph/wiki)
+You can view the full manual [here](https://postgraphdb.github.io/)
 
 Postgraph is an extension for Postgres with the explicit goal of combining the power of graph modeling together with the full fledged power of the Postgres ecosystem. Originally a fork of Apache AGE, PostGraph will combine a graph based model and query language with the power of the open source Postgres community.
 
