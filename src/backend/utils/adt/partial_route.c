@@ -21,7 +21,7 @@
 #include "utils/varlena.h"
 
 #include "utils/edge.h"
-#include "utils/route.h"
+#include "utils/partial_route.h"
 #include "utils/vertex.h"
 
 static void append_to_buffer(StringInfo buffer, const char *data, int len);
@@ -29,16 +29,16 @@ static void append_to_buffer(StringInfo buffer, const char *data, int len);
 /*
  * I/O routines for vertex type
  */
-PG_FUNCTION_INFO_V1(route_in);
-Datum route_in(PG_FUNCTION_ARGS) {
+PG_FUNCTION_INFO_V1(partial_route_in);
+Datum partial_route_in(PG_FUNCTION_ARGS) {
     ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("Use build_route()")));
 
-    AG_RETURN_ROUTE(NULL);
+    AG_RETURN_PARTIAL_ROUTE(NULL);
 }
 
-PG_FUNCTION_INFO_V1(route_out);
-Datum route_out(PG_FUNCTION_ARGS) {
-    route *v = AG_GET_ARG_ROUTE(0);
+PG_FUNCTION_INFO_V1(partial_route_out);
+Datum partial_route_out(PG_FUNCTION_ARGS) {
+    partial_route *v = AG_GET_ARG_PARTIAL_ROUTE(0);
     StringInfo str = makeStringInfo();
 
     appendStringInfoString(str, "[");
@@ -46,12 +46,12 @@ Datum route_out(PG_FUNCTION_ARGS) {
     char *ptr = &v->children[1];
     for (int i = 0; i < v->children[0]; i++, ptr = ptr + VARSIZE(ptr)) {
 	
-	if (i % 2 == 0) {
+	if (i % 2 == 1) {
+	    appendStringInfoString(str, ", ");
             append_vertex_to_string(str, (vertex *)ptr);
+	    appendStringInfoString(str, ", ");
         } else {
-	    appendStringInfoString(str, ", ");
             append_edge_to_string(str, (edge *)ptr);
-	    appendStringInfoString(str, ", ");
 	}
     } 
 
@@ -59,26 +59,28 @@ Datum route_out(PG_FUNCTION_ARGS) {
     PG_RETURN_CSTRING(str->data);
 }
 
-PG_FUNCTION_INFO_V1(build_route);
+PG_FUNCTION_INFO_V1(build_partial_route);
 Datum
-build_route(PG_FUNCTION_ARGS) {
+build_partial_route(PG_FUNCTION_ARGS) {
     StringInfoData buffer;
     initStringInfo(&buffer);
     Datum *args;
     bool *nulls;
     Oid *types;
-    pentry nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
+    prentry nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
     int32 size;
 
     // header
     reserve_from_buffer(&buffer, VARHDRSZ);
 
-    append_to_buffer(&buffer, (char *)&nargs, sizeof(pentry));
+    append_to_buffer(&buffer, (char *)&nargs, sizeof(prentry));
 
     for (int i = 0; i < nargs; i++) {
-        if (i % 2 == 0) {
+        if (i % 2 == 1) {
             if (types[i] != VERTEXOID)
                  ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("arguement %i build_route() must be a vertex", i)));
+            if (i + 1 == nargs)
+                 ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("partial_routes must end with an edge")));
 
             append_to_buffer(&buffer, DATUM_GET_VERTEX(args[i]), VARSIZE_ANY(args[i]));
 	}
@@ -86,18 +88,16 @@ build_route(PG_FUNCTION_ARGS) {
 
             if (types[i] != EDGEOID)
                  ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("arguement %i build_route() must be an edge", i)));
-            if (i + 1 == nargs)
-                 ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("routes must end with a vertex")));
 
             append_to_buffer(&buffer, DATUM_GET_EDGE(args[i]), VARSIZE_ANY(args[i]));
 	}
     }
 
-    route *p = (route *)buffer.data;
+    partial_route *p = (partial_route *)buffer.data;
 
     SET_VARSIZE(p, buffer.len);
 
-    AG_RETURN_ROUTE(p);
+    AG_RETURN_PARTIAL_ROUTE(p);
 }
 
 static void
