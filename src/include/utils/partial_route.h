@@ -55,4 +55,10 @@ typedef struct
     prentry children[FLEXIBLE_ARRAY_MEMBER];
 } partial_route;
 
+#define PARTIALROUTEOID \
+    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("partial_route"), ObjectIdGetDatum(postgraph_namespace_id())))
+
+#define PARTIALROUTEARRAYOID \
+    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("_partial_route"), ObjectIdGetDatum(postgraph_namespace_id())))
+
 #endif
