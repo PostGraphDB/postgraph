@@ -67,6 +67,26 @@ Datum vertex_out(PG_FUNCTION_ARGS) {
     PG_RETURN_CSTRING(str->data);
 }
 
+void append_vertex_to_string(StringInfoData *buffer, vertex *v){
+
+    // id
+    appendStringInfoString(buffer, "{\"id\": ");
+    appendStringInfoString(buffer, DatumGetCString(DirectFunctionCall1(int8out, Int64GetDatum((int64)v->children[0]))));
+
+    // label
+    appendStringInfoString(buffer, ", \"label\": \"");
+    appendStringInfoString(buffer, extract_label(v));
+
+    // properties
+    appendStringInfoString(buffer, "\", \"properties\": ");
+    agtype *agt = extract_properties(v);
+    agtype_to_cstring(buffer, &agt->root, 0);
+
+
+    appendStringInfoString(buffer, "}");
+
+}
+
 PG_FUNCTION_INFO_V1(build_vertex);
 Datum
 build_vertex(PG_FUNCTION_ARGS) {

@@ -58,4 +58,15 @@ typedef struct
     eentry children[FLEXIBLE_ARRAY_MEMBER];
 } edge;
 
+void append_edge_to_string(StringInfoData *buffer, edge *v);
+
+
+
+#define EDGEOID \
+    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("edge"), ObjectIdGetDatum(postgraph_namespace_id())))
+
+#define EDGEARRAYOID \
+    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("_edge"), ObjectIdGetDatum(postgraph_namespace_id())))
+
+
 #endif
