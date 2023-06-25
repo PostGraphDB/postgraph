@@ -60,6 +60,7 @@ OBJS = src/backend/postgraph.o \
        src/backend/utils/adt/cypher_funcs.o \
        src/backend/utils/adt/edge.o \
        src/backend/utils/adt/graphid.o \
+       src/backend/utils/adt/route.o \
        src/backend/utils/adt/vertex.o \
        src/backend/utils/ag_func.o \
        src/backend/utils/cache/ag_cache.o \
@@ -74,6 +75,7 @@ REGRESS = scan \
           agtype \
           vertex \
           edge \
+	  route \
           typecasting \
           catalog \
           cypher \
@@ -103,7 +105,7 @@ GEN_KEYWORDLIST = $(PERL) -I ./tools/ ./tools/gen_keywordlist.pl
 GEN_KEYWORDLIST_DEPS = ./tools/gen_keywordlist.pl tools/PerfectHash.pm
 
 ag_include_dir = $(srcdir)/src/include
-PG_CPPFLAGS = -I$(ag_include_dir) -I$(ag_include_dir)/parser
+PG_CPPFLAGS = -Wdeclaration-after-statement -I$(ag_include_dir) -I$(ag_include_dir)/parser
 
 PG_CONFIG ?= pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)

@@ -75,6 +75,34 @@ Datum edge_out(PG_FUNCTION_ARGS) {
     PG_RETURN_CSTRING(str->data);
 }
 
+void append_edge_to_string(StringInfoData *str, edge *v) {
+
+    // id
+    appendStringInfoString(str, "{\"id\": ");
+    appendStringInfoString(str, DatumGetCString(DirectFunctionCall1(int8out, Int64GetDatum((int64)v->children[0]))));
+
+    // start_id
+    appendStringInfoString(str, ", \"start_id\": ");
+    appendStringInfoString(str, DatumGetCString(DirectFunctionCall1(int8out, Int64GetDatum((int64)v->children[2]))));
+
+    // end_id
+    appendStringInfoString(str, ", \"end_id\": ");
+    appendStringInfoString(str, DatumGetCString(DirectFunctionCall1(int8out, Int64GetDatum((int64)v->children[4]))));
+
+    // label
+    appendStringInfoString(str, ", \"label\": \"");
+    appendStringInfoString(str, extract_label(v));
+
+    // properties
+    appendStringInfoString(str, "\", \"properties\": ");
+    agtype *agt = extract_properties(v);
+    agtype_to_cstring(str, &agt->root, 0);
+
+
+    appendStringInfoString(str, "}");
+
+}
+
 PG_FUNCTION_INFO_V1(build_edge);
 Datum
 build_edge(PG_FUNCTION_ARGS) {

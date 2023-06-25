@@ -67,4 +67,12 @@ typedef struct
     ventry children[FLEXIBLE_ARRAY_MEMBER];
 } vertex;
 
+void append_vertex_to_string(StringInfoData *buffer, vertex *v);
+
+#define VERTEXOID \
+    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("vertex"), ObjectIdGetDatum(postgraph_namespace_id())))
+
+#define VERTEXARRAYOID \
+    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("_vertex"), ObjectIdGetDatum(postgraph_namespace_id())))
+
 #endif
