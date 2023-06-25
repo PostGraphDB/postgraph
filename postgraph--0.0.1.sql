@@ -201,6 +201,18 @@ CREATE FUNCTION build_route(variadic "any") RETURNS route LANGUAGE c IMMUTABLE R
 CREATE TYPE route (INPUT = route_in, OUTPUT = route_out, LIKE = jsonb);
 
 --
+-- partial route
+--
+CREATE TYPE partial_route;
+
+CREATE FUNCTION partial_route_in(cstring) RETURNS partial_route LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION partial_route_out(partial_route) RETURNS cstring LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION build_partial_route(variadic "any") RETURNS partial_route LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+
+CREATE TYPE partial_route (INPUT = partial_route_in, OUTPUT = partial_route_out, LIKE = jsonb);
+
+
+--
 -- agtype - mathematical operators (+, -, *, /, %, ^)
 --
 CREATE FUNCTION agtype_add(agtype, agtype) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';

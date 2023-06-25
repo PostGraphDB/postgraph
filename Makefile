@@ -61,6 +61,7 @@ OBJS = src/backend/postgraph.o \
        src/backend/utils/adt/edge.o \
        src/backend/utils/adt/graphid.o \
        src/backend/utils/adt/route.o \
+       src/backend/utils/adt/partial_route.o \
        src/backend/utils/adt/vertex.o \
        src/backend/utils/ag_func.o \
        src/backend/utils/cache/ag_cache.o \
@@ -75,7 +76,8 @@ REGRESS = scan \
           agtype \
           vertex \
           edge \
-	  route \
+          partial_route \
+          route \
           typecasting \
           catalog \
           cypher \
