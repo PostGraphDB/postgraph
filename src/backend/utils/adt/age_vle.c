@@ -1083,31 +1083,25 @@ Datum age_materialize_vle_edges(PG_FUNCTION_ARGS) {
 
     PG_RETURN_POINTER(agtype_value_to_agtype(build_edge_list((path_container *)agt)));
 }
-
-PG_FUNCTION_INFO_V1(age_match_vle_terminal_edge);
-Datum age_match_vle_terminal_edge(PG_FUNCTION_ARGS) {
+PG_FUNCTION_INFO_V1(age_match_vle_terminal_edge_start);
+Datum age_match_vle_terminal_edge_start(PG_FUNCTION_ARGS) {
     Datum *args;
     bool *nulls;
     Oid *types;
     int nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
 
     // get the vpc 
-    agtype *agt_arg_path = DATUM_GET_AGTYPE_P(args[2]);
+    agtype *agt_arg_path = DATUM_GET_AGTYPE_P(args[1]);
 
     Assert(AGT_ROOT_IS_BINARY(agt_arg_path));
     Assert(AGT_ROOT_BINARY_FLAGS(agt_arg_path) == AGT_FBINARY_TYPE_VLE_PATH);
 
-    // get the container 
     path_container *vpc = (path_container *)agt_arg_path;
-
-    // get the graphid array from the container 
     graphid *gida = GET_GRAPHID_ARRAY_FROM_CONTAINER(vpc);
-
-    // get the gida array size 
     int gidasize = vpc->graphid_array_size;
 
     // start id
-    graphid vsid; 
+    graphid vsid;
     if (types[0] == AGTYPEOID) {
         agtype *agt_arg_vsid = DATUM_GET_AGTYPE_P(args[0]);
 
@@ -1130,32 +1124,55 @@ Datum age_match_vle_terminal_edge(PG_FUNCTION_ARGS) {
              errmsg("match_vle_terminal_edge() arguement 1 must be an agtype integer or a graphid")));
     }
 
-    // end id
-    graphid veid;
-    if (types[1] == AGTYPEOID) {
-        agtype *agt_arg_veid = DATUM_GET_AGTYPE_P(args[1]);
+    // compare the path beginning or end points 
+    PG_RETURN_BOOL(gida[0] == vsid);
+}
 
-        if (!is_agtype_null(agt_arg_veid)) {
-            agtype_value *agtv_temp = get_ith_agtype_value_from_container(&agt_arg_veid->root, 0);
+PG_FUNCTION_INFO_V1(age_match_vle_terminal_edge_end);
+Datum age_match_vle_terminal_edge_end(PG_FUNCTION_ARGS) {
+    Datum *args;
+    bool *nulls;
+    Oid *types;
+    int nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
+
+    // get the vpc 
+    agtype *agt_arg_path = DATUM_GET_AGTYPE_P(args[1]);
+
+    Assert(AGT_ROOT_IS_BINARY(agt_arg_path));
+    Assert(AGT_ROOT_BINARY_FLAGS(agt_arg_path) == AGT_FBINARY_TYPE_VLE_PATH);
+
+    path_container *vpc = (path_container *)agt_arg_path;
+    graphid *gida = GET_GRAPHID_ARRAY_FROM_CONTAINER(vpc);
+    int gidasize = vpc->graphid_array_size;
+
+    // start id
+    graphid vsid;
+    if (types[0] == AGTYPEOID) {
+        agtype *agt_arg_vsid = DATUM_GET_AGTYPE_P(args[0]);
+
+        if (!is_agtype_null(agt_arg_vsid)) {
+            agtype_value *agtv_temp = get_ith_agtype_value_from_container(&agt_arg_vsid->root, 0);
+
             Assert(agtv_temp->type == AGTV_INTEGER);
-            veid = agtv_temp->val.int_value;
+            vsid = agtv_temp->val.int_value;
         } else {
             ereport(ERROR,
                 (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("match_vle_terminal_edge() argument 2 must be non NULL")));
+                 errmsg("match_vle_terminal_edge() argument 1 must be non NULL")));
         }
     }
-    else if (types[1] == GRAPHIDOID) {
-        veid = DATUM_GET_GRAPHID(args[1]);
+    else if (types[0] == GRAPHIDOID) {
+        vsid = DATUM_GET_GRAPHID(args[0]);
     } else {
         ereport(ERROR,
             (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-             errmsg("match_vle_terminal_edge() arguement 2 must be an agtype integer or a graphid")));
+             errmsg("match_vle_terminal_edge() arguement 1 must be an agtype integer or a graphid")));
     }
 
     // compare the path beginning or end points 
-    PG_RETURN_BOOL(gida[0] == vsid && veid == gida[gidasize - 1]);
+    PG_RETURN_BOOL(gida[gidasize - 1] == vsid);
 }
+
 
 static const agtype_value agtv_nstr = {
     .type = AGTV_STRING,
