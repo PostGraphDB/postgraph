@@ -1071,19 +1071,7 @@ Datum age_match_vle_edge_to_id_qual(PG_FUNCTION_ARGS) {
 
     graphid gid = DATUM_GET_GRAPHID(args[1]);
 
-    agtype *pos_agt = DATUM_GET_AGTYPE_P(args[2]);
-
-    if (!AGT_ROOT_IS_SCALAR(pos_agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("argument 3 of age_match_vle_edge_to_edge_qual must be an integer")));
-
-    agtype_value *position = get_ith_agtype_value_from_container(&pos_agt->root, 0);
-
-    if (position->type != AGTV_BOOL)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("argument 3 of age_match_vle_edge_to_edge_qual must be an integer")));
-   
-    PG_RETURN_BOOL(position->val.boolean ? gid == array[vle_path->graphid_array_size - 1] : gid != array[0]);
+    PG_RETURN_BOOL(gid == array[vle_path->graphid_array_size - 1]);
 }
 
 PG_FUNCTION_INFO_V1(age_materialize_vle_edges);
