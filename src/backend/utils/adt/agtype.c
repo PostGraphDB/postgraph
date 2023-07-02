@@ -49,6 +49,7 @@
 #include "libpq/pqformat.h"
 #include "miscadmin.h"
 #include "parser/parse_coerce.h"
+#include "portability/instr_time.h"
 #include "nodes/pg_list.h"
 #include "utils/builtins.h"
 #include "utils/float.h"
@@ -4863,24 +4864,6 @@ Datum age_sqrt(PG_FUNCTION_ARGS)
         AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv));
 
     }
-}
-PG_FUNCTION_INFO_V1(age_timestamp);
-
-Datum age_timestamp(PG_FUNCTION_ARGS)
-{
-    agtype_value agtv_result;
-    struct timespec ts;
-    long ms = 0;
-
-    /* get the system time and convert it to milliseconds */
-    clock_gettime(CLOCK_REALTIME, &ts);
-    ms += (ts.tv_sec * 1000) + (ts.tv_nsec / 1000000);
-
-    /* build the result */
-    agtv_result.type = AGTV_INTEGER;
-    agtv_result.val.int_value = ms;
-
-    PG_RETURN_POINTER(agtype_value_to_agtype(&agtv_result));
 }
 
 /*
