@@ -2758,12 +2758,12 @@ static List *make_join_condition_for_edge(cypher_parsestate *cpstate,
 
         if (prev_node->in_join_tree) {
             Node *op = makeSimpleA_Expr(AEXPR_OP, "!!!=", (Node *)make_qual(cpstate, prev_node, "id"), entity->expr, -1);
-	    quals = lappend(quals, op);
+	          quals = lappend(quals, op);
 
-	    op = makeSimpleA_Expr(AEXPR_OP, "!!!!=", (Node *)make_qual(cpstate, next_node, "id"), entity->expr, -1);
+	          op = makeSimpleA_Expr(AEXPR_OP, "!!!!=", (Node *)make_qual(cpstate, next_node, "id"), entity->expr, -1);
 
             quals = lappend(quals, op);
-	}
+      	}
 
         /*
          * When the previous node is not in the join tree, but there is a vle

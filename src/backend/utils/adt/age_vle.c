@@ -1083,8 +1083,10 @@ Datum age_materialize_vle_edges(PG_FUNCTION_ARGS) {
 
     PG_RETURN_POINTER(agtype_value_to_agtype(build_edge_list((path_container *)agt)));
 }
+
 PG_FUNCTION_INFO_V1(age_match_vle_terminal_edge_start);
 Datum age_match_vle_terminal_edge_start(PG_FUNCTION_ARGS) {
+
     Datum *args;
     bool *nulls;
     Oid *types;
