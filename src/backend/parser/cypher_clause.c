@@ -2740,8 +2740,7 @@ static List *make_join_condition_for_edge(cypher_parsestate *cpstate,
      * node to the match_vle_terminal_edge function to process
      * which rows match.
      */
-    if (entity->type == ENT_VLE_EDGE)
-    {
+    if (entity->type == ENT_VLE_EDGE) {
         Node *left_id = NULL;
         Node *right_id = NULL;
         Value *catalog = makeString(CATALOG_SCHEMA);
@@ -2755,23 +2754,19 @@ static List *make_join_condition_for_edge(cypher_parsestate *cpstate,
          * quals.
          */
         if (!next_node->in_join_tree)
-        {
             return NIL;
-        }
 
         /*
          * If the previous node and the next node are in the join tree, we need
          * to create the age_match_vle_terminal_edge to compare the vle returned
          * results against the two nodes.
          */
-        if (prev_node->in_join_tree)
-        {
+        if (prev_node->in_join_tree) {
             func_name = makeString("age_match_vle_terminal_edge");
             qualified_func_name = list_make2(catalog, func_name);
 
             /*
-             * Get the vertex's id and pass to the function. Pass in NULL
-             * otherwise.
+             * Get the vertex's id and pass to the function. Pass in NULL * otherwise.
              */
             left_id = (Node *)make_qual(cpstate, prev_node, "id");
             right_id = (Node *)make_qual(cpstate, next_node, "id");
@@ -2813,9 +2808,7 @@ static List *make_join_condition_for_edge(cypher_parsestate *cpstate,
      * filter for that node.
      */
     if (!next_node->in_join_tree && next_edge == NULL)
-    {
         next_label_name_to_filter = next_node->entity.node->label;
-    }
 
     /*
      * When the previous node is not in the join tree, and there
@@ -2823,13 +2816,9 @@ static List *make_join_condition_for_edge(cypher_parsestate *cpstate,
      * Otherwise, use the previous node/
      */
     if (!prev_node->in_join_tree && prev_edge != NULL)
-    {
         prev_entity = prev_edge;
-    }
     else
-    {
         prev_entity = prev_node;
-    }
 
     /*
      * When the next node is not in the join tree, and there
@@ -2849,10 +2838,8 @@ static List *make_join_condition_for_edge(cypher_parsestate *cpstate,
     {
         case CYPHER_REL_DIR_RIGHT:
         {
-            Node *prev_qual = make_qual(cpstate, entity,
-                                        AG_EDGE_COLNAME_START_ID);
-            Node *next_qual = make_qual(cpstate, entity,
-                                        AG_EDGE_COLNAME_END_ID);
+            Node *prev_qual = make_qual(cpstate, entity, AG_EDGE_COLNAME_START_ID);
+            Node *next_qual = make_qual(cpstate, entity, AG_EDGE_COLNAME_END_ID);
 
             return make_directed_edge_join_conditions(cpstate, prev_entity,
                                                       next_node, prev_qual,
@@ -2906,8 +2893,7 @@ static List *make_join_condition_for_edge(cypher_parsestate *cpstate,
             first_qual = makeBoolExpr(AND_EXPR, first_join_quals, -1);
             second_qual = makeBoolExpr(AND_EXPR, second_join_quals, -1);
 
-            or_qual = makeBoolExpr(OR_EXPR, list_make2(first_qual, second_qual),
-                               -1);
+            or_qual = makeBoolExpr(OR_EXPR, list_make2(first_qual, second_qual), -1);
 
             return list_make1(or_qual);
         }
@@ -2916,121 +2902,33 @@ static List *make_join_condition_for_edge(cypher_parsestate *cpstate,
     }
 }
 
-// creates a type cast node to agtype
-static Node *make_type_cast_to_agtype(Node *arg)
-{
-    TypeCast *n = makeNode(TypeCast);
-    Value *catalog = makeString(CATALOG_SCHEMA);
-    Value *agtype_str = makeString("agtype");
-    List *qualified_name = list_make2(catalog, agtype_str);
-
-    n->arg = arg;
-    n->typeName = makeTypeNameFromNameList(qualified_name);
-    n->location = -1;
-    return (Node *) n;
-}
-
 /*
- * Makes an agtype bool node that Postgres' transform expression logic
- * can handle. Used when contructed the join quals for building the paths
+ * For the given entity, join it to the current edge, via the passed qual node. The side denotes if the entity is on the right
+ * or left of the current edge. Which we will need to know if the passed entity is a directed edge.
  */
-static Node *make_bool_a_const(bool state)
-{
-    A_Const *n = makeNode(A_Const);
-
-    n->val.type = T_String;
-    n->val.val.str = (state ? "true" : "false");
-    n->location = -1;
-
-    // typecast to agtype
-    return make_type_cast_to_agtype((Node *)n);
-}
-
-/*
- * For the given entity, join it to the current edge, via the passed
- * qual node. The side denotes if the entity is on the right
- * or left of the current edge. Which we will need to know if the
- * passed entity is a directed edge.
- */
-static List *join_to_entity(cypher_parsestate *cpstate,
-                            transform_entity *entity, Node *qual,
-                            enum transform_entity_join_side side)
-{
+static List *join_to_entity(cypher_parsestate *cpstate, transform_entity *entity, Node *qual, enum transform_entity_join_side side) {
     ParseState *pstate = (ParseState *)cpstate;
     A_Expr *expr;
     List *quals = NIL;
 
-    if (entity->type == ENT_VERTEX)
-    {
+    if (entity->type == ENT_VERTEX) {
         Node *id_qual = make_qual(cpstate, entity, AG_EDGE_COLNAME_ID);
 
         expr = makeSimpleA_Expr(AEXPR_OP, "=", qual, (Node *)id_qual, -1);
 
         quals = lappend(quals, expr);
-    }
-    else if (entity->type == ENT_EDGE)
-    {
+    } else if (entity->type == ENT_EDGE) {
         List *edge_quals = make_edge_quals(cpstate, entity, side);
 
         if (list_length(edge_quals) > 1)
-        {
-            expr = makeSimpleA_Expr(AEXPR_IN, "=", qual,
-                                    (Node *)edge_quals, -1);
-        }
+            expr = makeSimpleA_Expr(AEXPR_IN, "=", qual, (Node *)edge_quals, -1);
         else
-        {
-            expr = makeSimpleA_Expr(AEXPR_OP, "=", qual,
-                                    linitial(edge_quals), -1);
-        }
+            expr = makeSimpleA_Expr(AEXPR_OP, "=", qual, linitial(edge_quals), -1);
 
         quals = lappend(quals, expr);
-    }
-    else if (entity->type == ENT_VLE_EDGE)
-    {
-        List *qualified_name, *args;
-        Value *catalog, *match_qual;
-        bool is_left_side;
-        FuncCall *fc;
-
-        catalog = makeString(CATALOG_SCHEMA);
-        match_qual = makeString("age_match_vle_edge_to_id_qual");
-
-        /*
-         *  tells the function the location of the vle relative to the
-         * edge we are joining it against.
-         */
-        if (side == JOIN_SIDE_LEFT)
-        {
-            // [vle_edge]-()-[regular_edge]
-            is_left_side = true;
-        }
-        else if (side == JOIN_SIDE_RIGHT)
-        {
-            // [edge]-()-[vle_edge]
-            is_left_side = false;
-        }
-        else
-        {
-            ereport(ERROR,
-                    (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                     errmsg("unknown join side found"),
-                     parser_errposition(pstate, entity->entity.rel->location)));
-        }
-
-        // make the qualified function name
-        qualified_name = list_make2(catalog, match_qual);
-
-        // make the args
-        args = list_make3(entity->expr, qual, make_bool_a_const(is_left_side));
-
-        // create the function call
-        fc = makeFuncCall(qualified_name, args, COERCE_EXPLICIT_CALL, -1);
-
-        quals = lappend(quals, fc);
-
-    }
-    else
-    {
+    } else if (entity->type == ENT_VLE_EDGE) {
+       quals = lappend(quals, makeSimpleA_Expr(AEXPR_OP, "!@=", entity->expr, qual, -1));
+    } else {
         ereport(ERROR,
                 (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
                  errmsg("unknown entity type to join to")));
@@ -3071,31 +2969,20 @@ static List *make_edge_quals(cypher_parsestate *cpstate,
             break;
         }
         default:
-            ereport(ERROR,
-                    (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                     errmsg("unknown join type found"),
-                     parser_errposition(pstate, edge->entity.rel->location)));
+            ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+                     errmsg("unknown join type found"), parser_errposition(pstate, edge->entity.rel->location)));
     }
 
     switch (edge->entity.rel->dir)
     {
         case CYPHER_REL_DIR_LEFT:
-        {
             return list_make1(make_qual(cpstate, edge, left_dir));
-        }
         case CYPHER_REL_DIR_RIGHT:
-        {
             return list_make1(make_qual(cpstate, edge, right_dir));
-        }
         case CYPHER_REL_DIR_NONE:
-        {
-            return list_make2(make_qual(cpstate, edge, left_dir),
-                              make_qual(cpstate, edge, right_dir));
-        }
+            return list_make2(make_qual(cpstate, edge, left_dir), make_qual(cpstate, edge, right_dir));
         default:
-            ereport(ERROR,
-                    (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                     errmsg("Unknown relationship direction")));
+            ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED), errmsg("Unknown relationship direction")));
     }
     return NIL;
 }
