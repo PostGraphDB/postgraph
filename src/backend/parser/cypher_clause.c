@@ -2789,26 +2789,11 @@ static List *make_join_condition_for_edge(cypher_parsestate *cpstate,
          * against the previous vle's end node. No need to check the next edge,
          * because that would be redundent.
          */
-        if (!prev_node->in_join_tree &&
-            prev_edge != NULL &&
-            prev_edge->type == ENT_VLE_EDGE)
-        {
-            List *qualified_name, *args;
-            Value *match_qual;
-            FuncCall *fc;
-
-            match_qual = makeString("age_match_two_vle_edges");
-
-            // make the qualified function name
-            qualified_name = list_make2(catalog, match_qual);
-
-            // make the args
-            args = list_make2(prev_edge->expr, entity->expr);
-
-            // create the function call
-            fc = makeFuncCall(qualified_name, args, COERCE_EXPLICIT_CALL, -1);
-
-            quals = lappend(quals, fc);
+        if (!prev_node->in_join_tree && prev_edge != NULL && prev_edge->type == ENT_VLE_EDGE) {
+            ParseState *pstate = (ParseState *)cpstate;
+            Node *last_srf = pstate->p_last_srf;
+            Node *op = make_op(pstate, makeString("!!="), prev_edge->expr, entity->expr, last_srf, -1);
+            quals = lappend(quals, op);
         }
 
         return quals;
@@ -2819,9 +2804,7 @@ static List *make_join_condition_for_edge(cypher_parsestate *cpstate,
      *  label filter.
      */
     if (!prev_node->in_join_tree)
-    {
         prev_label_name_to_filter = prev_node->entity.node->label;
-    }
 
     /*
      * If the next node is not in the join tree and there is not

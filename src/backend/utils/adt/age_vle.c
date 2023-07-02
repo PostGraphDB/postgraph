@@ -1010,8 +1010,8 @@ agtype_value *agtv_materialize_vle_path(agtype *agt) {
 }
 
 // PG function to match 2 VLE edges 
-PG_FUNCTION_INFO_V1(age_match_two_vle_edges);
-Datum age_match_two_vle_edges(PG_FUNCTION_ARGS) {
+PG_FUNCTION_INFO_V1(match_vles);
+Datum match_vles(PG_FUNCTION_ARGS) {
     agtype *agt = NULL;
     path_container *left_path = NULL, *right_path = NULL;
     graphid *left_array, *right_array;
@@ -1022,7 +1022,7 @@ Datum age_match_two_vle_edges(PG_FUNCTION_ARGS) {
 
     if (!AGT_ROOT_IS_BINARY(agt) || AGT_ROOT_BINARY_FLAGS(agt) != AGT_FBINARY_TYPE_VLE_PATH)
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-            errmsg("argument 1 of age_match_two_vle_edges must be a VLE_Path_Container")));
+            errmsg("argument 1 of match_vles must be a vle")));
 
     // cast argument as a VLE_Path_Container and extract graphid array 
     left_path = (path_container *)agt;
@@ -1033,7 +1033,7 @@ Datum age_match_two_vle_edges(PG_FUNCTION_ARGS) {
 
     if (!AGT_ROOT_IS_BINARY(agt) || AGT_ROOT_BINARY_FLAGS(agt) != AGT_FBINARY_TYPE_VLE_PATH)
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-            errmsg("argument 2 of age_match_two_vle_edges must be a VLE_Path_Container")));
+            errmsg("argument 2 of match_vles must be a vle")));
 
     // cast argument as a VLE_Path_Container and extract graphid array 
     right_path = (path_container *)agt;
