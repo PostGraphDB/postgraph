@@ -1084,17 +1084,6 @@ Datum age_materialize_vle_edges(PG_FUNCTION_ARGS) {
     PG_RETURN_POINTER(agtype_value_to_agtype(build_edge_list((path_container *)agt)));
 }
 
-// PG wrapper function for age_materialize_vle_path 
-PG_FUNCTION_INFO_V1(age_materialize_vle_path);
-Datum age_materialize_vle_path(PG_FUNCTION_ARGS) {
-    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
-
-    if (is_agtype_null(agt))
-        PG_RETURN_NULL();
-
-    PG_RETURN_POINTER(agtype_value_to_agtype(agtv_materialize_vle_path(agt)));
-}
-
 PG_FUNCTION_INFO_V1(age_match_vle_terminal_edge);
 Datum age_match_vle_terminal_edge(PG_FUNCTION_ARGS) {
     Datum *args;
