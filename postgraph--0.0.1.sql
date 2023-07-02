@@ -558,10 +558,15 @@ CREATE AGGREGATE age_collect(agtype) (stype = internal, sfunc = age_collect_aggt
 CREATE FUNCTION age_vle(IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, IN agtype, OUT edges agtype) RETURNS SETOF agtype LANGUAGE C STABLE CALLED ON NULL INPUT PARALLEL UNSAFE AS 'MODULE_PATHNAME';
 -- TODO: remove
 CREATE FUNCTION age_build_vle_match_edge(agtype, agtype) RETURNS agtype LANGUAGE C IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_match_vle_terminal_edge("any", "any", agtype) RETURNS boolean LANGUAGE C STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_materialize_vle_edges(agtype) RETURNS agtype LANGUAGE C IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION age_match_vle_edge_to_id_qual(agtype, graphid) RETURNS boolean LANGUAGE C STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE OPERATOR !@= (FUNCTION = age_match_vle_edge_to_id_qual, LEFTARG = agtype, RIGHTARG = graphid);
+
+CREATE FUNCTION age_match_vle_terminal_edge_start("any", agtype) RETURNS boolean LANGUAGE C STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE OPERATOR !!!= (FUNCTION = age_match_vle_terminal_edge_start, LEFTARG = "any", RIGHTARG = agtype);
+
+CREATE FUNCTION age_match_vle_terminal_edge_end("any", agtype) RETURNS boolean LANGUAGE C STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE OPERATOR !!!!= (FUNCTION = age_match_vle_terminal_edge_end, LEFTARG = "any", RIGHTARG = agtype);
 
 /*
  * MATCH ()-[*]-()-[*]-()

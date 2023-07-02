@@ -2756,27 +2756,14 @@ static List *make_join_condition_for_edge(cypher_parsestate *cpstate,
         if (!next_node->in_join_tree)
             return NIL;
 
-        /*
-         * If the previous node and the next node are in the join tree, we need
-         * to create the age_match_vle_terminal_edge to compare the vle returned
-         * results against the two nodes.
-         */
         if (prev_node->in_join_tree) {
-            func_name = makeString("age_match_vle_terminal_edge");
-            qualified_func_name = list_make2(catalog, func_name);
+            Node *op = makeSimpleA_Expr(AEXPR_OP, "!!!=", (Node *)make_qual(cpstate, prev_node, "id"), entity->expr, -1);
+	          quals = lappend(quals, op);
 
-            /*
-             * Get the vertex's id and pass to the function. Pass in NULL * otherwise.
-             */
-            left_id = (Node *)make_qual(cpstate, prev_node, "id");
-            right_id = (Node *)make_qual(cpstate, next_node, "id");
+	          op = makeSimpleA_Expr(AEXPR_OP, "!!!!=", (Node *)make_qual(cpstate, next_node, "id"), entity->expr, -1);
 
-            // create the argument list
-            args = list_make3(left_id, right_id, entity->expr);
-
-            // add to quals
-            quals = lappend(quals, makeFuncCall(qualified_func_name, args, COERCE_EXPLICIT_CALL, -1));
-        }
+            quals = lappend(quals, op);
+      	}
 
         /*
          * When the previous node is not in the join tree, but there is a vle
