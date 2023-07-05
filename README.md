@@ -20,8 +20,11 @@ Postgres' tagline is: the most advanced open source database, and its true. From
 
 ## Phase 0 - Initial Release
 
-PostGraph plans to leave alpha and begin offering stable releases by the end of 2023. Alpha releases will be made available before that, starting at the end of
-July, 2023.
+PostGraph plans to leave alpha and begin offering stable releases by the end of 2023. Alpha releases will be made available before that, starting at the end of July, 2023.
+
+### The reason for phase 0:
+
+Despite numerous companies chosing to break this rule (looking at you Google with your angular releases): Once you commit to a design/api you need to ensure basckwards compatibility. Between AGE and Phase 0, backwards compatibility will be broken. Phase 0 is about defining the interface that users will have from now on. All phases after this is about improving this interface.
 
 ## Phase 1 - Vanilla Postgres
 
