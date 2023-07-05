@@ -59,7 +59,7 @@ SELECT build_route(
 
 SELECT build_route(
         build_vertex('2'::graphid, $$vertex_label$$, agtype_build_map()),
-        build_partial_route(
+        build_variable_edge(
 		build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, agtype_build_map())
 	),
         build_vertex('3'::graphid, $$vertex_label$$, agtype_build_map())
@@ -67,7 +67,7 @@ SELECT build_route(
 
 SELECT build_route(
         build_vertex('2'::graphid, $$vertex_label$$, agtype_build_map()),
-        build_partial_route(
+        build_variable_edge(
             build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, agtype_build_map()),
             build_vertex('3'::graphid, $$vertex_label$$, agtype_build_map()),
             build_edge('4'::graphid, '3'::graphid, '5'::graphid, $$edge_label$$, agtype_build_map())

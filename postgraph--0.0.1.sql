@@ -203,13 +203,13 @@ CREATE TYPE route (INPUT = route_in, OUTPUT = route_out, LIKE = jsonb);
 --
 -- partial route
 --
-CREATE TYPE partial_route;
+CREATE TYPE variable_edge;
 
-CREATE FUNCTION partial_route_in(cstring) RETURNS partial_route LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION partial_route_out(partial_route) RETURNS cstring LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION build_partial_route(variadic "any") RETURNS partial_route LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION variable_edge_in(cstring) RETURNS variable_edge LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION variable_edge_out(variable_edge) RETURNS cstring LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION build_variable_edge(variadic "any") RETURNS variable_edge LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 
-CREATE TYPE partial_route (INPUT = partial_route_in, OUTPUT = partial_route_out, LIKE = jsonb);
+CREATE TYPE variable_edge (INPUT = variable_edge_in, OUTPUT = variable_edge_out, LIKE = jsonb);
 
 --
 -- agtype - mathematical operators (+, -, *, /, %, ^)
@@ -522,7 +522,7 @@ CREATE AGGREGATE age_count(agtype) (stype = int8, sfunc = int8inc_any, finalfunc
 CREATE AGGREGATE age_count(vertex) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
 CREATE AGGREGATE age_count(edge) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
 CREATE AGGREGATE age_count(route) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
-CREATE AGGREGATE age_count(partial_route) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
+CREATE AGGREGATE age_count(variable_edge) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
 -- stdev
 CREATE FUNCTION agtype_stddev_samp_final(float8[]) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE AGGREGATE age_stdev(agtype) (stype = float8[], sfunc = agtype_accum, finalfunc = agtype_stddev_samp_final, combinefunc = float8_combine, finalfunc_modify = READ_ONLY, initcond = '{0,0,0}', parallel = SAFE);

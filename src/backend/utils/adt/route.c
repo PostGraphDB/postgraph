@@ -21,7 +21,7 @@
 #include "utils/varlena.h"
 
 #include "utils/edge.h"
-#include "utils/partial_route.h"
+#include "utils/variable_edge.h"
 #include "utils/route.h"
 #include "utils/vertex.h"
 
@@ -73,28 +73,33 @@ build_route(PG_FUNCTION_ARGS) {
 
     // header
     reserve_from_buffer(&buffer, VARHDRSZ);
-reserve_from_buffer(&buffer, sizeof(pentry));
-    //append_to_buffer(&buffer, (char *)&nargs, sizeof(pentry));
+
+    // length
+    reserve_from_buffer(&buffer, sizeof(pentry));
+
     int cnt = 0;
     for (int i = 0; i < nargs; i++) {
         if (i % 2 == 0) {
             if (types[i] != VERTEXOID)
-                 ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("arguement %i build_route() must be a vertex", i)));
+                 ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("arguement %i build_route() must be a vertex", i)));
             cnt++;
             append_to_buffer(&buffer, DATUM_GET_VERTEX(args[i]), VARSIZE_ANY(args[i]));
 	}
 	else {
 
-            if (types[i] != EDGEOID && types[i] != PARTIALROUTEOID)
-                 ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("arguement %i build_route() must be an edge", i)));
+            if (types[i] != EDGEOID && types[i] != VARIABLEEDGEOID)
+                 ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("arguement %i build_route() must be an edge", i)));
             if (i + 1 == nargs)
-                 ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("routes must end with a vertex")));
+                 ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("routes must end with a vertex")));
 
             if (types[i] == EDGEOID) {
                 append_to_buffer(&buffer, DATUM_GET_EDGE(args[i]), VARSIZE_ANY(args[i]));
 	        cnt++;
 	    } else {
-		partial_route *v = DATUM_GET_PARTIAL_ROUTE(args[i]);
+		VariableEdge *v = DATUM_GET_VARIABLE_EDGE(args[i]);
                 char *ptr = &v->children[1];
                 for (int i = 0; i < v->children[0]; i++, ptr = ptr + VARSIZE(ptr)) {
                      append_to_buffer(&buffer, DATUM_GET_EDGE(ptr), VARSIZE_ANY(ptr));
@@ -103,9 +108,9 @@ reserve_from_buffer(&buffer, sizeof(pentry));
 	    }
 	}
     }
-    //*((int32 *)(&buffer.data + sizeof(VARHDRSZ))) = cnt;
-    //(prentry *)buffer.data[4] = cnt;
+
     route *p = (route *)buffer.data;
+
     p->children[0] = cnt;
     SET_VARSIZE(p, buffer.len);
 
