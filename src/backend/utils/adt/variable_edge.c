@@ -31,7 +31,7 @@ static void append_to_buffer(StringInfo buffer, const char *data, int len);
  */
 PG_FUNCTION_INFO_V1(variable_edge_in);
 Datum variable_edge_in(PG_FUNCTION_ARGS) {
-    ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("Use build_route()")));
+    ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("Use build_traversal()")));
 
     AG_RETURN_VARIABLE_EDGE(NULL);
 }
@@ -78,7 +78,7 @@ build_variable_edge(PG_FUNCTION_ARGS) {
     for (int i = 0; i < nargs; i++) {
         if (i % 2 == 1) {
             if (types[i] != VERTEXOID)
-                 ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("arguement %i build_route() must be a vertex", i)));
+                 ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("arguement %i build_traversal() must be a vertex", i)));
             if (i + 1 == nargs)
                  ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("VariableEdges must end with an edge")));
 
@@ -87,7 +87,7 @@ build_variable_edge(PG_FUNCTION_ARGS) {
 	else {
 
             if (types[i] != EDGEOID)
-                 ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("arguement %i build_route() must be an edge", i)));
+                 ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("arguement %i build_traversal() must be an edge", i)));
 
             append_to_buffer(&buffer, DATUM_GET_EDGE(args[i]), VARSIZE_ANY(args[i]));
 	}
