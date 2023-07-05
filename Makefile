@@ -60,7 +60,7 @@ OBJS = src/backend/postgraph.o \
        src/backend/utils/adt/cypher_funcs.o \
        src/backend/utils/adt/edge.o \
        src/backend/utils/adt/graphid.o \
-       src/backend/utils/adt/route.o \
+       src/backend/utils/adt/traversal.o \
        src/backend/utils/adt/variable_edge.o \
        src/backend/utils/adt/vertex.o \
        src/backend/utils/ag_func.o \
@@ -77,7 +77,7 @@ REGRESS = scan \
           vertex \
           edge \
           variable_edge \
-          route \
+          traversal \
           typecasting \
           catalog \
           cypher \

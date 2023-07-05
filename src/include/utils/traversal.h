@@ -20,8 +20,8 @@
  * Declarations for agtype data type support.
  */
 
-#ifndef POSTGRAPH_ROUTE_H
-#define POSTGRAPH_ROUTE_H
+#ifndef POSTGRAPH_TRAVERSAL_H
+#define POSTGRAPH_TRAVERSAL_H
 
 #include "access/htup_details.h"
 #include "fmgr.h"
@@ -36,10 +36,10 @@
 #include "utils/graphid.h"
 
 /* Convenience macros */
-#define DATUM_GET_ROUTE(d) ((vertex *)PG_DETOAST_DATUM(d))
-#define ROUTE_GET_DATUM(p) PointerGetDatum(p)
-#define AG_GET_ARG_ROUTE(x) DATUM_GET_ROUTE(PG_GETARG_DATUM(x))
-#define AG_RETURN_ROUTE(x) PG_RETURN_POINTER(x)
+#define DATUM_GET_TRAVERSAL(d) ((vertex *)PG_DETOAST_DATUM(d))
+#define TRAVERSAL_GET_DATUM(p) PointerGetDatum(p)
+#define AG_GET_ARG_TRAVERSAL(x) DATUM_GET_TRAVERSAL(PG_GETARG_DATUM(x))
+#define AG_RETURN_TRAVERSAL(x) PG_RETURN_POINTER(x)
 
 
 typedef uint32 pentry;
@@ -53,6 +53,6 @@ typedef struct
 {
     int32 vl_len_; // varlena header (do not touch directly!)
     pentry children[FLEXIBLE_ARRAY_MEMBER];
-} route;
+} traversal;
 
 #endif

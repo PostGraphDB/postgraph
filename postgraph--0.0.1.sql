@@ -192,16 +192,16 @@ CREATE FUNCTION properties(edge) RETURNS agtype LANGUAGE c IMMUTABLE RETURNS NUL
 --
 -- path
 --
-CREATE TYPE route;
+CREATE TYPE traversal;
 
-CREATE FUNCTION route_in(cstring) RETURNS route LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION route_out(route) RETURNS cstring LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION build_route(variadic "any") RETURNS route LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION traversal_in(cstring) RETURNS traversal LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION traversal_out(traversal) RETURNS cstring LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION build_traversal(variadic "any") RETURNS traversal LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 
-CREATE TYPE route (INPUT = route_in, OUTPUT = route_out, LIKE = jsonb);
+CREATE TYPE traversal (INPUT = traversal_in, OUTPUT = traversal_out, LIKE = jsonb);
 
 --
--- partial route
+-- partial traversal
 --
 CREATE TYPE variable_edge;
 
@@ -521,7 +521,7 @@ CREATE AGGREGATE age_count(*) (stype = int8, sfunc = int8inc, finalfunc = int8_t
 CREATE AGGREGATE age_count(agtype) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
 CREATE AGGREGATE age_count(vertex) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
 CREATE AGGREGATE age_count(edge) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
-CREATE AGGREGATE age_count(route) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
+CREATE AGGREGATE age_count(traversal) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
 CREATE AGGREGATE age_count(variable_edge) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_agtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
 -- stdev
 CREATE FUNCTION agtype_stddev_samp_final(float8[]) RETURNS agtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
