@@ -20,8 +20,8 @@
  * Declarations for agtype data type support.
  */
 
-#ifndef POSTGRAPH_PARTIAL_ROUTE_H
-#define POSTGRAPH_PARTIAL_ROUTE_H
+#ifndef POSTGRAPH_VARIABLE_EDGE_H
+#define POSTGRAPH_VARIABLE_EDGE_H
 
 #include "access/htup_details.h"
 #include "fmgr.h"
@@ -36,10 +36,10 @@
 #include "utils/graphid.h"
 
 /* Convenience macros */
-#define DATUM_GET_PARTIAL_ROUTE(d) ((vertex *)PG_DETOAST_DATUM(d))
-#define PARTIAL_ROUTE_GET_DATUM(p) PointerGetDatum(p)
-#define AG_GET_ARG_PARTIAL_ROUTE(x) DATUM_GET_PARTIAL_ROUTE(PG_GETARG_DATUM(x))
-#define AG_RETURN_PARTIAL_ROUTE(x) PG_RETURN_POINTER(x)
+#define DATUM_GET_VARIABLE_EDGE(d) ((vertex *)PG_DETOAST_DATUM(d))
+#define VARIABLE_EDGE_GET_DATUM(p) PointerGetDatum(p)
+#define AG_GET_ARG_VARIABLE_EDGE(x) DATUM_GET_VARIABLE_EDGE(PG_GETARG_DATUM(x))
+#define AG_RETURN_VARIABLE_EDGE(x) PG_RETURN_POINTER(x)
 
 
 typedef uint32 prentry;
@@ -53,12 +53,12 @@ typedef struct
 {
     int32 vl_len_; // varlena header (do not touch directly!)
     prentry children[FLEXIBLE_ARRAY_MEMBER];
-} partial_route;
+} VariableEdge;
 
-#define PARTIALROUTEOID \
-    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("partial_route"), ObjectIdGetDatum(postgraph_namespace_id())))
+#define VARIABLEEDGEOID \
+    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("variable_edge"), ObjectIdGetDatum(postgraph_namespace_id())))
 
-#define PARTIALROUTEARRAYOID \
-    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("_partial_route"), ObjectIdGetDatum(postgraph_namespace_id())))
+#define VARIABLEEDGEARRAYOID \
+    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("_variable_edge"), ObjectIdGetDatum(postgraph_namespace_id())))
 
 #endif

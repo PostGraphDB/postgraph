@@ -15,44 +15,34 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
  */
+
 LOAD 'postgraph';
 SET search_path TO postgraph;
+
 --Basic Route Creation
 SELECT build_variable_edge(
 	build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, agtype_build_map())
 );
-                               build_variable_edge                                
-----------------------------------------------------------------------------------
- [{"id": 1, "start_id": 2, "end_id": 3, "label": "edge_label", "properties": {}}]
-(1 row)
 
 SELECT build_variable_edge(
         build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, agtype_build_map()),
         build_vertex('3'::graphid, $$vertex_label$$, agtype_build_map()),
 	build_edge('4'::graphid, '3'::graphid, '5'::graphid, $$edge_label$$, agtype_build_map())
 );
-                                                                                                  build_variable_edge                                                                                                   
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 1, "start_id": 2, "end_id": 3, "label": "edge_label", "properties": {}}, {"id": 3, "label": "vertex_label", "properties": {}}, {"id": 4, "start_id": 3, "end_id": 5, "label": "edge_label", "properties": {}}]
-(1 row)
 
 SELECT build_variable_edge(
         build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, agtype_build_map()),
         build_vertex('5'::graphid, $$vertex_label$$, agtype_build_map())
 );
-ERROR:  VariableEdges must end with an edge
+
 SELECT build_variable_edge(
         build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, agtype_build_map()),
         build_edge('4'::graphid, '3'::graphid, '5'::graphid, $$edge_label$$, agtype_build_map())
 );
-ERROR:  arguement 1 build_route() must be a vertex
+
 SELECT build_route(
         build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, agtype_build_map()),
         build_vertex('3'::graphid, $$vertex_label$$, agtype_build_map()),
         NULL
 );
- build_route 
--------------
- 
-(1 row)
 

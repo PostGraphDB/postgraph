@@ -21,7 +21,7 @@
 #include "utils/varlena.h"
 
 #include "utils/edge.h"
-#include "utils/partial_route.h"
+#include "utils/variable_edge.h"
 #include "utils/vertex.h"
 
 static void append_to_buffer(StringInfo buffer, const char *data, int len);
@@ -29,16 +29,16 @@ static void append_to_buffer(StringInfo buffer, const char *data, int len);
 /*
  * I/O routines for vertex type
  */
-PG_FUNCTION_INFO_V1(partial_route_in);
-Datum partial_route_in(PG_FUNCTION_ARGS) {
+PG_FUNCTION_INFO_V1(variable_edge_in);
+Datum variable_edge_in(PG_FUNCTION_ARGS) {
     ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("Use build_route()")));
 
-    AG_RETURN_PARTIAL_ROUTE(NULL);
+    AG_RETURN_VARIABLE_EDGE(NULL);
 }
 
-PG_FUNCTION_INFO_V1(partial_route_out);
-Datum partial_route_out(PG_FUNCTION_ARGS) {
-    partial_route *v = AG_GET_ARG_PARTIAL_ROUTE(0);
+PG_FUNCTION_INFO_V1(variable_edge_out);
+Datum variable_edge_out(PG_FUNCTION_ARGS) {
+    VariableEdge *v = AG_GET_ARG_VARIABLE_EDGE(0);
     StringInfo str = makeStringInfo();
 
     appendStringInfoString(str, "[");
@@ -59,9 +59,9 @@ Datum partial_route_out(PG_FUNCTION_ARGS) {
     PG_RETURN_CSTRING(str->data);
 }
 
-PG_FUNCTION_INFO_V1(build_partial_route);
+PG_FUNCTION_INFO_V1(build_variable_edge);
 Datum
-build_partial_route(PG_FUNCTION_ARGS) {
+build_variable_edge(PG_FUNCTION_ARGS) {
     StringInfoData buffer;
     initStringInfo(&buffer);
     Datum *args;
@@ -80,7 +80,7 @@ build_partial_route(PG_FUNCTION_ARGS) {
             if (types[i] != VERTEXOID)
                  ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("arguement %i build_route() must be a vertex", i)));
             if (i + 1 == nargs)
-                 ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("partial_routes must end with an edge")));
+                 ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("VariableEdges must end with an edge")));
 
             append_to_buffer(&buffer, DATUM_GET_VERTEX(args[i]), VARSIZE_ANY(args[i]));
 	}
@@ -93,11 +93,11 @@ build_partial_route(PG_FUNCTION_ARGS) {
 	}
     }
 
-    partial_route *p = (partial_route *)buffer.data;
+    VariableEdge *p = (VariableEdge *)buffer.data;
 
     SET_VARSIZE(p, buffer.len);
 
-    AG_RETURN_PARTIAL_ROUTE(p);
+    AG_RETURN_VARIABLE_EDGE(p);
 }
 
 static void
