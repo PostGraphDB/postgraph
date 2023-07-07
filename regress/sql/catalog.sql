@@ -28,13 +28,13 @@ SELECT create_graph('g');
 SELECT name, namespace FROM ag_graph WHERE name = 'g';
 
 -- create a label to test drop_label()
-SELECT * FROM cypher('g', $$CREATE (:l)$$) AS r(a agtype);
+SELECT * FROM cypher('g', $$CREATE (:l)$$) AS r(a gtype);
 
 -- test drop_label()
 SELECT drop_label('g', 'l');
 
 -- create a label to test drop_graph()
-SELECT * FROM cypher('g', $$CREATE (:v)$$) AS r(a agtype);
+SELECT * FROM cypher('g', $$CREATE (:v)$$) AS r(a gtype);
 
 -- DROP SCHEMA ... CASCADE should fail
 DROP SCHEMA g CASCADE;
@@ -107,25 +107,25 @@ SELECT alter_graph('GraphB', 'DUMMY', 'GraphA');
 SELECT create_graph('g');
 
 -- label id starts from 1
-SELECT * FROM cypher('g', $$CREATE (:v1)$$) AS r(a agtype);
+SELECT * FROM cypher('g', $$CREATE (:v1)$$) AS r(a gtype);
 SELECT name, id, kind, relation FROM ag_label;
 
 -- skip label id 2 to test the logic that gets an unused label id after cycle
 SELECT nextval('g._label_id_seq');
 
 -- label id is now 3
-SELECT * FROM cypher('g', $$CREATE (:v3)$$) as r(a agtype);
+SELECT * FROM cypher('g', $$CREATE (:v3)$$) as r(a gtype);
 SELECT name, id, kind, relation FROM ag_label;
 
 -- to use 65535 as the next label id, set label id to 65534
 SELECT setval('g._label_id_seq', 65534);
 
 -- label id is now 65535
-SELECT * FROM cypher('g', $$CREATE (:v65535)$$) as r(a agtype);
+SELECT * FROM cypher('g', $$CREATE (:v65535)$$) as r(a gtype);
 SELECT name, id, kind, relation FROM ag_label;
 
 -- after cycle, label id is now 2
-SELECT * FROM cypher('g', $$CREATE (:v2)$$) as r(a agtype);
+SELECT * FROM cypher('g', $$CREATE (:v2)$$) as r(a gtype);
 SELECT name, id, kind, relation FROM ag_label;
 
 SELECT drop_graph('g', true);

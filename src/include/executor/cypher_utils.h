@@ -29,7 +29,7 @@
 #include "nodes/plannodes.h"
 
 #include "nodes/cypher_nodes.h"
-#include "utils/agtype.h"
+#include "utils/gtype.h"
 
 // declaration of a useful postgres macro that isn't in a header file
 #define DatumGetItemPointer(X)	 ((ItemPointer) DatumGetPointer(X))
@@ -94,10 +94,10 @@ typedef struct cypher_merge_custom_scan_state
 } cypher_merge_custom_scan_state;
 
 TupleTableSlot *populate_vertex_tts(TupleTableSlot *elemTupleSlot,
-                                    agtype_value *id, agtype_value *properties);
+                                    gtype_value *id, gtype_value *properties);
 TupleTableSlot *populate_edge_tts(
-    TupleTableSlot *elemTupleSlot, agtype_value *id, agtype_value *startid,
-    agtype_value *endid, agtype_value *properties);
+    TupleTableSlot *elemTupleSlot, gtype_value *id, gtype_value *startid,
+    gtype_value *endid, gtype_value *properties);
 
 ResultRelInfo *create_entity_result_rel_info(EState *estate, char *graph_name,
                                              char *label_name);

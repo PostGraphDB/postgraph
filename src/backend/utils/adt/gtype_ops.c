@@ -30,18 +30,18 @@
 #include "utils/builtins.h"
 #include "utils/numeric.h"
 
-#include "utils/agtype.h"
+#include "utils/gtype.h"
 
-static void ereport_op_str(const char *op, agtype *lhs, agtype *rhs);
-static agtype *agtype_concat(agtype *agt1, agtype *agt2);
-static agtype_value *iterator_concat(agtype_iterator **it1,
-                                     agtype_iterator **it2,
-                                     agtype_parse_state **state);
-static void concat_to_agtype_string(agtype_value *result, char *lhs, int llen,
+static void ereport_op_str(const char *op, gtype *lhs, gtype *rhs);
+static gtype *gtype_concat(gtype *agt1, gtype *agt2);
+static gtype_value *iterator_concat(gtype_iterator **it1,
+                                     gtype_iterator **it2,
+                                     gtype_parse_state **state);
+static void concat_to_gtype_string(gtype_value *result, char *lhs, int llen,
                                     char *rhs, int rlen);
-static char *get_string_from_agtype_value(agtype_value *agtv, int *length);
+static char *get_string_from_gtype_value(gtype_value *agtv, int *length);
 
-static void concat_to_agtype_string(agtype_value *result, char *lhs, int llen,
+static void concat_to_gtype_string(gtype_value *result, char *lhs, int llen,
                                     char *rhs, int rlen)
 {
     int length = llen + rlen;
@@ -59,7 +59,7 @@ static void concat_to_agtype_string(agtype_value *result, char *lhs, int llen,
     result->val.string.val = buffer;
 }
 
-static char *get_string_from_agtype_value(agtype_value *agtv, int *length)
+static char *get_string_from_gtype_value(gtype_value *agtv, int *length)
 {
     Datum number;
     char *string;
@@ -109,7 +109,7 @@ static char *get_string_from_agtype_value(agtype_value *agtv, int *length)
     return NULL;
 }
 
-Datum get_numeric_datum_from_agtype_value(agtype_value *agtv)
+Datum get_numeric_datum_from_gtype_value(gtype_value *agtv)
 {
     switch (agtv->type)
     {
@@ -129,7 +129,7 @@ Datum get_numeric_datum_from_agtype_value(agtype_value *agtv)
     return 0;
 }
 
-bool is_numeric_result(agtype_value *lhs, agtype_value *rhs)
+bool is_numeric_result(gtype_value *lhs, gtype_value *rhs)
 {
     if (((lhs->type == AGTV_NUMERIC || rhs->type == AGTV_NUMERIC) &&
          (lhs->type == AGTV_INTEGER || lhs->type == AGTV_FLOAT ||
@@ -139,16 +139,16 @@ bool is_numeric_result(agtype_value *lhs, agtype_value *rhs)
     return false;
 }
 
-PG_FUNCTION_INFO_V1(agtype_add);
+PG_FUNCTION_INFO_V1(gtype_add);
 
-/* agtype addition and concat function for + operator */
-Datum agtype_add(PG_FUNCTION_ARGS)
+/* gtype addition and concat function for + operator */
+Datum gtype_add(PG_FUNCTION_ARGS)
 {
-    agtype *lhs = AG_GET_ARG_AGTYPE_P(0);
-    agtype *rhs = AG_GET_ARG_AGTYPE_P(1);
-    agtype_value *agtv_lhs;
-    agtype_value *agtv_rhs;
-    agtype_value agtv_result;
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+    gtype_value *agtv_lhs;
+    gtype_value *agtv_rhs;
+    gtype_value agtv_result;
 
     /* If both are not scalars */
     if (!(AGT_ROOT_IS_SCALAR(lhs) && AGT_ROOT_IS_SCALAR(rhs)))
@@ -162,14 +162,14 @@ Datum agtype_add(PG_FUNCTION_ARGS)
             (AGT_ROOT_IS_OBJECT(lhs) && AGT_ROOT_IS_OBJECT(rhs)))
             ereport_op_str("+", lhs, rhs);
 
-        agt = AGTYPE_P_GET_DATUM(agtype_concat(lhs, rhs));
+        agt = GTYPE_P_GET_DATUM(gtype_concat(lhs, rhs));
 
         PG_RETURN_DATUM(agt);
     }
 
     /* Both are scalar */
-    agtv_lhs = get_ith_agtype_value_from_container(&lhs->root, 0);
-    agtv_rhs = get_ith_agtype_value_from_container(&rhs->root, 0);
+    agtv_lhs = get_ith_gtype_value_from_container(&lhs->root, 0);
+    agtv_rhs = get_ith_gtype_value_from_container(&rhs->root, 0);
 
     /*
      * One or both values is a string OR one is a string and the other is
@@ -182,11 +182,11 @@ Datum agtype_add(PG_FUNCTION_ARGS)
          agtv_rhs->type == AGTV_NUMERIC || agtv_rhs->type == AGTV_STRING))
     {
         int llen = 0;
-        char *lhs = get_string_from_agtype_value(agtv_lhs, &llen);
+        char *lhs = get_string_from_gtype_value(agtv_lhs, &llen);
         int rlen = 0;
-        char *rhs = get_string_from_agtype_value(agtv_rhs, &rlen);
+        char *rhs = get_string_from_gtype_value(agtv_rhs, &rlen);
 
-        concat_to_agtype_string(&agtv_result, lhs, llen, rhs, rlen);
+        concat_to_gtype_string(&agtv_result, lhs, llen, rhs, rlen);
     }
     /* Both are integers - regular addition */
     else if (agtv_lhs->type == AGTV_INTEGER && agtv_rhs->type == AGTV_INTEGER)
@@ -221,8 +221,8 @@ Datum agtype_add(PG_FUNCTION_ARGS)
     {
         Datum numd, lhsd, rhsd;
 
-        lhsd = get_numeric_datum_from_agtype_value(agtv_lhs);
-        rhsd = get_numeric_datum_from_agtype_value(agtv_rhs);
+        lhsd = get_numeric_datum_from_gtype_value(agtv_lhs);
+        rhsd = get_numeric_datum_from_gtype_value(agtv_rhs);
         numd = DirectFunctionCall2(numeric_add, lhsd, rhsd);
 
         agtv_result.type = AGTV_NUMERIC;
@@ -231,23 +231,23 @@ Datum agtype_add(PG_FUNCTION_ARGS)
     else
         /* Not a covered case, error out */
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("Invalid input parameter types for agtype_add")));
+                        errmsg("Invalid input parameter types for gtype_add")));
 
-    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv_result));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(agtype_sub);
+PG_FUNCTION_INFO_V1(gtype_sub);
 
 /*
- * agtype subtraction function for - operator
+ * gtype subtraction function for - operator
  */
-Datum agtype_sub(PG_FUNCTION_ARGS)
+Datum gtype_sub(PG_FUNCTION_ARGS)
 {
-    agtype *lhs = AG_GET_ARG_AGTYPE_P(0);
-    agtype *rhs = AG_GET_ARG_AGTYPE_P(1);
-    agtype_value *agtv_lhs;
-    agtype_value *agtv_rhs;
-    agtype_value agtv_result;
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+    gtype_value *agtv_lhs;
+    gtype_value *agtv_rhs;
+    gtype_value agtv_result;
 
     if (!(AGT_ROOT_IS_SCALAR(lhs)) || !(AGT_ROOT_IS_SCALAR(rhs)))
     {
@@ -257,8 +257,8 @@ Datum agtype_sub(PG_FUNCTION_ARGS)
         PG_RETURN_NULL();
     }
 
-    agtv_lhs = get_ith_agtype_value_from_container(&lhs->root, 0);
-    agtv_rhs = get_ith_agtype_value_from_container(&rhs->root, 0);
+    agtv_lhs = get_ith_gtype_value_from_container(&lhs->root, 0);
+    agtv_rhs = get_ith_gtype_value_from_container(&rhs->root, 0);
 
     if (agtv_lhs->type == AGTV_INTEGER && agtv_rhs->type == AGTV_INTEGER)
     {
@@ -289,8 +289,8 @@ Datum agtype_sub(PG_FUNCTION_ARGS)
     {
         Datum numd, lhsd, rhsd;
 
-        lhsd = get_numeric_datum_from_agtype_value(agtv_lhs);
-        rhsd = get_numeric_datum_from_agtype_value(agtv_rhs);
+        lhsd = get_numeric_datum_from_gtype_value(agtv_lhs);
+        rhsd = get_numeric_datum_from_gtype_value(agtv_rhs);
         numd = DirectFunctionCall2(numeric_sub, lhsd, rhsd);
 
         agtv_result.type = AGTV_NUMERIC;
@@ -298,21 +298,21 @@ Datum agtype_sub(PG_FUNCTION_ARGS)
     }
     else
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("Invalid input parameter types for agtype_sub")));
+                        errmsg("Invalid input parameter types for gtype_sub")));
 
-    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv_result));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(agtype_neg);
+PG_FUNCTION_INFO_V1(gtype_neg);
 
 /*
- * agtype negation function for unary - operator
+ * gtype negation function for unary - operator
  */
-Datum agtype_neg(PG_FUNCTION_ARGS)
+Datum gtype_neg(PG_FUNCTION_ARGS)
 {
-    agtype *v = AG_GET_ARG_AGTYPE_P(0);
-    agtype_value *agtv_value;
-    agtype_value agtv_result;
+    gtype *v = AG_GET_ARG_GTYPE_P(0);
+    gtype_value *agtv_value;
+    gtype_value agtv_result;
 
     if (!(AGT_ROOT_IS_SCALAR(v)))
     {
@@ -322,7 +322,7 @@ Datum agtype_neg(PG_FUNCTION_ARGS)
         PG_RETURN_NULL();
     }
 
-    agtv_value = get_ith_agtype_value_from_container(&v->root, 0);
+    agtv_value = get_ith_gtype_value_from_container(&v->root, 0);
 
     if (agtv_value->type == AGTV_INTEGER)
     {
@@ -346,23 +346,23 @@ Datum agtype_neg(PG_FUNCTION_ARGS)
     }
     else
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("Invalid input parameter type for agtype_neg")));
+                        errmsg("Invalid input parameter type for gtype_neg")));
 
-    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv_result));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(agtype_mul);
+PG_FUNCTION_INFO_V1(gtype_mul);
 
 /*
- * agtype multiplication function for * operator
+ * gtype multiplication function for * operator
  */
-Datum agtype_mul(PG_FUNCTION_ARGS)
+Datum gtype_mul(PG_FUNCTION_ARGS)
 {
-    agtype *lhs = AG_GET_ARG_AGTYPE_P(0);
-    agtype *rhs = AG_GET_ARG_AGTYPE_P(1);
-    agtype_value *agtv_lhs;
-    agtype_value *agtv_rhs;
-    agtype_value agtv_result;
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+    gtype_value *agtv_lhs;
+    gtype_value *agtv_rhs;
+    gtype_value agtv_result;
 
     if (!(AGT_ROOT_IS_SCALAR(lhs)) || !(AGT_ROOT_IS_SCALAR(rhs)))
     {
@@ -372,8 +372,8 @@ Datum agtype_mul(PG_FUNCTION_ARGS)
         PG_RETURN_NULL();
     }
 
-    agtv_lhs = get_ith_agtype_value_from_container(&lhs->root, 0);
-    agtv_rhs = get_ith_agtype_value_from_container(&rhs->root, 0);
+    agtv_lhs = get_ith_gtype_value_from_container(&lhs->root, 0);
+    agtv_rhs = get_ith_gtype_value_from_container(&rhs->root, 0);
 
     if (agtv_lhs->type == AGTV_INTEGER && agtv_rhs->type == AGTV_INTEGER)
     {
@@ -404,8 +404,8 @@ Datum agtype_mul(PG_FUNCTION_ARGS)
     {
         Datum numd, lhsd, rhsd;
 
-        lhsd = get_numeric_datum_from_agtype_value(agtv_lhs);
-        rhsd = get_numeric_datum_from_agtype_value(agtv_rhs);
+        lhsd = get_numeric_datum_from_gtype_value(agtv_lhs);
+        rhsd = get_numeric_datum_from_gtype_value(agtv_rhs);
         numd = DirectFunctionCall2(numeric_mul, lhsd, rhsd);
 
         agtv_result.type = AGTV_NUMERIC;
@@ -413,23 +413,23 @@ Datum agtype_mul(PG_FUNCTION_ARGS)
     }
     else
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("Invalid input parameter types for agtype_mul")));
+                        errmsg("Invalid input parameter types for gtype_mul")));
 
-    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv_result));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(agtype_div);
+PG_FUNCTION_INFO_V1(gtype_div);
 
 /*
- * agtype division function for / operator
+ * gtype division function for / operator
  */
-Datum agtype_div(PG_FUNCTION_ARGS)
+Datum gtype_div(PG_FUNCTION_ARGS)
 {
-    agtype *lhs = AG_GET_ARG_AGTYPE_P(0);
-    agtype *rhs = AG_GET_ARG_AGTYPE_P(1);
-    agtype_value *agtv_lhs;
-    agtype_value *agtv_rhs;
-    agtype_value agtv_result;
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+    gtype_value *agtv_lhs;
+    gtype_value *agtv_rhs;
+    gtype_value agtv_result;
 
     if (!(AGT_ROOT_IS_SCALAR(lhs)) || !(AGT_ROOT_IS_SCALAR(rhs)))
     {
@@ -439,8 +439,8 @@ Datum agtype_div(PG_FUNCTION_ARGS)
         PG_RETURN_NULL();
     }
 
-    agtv_lhs = get_ith_agtype_value_from_container(&lhs->root, 0);
-    agtv_rhs = get_ith_agtype_value_from_container(&rhs->root, 0);
+    agtv_lhs = get_ith_gtype_value_from_container(&lhs->root, 0);
+    agtv_rhs = get_ith_gtype_value_from_container(&rhs->root, 0);
 
     if (agtv_lhs->type == AGTV_INTEGER && agtv_rhs->type == AGTV_INTEGER)
     {
@@ -499,8 +499,8 @@ Datum agtype_div(PG_FUNCTION_ARGS)
     {
         Datum numd, lhsd, rhsd;
 
-        lhsd = get_numeric_datum_from_agtype_value(agtv_lhs);
-        rhsd = get_numeric_datum_from_agtype_value(agtv_rhs);
+        lhsd = get_numeric_datum_from_gtype_value(agtv_lhs);
+        rhsd = get_numeric_datum_from_gtype_value(agtv_rhs);
         numd = DirectFunctionCall2(numeric_div, lhsd, rhsd);
 
         agtv_result.type = AGTV_NUMERIC;
@@ -508,23 +508,23 @@ Datum agtype_div(PG_FUNCTION_ARGS)
     }
     else
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("Invalid input parameter types for agtype_div")));
+                        errmsg("Invalid input parameter types for gtype_div")));
 
-     AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv_result));
+     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(agtype_mod);
+PG_FUNCTION_INFO_V1(gtype_mod);
 
 /*
- * agtype modulo function for % operator
+ * gtype modulo function for % operator
  */
-Datum agtype_mod(PG_FUNCTION_ARGS)
+Datum gtype_mod(PG_FUNCTION_ARGS)
 {
-    agtype *lhs = AG_GET_ARG_AGTYPE_P(0);
-    agtype *rhs = AG_GET_ARG_AGTYPE_P(1);
-    agtype_value *agtv_lhs;
-    agtype_value *agtv_rhs;
-    agtype_value agtv_result;
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+    gtype_value *agtv_lhs;
+    gtype_value *agtv_rhs;
+    gtype_value agtv_result;
 
     if (!(AGT_ROOT_IS_SCALAR(lhs)) || !(AGT_ROOT_IS_SCALAR(rhs)))
     {
@@ -534,8 +534,8 @@ Datum agtype_mod(PG_FUNCTION_ARGS)
         PG_RETURN_NULL();
     }
 
-    agtv_lhs = get_ith_agtype_value_from_container(&lhs->root, 0);
-    agtv_rhs = get_ith_agtype_value_from_container(&rhs->root, 0);
+    agtv_lhs = get_ith_gtype_value_from_container(&lhs->root, 0);
+    agtv_rhs = get_ith_gtype_value_from_container(&rhs->root, 0);
 
     if (agtv_lhs->type == AGTV_INTEGER && agtv_rhs->type == AGTV_INTEGER)
     {
@@ -566,8 +566,8 @@ Datum agtype_mod(PG_FUNCTION_ARGS)
     {
         Datum numd, lhsd, rhsd;
 
-        lhsd = get_numeric_datum_from_agtype_value(agtv_lhs);
-        rhsd = get_numeric_datum_from_agtype_value(agtv_rhs);
+        lhsd = get_numeric_datum_from_gtype_value(agtv_lhs);
+        rhsd = get_numeric_datum_from_gtype_value(agtv_rhs);
         numd = DirectFunctionCall2(numeric_mod, lhsd, rhsd);
 
         agtv_result.type = AGTV_NUMERIC;
@@ -575,23 +575,23 @@ Datum agtype_mod(PG_FUNCTION_ARGS)
     }
     else
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("Invalid input parameter types for agtype_mod")));
+                        errmsg("Invalid input parameter types for gtype_mod")));
 
-    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv_result));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(agtype_pow);
+PG_FUNCTION_INFO_V1(gtype_pow);
 
 /*
- * agtype power function for ^ operator
+ * gtype power function for ^ operator
  */
-Datum agtype_pow(PG_FUNCTION_ARGS)
+Datum gtype_pow(PG_FUNCTION_ARGS)
 {
-    agtype *lhs = AG_GET_ARG_AGTYPE_P(0);
-    agtype *rhs = AG_GET_ARG_AGTYPE_P(1);
-    agtype_value *agtv_lhs;
-    agtype_value *agtv_rhs;
-    agtype_value agtv_result;
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+    gtype_value *agtv_lhs;
+    gtype_value *agtv_rhs;
+    gtype_value agtv_result;
 
     if (!(AGT_ROOT_IS_SCALAR(lhs)) || !(AGT_ROOT_IS_SCALAR(rhs)))
     {
@@ -601,8 +601,8 @@ Datum agtype_pow(PG_FUNCTION_ARGS)
         PG_RETURN_NULL();
     }
 
-    agtv_lhs = get_ith_agtype_value_from_container(&lhs->root, 0);
-    agtv_rhs = get_ith_agtype_value_from_container(&rhs->root, 0);
+    agtv_lhs = get_ith_gtype_value_from_container(&lhs->root, 0);
+    agtv_rhs = get_ith_gtype_value_from_container(&rhs->root, 0);
 
     if (agtv_lhs->type == AGTV_INTEGER && agtv_rhs->type == AGTV_INTEGER)
     {
@@ -633,8 +633,8 @@ Datum agtype_pow(PG_FUNCTION_ARGS)
     {
         Datum numd, lhsd, rhsd;
 
-        lhsd = get_numeric_datum_from_agtype_value(agtv_lhs);
-        rhsd = get_numeric_datum_from_agtype_value(agtv_rhs);
+        lhsd = get_numeric_datum_from_gtype_value(agtv_lhs);
+        rhsd = get_numeric_datum_from_gtype_value(agtv_rhs);
         numd = DirectFunctionCall2(numeric_power, lhsd, rhsd);
 
         agtv_result.type = AGTV_NUMERIC;
@@ -642,172 +642,172 @@ Datum agtype_pow(PG_FUNCTION_ARGS)
     }
     else
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("Invalid input parameter types for agtype_pow")));
+                        errmsg("Invalid input parameter types for gtype_pow")));
 
-    AG_RETURN_AGTYPE_P(agtype_value_to_agtype(&agtv_result));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(agtype_eq);
+PG_FUNCTION_INFO_V1(gtype_eq);
 
-Datum agtype_eq(PG_FUNCTION_ARGS)
+Datum gtype_eq(PG_FUNCTION_ARGS)
 {
-    agtype *agtype_lhs = AG_GET_ARG_AGTYPE_P(0);
-    agtype *agtype_rhs = AG_GET_ARG_AGTYPE_P(1);
+    gtype *gtype_lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *gtype_rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    result = (compare_agtype_containers_orderability(&agtype_lhs->root,
-                                                     &agtype_rhs->root) == 0);
+    result = (compare_gtype_containers_orderability(&gtype_lhs->root,
+                                                     &gtype_rhs->root) == 0);
 
-    PG_FREE_IF_COPY(agtype_lhs, 0);
-    PG_FREE_IF_COPY(agtype_rhs, 1);
+    PG_FREE_IF_COPY(gtype_lhs, 0);
+    PG_FREE_IF_COPY(gtype_rhs, 1);
 
     PG_RETURN_BOOL(result);
 }
 
-PG_FUNCTION_INFO_V1(agtype_ne);
+PG_FUNCTION_INFO_V1(gtype_ne);
 
-Datum agtype_ne(PG_FUNCTION_ARGS)
+Datum gtype_ne(PG_FUNCTION_ARGS)
 {
-    agtype *agtype_lhs = AG_GET_ARG_AGTYPE_P(0);
-    agtype *agtype_rhs = AG_GET_ARG_AGTYPE_P(1);
+    gtype *gtype_lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *gtype_rhs = AG_GET_ARG_GTYPE_P(1);
     bool result = true;
 
-    result = (compare_agtype_containers_orderability(&agtype_lhs->root,
-                                                     &agtype_rhs->root) != 0);
+    result = (compare_gtype_containers_orderability(&gtype_lhs->root,
+                                                     &gtype_rhs->root) != 0);
 
-    PG_FREE_IF_COPY(agtype_lhs, 0);
-    PG_FREE_IF_COPY(agtype_rhs, 1);
+    PG_FREE_IF_COPY(gtype_lhs, 0);
+    PG_FREE_IF_COPY(gtype_rhs, 1);
 
     PG_RETURN_BOOL(result);
 }
 
-PG_FUNCTION_INFO_V1(agtype_lt);
+PG_FUNCTION_INFO_V1(gtype_lt);
 
-Datum agtype_lt(PG_FUNCTION_ARGS)
+Datum gtype_lt(PG_FUNCTION_ARGS)
 {
-    agtype *agtype_lhs = AG_GET_ARG_AGTYPE_P(0);
-    agtype *agtype_rhs = AG_GET_ARG_AGTYPE_P(1);
+    gtype *gtype_lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *gtype_rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    result = (compare_agtype_containers_orderability(&agtype_lhs->root,
-                                                     &agtype_rhs->root) < 0);
+    result = (compare_gtype_containers_orderability(&gtype_lhs->root,
+                                                     &gtype_rhs->root) < 0);
 
-    PG_FREE_IF_COPY(agtype_lhs, 0);
-    PG_FREE_IF_COPY(agtype_rhs, 1);
+    PG_FREE_IF_COPY(gtype_lhs, 0);
+    PG_FREE_IF_COPY(gtype_rhs, 1);
 
     PG_RETURN_BOOL(result);
 }
 
-PG_FUNCTION_INFO_V1(agtype_gt);
+PG_FUNCTION_INFO_V1(gtype_gt);
 
-Datum agtype_gt(PG_FUNCTION_ARGS)
+Datum gtype_gt(PG_FUNCTION_ARGS)
 {
-    agtype *agtype_lhs = AG_GET_ARG_AGTYPE_P(0);
-    agtype *agtype_rhs = AG_GET_ARG_AGTYPE_P(1);
+    gtype *gtype_lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *gtype_rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    result = (compare_agtype_containers_orderability(&agtype_lhs->root,
-                                                     &agtype_rhs->root) > 0);
+    result = (compare_gtype_containers_orderability(&gtype_lhs->root,
+                                                     &gtype_rhs->root) > 0);
 
-    PG_FREE_IF_COPY(agtype_lhs, 0);
-    PG_FREE_IF_COPY(agtype_rhs, 1);
+    PG_FREE_IF_COPY(gtype_lhs, 0);
+    PG_FREE_IF_COPY(gtype_rhs, 1);
 
     PG_RETURN_BOOL(result);
 }
 
-PG_FUNCTION_INFO_V1(agtype_le);
+PG_FUNCTION_INFO_V1(gtype_le);
 
-Datum agtype_le(PG_FUNCTION_ARGS)
+Datum gtype_le(PG_FUNCTION_ARGS)
 {
-    agtype *agtype_lhs = AG_GET_ARG_AGTYPE_P(0);
-    agtype *agtype_rhs = AG_GET_ARG_AGTYPE_P(1);
+    gtype *gtype_lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *gtype_rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    result = (compare_agtype_containers_orderability(&agtype_lhs->root,
-                                                     &agtype_rhs->root) <= 0);
+    result = (compare_gtype_containers_orderability(&gtype_lhs->root,
+                                                     &gtype_rhs->root) <= 0);
 
-    PG_FREE_IF_COPY(agtype_lhs, 0);
-    PG_FREE_IF_COPY(agtype_rhs, 1);
+    PG_FREE_IF_COPY(gtype_lhs, 0);
+    PG_FREE_IF_COPY(gtype_rhs, 1);
 
     PG_RETURN_BOOL(result);
 }
 
-PG_FUNCTION_INFO_V1(agtype_ge);
+PG_FUNCTION_INFO_V1(gtype_ge);
 
-Datum agtype_ge(PG_FUNCTION_ARGS)
+Datum gtype_ge(PG_FUNCTION_ARGS)
 {
-    agtype *agtype_lhs = AG_GET_ARG_AGTYPE_P(0);
-    agtype *agtype_rhs = AG_GET_ARG_AGTYPE_P(1);
+    gtype *gtype_lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *gtype_rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    result = (compare_agtype_containers_orderability(&agtype_lhs->root,
-                                                     &agtype_rhs->root) >= 0);
+    result = (compare_gtype_containers_orderability(&gtype_lhs->root,
+                                                     &gtype_rhs->root) >= 0);
 
-    PG_FREE_IF_COPY(agtype_lhs, 0);
-    PG_FREE_IF_COPY(agtype_rhs, 1);
+    PG_FREE_IF_COPY(gtype_lhs, 0);
+    PG_FREE_IF_COPY(gtype_rhs, 1);
 
     PG_RETURN_BOOL(result);
 }
 
-PG_FUNCTION_INFO_V1(agtype_contains);
+PG_FUNCTION_INFO_V1(gtype_contains);
 /*
- * <@ operator for agtype. Returns true if the right agtype path/value entries
- * contained at the top level within the left agtype value
+ * <@ operator for gtype. Returns true if the right gtype path/value entries
+ * contained at the top level within the left gtype value
  */
-Datum agtype_contains(PG_FUNCTION_ARGS)
+Datum gtype_contains(PG_FUNCTION_ARGS)
 {
-    agtype_iterator *constraint_it, *property_it;
-    agtype *properties, *constraints;
+    gtype_iterator *constraint_it, *property_it;
+    gtype *properties, *constraints;
 
     if (PG_ARGISNULL(0) || PG_ARGISNULL(1))
     {
         PG_RETURN_NULL();
     }
 
-    properties = AG_GET_ARG_AGTYPE_P(0);
-    constraints = AG_GET_ARG_AGTYPE_P(1);
+    properties = AG_GET_ARG_GTYPE_P(0);
+    constraints = AG_GET_ARG_GTYPE_P(1);
 
-    constraint_it = agtype_iterator_init(&constraints->root);
-    property_it = agtype_iterator_init(&properties->root);
+    constraint_it = gtype_iterator_init(&constraints->root);
+    property_it = gtype_iterator_init(&properties->root);
 
-    PG_RETURN_BOOL(agtype_deep_contains(&property_it, &constraint_it));
+    PG_RETURN_BOOL(gtype_deep_contains(&property_it, &constraint_it));
 }
 
 
-PG_FUNCTION_INFO_V1(agtype_contained_by);
+PG_FUNCTION_INFO_V1(gtype_contained_by);
 /*
- * <@ operator for agtype. Returns true if the left agtype path/value entries
- * contained at the top level within the right agtype value
+ * <@ operator for gtype. Returns true if the left gtype path/value entries
+ * contained at the top level within the right gtype value
  */
-Datum agtype_contained_by(PG_FUNCTION_ARGS)
+Datum gtype_contained_by(PG_FUNCTION_ARGS)
 {
-    agtype_iterator *constraint_it, *property_it;
-    agtype *properties, *constraints;
+    gtype_iterator *constraint_it, *property_it;
+    gtype *properties, *constraints;
 
     if (PG_ARGISNULL(0) || PG_ARGISNULL(1))
     {
         PG_RETURN_NULL();
     }
 
-    properties = AG_GET_ARG_AGTYPE_P(0);
-    constraints = AG_GET_ARG_AGTYPE_P(1);
+    properties = AG_GET_ARG_GTYPE_P(0);
+    constraints = AG_GET_ARG_GTYPE_P(1);
 
-    constraint_it = agtype_iterator_init(&constraints->root);
-    property_it = agtype_iterator_init(&properties->root);
+    constraint_it = gtype_iterator_init(&constraints->root);
+    property_it = gtype_iterator_init(&properties->root);
 
-    PG_RETURN_BOOL(agtype_deep_contains(&constraint_it, &property_it));
+    PG_RETURN_BOOL(gtype_deep_contains(&constraint_it, &property_it));
 }
 
-PG_FUNCTION_INFO_V1(agtype_exists);
+PG_FUNCTION_INFO_V1(gtype_exists);
 /*
- * ? operator for agtype. Returns true if the string exists as top-level keys
+ * ? operator for gtype. Returns true if the string exists as top-level keys
  */
-Datum agtype_exists(PG_FUNCTION_ARGS)
+Datum gtype_exists(PG_FUNCTION_ARGS)
 {
-    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
     text *key = PG_GETARG_TEXT_PP(1);
-    agtype_value aval;
-    agtype_value *v = NULL;
+    gtype_value aval;
+    gtype_value *v = NULL;
 
     /*
      * We only match Object keys (which are naturally always Strings), or
@@ -819,21 +819,21 @@ Datum agtype_exists(PG_FUNCTION_ARGS)
     aval.val.string.val = VARDATA_ANY(key);
     aval.val.string.len = VARSIZE_ANY_EXHDR(key);
 
-    v = find_agtype_value_from_container(&agt->root,
+    v = find_gtype_value_from_container(&agt->root,
                                          AGT_FOBJECT | AGT_FARRAY,
                                          &aval);
 
     PG_RETURN_BOOL(v != NULL);
 }
 
-PG_FUNCTION_INFO_V1(agtype_exists_any);
+PG_FUNCTION_INFO_V1(gtype_exists_any);
 /*
- * ?| operator for agtype. Returns true if any of the array strings exist as
+ * ?| operator for gtype. Returns true if any of the array strings exist as
  * top-level keys
  */
-Datum agtype_exists_any(PG_FUNCTION_ARGS)
+Datum gtype_exists_any(PG_FUNCTION_ARGS)
 {
-    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
     ArrayType *keys = PG_GETARG_ARRAYTYPE_P(1);
     int i;
     Datum *key_datums;
@@ -845,7 +845,7 @@ Datum agtype_exists_any(PG_FUNCTION_ARGS)
 
     for (i = 0; i < elem_count; i++)
     {
-        agtype_value strVal;
+        gtype_value strVal;
 
         if (key_nulls[i])
         {
@@ -856,7 +856,7 @@ Datum agtype_exists_any(PG_FUNCTION_ARGS)
         strVal.val.string.val = VARDATA(key_datums[i]);
         strVal.val.string.len = VARSIZE(key_datums[i]) - VARHDRSZ;
 
-        if (find_agtype_value_from_container(&agt->root,
+        if (find_gtype_value_from_container(&agt->root,
                                         AGT_FOBJECT | AGT_FARRAY,
                                         &strVal) != NULL)
         {
@@ -867,14 +867,14 @@ Datum agtype_exists_any(PG_FUNCTION_ARGS)
     PG_RETURN_BOOL(false);
 }
 
-PG_FUNCTION_INFO_V1(agtype_exists_all);
+PG_FUNCTION_INFO_V1(gtype_exists_all);
 /*
- * ?& operator for agtype. Returns true if all of the array strings exist as
+ * ?& operator for gtype. Returns true if all of the array strings exist as
  * top-level keys
  */
-Datum agtype_exists_all(PG_FUNCTION_ARGS)
+Datum gtype_exists_all(PG_FUNCTION_ARGS)
 {
-    agtype *agt = AG_GET_ARG_AGTYPE_P(0);
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
     ArrayType  *keys = PG_GETARG_ARRAYTYPE_P(1);
     int i;
     Datum *key_datums;
@@ -886,7 +886,7 @@ Datum agtype_exists_all(PG_FUNCTION_ARGS)
 
     for (i = 0; i < elem_count; i++)
     {
-        agtype_value strVal;
+        gtype_value strVal;
 
         if (key_nulls[i])
         {
@@ -897,7 +897,7 @@ Datum agtype_exists_all(PG_FUNCTION_ARGS)
         strVal.val.string.val = VARDATA(key_datums[i]);
         strVal.val.string.len = VARSIZE(key_datums[i]) - VARHDRSZ;
 
-        if (find_agtype_value_from_container(&agt->root,
+        if (find_gtype_value_from_container(&agt->root,
                                         AGT_FOBJECT | AGT_FARRAY,
                                         &strVal) == NULL)
         {
@@ -908,15 +908,15 @@ Datum agtype_exists_all(PG_FUNCTION_ARGS)
     PG_RETURN_BOOL(true);
 }
 
-static agtype *agtype_concat(agtype *agt1, agtype *agt2)
+static gtype *gtype_concat(gtype *agt1, gtype *agt2)
 {
-    agtype_parse_state *state = NULL;
-    agtype_value *res;
-    agtype_iterator *it1;
-    agtype_iterator *it2;
+    gtype_parse_state *state = NULL;
+    gtype_value *res;
+    gtype_iterator *it1;
+    gtype_iterator *it2;
 
     /*
-     * If one of the agtype is empty, just return the other if it's not scalar
+     * If one of the gtype is empty, just return the other if it's not scalar
      * and both are of the same kind.  If it's a scalar or they are of
      * different kinds we need to perform the concatenation even if one is
      * empty.
@@ -929,32 +929,32 @@ static agtype *agtype_concat(agtype *agt1, agtype *agt2)
             return agt1;
     }
 
-    it1 = agtype_iterator_init(&agt1->root);
-    it2 = agtype_iterator_init(&agt2->root);
+    it1 = gtype_iterator_init(&agt1->root);
+    it2 = gtype_iterator_init(&agt2->root);
 
     res = iterator_concat(&it1, &it2, &state);
 
     Assert(res != NULL);
 
-    return (agtype_value_to_agtype(res));
+    return (gtype_value_to_gtype(res));
 }
 
 /*
- * Iterate over all agtype objects and merge them into one.
+ * Iterate over all gtype objects and merge them into one.
  * The logic of this function copied from the same hstore function,
  * except the case, when it1 & it2 represents jbvObject.
  * In that case we just append the content of it2 to it1 without any
  * verifications.
  */
-static agtype_value *iterator_concat(agtype_iterator **it1,
-                                     agtype_iterator **it2,
-                                     agtype_parse_state **state)
+static gtype_value *iterator_concat(gtype_iterator **it1,
+                                     gtype_iterator **it2,
+                                     gtype_parse_state **state)
 {
-    agtype_value v1, v2, *res = NULL;
-    agtype_iterator_token r1, r2, rk1, rk2;
+    gtype_value v1, v2, *res = NULL;
+    gtype_iterator_token r1, r2, rk1, rk2;
 
-    r1 = rk1 = agtype_iterator_next(it1, &v1, false);
-    r2 = rk2 = agtype_iterator_next(it2, &v2, false);
+    r1 = rk1 = gtype_iterator_next(it1, &v1, false);
+    r2 = rk2 = gtype_iterator_next(it2, &v2, false);
 
     /*
      * Both elements are objects.
@@ -965,16 +965,16 @@ static agtype_value *iterator_concat(agtype_iterator **it1,
          * Append the all tokens from v1 to res, except last WAGT_END_OBJECT
          * (because res will not be finished yet).
          */
-        push_agtype_value(state, r1, NULL);
-        while ((r1 = agtype_iterator_next(it1, &v1, true)) != WAGT_END_OBJECT)
-            push_agtype_value(state, r1, &v1);
+        push_gtype_value(state, r1, NULL);
+        while ((r1 = gtype_iterator_next(it1, &v1, true)) != WAGT_END_OBJECT)
+            push_gtype_value(state, r1, &v1);
 
         /*
          * Append the all tokens from v2 to res, include last WAGT_END_OBJECT
          * (the concatenation will be completed).
          */
-        while ((r2 = agtype_iterator_next(it2, &v2, true)) != 0)
-            res = push_agtype_value(state, r2,
+        while ((r2 = gtype_iterator_next(it2, &v2, true)) != 0)
+            res = push_gtype_value(state, r2,
                                     r2 != WAGT_END_OBJECT ? &v2 : NULL);
     }
 
@@ -983,21 +983,21 @@ static agtype_value *iterator_concat(agtype_iterator **it1,
      */
     else if (rk1 == WAGT_BEGIN_ARRAY && rk2 == WAGT_BEGIN_ARRAY)
     {
-        push_agtype_value(state, r1, NULL);
+        push_gtype_value(state, r1, NULL);
 
-        while ((r1 = agtype_iterator_next(it1, &v1, true)) != WAGT_END_ARRAY)
+        while ((r1 = gtype_iterator_next(it1, &v1, true)) != WAGT_END_ARRAY)
         {
             Assert(r1 == WAGT_ELEM);
-            push_agtype_value(state, r1, &v1);
+            push_gtype_value(state, r1, &v1);
         }
 
-        while ((r2 = agtype_iterator_next(it2, &v2, true)) != WAGT_END_ARRAY)
+        while ((r2 = gtype_iterator_next(it2, &v2, true)) != WAGT_END_ARRAY)
         {
             Assert(r2 == WAGT_ELEM);
-            push_agtype_value(state, WAGT_ELEM, &v2);
+            push_gtype_value(state, WAGT_ELEM, &v2);
         }
 
-        res = push_agtype_value(state, WAGT_END_ARRAY,
+        res = push_gtype_value(state, WAGT_END_ARRAY,
                                 NULL /* signal to sort */);
     }
     /* have we got array || object or object || array? */
@@ -1006,36 +1006,36 @@ static agtype_value *iterator_concat(agtype_iterator **it1,
              (rk1 == WAGT_BEGIN_OBJECT &&
               (rk2 == WAGT_BEGIN_ARRAY && !(*it2)->is_scalar)))
     {
-        agtype_iterator **it_array = rk1 == WAGT_BEGIN_ARRAY ? it1 : it2;
-        agtype_iterator **it_object = rk1 == WAGT_BEGIN_OBJECT ? it1 : it2;
+        gtype_iterator **it_array = rk1 == WAGT_BEGIN_ARRAY ? it1 : it2;
+        gtype_iterator **it_object = rk1 == WAGT_BEGIN_OBJECT ? it1 : it2;
 
         bool prepend = (rk1 == WAGT_BEGIN_OBJECT);
 
-        push_agtype_value(state, WAGT_BEGIN_ARRAY, NULL);
+        push_gtype_value(state, WAGT_BEGIN_ARRAY, NULL);
 
         if (prepend)
         {
-            push_agtype_value(state, WAGT_BEGIN_OBJECT, NULL);
-            while ((r1 = agtype_iterator_next(it_object, &v1, true)) != 0)
-                push_agtype_value(state, r1,
+            push_gtype_value(state, WAGT_BEGIN_OBJECT, NULL);
+            while ((r1 = gtype_iterator_next(it_object, &v1, true)) != 0)
+                push_gtype_value(state, r1,
                                   r1 != WAGT_END_OBJECT ? &v1 : NULL);
 
-            while ((r2 = agtype_iterator_next(it_array, &v2, true)) != 0)
-                res = push_agtype_value(state, r2,
+            while ((r2 = gtype_iterator_next(it_array, &v2, true)) != 0)
+                res = push_gtype_value(state, r2,
                                         r2 != WAGT_END_ARRAY ? &v2 : NULL);
         }
         else
         {
-            while ((r1 = agtype_iterator_next(it_array, &v1, true)) !=
+            while ((r1 = gtype_iterator_next(it_array, &v1, true)) !=
                    WAGT_END_ARRAY)
-                push_agtype_value(state, r1, &v1);
+                push_gtype_value(state, r1, &v1);
 
-            push_agtype_value(state, WAGT_BEGIN_OBJECT, NULL);
-            while ((r2 = agtype_iterator_next(it_object, &v2, true)) != 0)
-                push_agtype_value(state, r2,
+            push_gtype_value(state, WAGT_BEGIN_OBJECT, NULL);
+            while ((r2 = gtype_iterator_next(it_object, &v2, true)) != 0)
+                push_gtype_value(state, r2,
                                   r2 != WAGT_END_OBJECT ? &v2 : NULL);
 
-            res = push_agtype_value(state, WAGT_END_ARRAY, NULL);
+            res = push_gtype_value(state, WAGT_END_ARRAY, NULL);
         }
     }
     else
@@ -1045,13 +1045,13 @@ static agtype_value *iterator_concat(agtype_iterator **it1,
          * that's left. Both of these make no sense, so error out.
          */
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("invalid concatenation of agtype objects")));
+                        errmsg("invalid concatenation of gtype objects")));
     }
 
     return res;
 }
 
-static void ereport_op_str(const char *op, agtype *lhs, agtype *rhs)
+static void ereport_op_str(const char *op, gtype *lhs, gtype *rhs)
 {
     const char *msgfmt;
     const char *lstr;
@@ -1067,9 +1067,9 @@ static void ereport_op_str(const char *op, agtype *lhs, agtype *rhs)
     else
     {
         msgfmt = "invalid expression: %s %s %s";
-        lstr = agtype_to_cstring(NULL, &lhs->root, VARSIZE(lhs));
+        lstr = gtype_to_cstring(NULL, &lhs->root, VARSIZE(lhs));
     }
-    rstr = agtype_to_cstring(NULL, &rhs->root, VARSIZE(rhs));
+    rstr = gtype_to_cstring(NULL, &rhs->root, VARSIZE(rhs));
 
     ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                     errmsg(msgfmt, lstr, op, rstr)));

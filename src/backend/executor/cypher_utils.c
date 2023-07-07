@@ -44,9 +44,9 @@
 #include "commands/label_commands.h"
 #include "executor/cypher_executor.h"
 #include "executor/cypher_utils.h"
-#include "utils/agtype.h"
+#include "utils/gtype.h"
 #include "utils/ag_cache.h"
-#include "utils/agtype.h"
+#include "utils/gtype.h"
 #include "utils/graphid.h"
 
 /*
@@ -99,7 +99,7 @@ void destroy_entity_result_rel_info(ResultRelInfo *result_rel_info)
 }
 
 TupleTableSlot *populate_vertex_tts(
-    TupleTableSlot *elemTupleSlot, agtype_value *id, agtype_value *properties)
+    TupleTableSlot *elemTupleSlot, gtype_value *id, gtype_value *properties)
 {
     bool properties_isnull;
 
@@ -115,15 +115,15 @@ TupleTableSlot *populate_vertex_tts(
     elemTupleSlot->tts_isnull[vertex_tuple_id] = false;
 
     elemTupleSlot->tts_values[vertex_tuple_properties] =
-        AGTYPE_P_GET_DATUM(agtype_value_to_agtype(properties));
+        GTYPE_P_GET_DATUM(gtype_value_to_gtype(properties));
     elemTupleSlot->tts_isnull[vertex_tuple_properties] = properties_isnull;
 
     return elemTupleSlot;
 }
 
 TupleTableSlot *populate_edge_tts(
-    TupleTableSlot *elemTupleSlot, agtype_value *id, agtype_value *startid,
-    agtype_value *endid, agtype_value *properties)
+    TupleTableSlot *elemTupleSlot, gtype_value *id, gtype_value *startid,
+    gtype_value *endid, gtype_value *properties)
 {
     bool properties_isnull;
 
@@ -159,7 +159,7 @@ TupleTableSlot *populate_edge_tts(
     elemTupleSlot->tts_isnull[edge_tuple_end_id] = false;
 
     elemTupleSlot->tts_values[edge_tuple_properties] =
-        AGTYPE_P_GET_DATUM(agtype_value_to_agtype(properties));
+        GTYPE_P_GET_DATUM(gtype_value_to_gtype(properties));
     elemTupleSlot->tts_isnull[edge_tuple_properties] = properties_isnull;
 
     return elemTupleSlot;

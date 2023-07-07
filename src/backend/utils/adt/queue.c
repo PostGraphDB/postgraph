@@ -20,118 +20,106 @@
 #include "postgres.h"
 
 #include "utils/graphid.h"
-#include "utils/age_graphid_ds.h"
+#include "utils/queue.h"
 
 /* defines */
 /*
- * A simple linked list node for graphid lists (int64). PG's implementation
+ * A simple linked list queuenode for graphid lists (int64). PG's implementation
  * has too much overhead for this type of list as it only directly supports
  * regular ints, not int64s, of which a graphid currently is.
  */
-typedef struct GraphIdNode
+typedef struct QueueNode
 {
     graphid id;
-    struct GraphIdNode *next;
-} GraphIdNode;
+    struct QueueNode *next;
+} QueueNode;
 
-/* a container for a linked list of GraphIdNodes */
-typedef struct ListGraphId
+/* a container for a linked list of QueueNodes */
+typedef struct Queue
 {
-    GraphIdNode *head;
-    GraphIdNode *tail;
+    QueueNode *head;
+    QueueNode *tail;
     int64 size;
-} ListGraphId;
+} Queue;
 
 /* declarations */
 
 /* definitions */
-/* return the next GraphIdNode */
-GraphIdNode *next_GraphIdNode(GraphIdNode *node)
-{
-    return node->next;
+/* return the next QueueNode */
+QueueNode *next_queue_node(QueueNode *queuenode) {
+    return queuenode->next;
 }
 
 /* return the graphid */
-graphid get_graphid(GraphIdNode *node)
-{
-    return node->id;
+graphid get_graphid(QueueNode *queuenode) {
+    return queuenode->id;
 }
 
 /* get the size of the passed queue */
-int64 get_queue_size(ListGraphId *queue)
-{
+int64 queue_size(Queue *queue) {
     return queue->size;
 }
 
 /* return a reference to the head entry in the queue, or NULL if empty */
-GraphIdNode *peek_queue_head(ListGraphId *queue)
-{
+QueueNode *peek_queue_head(Queue *queue) {
     if (queue == NULL)
-    {
         return NULL;
-    }
 
     return queue->head;
 }
 
 /* return a reference to the tail entry in the queue */
-GraphIdNode *peek_queue_tail(ListGraphId *queue)
+QueueNode *peek_queue_tail(Queue *queue)
 {
     return queue->tail;
 }
 
 /* return a reference to the head entry of a list */
-GraphIdNode *get_list_head(ListGraphId *list)
+QueueNode *get_list_head(Queue *list)
 {
     return list->head;
 }
 
 /* get the size of the passed list */
-int64 get_list_size(ListGraphId *list)
+int64 get_list_size(Queue *list)
 {
     return list->size;
 }
 
 /*
- * Helper function to add a graphid to the end of a ListGraphId container.
+ * Helper function to add a graphid to the end of a Queue container.
  * If the container is NULL, it creates the container with the entry.
  */
-ListGraphId *append_graphid(ListGraphId *container, graphid id)
+Queue *append_graphid(Queue *container, graphid id)
 {
-    GraphIdNode *new_node = NULL;
+    QueueNode *new_queuenode = NULL;
 
     /* create the new link */
-    new_node = palloc0(sizeof(GraphIdNode));
-    new_node->id = id;
-    new_node->next = NULL;
+    new_queuenode = palloc0(sizeof(QueueNode));
+    new_queuenode->id = id;
+    new_queuenode->next = NULL;
 
-    /*
-     * If the container is NULL then this is a new list. So, create the
-     * container and add in the new link.
-     */
-    if (container == NULL)
-    {
-        container = palloc0(sizeof(ListGraphId));
-        container->head = new_node;
-        container->tail = new_node;
+    if (container == NULL) {
+        container = palloc0(sizeof(Queue));
+        container->head = new_queuenode;
+        container->tail = new_queuenode;
         container->size = 1;
     }
-    /* otherwise, this is an existing list, append id */
     else
     {
-        container->tail->next = new_node;
-        container->tail = new_node;
+        container->tail->next = new_queuenode;
+        container->tail = new_queuenode;
         container->size++;
     }
 
     return container;
 }
 
-/* free (delete) a ListGraphId list */
-void free_ListGraphId(ListGraphId *container)
+/* free (delete) a Queue list */
+void free_queue(Queue *container)
 {
-    GraphIdNode *curr_node = NULL;
-    GraphIdNode *next_node = NULL;
+    QueueNode *curr_queuenode = NULL;
+    QueueNode *next_queuenode = NULL;
 
     /* if the container is NULL we don't need to delete anything */
     if (container == NULL)
@@ -140,13 +128,13 @@ void free_ListGraphId(ListGraphId *container)
     }
 
     /* otherwise, start from the head, free, and delete the links */
-    curr_node = container->head;
-    while (curr_node != NULL)
+    curr_queuenode = container->head;
+    while (curr_queuenode != NULL)
     {
-        next_node = curr_node->next;
+        next_queuenode = curr_queuenode->next;
         /* we can do this because this is just a list of ints */
-        pfree(curr_node);
-        curr_node = next_node;
+        pfree(curr_queuenode);
+        curr_queuenode = next_queuenode;
     }
 
     /* free the container */
@@ -154,12 +142,12 @@ void free_ListGraphId(ListGraphId *container)
 }
 
 /* helper function to create a new, empty, graphid queue */
-ListGraphId *new_graphid_queue(void)
+Queue *new_graphid_queue(void)
 {
-    ListGraphId *queue = NULL;
+    Queue *queue = NULL;
 
     /* allocate the container for the queue */
-    queue = palloc0(sizeof(ListGraphId));
+    queue = palloc0(sizeof(Queue));
 
     /* set it to its initial values */
     queue->head = NULL;
@@ -171,7 +159,7 @@ ListGraphId *new_graphid_queue(void)
 }
 
 /* helper function to free a graphid queue's contents but, not the container */
-void free_graphid_queue(ListGraphId *queue)
+void free_graphid_queue(Queue *queue)
 {
     Assert(queue != NULL);
 
@@ -184,7 +172,7 @@ void free_graphid_queue(ListGraphId *queue)
     while (queue->head != NULL)
     {
         /* get the next element in the queue */
-        GraphIdNode *next = queue->head->next;
+        QueueNode *next = queue->head->next;
 
         /* free the head element */
         pfree(queue->head);
@@ -201,9 +189,9 @@ void free_graphid_queue(ListGraphId *queue)
  * Helper function for a generic push graphid (int64) to a queue. If the queue
  * is NULL, it will error out.
  */
-void push_graphid_queue(ListGraphId *queue, graphid id)
+void push_graphid_queue(Queue *queue, graphid id)
 {
-    GraphIdNode *new_node = NULL;
+    QueueNode *new_queuenode = NULL;
 
     Assert(queue != NULL);
 
@@ -213,12 +201,12 @@ void push_graphid_queue(ListGraphId *queue, graphid id)
     }
 
     /* create the new element */
-    new_node = palloc0(sizeof(GraphIdNode));
-    new_node->id = id;
+    new_queuenode = palloc0(sizeof(QueueNode));
+    new_queuenode->id = id;
 
     /* insert (push) the new element on the top */
-    new_node->next = queue->head;
-    queue->head = new_node;
+    new_queuenode->next = queue->head;
+    queue->head = new_queuenode;
     queue->size++;
 }
 
@@ -227,32 +215,26 @@ void push_graphid_queue(ListGraphId *queue, graphid id)
  * is empty, it will error out. You should verify that the queue isn't empty
  * prior to calling.
  */
-graphid pop_graphid_queue(ListGraphId *queue)
+graphid pop_graphid_queue(Queue *queue)
 {
-    GraphIdNode *node = NULL;
+    QueueNode *queuenode = NULL;
     graphid id;
 
     Assert(queue != NULL);
     Assert(queue->size != 0);
 
     if (queue == NULL)
-    {
         elog(ERROR, "pop_graphid_queue: NULL queue");
-    }
 
     if (queue->size <= 0)
-    {
         elog(ERROR, "pop_graphid_queue: empty queue");
-    }
 
 
     /* remove the element from the top of the queue */
-    node = queue->head;
-    id = node->id;
+    queuenode = queue->head;
+    id = queuenode->id;
     queue->head = queue->head->next;
     queue->size--;
-    /* free the element */
-    pfree(node);
 
     /* return the id */
     return id;

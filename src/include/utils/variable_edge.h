@@ -17,7 +17,7 @@
  */
 
 /*
- * Declarations for agtype data type support.
+ * Declarations for gtype data type support.
  */
 
 #ifndef POSTGRAPH_VARIABLE_EDGE_H
@@ -45,7 +45,7 @@
 typedef uint32 prentry;
 
 /*
- * An vertex, within an agtype Datum.
+ * An vertex, within an gtype Datum.
  *
  * An array has one child for each element, stored in array order.
  */

@@ -17,23 +17,23 @@
  * Portions Copyright (c) 2020-2023, Apache Software Foundation
  */
 
-#ifndef AG_AGTYPE_VLE_H
-#define AG_AGTYPE_VLE_H
+#ifndef AG_GTYPE_VLE_H
+#define AG_GTYPE_VLE_H
 
-#include "utils/agtype.h"
+#include "utils/gtype.h"
 #include "utils/age_global_graph.h"
 
 /*
  * We declare the path_container here, and in this way, so that it may be
  * used elsewhere. However, we keep the contents private by defining it in
- * agtype_vle.c
+ * gtype_vle.c
  */
 typedef struct path_container path_container;
 
 /*
  * Function to take a AGTV_BINARY path_container and return a path as an
- * agtype_value.
+ * gtype_value.
  */
-agtype_value *agtv_materialize_vle_path(agtype *agt_arg_vpc);
+gtype_value *agtv_materialize_vle_path(gtype *agt_arg_vpc);
 
 #endif

@@ -27,18 +27,18 @@ NOTICE:  graph "cypher" has been created
 
 -- cypher() function takes only a dollar-quoted string constant as an argument.
 -- All other cases throw an error.
-SELECT * FROM cypher('none', $$RETURN 0$$) as q(c agtype);
+SELECT * FROM cypher('none', $$RETURN 0$$) as q(c gtype);
 ERROR:  graph "none" does not exist
-LINE 1: SELECT * FROM cypher('none', $$RETURN 0$$) as q(c agtype);
+LINE 1: SELECT * FROM cypher('none', $$RETURN 0$$) as q(c gtype);
                              ^
-SELECT * FROM cypher('cypher', $$RETURN 0$$) AS r(c agtype);
+SELECT * FROM cypher('cypher', $$RETURN 0$$) AS r(c gtype);
  c 
 ---
  0
 (1 row)
 
 WITH r(c) AS (
-  SELECT * FROM cypher('cypher', $$RETURN 0$$) AS r(c agtype)
+  SELECT * FROM cypher('cypher', $$RETURN 0$$) AS r(c gtype)
 )
 SELECT * FROM r;
  c 
@@ -67,7 +67,7 @@ ERROR:  return row and column definition list do not match
 LINE 1: SELECT * FROM cypher('cypher', $$RETURN 0$$) AS r(c text, x ...
                       ^
 -- cypher() function can be called in ROWS FROM only if it is there solely.
-SELECT * FROM ROWS FROM (cypher('cypher', $$RETURN 0$$) AS (c agtype));
+SELECT * FROM ROWS FROM (cypher('cypher', $$RETURN 0$$) AS (c gtype));
  c 
 ---
  0
@@ -91,15 +91,15 @@ ERROR:  cypher(...) in expressions is not supported
 LINE 1: SELECT cypher('cypher', $$RETURN 0$$);
                ^
 HINT:  Use subquery instead if possible.
-SELECT (SELECT * FROM cypher('cypher', $$RETURN 0$$) AS r(c agtype));
+SELECT (SELECT * FROM cypher('cypher', $$RETURN 0$$) AS r(c gtype));
  c 
 ---
  0
 (1 row)
 
--- Attributes returned from cypher() function are agtype. If other than agtype
+-- Attributes returned from cypher() function are gtype. If other than gtype
 -- is given in the column definition list and there is a type coercion from
--- agtype to the given type, agtype will be coerced to that type. If there is
+-- gtype to the given type, gtype will be coerced to that type. If there is
 -- not such a coercion, an error is thrown.
 SELECT * FROM cypher('cypher', $$RETURN true$$) AS (c bool);
  c 
@@ -108,7 +108,7 @@ SELECT * FROM cypher('cypher', $$RETURN true$$) AS (c bool);
 (1 row)
 
 SELECT * FROM cypher('cypher', $$RETURN 0$$) AS (c oid);
-ERROR:  cannot cast type agtype to oid for column "c"
+ERROR:  cannot cast type gtype to oid for column "c"
 LINE 1: SELECT * FROM cypher('cypher', $$RETURN 0$$) AS (c oid);
                       ^
 SELECT drop_graph('cypher', true);

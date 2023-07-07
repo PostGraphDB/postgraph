@@ -80,13 +80,13 @@ SELECT COUNT(*) FROM agload_test_graph."has_city";
  72485
 (1 row)
 
-SELECT COUNT(*) FROM cypher('agload_test_graph', $$MATCH(n) RETURN n$$) as (n agtype);
+SELECT COUNT(*) FROM cypher('agload_test_graph', $$MATCH(n) RETURN n$$) as (n gtype);
  count 
 -------
  72538
 (1 row)
 
-SELECT COUNT(*) FROM cypher('agload_test_graph', $$MATCH (a)-[e]->(b) RETURN e$$) as (n agtype);
+SELECT COUNT(*) FROM cypher('agload_test_graph', $$MATCH (a)-[e]->(b) RETURN e$$) as (n gtype);
  count 
 -------
  72485
@@ -163,28 +163,28 @@ SELECT id FROM agload_test_graph."Country2" LIMIT 10;
 (10 rows)
 
 SELECT * FROM cypher('agload_test_graph', $$MATCH(n:Country {iso2 : 'BE'})
-    RETURN id(n), n.name, n.iso2 $$) as ("id(n)" agtype, "n.name" agtype, "n.iso2" agtype);
+    RETURN id(n), n.name, n.iso2 $$) as ("id(n)" gtype, "n.name" gtype, "n.iso2" gtype);
       id(n)      |  n.name   | n.iso2 
 -----------------+-----------+--------
  844424930131990 | "Belgium" | "BE"
 (1 row)
 
 SELECT * FROM cypher('agload_test_graph', $$MATCH(n:Country2 {iso2 : 'BE'})
-    RETURN id(n), n.name, n.iso2 $$) as ("id(n)" agtype, "n.name" agtype, "n.iso2" agtype);
+    RETURN id(n), n.name, n.iso2 $$) as ("id(n)" gtype, "n.name" gtype, "n.iso2" gtype);
       id(n)       |  n.name   | n.iso2 
 ------------------+-----------+--------
  1688849860263942 | "Belgium" | "BE"
 (1 row)
 
 SELECT * FROM cypher('agload_test_graph', $$MATCH(n:Country {iso2 : 'AT'})
-    RETURN id(n), n.name, n.iso2 $$) as ("id(n)" agtype, "n.name" agtype, "n.iso2" agtype);
+    RETURN id(n), n.name, n.iso2 $$) as ("id(n)" gtype, "n.name" gtype, "n.iso2" gtype);
       id(n)      |  n.name   | n.iso2 
 -----------------+-----------+--------
  844424930131983 | "Austria" | "AT"
 (1 row)
 
 SELECT * FROM cypher('agload_test_graph', $$MATCH(n:Country2 {iso2 : 'AT'})
-    RETURN id(n), n.name, n.iso2 $$) as ("id(n)" agtype, "n.name" agtype, "n.iso2" agtype);
+    RETURN id(n), n.name, n.iso2 $$) as ("id(n)" gtype, "n.name" gtype, "n.iso2" gtype);
       id(n)       |  n.name   | n.iso2 
 ------------------+-----------+--------
  1688849860263940 | "Austria" | "AT"
@@ -194,7 +194,7 @@ SELECT * FROM cypher('agload_test_graph', $$
     MATCH (u:Country {region : "Europe"})
     WHERE u.name =~ 'Cro.*'
     RETURN u.name, u.region
-$$) AS (result_1 agtype, result_2 agtype);
+$$) AS (result_1 gtype, result_2 gtype);
  result_1  | result_2 
 -----------+----------
  "Croatia" | "Europe"

@@ -25,12 +25,12 @@
 #include "utils/fmgrprotos.h"
 #include "utils/varlena.h"
 
-#include "utils/agtype.h"
+#include "utils/gtype.h"
 #include "utils/graphid.h"
 #include "utils/edge.h"
 
 static void append_to_buffer(StringInfo buffer, const char *data, int len);
-static agtype *extract_properties(edge *v);
+static gtype *extract_properties(edge *v);
 static char *extract_label(edge *v);
 
 /*
@@ -66,8 +66,8 @@ Datum edge_out(PG_FUNCTION_ARGS) {
 
     // properties
     appendStringInfoString(str, "\", \"properties\": ");
-    agtype *agt = extract_properties(v);
-    agtype_to_cstring(str, &agt->root, 0);
+    gtype *agt = extract_properties(v);
+    gtype_to_cstring(str, &agt->root, 0);
 
 
     appendStringInfoString(str, "}");
@@ -95,8 +95,8 @@ void append_edge_to_string(StringInfoData *str, edge *v) {
 
     // properties
     appendStringInfoString(str, "\", \"properties\": ");
-    agtype *agt = extract_properties(v);
-    agtype_to_cstring(str, &agt->root, 0);
+    gtype *agt = extract_properties(v);
+    gtype_to_cstring(str, &agt->root, 0);
 
 
     appendStringInfoString(str, "}");
@@ -110,7 +110,7 @@ build_edge(PG_FUNCTION_ARGS) {
     graphid start_id = AG_GETARG_GRAPHID(1);
     graphid end_id = AG_GETARG_GRAPHID(2);
     char *label = PG_GETARG_CSTRING(3);
-    agtype *properties = AG_GET_ARG_AGTYPE_P(4);
+    gtype *properties = AG_GET_ARG_GTYPE_P(4);
 
     if (!AGT_ROOT_IS_OBJECT(properties))
         PG_RETURN_NULL();
@@ -180,7 +180,7 @@ edge_label(PG_FUNCTION_ARGS) {
     edge *e = AG_GET_ARG_EDGE(0);
     char *label = extract_label(e);
 
-    Datum d = string_to_agtype(label);
+    Datum d = string_to_gtype(label);
 
     PG_RETURN_DATUM(d);
 }
@@ -190,7 +190,7 @@ Datum
 edge_properties(PG_FUNCTION_ARGS) {
     edge *e = AG_GET_ARG_EDGE(0);
 
-    AG_RETURN_AGTYPE_P(extract_properties(e));
+    AG_RETURN_GTYPE_P(extract_properties(e));
 }
 
 
@@ -209,10 +209,10 @@ extract_label(edge *v) {
     return pnstrdup(label_addr, *label_length);
 }
 
-static agtype *
+static gtype *
 extract_properties(edge *v) {
     char *bytes = (char *)v;
     int *label_length = (int *)&bytes[VARHDRSZ + (3 * sizeof(graphid))];
 
-    return (agtype *)&bytes[VARHDRSZ + (3 * sizeof(graphid)) + sizeof(agtentry) + ((*label_length) * sizeof(char))];
+    return (gtype *)&bytes[VARHDRSZ + (3 * sizeof(graphid)) + sizeof(agtentry) + ((*label_length) * sizeof(char))];
 }

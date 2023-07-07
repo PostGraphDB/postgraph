@@ -49,17 +49,17 @@ NOTICE:  graph "drop" has been created
  
 (1 row)
 
--- Create a schema that uses the agtype, so we can't just drop postgraph.
+-- Create a schema that uses the gtype, so we can't just drop postgraph.
 CREATE SCHEMA other_schema;
-CREATE TABLE other_schema.tbl (id agtype);
--- Should Fail because agtype can't be dropped
+CREATE TABLE other_schema.tbl (id gtype);
+-- Should Fail because gtype can't be dropped
 DROP EXTENSION postgraph;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table drop._ag_label_vertex
 drop cascades to table drop._ag_label_edge
 NOTICE:  graph "drop" has been dropped
 ERROR:  cannot drop extension postgraph because other objects depend on it
-DETAIL:  column id of table other_schema.tbl depends on type agtype
+DETAIL:  column id of table other_schema.tbl depends on type gtype
 HINT:  Use DROP ... CASCADE to drop the dependent objects too.
 -- Check the graph still exist, because the DROP command failed
 SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname = 'drop';

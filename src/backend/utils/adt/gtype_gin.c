@@ -37,20 +37,20 @@
 #include "utils/builtins.h"
 #include "utils/varlena.h"
 
-#include "utils/agtype.h"
+#include "utils/gtype.h"
 
-typedef struct PathHashStack
+typedef struct PathHashQueue
 {
     uint32 hash;
-    struct PathHashStack *parent;
-} PathHashStack;
+    struct PathHashQueue *parent;
+} PathHashQueue;
 
 static Datum make_text_key(char flag, const char *str, int len);
-static Datum make_scalar_key(const agtype_value *scalar_val, bool is_key);
+static Datum make_scalar_key(const gtype_value *scalar_val, bool is_key);
 
 /*
  *
- * agtype_ops GIN opclass support functions
+ * gtype_ops GIN opclass support functions
  *
  */
 /*
@@ -59,8 +59,8 @@ static Datum make_scalar_key(const agtype_value *scalar_val, bool is_key);
  * equal to, or greater than the second. NULL keys are never passed to this
  * function.
  */
-PG_FUNCTION_INFO_V1(gin_compare_agtype);
-Datum gin_compare_agtype(PG_FUNCTION_ARGS)
+PG_FUNCTION_INFO_V1(gin_compare_gtype);
+Datum gin_compare_gtype(PG_FUNCTION_ARGS)
 {
     text *arg1, *arg2;
     int32 result;
@@ -95,15 +95,15 @@ Datum gin_compare_agtype(PG_FUNCTION_ARGS)
  * returned keys must be stored into *nkeys. The return value can be NULL if the
  * item contains no keys.
  */
-PG_FUNCTION_INFO_V1(gin_extract_agtype);
-Datum gin_extract_agtype(PG_FUNCTION_ARGS)
+PG_FUNCTION_INFO_V1(gin_extract_gtype);
+Datum gin_extract_gtype(PG_FUNCTION_ARGS)
 {
-    agtype *agt;
+    gtype *agt;
     int32 *nentries;
     int total;
-    agtype_iterator *it;
-    agtype_value v;
-    agtype_iterator_token r;
+    gtype_iterator *it;
+    gtype_value v;
+    gtype_iterator_token r;
     int i = 0;
     Datum *entries;
 
@@ -112,7 +112,7 @@ Datum gin_extract_agtype(PG_FUNCTION_ARGS)
         PG_RETURN_POINTER(NULL);
     }
 
-    agt = (agtype *) AG_GET_ARG_AGTYPE_P(0);
+    agt = (gtype *) AG_GET_ARG_GTYPE_P(0);
     nentries = (int32 *) PG_GETARG_POINTER(1);
     total = 2 * AGT_ROOT_COUNT(agt);
 
@@ -126,9 +126,9 @@ Datum gin_extract_agtype(PG_FUNCTION_ARGS)
     /* Otherwise, use 2 * root count as initial estimate of result size */
     entries = (Datum *) palloc(sizeof(Datum) * total);
 
-    it = agtype_iterator_init(&agt->root);
+    it = gtype_iterator_init(&agt->root);
 
-    while ((r = agtype_iterator_next(&it, &v, false)) != WAGT_DONE)
+    while ((r = gtype_iterator_next(&it, &v, false)) != WAGT_DONE)
     {
         /* Since we recurse into the object, we might need more space */
         if (i >= total)
@@ -178,8 +178,8 @@ Datum gin_extract_agtype(PG_FUNCTION_ARGS)
  * match any of the returned keys or not. This is only done when the contains
  * or exists all strategy are used and the passed map is empty.
  */
-PG_FUNCTION_INFO_V1(gin_extract_agtype_query);
-Datum gin_extract_agtype_query(PG_FUNCTION_ARGS)
+PG_FUNCTION_INFO_V1(gin_extract_gtype_query);
+Datum gin_extract_gtype_query(PG_FUNCTION_ARGS)
 {
     int32 *nentries;
     StrategyNumber strategy;
@@ -196,11 +196,11 @@ Datum gin_extract_agtype_query(PG_FUNCTION_ARGS)
     strategy = PG_GETARG_UINT16(2);
     searchMode = (int32 *) PG_GETARG_POINTER(6);
 
-    if (strategy == AGTYPE_CONTAINS_STRATEGY_NUMBER)
+    if (strategy == GTYPE_CONTAINS_STRATEGY_NUMBER)
     {
-        /* Query is a agtype, so just apply gin_extract_agtype... */
+        /* Query is a gtype, so just apply gin_extract_gtype... */
         entries = (Datum *)
-            DatumGetPointer(DirectFunctionCall2(gin_extract_agtype,
+            DatumGetPointer(DirectFunctionCall2(gin_extract_gtype,
                                                 PG_GETARG_DATUM(0),
                                                 PointerGetDatum(nentries)));
         /* ...although "contains {}" requires a full index scan */
@@ -209,7 +209,7 @@ Datum gin_extract_agtype_query(PG_FUNCTION_ARGS)
             *searchMode = GIN_SEARCH_MODE_ALL;
         }
     }
-    else if (strategy == AGTYPE_EXISTS_STRATEGY_NUMBER)
+    else if (strategy == GTYPE_EXISTS_STRATEGY_NUMBER)
     {
         /* Query is a text string, which we treat as a key */
         text *query = PG_GETARG_TEXT_PP(0);
@@ -219,8 +219,8 @@ Datum gin_extract_agtype_query(PG_FUNCTION_ARGS)
         entries[0] = make_text_key(AGT_GIN_FLAG_KEY, VARDATA_ANY(query),
                                    VARSIZE_ANY_EXHDR(query));
     }
-    else if (strategy == AGTYPE_EXISTS_ANY_STRATEGY_NUMBER ||
-             strategy == AGTYPE_EXISTS_ALL_STRATEGY_NUMBER)
+    else if (strategy == GTYPE_EXISTS_ANY_STRATEGY_NUMBER ||
+             strategy == GTYPE_EXISTS_ALL_STRATEGY_NUMBER)
     {
         /* Query is a text array; each element is treated as a key */
         ArrayType *query = PG_GETARG_ARRAYTYPE_P(0);
@@ -249,7 +249,7 @@ Datum gin_extract_agtype_query(PG_FUNCTION_ARGS)
 
         *nentries = j;
         /* ExistsAll with no keys should match everything */
-        if (j == 0 && strategy == AGTYPE_EXISTS_ALL_STRATEGY_NUMBER)
+        if (j == 0 && strategy == GTYPE_EXISTS_ALL_STRATEGY_NUMBER)
         {
             *searchMode = GIN_SEARCH_MODE_ALL;
         }
@@ -270,13 +270,13 @@ Datum gin_extract_agtype_query(PG_FUNCTION_ARGS)
  * does not store items explicitly. Rather, what is available is knowledge about
  * which key values extracted from the query appear in a given indexed item. The
  * check array has length nkeys, which is the same as the number of keys
- * previously returned by gin_extract_agtype_query for this query datum. Each
+ * previously returned by gin_extract_gtype_query for this query datum. Each
  * element of the check array is true if the indexed item contains the
  * corresponding query key, i.e., if (check[i] == true) the i-th key of the
- * gin_extract_agtype_query result array is present in the indexed item. The
+ * gin_extract_gtype_query result array is present in the indexed item. The
  * original query datum is passed in case the consistent method needs to consult
  * it, and so are the queryKeys[] and nullFlags[] arrays previously returned by
- * gin_extract_agtype_query.
+ * gin_extract_gtype_query.
  *
  * When extractQuery returns a null key in queryKeys[], the corresponding
  * check[] element is true if the indexed item contains a null key; that is, the
@@ -293,8 +293,8 @@ Datum gin_extract_agtype_query(PG_FUNCTION_ARGS)
  * fetched and rechecked by evaluating the query operator directly against the
  * originally indexed item.
  */
-PG_FUNCTION_INFO_V1(gin_consistent_agtype);
-Datum gin_consistent_agtype(PG_FUNCTION_ARGS)
+PG_FUNCTION_INFO_V1(gin_consistent_gtype);
+Datum gin_consistent_gtype(PG_FUNCTION_ARGS)
 {
     bool *check;
     StrategyNumber strategy;
@@ -314,7 +314,7 @@ Datum gin_consistent_agtype(PG_FUNCTION_ARGS)
     nkeys = PG_GETARG_INT32(3);
     recheck = (bool *) PG_GETARG_POINTER(5);
 
-    if (strategy == AGTYPE_CONTAINS_STRATEGY_NUMBER)
+    if (strategy == GTYPE_CONTAINS_STRATEGY_NUMBER)
     {
         /*
          * We must always recheck, since we can't tell from the index whether
@@ -334,7 +334,7 @@ Datum gin_consistent_agtype(PG_FUNCTION_ARGS)
             }
         }
     }
-    else if (strategy == AGTYPE_EXISTS_STRATEGY_NUMBER)
+    else if (strategy == GTYPE_EXISTS_STRATEGY_NUMBER)
     {
         /*
          * Although the key is certainly present in the index, we must recheck
@@ -346,13 +346,13 @@ Datum gin_consistent_agtype(PG_FUNCTION_ARGS)
         *recheck = true;
         res = true;
     }
-    else if (strategy == AGTYPE_EXISTS_ANY_STRATEGY_NUMBER)
+    else if (strategy == GTYPE_EXISTS_ANY_STRATEGY_NUMBER)
     {
         /* As for plain exists, we must recheck */
         *recheck = true;
         res = true;
     }
-    else if (strategy == AGTYPE_EXISTS_ALL_STRATEGY_NUMBER)
+    else if (strategy == GTYPE_EXISTS_ALL_STRATEGY_NUMBER)
     {
         /* As for plain exists, we must recheck */
         *recheck = true;
@@ -375,7 +375,7 @@ Datum gin_consistent_agtype(PG_FUNCTION_ARGS)
 }
 
 /*
- * gin_triconsistent_agtype is similar to gin_consistent_agtype, but instead of
+ * gin_triconsistent_gtype is similar to gin_consistent_gtype, but instead of
  * booleans in the check vector, there are three possible values for each key:
  * GIN_TRUE, GIN_FALSE and GIN_MAYBE. GIN_FALSE and GIN_TRUE have the same
  * meaning as regular boolean values, while GIN_MAYBE means that the presence of
@@ -391,8 +391,8 @@ Datum gin_consistent_agtype(PG_FUNCTION_ARGS)
  * value is the equivalent of setting the recheck flag in the boolean consistent
  * function.
  */
-PG_FUNCTION_INFO_V1(gin_triconsistent_agtype);
-Datum gin_triconsistent_agtype(PG_FUNCTION_ARGS)
+PG_FUNCTION_INFO_V1(gin_triconsistent_gtype);
+Datum gin_triconsistent_gtype(PG_FUNCTION_ARGS)
 {
     GinTernaryValue *check;
     StrategyNumber strategy;
@@ -414,8 +414,8 @@ Datum gin_triconsistent_agtype(PG_FUNCTION_ARGS)
      * corresponds to always forcing recheck in the regular consistent
      * function, for the reasons listed there.
      */
-    if (strategy == AGTYPE_CONTAINS_STRATEGY_NUMBER ||
-        strategy == AGTYPE_EXISTS_ALL_STRATEGY_NUMBER)
+    if (strategy == GTYPE_CONTAINS_STRATEGY_NUMBER ||
+        strategy == GTYPE_EXISTS_ALL_STRATEGY_NUMBER)
     {
         /* All extracted keys must be present */
         for (i = 0; i < nkeys; i++)
@@ -427,8 +427,8 @@ Datum gin_triconsistent_agtype(PG_FUNCTION_ARGS)
             }
         }
     }
-    else if (strategy == AGTYPE_EXISTS_STRATEGY_NUMBER ||
-             strategy == AGTYPE_EXISTS_ANY_STRATEGY_NUMBER)
+    else if (strategy == GTYPE_EXISTS_STRATEGY_NUMBER ||
+             strategy == GTYPE_EXISTS_ANY_STRATEGY_NUMBER)
     {
         /* At least one extracted key must be present */
         res = GIN_FALSE;
@@ -450,7 +450,7 @@ Datum gin_triconsistent_agtype(PG_FUNCTION_ARGS)
 }
 
 /*
- * Construct a agtype_ops GIN key from a flag byte and a textual representation
+ * Construct a gtype_ops GIN key from a flag byte and a textual representation
  * (which need not be null-terminated).  This function is responsible
  * for hashing overlength text representations; it will add the
  * AGT_GIN_FLAG_HASHED bit to the flag value if it does that.
@@ -487,12 +487,12 @@ static Datum make_text_key(char flag, const char *str, int len)
 }
 
 /*
- * Create a textual representation of a agtype_value that will serve as a GIN
- * key in a agtype_ops index.  is_key is true if the JsonbValue is a key,
+ * Create a textual representation of a gtype_value that will serve as a GIN
+ * key in a gtype_ops index.  is_key is true if the JsonbValue is a key,
  * or if it is a string array element (since we pretend those are keys,
  * see jsonb.h).
  */
-static Datum make_scalar_key(const agtype_value *scalarVal, bool is_key)
+static Datum make_scalar_key(const gtype_value *scalarVal, bool is_key)
 {
     Datum item = 0;
     char *cstr = NULL;
@@ -549,10 +549,10 @@ static Datum make_scalar_key(const agtype_value *scalarVal, bool is_key)
     case AGTV_VERTEX:
     case AGTV_EDGE:
     case AGTV_PATH:
-        elog(ERROR, "agtype type: %d is not a scalar", scalarVal->type);
+        elog(ERROR, "gtype type: %d is not a scalar", scalarVal->type);
         break;
     default:
-        elog(ERROR, "unrecognized agtype type: %d", scalarVal->type);
+        elog(ERROR, "unrecognized gtype type: %d", scalarVal->type);
         break;
     }
 

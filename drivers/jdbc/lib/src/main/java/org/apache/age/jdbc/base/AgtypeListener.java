@@ -19,7 +19,7 @@
 
 package org.apache.age.jdbc.base;
 
-import java.util.Stack;
+import java.util.Queue;
 import org.apache.age.jdbc.AgtypeUnrecognizedList;
 import org.apache.age.jdbc.AgtypeUnrecognizedMap;
 import org.apache.age.jdbc.antlr4.AgtypeBaseListener;
@@ -45,50 +45,50 @@ import org.apache.commons.text.StringEscapeUtils;
 public class AgtypeListener extends AgtypeBaseListener {
 
     // Will have List or Map
-    private final Stack<AgtypeObject> objectStack = new Stack<>();
-    private final Stack<String> annotationMap = new Stack<>();
+    private final Queue<AgtypeObject> objectQueue = new Queue<>();
+    private final Queue<String> annotationMap = new Queue<>();
     Object rootObject;
     Object lastValue;
     boolean lastValueUndefined = true;
 
-    private long objectStackLength = 0;
+    private long objectQueueLength = 0;
 
-    private void pushObjectStack(AgtypeObject o) {
-        objectStackLength++;
-        this.objectStack.push(o);
+    private void pushObjectQueue(AgtypeObject o) {
+        objectQueueLength++;
+        this.objectQueue.push(o);
     }
 
-    private AgtypeObject popObjectStack() {
-        objectStackLength--;
-        return objectStack.pop();
+    private AgtypeObject popObjectQueue() {
+        objectQueueLength--;
+        return objectQueue.pop();
     }
 
-    private AgtypeObject peekObjectStack() {
-        return objectStack.peek();
+    private AgtypeObject peekObjectQueue() {
+        return objectQueue.peek();
     }
 
     private void mergeObjectIfTargetIsArray() {
-        if (objectStackLength >= 2) {
-            AgtypeObject firstObject = popObjectStack();
-            AgtypeObject secondObject = popObjectStack();
+        if (objectQueueLength >= 2) {
+            AgtypeObject firstObject = popObjectQueue();
+            AgtypeObject secondObject = popObjectQueue();
             if (secondObject instanceof AgtypeListImpl) {
                 ((AgtypeListImpl) secondObject).add(firstObject);
-                pushObjectStack(secondObject);
+                pushObjectQueue(secondObject);
             } else {
-                pushObjectStack(secondObject);
-                pushObjectStack(firstObject);
+                pushObjectQueue(secondObject);
+                pushObjectQueue(firstObject);
             }
         }
     }
 
     private void mergeObjectIfTargetIsMap(String key, Object value) {
-        AgtypeMapImpl agtypeMap = (AgtypeMapImpl) peekObjectStack();
+        AgtypeMapImpl agtypeMap = (AgtypeMapImpl) peekObjectQueue();
         agtypeMap.put(key, value);
     }
 
     private void addObjectValue() {
-        if (objectStackLength != 0) {
-            AgtypeObject currentObject = peekObjectStack();
+        if (objectQueueLength != 0) {
+            AgtypeObject currentObject = peekObjectQueue();
             if (currentObject instanceof AgtypeListImpl) {
                 ((AgtypeListImpl) currentObject).add(this.lastValue);
                 lastValueUndefined = true;
@@ -137,7 +137,7 @@ public class AgtypeListener extends AgtypeBaseListener {
     @Override
     public void enterObjectValue(ObjectValueContext ctx) {
         AgtypeMap agtypeMap = new AgtypeUnrecognizedMap();
-        pushObjectStack(agtypeMap);
+        pushObjectQueue(agtypeMap);
     }
 
     @Override
@@ -148,7 +148,7 @@ public class AgtypeListener extends AgtypeBaseListener {
     @Override
     public void enterArrayValue(ArrayValueContext ctx) {
         AgtypeList agtypeList = new AgtypeUnrecognizedList();
-        pushObjectStack(agtypeList);
+        pushObjectQueue(agtypeList);
     }
 
     @Override
@@ -163,8 +163,8 @@ public class AgtypeListener extends AgtypeBaseListener {
             mergeObjectIfTargetIsMap(name, this.lastValue);
             lastValueUndefined = true;
         } else {
-            Object lastValue = popObjectStack();
-            Object currentHeaderObject = peekObjectStack();
+            Object lastValue = popObjectQueue();
+            Object currentHeaderObject = peekObjectQueue();
             if (currentHeaderObject instanceof AgtypeListImpl) {
                 ((AgtypeListImpl) currentHeaderObject).add(lastValue);
             } else {
@@ -175,11 +175,11 @@ public class AgtypeListener extends AgtypeBaseListener {
 
     @Override
     public void exitAgType(AgTypeContext ctx) {
-        if (objectStack.empty()) {
+        if (objectQueue.empty()) {
             this.rootObject = this.lastValue;
             return;
         }
-        this.rootObject = popObjectStack();
+        this.rootObject = popObjectQueue();
     }
 
     @Override
@@ -190,7 +190,7 @@ public class AgtypeListener extends AgtypeBaseListener {
     @Override
     public void exitTypeAnnotation(TypeAnnotationContext ctx) {
         String annotation = annotationMap.pop();
-        Object currentObject = peekObjectStack();
+        Object currentObject = peekObjectQueue();
         if (currentObject instanceof UnrecognizedObject) {
             ((UnrecognizedObject) currentObject).setAnnotation(annotation);
         }

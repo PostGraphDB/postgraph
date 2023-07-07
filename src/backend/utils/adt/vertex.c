@@ -25,12 +25,12 @@
 #include "utils/fmgrprotos.h"
 #include "utils/varlena.h"
 
-#include "utils/agtype.h"
+#include "utils/gtype.h"
 #include "utils/graphid.h"
 #include "utils/vertex.h"
 
 static void append_to_buffer(StringInfo buffer, const char *data, int len);
-static agtype *extract_properties(vertex *v);
+static gtype *extract_properties(vertex *v);
 static char *extract_label(vertex *v);
 
 /*
@@ -58,8 +58,8 @@ Datum vertex_out(PG_FUNCTION_ARGS) {
 
     // properties
     appendStringInfoString(str, "\", \"properties\": ");
-    agtype *agt = extract_properties(v);
-    agtype_to_cstring(str, &agt->root, 0);
+    gtype *agt = extract_properties(v);
+    gtype_to_cstring(str, &agt->root, 0);
 
 
     appendStringInfoString(str, "}");
@@ -79,8 +79,8 @@ void append_vertex_to_string(StringInfoData *buffer, vertex *v){
 
     // properties
     appendStringInfoString(buffer, "\", \"properties\": ");
-    agtype *agt = extract_properties(v);
-    agtype_to_cstring(buffer, &agt->root, 0);
+    gtype *agt = extract_properties(v);
+    gtype_to_cstring(buffer, &agt->root, 0);
 
 
     appendStringInfoString(buffer, "}");
@@ -92,7 +92,7 @@ Datum
 build_vertex(PG_FUNCTION_ARGS) {
     graphid id = AG_GETARG_GRAPHID(0);
     char *label = PG_GETARG_CSTRING(1);
-    agtype *properties = AG_GET_ARG_AGTYPE_P(2);
+    gtype *properties = AG_GET_ARG_GTYPE_P(2);
 
     if (!AGT_ROOT_IS_OBJECT(properties))
         PG_RETURN_NULL();
@@ -132,10 +132,10 @@ PG_FUNCTION_INFO_V1(vertex_property_access);
 Datum
 vertex_property_access(PG_FUNCTION_ARGS) {
     vertex *v = AG_GET_ARG_VERTEX(0);
-    agtype *agt = extract_properties(v);
+    gtype *agt = extract_properties(v);
     text *key = PG_GETARG_TEXT_PP(1);
                                              
-    AG_RETURN_AGTYPE_P(agtype_object_field_impl(fcinfo, agt, VARDATA_ANY(key), VARSIZE_ANY_EXHDR(key), false));
+    AG_RETURN_GTYPE_P(gtype_object_field_impl(fcinfo, agt, VARDATA_ANY(key), VARSIZE_ANY_EXHDR(key), false));
 }
 
 // ->> operator
@@ -143,10 +143,10 @@ PG_FUNCTION_INFO_V1(vertex_property_access_text);
 Datum
 vertex_property_access_text(PG_FUNCTION_ARGS) {
     vertex *v = AG_GET_ARG_VERTEX(0);
-    agtype *agt = extract_properties(v);
+    gtype *agt = extract_properties(v);
     text *key = PG_GETARG_TEXT_PP(1);
                                              
-    AG_RETURN_AGTYPE_P(agtype_object_field_impl(fcinfo, agt, VARDATA_ANY(key), VARSIZE_ANY_EXHDR(key), true));
+    AG_RETURN_GTYPE_P(gtype_object_field_impl(fcinfo, agt, VARDATA_ANY(key), VARSIZE_ANY_EXHDR(key), true));
 }
 
 // @> operator
@@ -154,13 +154,13 @@ PG_FUNCTION_INFO_V1(vertex_contains);
 Datum 
 vertex_contains(PG_FUNCTION_ARGS) {                                    
     vertex *v = AG_GET_ARG_VERTEX(0);                                 
-    agtype *properties = extract_properties(v);
-    agtype *constraints = AG_GET_ARG_AGTYPE_P(1);
+    gtype *properties = extract_properties(v);
+    gtype *constraints = AG_GET_ARG_GTYPE_P(1);
 
-    agtype_iterator *constraint_it = agtype_iterator_init(&constraints->root);
-    agtype_iterator *property_it = agtype_iterator_init(&properties->root);
+    gtype_iterator *constraint_it = gtype_iterator_init(&constraints->root);
+    gtype_iterator *property_it = gtype_iterator_init(&properties->root);
     
-    PG_RETURN_BOOL(agtype_deep_contains(&property_it, &constraint_it));
+    PG_RETURN_BOOL(gtype_deep_contains(&property_it, &constraint_it));
 }   
     
 
@@ -169,13 +169,13 @@ PG_FUNCTION_INFO_V1(vertex_contained_by);
 Datum 
 vertex_contained_by(PG_FUNCTION_ARGS) {
     vertex *v = AG_GET_ARG_VERTEX(1);
-    agtype *properties = extract_properties(v);
-    agtype *constraints = AG_GET_ARG_AGTYPE_P(0);
+    gtype *properties = extract_properties(v);
+    gtype *constraints = AG_GET_ARG_GTYPE_P(0);
 
-    agtype_iterator *constraint_it = agtype_iterator_init(&constraints->root);
-    agtype_iterator *property_it = agtype_iterator_init(&properties->root);
+    gtype_iterator *constraint_it = gtype_iterator_init(&constraints->root);
+    gtype_iterator *property_it = gtype_iterator_init(&properties->root);
 
-    PG_RETURN_BOOL(agtype_deep_contains(&constraint_it, &property_it));
+    PG_RETURN_BOOL(gtype_deep_contains(&constraint_it, &property_it));
 }
 
 // ? operator
@@ -183,7 +183,7 @@ PG_FUNCTION_INFO_V1(vertex_exists);
 Datum
 vertex_exists(PG_FUNCTION_ARGS) {
     vertex *v = AG_GET_ARG_VERTEX(0);
-    agtype *agt = extract_properties(v);
+    gtype *agt = extract_properties(v);
     text *key = PG_GETARG_TEXT_PP(1);
 
     /*
@@ -192,9 +192,9 @@ vertex_exists(PG_FUNCTION_ARGS) {
      * Existence of a key/element is only considered at the
      * top level.  No recursion occurs.
      */
-    agtype_value agtv = { .type = AGTV_STRING, .val.string = {VARSIZE_ANY_EXHDR(key), VARDATA_ANY(key)} };
+    gtype_value agtv = { .type = AGTV_STRING, .val.string = {VARSIZE_ANY_EXHDR(key), VARDATA_ANY(key)} };
 
-    agtype_value *val = find_agtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, &agtv);
+    gtype_value *val = find_gtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, &agtv);
 
     PG_RETURN_BOOL(val != NULL);
 }
@@ -204,7 +204,7 @@ PG_FUNCTION_INFO_V1(vertex_exists_any);
 Datum
 vertex_exists_any(PG_FUNCTION_ARGS) {
     vertex *v = AG_GET_ARG_VERTEX(0);
-    agtype *agt = extract_properties(v);
+    gtype *agt = extract_properties(v);
     ArrayType *keys = PG_GETARG_ARRAYTYPE_P(1);
     Datum *key_datums;
     bool *key_nulls;
@@ -216,9 +216,9 @@ vertex_exists_any(PG_FUNCTION_ARGS) {
         if (key_nulls[i])
             continue;
 
-        agtype_value agtv = { .type = AGTV_STRING, .val.string = { VARSIZE(key_datums[i]) - VARHDRSZ, VARDATA_ANY(key_datums[i]) } };
+        gtype_value agtv = { .type = AGTV_STRING, .val.string = { VARSIZE(key_datums[i]) - VARHDRSZ, VARDATA_ANY(key_datums[i]) } };
 
-        if (find_agtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, &agtv) != NULL)
+        if (find_gtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, &agtv) != NULL)
             PG_RETURN_BOOL(true);
     }
 
@@ -230,7 +230,7 @@ PG_FUNCTION_INFO_V1(vertex_exists_all);
 Datum
 vertex_exists_all(PG_FUNCTION_ARGS) {
     vertex *v = AG_GET_ARG_VERTEX(0);
-    agtype *agt = extract_properties(v);
+    gtype *agt = extract_properties(v);
     ArrayType *keys = PG_GETARG_ARRAYTYPE_P(1);
     Datum *key_datums;
     bool *key_nulls;
@@ -242,9 +242,9 @@ vertex_exists_all(PG_FUNCTION_ARGS) {
         if (key_nulls[i])
             continue;
 
-        agtype_value agtv = { .type = AGTV_STRING, .val.string = { VARSIZE(key_datums[i]) - VARHDRSZ, VARDATA_ANY(key_datums[i]) } };
+        gtype_value agtv = { .type = AGTV_STRING, .val.string = { VARSIZE(key_datums[i]) - VARHDRSZ, VARDATA_ANY(key_datums[i]) } };
 
-        if (find_agtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, &agtv) == NULL)
+        if (find_gtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, &agtv) == NULL)
             PG_RETURN_BOOL(false);
     }
 
@@ -269,7 +269,7 @@ vertex_label(PG_FUNCTION_ARGS) {
     vertex *v = AG_GET_ARG_VERTEX(0);
     char *label = extract_label(v);
 
-    Datum d = string_to_agtype(label);
+    Datum d = string_to_gtype(label);
 
     PG_RETURN_POINTER(d);
 }
@@ -279,7 +279,7 @@ Datum
 vertex_properties(PG_FUNCTION_ARGS) {
     vertex *v = AG_GET_ARG_VERTEX(0);
 
-    AG_RETURN_AGTYPE_P(extract_properties(v));
+    AG_RETURN_GTYPE_P(extract_properties(v));
 }
 
 
@@ -299,10 +299,10 @@ extract_label(vertex *v) {
     return pnstrdup(label_addr, *label_length);
 }
 
-static agtype *
+static gtype *
 extract_properties(vertex *v) {
     char *bytes = (char *)v;
     int *label_length = (int *)&bytes[VARHDRSZ + sizeof(graphid)];
 
-    return (agtype *)&bytes[VARHDRSZ + sizeof(graphid) + sizeof(agtentry) + ((*label_length) * sizeof(char))];
+    return (gtype *)&bytes[VARHDRSZ + sizeof(graphid) + sizeof(agtentry) + ((*label_length) * sizeof(char))];
 }

@@ -23,53 +23,53 @@
 #include "utils/graphid.h"
 
 #define IS_GRAPHID_STACK_EMPTY(queue) \
-            get_queue_size(queue) == 0
+            queue_size(queue) == 0
 #define PEEK_GRAPHID_STACK(queue) \
             (graphid) get_graphid(peek_queue_head(queue))
 
 /*
  * We declare the GRAPHID data structures here, and in this way, so that they
  * may be used elsewhere. However, we keep the contents private by defining them
- * in age_graphid_ds.c
+ * in queue.c
  */
 
-/* declare the GraphIdNode */
-typedef struct GraphIdNode GraphIdNode;
+/* declare the QueueNode */
+typedef struct QueueNode QueueNode;
 
-/* declare the ListGraphId container */
-typedef struct ListGraphId ListGraphId;
+/* declare the Queue container */
+typedef struct Queue Queue;
 
-/* GraphIdNode access functions */
-GraphIdNode *next_GraphIdNode(GraphIdNode *node);
-graphid get_graphid(GraphIdNode *node);
+/* QueueNode access functions */
+QueueNode *next_queue_node(QueueNode *queuenode);
+graphid get_graphid(QueueNode *queuenode);
 
 /* graphid queue functions */
-/* create a new ListGraphId queue */
-ListGraphId *new_graphid_queue(void);
-/* free a ListGraphId queue */
-void free_graphid_queue(ListGraphId *queue);
-/* push a graphid onto a ListGraphId queue */
-void push_graphid_queue(ListGraphId *queue, graphid id);
-/* pop (remove) a GraphIdNode from the top of the queue */
-graphid pop_graphid_queue(ListGraphId *queue);
-/* peek (doesn't remove) at the head entry of a ListGraphId queue */
-GraphIdNode *peek_queue_head(ListGraphId *queue);
-/* peek (doesn't remove) at the tail entry of a ListGraphId queue */
-GraphIdNode *peek_queue_tail(ListGraphId *queue);
-/* return the size of a ListGraphId queue */
-int64 get_queue_size(ListGraphId *queue);
+/* create a new Queue queue */
+Queue *new_graphid_queue(void);
+/* free a Queue queue */
+void free_graphid_queue(Queue *queue);
+/* push a graphid onto a Queue queue */
+void push_graphid_queue(Queue *queue, graphid id);
+/* pop (remove) a QueueNode from the top of the queue */
+graphid pop_graphid_queue(Queue *queue);
+/* peek (doesn't remove) at the head entry of a Queue queue */
+QueueNode *peek_queue_head(Queue *queue);
+/* peek (doesn't remove) at the tail entry of a Queue queue */
+QueueNode *peek_queue_tail(Queue *queue);
+/* return the size of a Queue queue */
+int64 queue_size(Queue *queue);
 
 /* graphid list functions */
 /*
- * Helper function to add a graphid to the end of a ListGraphId container.
+ * Helper function to add a graphid to the end of a Queue container.
  * If the container is NULL, it creates the container with the entry.
  */
-ListGraphId *append_graphid(ListGraphId *container, graphid id);
-/* free a ListGraphId container */
-void free_ListGraphId(ListGraphId *container);
+Queue *append_graphid(Queue *container, graphid id);
+/* free a Queue container */
+void free_queue(Queue *container);
 /* return a reference to the head entry of a list */
-GraphIdNode *get_list_head(ListGraphId *list);
+QueueNode *get_list_head(Queue *list);
 /* get the size of the passed list */
-int64 get_list_size(ListGraphId *list);
+int64 get_list_size(Queue *list);
 
 #endif

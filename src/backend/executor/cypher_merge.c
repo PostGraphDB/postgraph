@@ -33,7 +33,7 @@
 #include "executor/cypher_executor.h"
 #include "executor/cypher_utils.h"
 #include "nodes/cypher_nodes.h"
-#include "utils/agtype.h"
+#include "utils/gtype.h"
 #include "utils/graphid.h"
 
 static void begin_cypher_merge(CustomScanState *node, EState *estate,
@@ -715,7 +715,7 @@ static Datum merge_vertex(cypher_merge_custom_scan_state *css,
         {
             Datum result;
 
-            /* make the vertex agtype */
+            /* make the vertex gtype */
             result = make_vertex(
                 id, CStringGetDatum(node->label_name), prop);
 
@@ -739,10 +739,10 @@ static Datum merge_vertex(cypher_merge_custom_scan_state *css,
     }
     else
     {
-        agtype *a;
+        gtype *a;
         Datum d;
-        agtype_value *v;
-        agtype_value *id_value;
+        gtype_value *v;
+        gtype_value *id_value;
         TupleTableSlot *scantuple;
         PlanState *ps;
 
@@ -757,20 +757,20 @@ static Datum merge_vertex(cypher_merge_custom_scan_state *css,
                  node->variable_name)));
         }
 
-        /* get the vertex agtype in the scanTupleSlot */
+        /* get the vertex gtype in the scanTupleSlot */
         d = scantuple->tts_values[node->tuple_position - 1];
-        a = DATUM_GET_AGTYPE_P(d);
+        a = DATUM_GET_GTYPE_P(d);
 
-        /* Convert to an agtype value */
-        v = get_ith_agtype_value_from_container(&a->root, 0);
+        /* Convert to an gtype value */
+        v = get_ith_gtype_value_from_container(&a->root, 0);
 
         if (v->type != AGTV_VERTEX)
             ereport(ERROR,
                     (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                     errmsg("agtype must resolve to a vertex")));
+                     errmsg("gtype must resolve to a vertex")));
 
-        /* extract the id agtype field */
-        id_value = GET_AGTYPE_VALUE_OBJECT_VALUE(v, "id");
+        /* extract the id gtype field */
+        id_value = GET_GTYPE_VALUE_OBJECT_VALUE(v, "id");
 
         /* extract the graphid and cast to a Datum */
         id = GRAPHID_GET_DATUM(id_value->val.int_value);

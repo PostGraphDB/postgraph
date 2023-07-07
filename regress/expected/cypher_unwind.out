@@ -27,7 +27,7 @@ NOTICE:  graph "cypher_unwind" has been created
 
 SELECT * FROM cypher('cypher_unwind', $$
     UNWIND [1, 2, 3] AS i RETURN i
-$$) as (i agtype);
+$$) as (i gtype);
  i 
 ---
  1
@@ -37,14 +37,14 @@ $$) as (i agtype);
 
 SELECT * FROM cypher('cypher_unwind', $$
     CREATE ({a: [1, 2, 3]}), ({a: [4, 5, 6]})
-$$) as (i agtype);
+$$) as (i gtype);
  i 
 ---
 (0 rows)
 
 SELECT * FROM cypher('cypher_unwind', $$
     MATCH (n) WITH n.a AS a UNWIND a AS i RETURN *
-$$) as (i agtype, j agtype);
+$$) as (i gtype, j gtype);
      i     | j 
 -----------+---
  [1, 2, 3] | 1
@@ -60,7 +60,7 @@ SELECT * FROM cypher('cypher_unwind', $$
     UNWIND nested AS x
     UNWIND x AS y
     RETURN y
-$$) as (i agtype);
+$$) as (i gtype);
  i 
 ---
  1
@@ -76,8 +76,8 @@ SELECT * FROM cypher('cypher_unwind', $$
     UNWIND n as a
     SET a.i = 1
     RETURN a
-$$) as (i agtype);
-ERROR:  UNWIND clause does not support agtype vertex
+$$) as (i gtype);
+ERROR:  UNWIND clause does not support gtype vertex
 SELECT drop_graph('cypher_unwind', true);
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table cypher_unwind._ag_label_vertex

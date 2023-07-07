@@ -48,7 +48,7 @@
 #include "parser/cypher_parse_node.h"
 #include "parser/cypher_parser.h"
 #include "utils/ag_func.h"
-#include "utils/agtype.h"
+#include "utils/gtype.h"
 
 static post_parse_analyze_hook_type prev_post_parse_analyze_hook;
 
@@ -274,12 +274,12 @@ convert_cypher_to_subquery(RangeTblEntry *rte, ParseState *pstate) {
      */
     Query *query;
     if (is_ag_node(llast(stmt), cypher_create) || is_ag_node(llast(stmt), cypher_set) || is_ag_node(llast(stmt), cypher_delete) || is_ag_node(llast(stmt), cypher_merge)) {
-        // column definition list must be ... AS relname(colname agtype) ...
-        if (!(rtfunc->funccolcount == 1 && linitial_oid(rtfunc->funccoltypes) == AGTYPEOID))
+        // column definition list must be ... AS relname(colname gtype) ...
+        if (!(rtfunc->funccolcount == 1 && linitial_oid(rtfunc->funccoltypes) == GTYPEOID))
             ereport(ERROR,
                     (errcode(ERRCODE_DATATYPE_MISMATCH),
-                     errmsg("column definition list for CREATE clause must contain a single agtype attribute"),
-                     errhint("... cypher($$ ... CREATE ... $$) AS t(c agtype) ..."),
+                     errmsg("column definition list for CREATE clause must contain a single gtype attribute"),
+                     errhint("... cypher($$ ... CREATE ... $$) AS t(c gtype) ..."),
                      parser_errposition(pstate, exprLocation(rtfunc->funcexpr))));
 
         query = analyze_cypher(stmt, pstate, query_str, query_loc, NameStr(*graph_name), graph_oid, params);

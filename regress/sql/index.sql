@@ -16,41 +16,41 @@ SELECT create_vlabel('cypher_index', 'idx');
 CREATE UNIQUE INDEX cypher_index_idx_props_uq ON cypher_index.idx(properties);
 
 --Test 1
-SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a agtype);
-SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a gtype);
+SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a gtype);
 
 --Clean Up
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a gtype);
 
 --Test 2
-SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}), (:idx {i: 1}) $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}), (:idx {i: 1}) $$) AS (a gtype);
 
 --Clean Up
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a gtype);
 
 --Test 3
 --Data Setup
-SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a agtype);
-SELECT * FROM cypher('cypher_index', $$ CREATE (:idx) $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a gtype);
+SELECT * FROM cypher('cypher_index', $$ CREATE (:idx) $$) AS (a gtype);
 
 --Query
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) SET n.i = 1$$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) SET n.i = 1$$) AS (a gtype);
 
 --Clean Up
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a gtype);
 
 --Test 4
 --create a vertex with i = 1
-SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a gtype);
 
 --delete the vertex
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a gtype);
 
 --we should be able to create a new vertex with the same value
-SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a gtype);
 
 --data cleanup
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a gtype);
 
 /*
  * Test 5
@@ -59,35 +59,35 @@ SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a agtyp
  */
 BEGIN TRANSACTION;
 --create a vertex with i = 1
-SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a gtype);
 
 --delete the vertex
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a gtype);
 
 --we should be able to create a new vertex with the same value
-SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a gtype);
 
 COMMIT;
 
 --data cleanup
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a gtype);
 
 
 --Test 6
 --create a vertex with i = 1
-SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a gtype);
 
 -- change the value
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) SET n.i = 2 $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) SET n.i = 2 $$) AS (a gtype);
 
 --we should be able to create a new vertex with the same value
-SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a gtype);
 
 --validate the data
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) RETURN n $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) RETURN n $$) AS (a gtype);
 
 --data cleanup
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a gtype);
 
 /*
  * Test 7
@@ -96,35 +96,35 @@ SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a agtyp
  */
 BEGIN TRANSACTION;
 --create a vertex with i = 1
-SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a gtype);
 
 -- change the value
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) SET n.i = 2 $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) SET n.i = 2 $$) AS (a gtype);
 
 --we should be able to create a new vertex with the same value
-SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a gtype);
 
 --validate the data
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) RETURN n $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) RETURN n $$) AS (a gtype);
 
 COMMIT;
 
 --validate the data again out of the transaction, just in case
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) RETURN n $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) RETURN n $$) AS (a gtype);
 
 --data cleanup
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a gtype);
 
 
 --Test 8
 --create a vertex with i = 1
-SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a gtype);
 
 -- Use Merge and force an index error
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) MERGE (n)-[:e]->(:idx {i: n.i}) $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) MERGE (n)-[:e]->(:idx {i: n.i}) $$) AS (a gtype);
 
 --data cleanup
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a agtype);
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a gtype);
 
 /*
  * Section 2: Graphid Indices to Improve Join Performance
@@ -143,7 +143,7 @@ SELECT * FROM cypher('cypher_index', $$
         (mx)<-[:has_city]-(:City {city_id: 8, name:"Mexico City", west_coast: false, country_code:"MX"}),
         (mx)<-[:has_city]-(:City {city_id: 9, name:"Monterrey", west_coast: false, country_code:"MX"}),
         (mx)<-[:has_city]-(:City {city_id: 10, name:"Tijuana", west_coast: false, country_code:"MX"})
-$$) as (n agtype);
+$$) as (n gtype);
 
 ALTER TABLE cypher_index."Country" ADD PRIMARY KEY (id);
 
@@ -173,7 +173,7 @@ SET enable_nestloop = OFF;
 SELECT COUNT(*) FROM cypher('cypher_index', $$
     MATCH (a:Country)<-[e:has_city]-()
     RETURN e
-$$) as (n agtype);
+$$) as (n gtype);
 
 SET enable_mergejoin = OFF;
 SET enable_hashjoin = ON;
@@ -182,7 +182,7 @@ SET enable_nestloop = OFF;
 SELECT COUNT(*) FROM cypher('cypher_index', $$
     MATCH (a:Country)<-[e:has_city]-()
     RETURN e
-$$) as (n agtype);
+$$) as (n gtype);
 
 SET enable_mergejoin = OFF;
 SET enable_hashjoin = OFF;
@@ -191,7 +191,7 @@ SET enable_nestloop = ON;
 SELECT COUNT(*) FROM cypher('cypher_index', $$
     MATCH (a:Country)<-[e:has_city]-()
     RETURN e
-$$) as (n agtype);
+$$) as (n gtype);
 
 SET enable_mergejoin = ON;
 SET enable_hashjoin = ON;
@@ -210,27 +210,27 @@ ON cypher_index."Country" USING gin (properties);
 SELECT * FROM cypher('cypher_index', $$
     MATCH (c:City {city_id: 1})
     RETURN c
-$$) as (n agtype);
+$$) as (n gtype);
 
 SELECT * FROM cypher('cypher_index', $$
     MATCH (:Country {country_code: "US"})<-[]-(city:City)
     RETURN city
-$$) as (n agtype);
+$$) as (n gtype);
 
 SELECT * FROM cypher('cypher_index', $$
     MATCH (c:City {west_coast: true})
     RETURN c
-$$) as (n agtype);
+$$) as (n gtype);
 
 SELECT * FROM cypher('cypher_index', $$
     MATCH (c:Country {life_expectancy: 82.05})
     RETURN c
-$$) as (n agtype);
+$$) as (n gtype);
 
 SELECT * FROM cypher('cypher_index', $$
     MATCH (c:Country {gdp: 20.94::numeric})
     RETURN c
-$$) as (n agtype);
+$$) as (n gtype);
 
 DROP INDEX cypher_index.load_city_gin_idx;
 DROP INDEX cypher_index.load_country_gin_idx;
@@ -241,15 +241,15 @@ SELECT COUNT(*) FROM cypher('cypher_index', $$
     MATCH (a:City)
     WHERE a.country_code = 'RS'
     RETURN a
-$$) as (n agtype);
+$$) as (n gtype);
 
-CREATE INDEX CONCURRENTLY cntry_ode_idx ON cypher_index."City" ((properties->'"country_code"'::agtype));
+CREATE INDEX CONCURRENTLY cntry_ode_idx ON cypher_index."City" ((properties->'"country_code"'::gtype));
 
 SELECT COUNT(*) FROM cypher('cypher_index', $$
     MATCH (a:City)
     WHERE a.country_code = 'RS'
     RETURN a
-$$) as (n agtype);
+$$) as (n gtype);
 
 
 --

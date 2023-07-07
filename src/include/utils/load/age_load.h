@@ -51,20 +51,20 @@
 #include "catalog/ag_label.h"
 #include "commands/label_commands.h"
 #include "utils/ag_cache.h"
-#include "utils/agtype.h"
+#include "utils/gtype.h"
 #include "utils/graphid.h"
 
 #ifndef AGE_ENTITY_CREATOR_H
 #define AGE_ENTITY_CREATOR_H
 
-agtype* create_agtype_from_list(char **header, char **fields,
+gtype* create_gtype_from_list(char **header, char **fields,
                                 size_t fields_len, int64 vertex_id);
-agtype* create_agtype_from_list_i(char **header, char **fields,
+gtype* create_gtype_from_list_i(char **header, char **fields,
                                   size_t fields_len, size_t start_index);
 void insert_vertex_simple(Oid graph_oid, char *label_name, graphid vertex_id,
-                          agtype *vertex_properties);
+                          gtype *vertex_properties);
 void insert_edge_simple(Oid graph_oid, char *label_name, graphid edge_id,
                         graphid start_id, graphid end_id,
-                        agtype* end_properties);
+                        gtype* end_properties);
 
 #endif //AGE_ENTITY_CREATOR_H

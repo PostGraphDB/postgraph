@@ -17,14 +17,14 @@
 LOAD 'postgraph';
 SET extra_float_digits = 0;
 SET search_path TO postgraph;
-SELECT text_to_agtype(NULL::text);
- text_to_agtype 
-----------------
+SELECT text_to_gtype(NULL::text);
+ text_to_gtype 
+---------------
  
 (1 row)
 
-SELECT 'Hello World' ::text::agtype;
-    agtype     
+SELECT 'Hello World' ::text::gtype;
+     gtype     
 ---------------
  "Hello World"
 (1 row)

@@ -34,7 +34,7 @@
 #include "executor/cypher_executor.h"
 #include "executor/cypher_utils.h"
 #include "nodes/cypher_nodes.h"
-#include "utils/agtype.h"
+#include "utils/gtype.h"
 #include "utils/graphid.h"
 
 static void begin_cypher_set(CustomScanState *node, EState *estate,
@@ -221,15 +221,15 @@ static void process_all_tuples(CustomScanState *node)
  * have the same graphid and the updated_id field. Returns
  * true if yes, false otherwise.
  */
-static bool check_path(agtype_value *path, graphid updated_id)
+static bool check_path(gtype_value *path, graphid updated_id)
 {
     int i;
 
     for (i = 0; i < path->val.array.num_elems; i++)
     {
-        agtype_value *elem = &path->val.array.elems[i];
+        gtype_value *elem = &path->val.array.elems[i];
 
-        agtype_value *id = GET_AGTYPE_VALUE_OBJECT_VALUE(elem, "id");
+        gtype_value *id = GET_GTYPE_VALUE_OBJECT_VALUE(elem, "id");
 
         if (updated_id == id->val.int_value)
         {
@@ -241,34 +241,34 @@ static bool check_path(agtype_value *path, graphid updated_id)
 }
 
 /*
- * Construct a new agtype path with the entity with updated_id
+ * Construct a new gtype path with the entity with updated_id
  * replacing all of its intances in path with updated_entity
  */
-static agtype_value *replace_entity_in_path(agtype_value *path,
+static gtype_value *replace_entity_in_path(gtype_value *path,
                                             graphid updated_id,
-                                            agtype *updated_entity)
+                                            gtype *updated_entity)
 {
-    agtype_iterator *it;
-    agtype_iterator_token tok = WAGT_DONE;
-    agtype_parse_state *parse_state = NULL;
-    agtype_value *r;
-    agtype_value *parsed_agtype_value = NULL;
-    agtype *prop_agtype;
+    gtype_iterator *it;
+    gtype_iterator_token tok = WAGT_DONE;
+    gtype_parse_state *parse_state = NULL;
+    gtype_value *r;
+    gtype_value *parsed_gtype_value = NULL;
+    gtype *prop_gtype;
     int i;
 
-    r = palloc(sizeof(agtype_value));
+    r = palloc(sizeof(gtype_value));
 
-    prop_agtype = agtype_value_to_agtype(path);
-    it = agtype_iterator_init(&prop_agtype->root);
-    tok = agtype_iterator_next(&it, r, true);
+    prop_gtype = gtype_value_to_gtype(path);
+    it = gtype_iterator_init(&prop_gtype->root);
+    tok = gtype_iterator_next(&it, r, true);
 
-    parsed_agtype_value = push_agtype_value(&parse_state, tok,
+    parsed_gtype_value = push_gtype_value(&parse_state, tok,
                                             tok < WAGT_BEGIN_ARRAY ? r : NULL);
 
     // Iterate through the path, replace entities as necessary.
     for (i = 0; i < path->val.array.num_elems; i++)
     {
-        agtype_value *id, *elem;
+        gtype_value *id, *elem;
 
         elem = &path->val.array.elems[i];
 
@@ -276,11 +276,11 @@ static agtype_value *replace_entity_in_path(agtype_value *path,
         if (elem->type != AGTV_VERTEX && elem->type != AGTV_EDGE)
         {
             ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                            errmsg("unsupported agtype found in a path")));
+                            errmsg("unsupported gtype found in a path")));
         }
 
         // extract the id field
-        id = GET_AGTYPE_VALUE_OBJECT_VALUE(elem, "id");
+        id = GET_GTYPE_VALUE_OBJECT_VALUE(elem, "id");
 
         /*
          * Either replace or keep the entity in the new path, depending on the id
@@ -288,20 +288,20 @@ static agtype_value *replace_entity_in_path(agtype_value *path,
          */
         if (updated_id == id->val.int_value)
         {
-            parsed_agtype_value = push_agtype_value(&parse_state, WAGT_ELEM,
-                get_ith_agtype_value_from_container(&updated_entity->root, 0));
+            parsed_gtype_value = push_gtype_value(&parse_state, WAGT_ELEM,
+                get_ith_gtype_value_from_container(&updated_entity->root, 0));
         }
         else
         {
-            parsed_agtype_value = push_agtype_value(&parse_state, WAGT_ELEM,
+            parsed_gtype_value = push_gtype_value(&parse_state, WAGT_ELEM,
                                                     elem);
         }
     }
 
-    parsed_agtype_value = push_agtype_value(&parse_state, WAGT_END_ARRAY, NULL);
-    parsed_agtype_value->type = AGTV_PATH;
+    parsed_gtype_value = push_gtype_value(&parse_state, WAGT_END_ARRAY, NULL);
+    parsed_gtype_value->type = AGTV_PATH;
 
-    return parsed_agtype_value;
+    return parsed_gtype_value;
 }
 
 /*
@@ -310,7 +310,7 @@ static agtype_value *replace_entity_in_path(agtype_value *path,
  * to find all paths and check if they need to be updated.
  */
 static void update_all_paths(CustomScanState *node, graphid id,
-                             agtype *updated_entity)
+                             gtype *updated_entity)
 {
     cypher_set_custom_scan_state *css = (cypher_set_custom_scan_state *)node;
     ExprContext *econtext = css->css.ss.ps.ps_ExprContext;
@@ -319,30 +319,30 @@ static void update_all_paths(CustomScanState *node, graphid id,
 
     for (i = 0; i < scanTupleSlot->tts_tupleDescriptor->natts; i++)
     {
-        agtype *original_entity;
-        agtype_value *original_entity_value;
+        gtype *original_entity;
+        gtype_value *original_entity_value;
 
         // skip nulls
-        if (scanTupleSlot->tts_tupleDescriptor->attrs[i].atttypid != AGTYPEOID)
+        if (scanTupleSlot->tts_tupleDescriptor->attrs[i].atttypid != GTYPEOID)
         {
             continue;
         }
 
-        // skip non agtype values
+        // skip non gtype values
         if (scanTupleSlot->tts_isnull[i])
         {
             continue;
         }
 
-        original_entity = DATUM_GET_AGTYPE_P(scanTupleSlot->tts_values[i]);
+        original_entity = DATUM_GET_GTYPE_P(scanTupleSlot->tts_values[i]);
 
         // if the value is not a scalar type, its not a path
-        if (!AGTYPE_CONTAINER_IS_SCALAR(&original_entity->root))
+        if (!GTYPE_CONTAINER_IS_SCALAR(&original_entity->root))
         {
             continue;
         }
 
-        original_entity_value = get_ith_agtype_value_from_container(&original_entity->root, 0);
+        original_entity_value = get_ith_gtype_value_from_container(&original_entity->root, 0);
 
         // we found a path
         if (original_entity_value->type == AGTV_PATH)
@@ -351,9 +351,9 @@ static void update_all_paths(CustomScanState *node, graphid id,
             if (check_path(original_entity_value, id))
             {
                 // the path does contain the entity replace with the new entity.
-                agtype_value *new_path = replace_entity_in_path(original_entity_value, id, updated_entity);
+                gtype_value *new_path = replace_entity_in_path(original_entity_value, id, updated_entity);
 
-                scanTupleSlot->tts_values[i] = AGTYPE_P_GET_DATUM(agtype_value_to_agtype(new_path));
+                scanTupleSlot->tts_values[i] = GTYPE_P_GET_DATUM(gtype_value_to_gtype(new_path));
             }
         }
     }
@@ -397,13 +397,13 @@ static void process_update_list(CustomScanState *node)
     /* iterate through SET set items */
     foreach (lc, css->set_list->set_items)
     {
-        agtype_value *altered_properties;
-        agtype_value *original_entity_value;
-        agtype_value *original_properties;
-        agtype_value *id;
-        agtype_value *label;
-        agtype *original_entity;
-        agtype *new_property_value;
+        gtype_value *altered_properties;
+        gtype_value *original_entity_value;
+        gtype_value *original_properties;
+        gtype_value *id;
+        gtype_value *label;
+        gtype *original_entity;
+        gtype *new_property_value;
         TupleTableSlot *slot;
         ResultRelInfo *resultRelInfo;
         ScanKeyData scan_keys[1];
@@ -427,16 +427,16 @@ static void process_update_list(CustomScanState *node)
             continue;
         }
 
-        if (scanTupleSlot->tts_tupleDescriptor->attrs[update_item->entity_position -1].atttypid != AGTYPEOID)
+        if (scanTupleSlot->tts_tupleDescriptor->attrs[update_item->entity_position -1].atttypid != GTYPEOID)
         {
             ereport(ERROR,
                     (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                     errmsg("age %s clause can only update agtype",
+                     errmsg("age %s clause can only update gtype",
                             clause_name)));
         }
 
-        original_entity = DATUM_GET_AGTYPE_P(scanTupleSlot->tts_values[update_item->entity_position - 1]);
-        original_entity_value = get_ith_agtype_value_from_container(&original_entity->root, 0);
+        original_entity = DATUM_GET_GTYPE_P(scanTupleSlot->tts_values[update_item->entity_position - 1]);
+        original_entity_value = get_ith_gtype_value_from_container(&original_entity->root, 0);
 
         if (original_entity_value->type != AGTV_VERTEX &&
             original_entity_value->type != AGTV_EDGE)
@@ -448,12 +448,12 @@ static void process_update_list(CustomScanState *node)
         }
 
         /* get the id and label for later */
-        id = GET_AGTYPE_VALUE_OBJECT_VALUE(original_entity_value, "id");
-        label = GET_AGTYPE_VALUE_OBJECT_VALUE(original_entity_value, "label");
+        id = GET_GTYPE_VALUE_OBJECT_VALUE(original_entity_value, "id");
+        label = GET_GTYPE_VALUE_OBJECT_VALUE(original_entity_value, "label");
 
         label_name = pnstrdup(label->val.string.val, label->val.string.len);
         /* get the properties we need to update */
-        original_properties = GET_AGTYPE_VALUE_OBJECT_VALUE(original_entity_value,
+        original_properties = GET_GTYPE_VALUE_OBJECT_VALUE(original_entity_value,
                                                             "properties");
 
         /*
@@ -481,7 +481,7 @@ static void process_update_list(CustomScanState *node)
         }
         else
         {
-            new_property_value = DATUM_GET_AGTYPE_P(scanTupleSlot->tts_values[update_item->prop_position - 1]);
+            new_property_value = DATUM_GET_GTYPE_P(scanTupleSlot->tts_values[update_item->prop_position - 1]);
         }
 
         /*
@@ -509,20 +509,20 @@ static void process_update_list(CustomScanState *node)
         {
             new_entity = make_vertex(GRAPHID_GET_DATUM(id->val.int_value),
                                      CStringGetDatum(label_name),
-                                     AGTYPE_P_GET_DATUM(agtype_value_to_agtype(altered_properties)));
+                                     GTYPE_P_GET_DATUM(gtype_value_to_gtype(altered_properties)));
 
             slot = populate_vertex_tts(slot, id, altered_properties);
         }
         else if (original_entity_value->type == AGTV_EDGE)
         {
-            agtype_value *startid = GET_AGTYPE_VALUE_OBJECT_VALUE(original_entity_value, "start_id");
-            agtype_value *endid = GET_AGTYPE_VALUE_OBJECT_VALUE(original_entity_value, "end_id");
+            gtype_value *startid = GET_GTYPE_VALUE_OBJECT_VALUE(original_entity_value, "start_id");
+            gtype_value *endid = GET_GTYPE_VALUE_OBJECT_VALUE(original_entity_value, "end_id");
 
             new_entity = make_edge(GRAPHID_GET_DATUM(id->val.int_value),
                                    GRAPHID_GET_DATUM(startid->val.int_value),
                                    GRAPHID_GET_DATUM(endid->val.int_value),
                                    CStringGetDatum(label_name),
-                                   AGTYPE_P_GET_DATUM(agtype_value_to_agtype(altered_properties)));
+                                   GTYPE_P_GET_DATUM(gtype_value_to_gtype(altered_properties)));
 
             slot = populate_edge_tts(slot, id, startid, endid,
                                      altered_properties);
@@ -543,7 +543,7 @@ static void process_update_list(CustomScanState *node)
          * if it is.
          */
         update_all_paths(node,
-                         id->val.int_value, DATUM_GET_AGTYPE_P(new_entity));
+                         id->val.int_value, DATUM_GET_GTYPE_P(new_entity));
 
         /*
          * If the last update index for the entity is equal to the current loop

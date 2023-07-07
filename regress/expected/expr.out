@@ -30,7 +30,7 @@ NOTICE:  graph "expr" has been created
 -- map literal
 --
 -- empty map
-SELECT * FROM cypher('expr', $$RETURN {}$$) AS r(c agtype);
+SELECT * FROM cypher('expr', $$RETURN {}$$) AS r(c gtype);
  c  
 ----
  {}
@@ -39,7 +39,7 @@ SELECT * FROM cypher('expr', $$RETURN {}$$) AS r(c agtype);
 -- map of scalar values
 SELECT * FROM cypher('expr', $$
 RETURN {s: 's', i: 1, f: 1.0, b: true, z: null}
-$$) AS r(c agtype);
+$$) AS r(c gtype);
                          c                          
 ----------------------------------------------------
  {"b": true, "f": 1.0, "i": 1, "s": "s", "z": null}
@@ -48,7 +48,7 @@ $$) AS r(c agtype);
 -- nested maps
 SELECT * FROM cypher('expr', $$
 RETURN {s: {s: 's'}, t: {i: 1, e: {f: 1.0}, s: {a: {b: true}}}, z: null}
-$$) AS r(c agtype);
+$$) AS r(c gtype);
                                            c                                           
 ---------------------------------------------------------------------------------------
  {"s": {"s": "s"}, "t": {"e": {"f": 1.0}, "i": 1, "s": {"a": {"b": true}}}, "z": null}
@@ -58,7 +58,7 @@ $$) AS r(c agtype);
 -- list literal
 --
 -- empty list
-SELECT * FROM cypher('expr', $$RETURN []$$) AS r(c agtype);
+SELECT * FROM cypher('expr', $$RETURN []$$) AS r(c gtype);
  c  
 ----
  []
@@ -67,7 +67,7 @@ SELECT * FROM cypher('expr', $$RETURN []$$) AS r(c agtype);
 -- list of scalar values
 SELECT * FROM cypher('expr', $$
 RETURN ['str', 1, 1.0, true, null]
-$$) AS r(c agtype);
+$$) AS r(c gtype);
               c              
 -----------------------------
  ["str", 1, 1.0, true, null]
@@ -76,7 +76,7 @@ $$) AS r(c agtype);
 -- nested lists
 SELECT * FROM cypher('expr', $$
 RETURN [['str'], [1, [1.0], [[true]]], null]
-$$) AS r(c agtype);
+$$) AS r(c gtype);
                    c                   
 ---------------------------------------
  [["str"], [1, [1.0], [[true]]], null]
@@ -87,7 +87,7 @@ $$) AS r(c agtype);
 --
 SELECT * FROM cypher('expr', $$
 RETURN '2023-06-23 13:39:40.00'::timestamp
-$$) AS r(c agtype);
+$$) AS r(c gtype);
             c             
 --------------------------
  Fri Jun 23 13:39:40 2023
@@ -95,7 +95,7 @@ $$) AS r(c agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN '06/23/2023 13:39:40.00'::timestamp
-$$) AS r(c agtype);
+$$) AS r(c gtype);
             c             
 --------------------------
  Fri Jun 23 13:39:40 2023
@@ -103,7 +103,7 @@ $$) AS r(c agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN 'Fri Jun 23 13:39:40.00 2023"'::timestamp
-$$) AS r(c agtype);
+$$) AS r(c gtype);
             c             
 --------------------------
  Fri Jun 23 13:39:40 2023
@@ -111,7 +111,7 @@ $$) AS r(c agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN '06/23/1970 13:39:40.00'::timestamp
-$$) AS r(c agtype);
+$$) AS r(c gtype);
             c             
 --------------------------
  Tue Jun 23 13:39:40 1970
@@ -119,7 +119,7 @@ $$) AS r(c agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN 0::timestamp
-$$) AS r(c agtype);
+$$) AS r(c gtype);
             c             
 --------------------------
  Sat Jan 01 00:00:00 2000
@@ -127,7 +127,7 @@ $$) AS r(c agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN NULL::timestamp
-$$) AS r(c agtype);
+$$) AS r(c gtype);
  c 
 ---
  
@@ -136,30 +136,30 @@ $$) AS r(c agtype);
 --
 -- parameter
 --
-PREPARE cypher_parameter(agtype) AS
+PREPARE cypher_parameter(gtype) AS
 SELECT * FROM cypher('expr', $$
 RETURN $var
-$$, $1) AS t(i agtype);
+$$, $1) AS t(i gtype);
 EXECUTE cypher_parameter('{"var": 1}');
  i 
 ---
  1
 (1 row)
 
-PREPARE cypher_parameter_object(agtype) AS
+PREPARE cypher_parameter_object(gtype) AS
 SELECT * FROM cypher('expr', $$
 RETURN $var.innervar
-$$, $1) AS t(i agtype);
+$$, $1) AS t(i gtype);
 EXECUTE cypher_parameter_object('{"var": {"innervar": 1}}');
  i 
 ---
  1
 (1 row)
 
-PREPARE cypher_parameter_array(agtype) AS
+PREPARE cypher_parameter_array(gtype) AS
 SELECT * FROM cypher('expr', $$
 RETURN $var[$indexvar]
-$$, $1) AS t(i agtype);
+$$, $1) AS t(i gtype);
 EXECUTE cypher_parameter_array('{"var": [1, 2, 3], "indexvar": 1}');
  i 
 ---
@@ -167,10 +167,10 @@ EXECUTE cypher_parameter_array('{"var": [1, 2, 3], "indexvar": 1}');
 (1 row)
 
 -- missing parameter
-PREPARE cypher_parameter_missing_argument(agtype) AS
+PREPARE cypher_parameter_missing_argument(gtype) AS
 SELECT * FROM cypher('expr', $$
 RETURN $var, $missingvar
-$$, $1) AS t(i agtype, j agtype);
+$$, $1) AS t(i gtype, j gtype);
 EXECUTE cypher_parameter_missing_argument('{"var": 1}');
  i | j 
 ---+---
@@ -178,10 +178,10 @@ EXECUTE cypher_parameter_missing_argument('{"var": 1}');
 (1 row)
 
 -- invalid parameter
-PREPARE cypher_parameter_invalid_argument(agtype) AS
+PREPARE cypher_parameter_invalid_argument(gtype) AS
 SELECT * FROM cypher('expr', $$
 RETURN $var
-$$, $1) AS t(i agtype);
+$$, $1) AS t(i gtype);
 EXECUTE cypher_parameter_invalid_argument('[1]');
  i 
 ---
@@ -192,19 +192,19 @@ EXECUTE cypher_parameter_invalid_argument('[1]');
 PREPARE cypher_missing_params_argument(int) AS
 SELECT $1, * FROM cypher('expr', $$
 RETURN $var
-$$) AS t(i agtype);
+$$) AS t(i gtype);
 ERROR:  parameters argument is missing from cypher() function call
 LINE 3: RETURN $var
                ^
 SELECT * FROM cypher('expr', $$
 RETURN $var
-$$) AS t(i agtype);
+$$) AS t(i gtype);
 ERROR:  parameters argument is missing from cypher() function call
 LINE 2: RETURN $var
                ^
 --list concatenation
 SELECT * FROM cypher('expr',
-$$RETURN ['str', 1, 1.0] + [true, null]$$) AS r(c agtype);
+$$RETURN ['str', 1, 1.0] + [true, null]$$) AS r(c gtype);
               c              
 -----------------------------
  ["str", 1, 1.0, true, null]
@@ -320,35 +320,35 @@ $$RETURN 'str' IN 'str' $$) AS r(c boolean);
 ERROR:  object of IN must be a list
 -- list access
 SELECT * FROM cypher('expr',
-$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][0]$$) AS r(c agtype);
+$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][0]$$) AS r(c gtype);
  c 
 ---
  0
 (1 row)
 
 SELECT * FROM cypher('expr',
-$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][5]$$) AS r(c agtype);
+$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][5]$$) AS r(c gtype);
  c 
 ---
  5
 (1 row)
 
 SELECT * FROM cypher('expr',
-$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][10]$$) AS r(c agtype);
+$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][10]$$) AS r(c gtype);
  c  
 ----
  10
 (1 row)
 
 SELECT * FROM cypher('expr',
-$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][-1]$$) AS r(c agtype);
+$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][-1]$$) AS r(c gtype);
  c  
 ----
  10
 (1 row)
 
 SELECT * FROM cypher('expr',
-$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][-3]$$) AS r(c agtype);
+$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][-3]$$) AS r(c gtype);
  c 
 ---
  8
@@ -356,7 +356,7 @@ $$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][-3]$$) AS r(c agtype);
 
 -- should return null
 SELECT * FROM cypher('expr',
-$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][11]$$) AS r(c agtype);
+$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][11]$$) AS r(c gtype);
  c 
 ---
  
@@ -364,63 +364,63 @@ $$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][11]$$) AS r(c agtype);
 
 -- list slice
 SELECT * FROM cypher('expr',
-$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][0..]$$) AS r(c agtype);
+$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][0..]$$) AS r(c gtype);
                  c                  
 ------------------------------------
  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 (1 row)
 
 SELECT * FROM cypher('expr',
-$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][..11]$$) AS r(c agtype);
+$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][..11]$$) AS r(c gtype);
                  c                  
 ------------------------------------
  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 (1 row)
 
 SELECT * FROM cypher('expr',
-$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][0..0]$$) AS r(c agtype);
+$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][0..0]$$) AS r(c gtype);
  c  
 ----
  []
 (1 row)
 
 SELECT * FROM cypher('expr',
-$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][10..10]$$) AS r(c agtype);
+$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][10..10]$$) AS r(c gtype);
  c  
 ----
  []
 (1 row)
 
 SELECT * FROM cypher('expr',
-$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][0..1]$$) AS r(c agtype);
+$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][0..1]$$) AS r(c gtype);
   c  
 -----
  [0]
 (1 row)
 
 SELECT * FROM cypher('expr',
-$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][9..10]$$) AS r(c agtype);
+$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][9..10]$$) AS r(c gtype);
   c  
 -----
  [9]
 (1 row)
 
 SELECT * FROM cypher('expr',
-$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][-1..]$$) AS r(c agtype);
+$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][-1..]$$) AS r(c gtype);
   c   
 ------
  [10]
 (1 row)
 
 SELECT * FROM cypher('expr',
-$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][-1..11]$$) AS r(c agtype);
+$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][-1..11]$$) AS r(c gtype);
   c   
 ------
  [10]
 (1 row)
 
 SELECT * FROM cypher('expr',
-$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][-3..11]$$) AS r(c agtype);
+$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][-3..11]$$) AS r(c gtype);
      c      
 ------------
  [8, 9, 10]
@@ -428,145 +428,145 @@ $$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][-3..11]$$) AS r(c agtype);
 
 -- this one should return null
 SELECT * FROM cypher('expr',
-$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][-1..10]$$) AS r(c agtype);
+$$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][-1..10]$$) AS r(c gtype);
  c  
 ----
  []
 (1 row)
 
-SELECT agtype_access_slice('[0]'::agtype, 'null'::agtype, '1'::agtype);
- agtype_access_slice 
----------------------
+SELECT gtype_access_slice('[0]'::gtype, 'null'::gtype, '1'::gtype);
+ gtype_access_slice 
+--------------------
  [0]
 (1 row)
 
-SELECT agtype_access_slice('[0]'::agtype, '0'::agtype, 'null'::agtype);
- agtype_access_slice 
----------------------
+SELECT gtype_access_slice('[0]'::gtype, '0'::gtype, 'null'::gtype);
+ gtype_access_slice 
+--------------------
  [0]
 (1 row)
 
 -- should error - ERROR:  slice must access a list
 SELECT * from cypher('expr',
-$$RETURN 0[0..1]$$) as r(a agtype);
+$$RETURN 0[0..1]$$) as r(a gtype);
 ERROR:  slice must access a list
 SELECT * from cypher('expr',
-$$RETURN 0[[0]..[1]]$$) as r(a agtype);
+$$RETURN 0[[0]..[1]]$$) as r(a gtype);
 ERROR:  slice must access a list
 -- should return nothing
 SELECT * from cypher('expr',
-$$RETURN [0][0..-2147483649]$$) as r(a agtype);
+$$RETURN [0][0..-2147483649]$$) as r(a gtype);
  a  
 ----
  []
 (1 row)
 
 -- access and slice operators nested
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[0] $$) as (results agtype);
+SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[0] $$) as (results gtype);
  results 
 ---------
  0
 (1 row)
 
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[2] $$) as (results agtype);
+SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[2] $$) as (results gtype);
   results  
 -----------
  [2, 3, 4]
 (1 row)
 
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-1] $$) as (results agtype);
+SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-1] $$) as (results gtype);
  results 
 ---------
  9
 (1 row)
 
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[2][-2] $$) as (results agtype);
+SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[2][-2] $$) as (results gtype);
  results 
 ---------
  3
 (1 row)
 
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[2][-2..] $$) as (results agtype);
+SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[2][-2..] $$) as (results gtype);
  results 
 ---------
  [3, 4]
 (1 row)
 
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..] $$) as (results agtype);
+SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..] $$) as (results gtype);
     results     
 ----------------
  [[6, 7, 8], 9]
 (1 row)
 
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][-1..] $$) as (results agtype);
+SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][-1..] $$) as (results gtype);
  results 
 ---------
  [9]
 (1 row)
 
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][0] $$) as (results agtype);
+SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][0] $$) as (results gtype);
  results 
 ---------
  9
 (1 row)
 
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][-1] $$) as (results agtype);
+SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][-1] $$) as (results gtype);
  results 
 ---------
  9
 (1 row)
 
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-2..-1] $$) as (results agtype);
+SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-2..-1] $$) as (results gtype);
    results   
 -------------
  [[6, 7, 8]]
 (1 row)
 
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2] $$) as (results agtype);
+SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2] $$) as (results gtype);
     results     
 ----------------
  [[2, 3, 4], 5]
 (1 row)
 
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2][-2] $$) as (results agtype);
+SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2][-2] $$) as (results gtype);
   results  
 -----------
  [2, 3, 4]
 (1 row)
 
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2][0] $$) as (results agtype);
+SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2][0] $$) as (results gtype);
   results  
 -----------
  [2, 3, 4]
 (1 row)
 
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2][-2][-2..] $$) as (results agtype);
+SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2][-2][-2..] $$) as (results gtype);
  results 
 ---------
  [3, 4]
 (1 row)
 
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2][-2][-2..][0] $$) as (results agtype);
+SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2][-2][-2..][0] $$) as (results gtype);
  results 
 ---------
  3
 (1 row)
 
 -- empty list
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][-2..-2] $$) as (results agtype);
+SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][-2..-2] $$) as (results gtype);
  results 
 ---------
  []
 (1 row)
 
 -- should return null
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[2][3] $$) as (results agtype);
+SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[2][3] $$) as (results gtype);
  results 
 ---------
  
 (1 row)
 
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][-2] $$) as (results agtype);
+SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][-2] $$) as (results gtype);
  results 
 ---------
  
@@ -576,35 +576,35 @@ SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RET
 -- String operators
 --
 -- String LHS + String RHS
-SELECT * FROM cypher('expr', $$RETURN 'str' + 'str'$$) AS r(c agtype);
+SELECT * FROM cypher('expr', $$RETURN 'str' + 'str'$$) AS r(c gtype);
     c     
 ----------
  "strstr"
 (1 row)
 
 -- String LHS + Integer RHS
-SELECT * FROM cypher('expr', $$RETURN 'str' + 1$$) AS r(c agtype);
+SELECT * FROM cypher('expr', $$RETURN 'str' + 1$$) AS r(c gtype);
    c    
 --------
  "str1"
 (1 row)
 
 -- String LHS + Float RHS
-SELECT * FROM cypher('expr', $$RETURN 'str' + 1.0$$) AS r(c agtype);
+SELECT * FROM cypher('expr', $$RETURN 'str' + 1.0$$) AS r(c gtype);
     c     
 ----------
  "str1.0"
 (1 row)
 
 -- Integer LHS + String LHS
-SELECT * FROM cypher('expr', $$RETURN 1 + 'str'$$) AS r(c agtype);
+SELECT * FROM cypher('expr', $$RETURN 1 + 'str'$$) AS r(c gtype);
    c    
 --------
  "1str"
 (1 row)
 
 -- Float LHS + String RHS
-SELECT * FROM cypher('expr', $$RETURN 1.0 + 'str'$$) AS r(c agtype);
+SELECT * FROM cypher('expr', $$RETURN 1.0 + 'str'$$) AS r(c gtype);
     c     
 ----------
  "1.0str"
@@ -615,7 +615,7 @@ SELECT * FROM cypher('expr', $$RETURN 1.0 + 'str'$$) AS r(c agtype);
 --
 SELECT * FROM cypher('expr', $$
 RETURN (-(3 * 2 - 4.0) ^ ((10 / 5) + 1)) % -3
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  -2.0
@@ -706,58 +706,58 @@ NOTICE:  graph "chained" has been created
  
 (1 row)
 
-SELECT * FROM cypher('chained', $$ CREATE (:people {name: "Jason", age:50}) $$) AS (result agtype);
+SELECT * FROM cypher('chained', $$ CREATE (:people {name: "Jason", age:50}) $$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('chained', $$ CREATE (:people {name: "Amy", age:25}) $$) AS (result agtype);
+SELECT * FROM cypher('chained', $$ CREATE (:people {name: "Amy", age:25}) $$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('chained', $$ CREATE (:people {name: "Samantha", age:35}) $$) AS (result agtype);
+SELECT * FROM cypher('chained', $$ CREATE (:people {name: "Samantha", age:35}) $$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('chained', $$ CREATE (:people {name: "Mark", age:40}) $$) AS (result agtype);
+SELECT * FROM cypher('chained', $$ CREATE (:people {name: "Mark", age:40}) $$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('chained', $$ CREATE (:people {name: "David", age:15}) $$) AS (result agtype);
+SELECT * FROM cypher('chained', $$ CREATE (:people {name: "David", age:15}) $$) AS (result gtype);
  result 
 --------
 (0 rows)
 
 -- should return 1
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 < u.age <= 49  RETURN u $$) AS (result agtype);
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 < u.age <= 49  RETURN u $$) AS (result gtype);
                                             result                                             
 -----------------------------------------------------------------------------------------------
  {"id": 844424930131972, "label": "people", "properties": {"age": 40, "name": "Mark"}}::vertex
 (1 row)
 
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 25 <= u.age <= 25  RETURN u $$) AS (result agtype);
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 25 <= u.age <= 25  RETURN u $$) AS (result gtype);
                                             result                                            
 ----------------------------------------------------------------------------------------------
  {"id": 844424930131970, "label": "people", "properties": {"age": 25, "name": "Amy"}}::vertex
 (1 row)
 
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 = u.age = 35  RETURN u $$) AS (result agtype);
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 = u.age = 35  RETURN u $$) AS (result gtype);
                                               result                                               
 ---------------------------------------------------------------------------------------------------
  {"id": 844424930131971, "label": "people", "properties": {"age": 35, "name": "Samantha"}}::vertex
 (1 row)
 
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 50 > u.age > 35  RETURN u $$) AS (result agtype);
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 50 > u.age > 35  RETURN u $$) AS (result gtype);
                                             result                                             
 -----------------------------------------------------------------------------------------------
  {"id": 844424930131972, "label": "people", "properties": {"age": 40, "name": "Mark"}}::vertex
 (1 row)
 
 -- should return 3
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 40 <> u.age <> 35 RETURN u $$) AS (result agtype);
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 40 <> u.age <> 35 RETURN u $$) AS (result gtype);
                                              result                                             
 ------------------------------------------------------------------------------------------------
  {"id": 844424930131969, "label": "people", "properties": {"age": 50, "name": "Jason"}}::vertex
@@ -766,7 +766,7 @@ SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 40 <> u.age <> 35 RETU
 (3 rows)
 
 -- should return 2
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 30 <= u.age <= 49 > u.age RETURN u $$) AS (result agtype);
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 30 <= u.age <= 49 > u.age RETURN u $$) AS (result gtype);
                                               result                                               
 ---------------------------------------------------------------------------------------------------
  {"id": 844424930131971, "label": "people", "properties": {"age": 35, "name": "Samantha"}}::vertex
@@ -774,13 +774,13 @@ SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 30 <= u.age <= 49 > u.
 (2 rows)
 
 -- should return 0
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 30 <= u.age <= 49 = u.age RETURN u $$) AS (result agtype);
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 30 <= u.age <= 49 = u.age RETURN u $$) AS (result gtype);
  result 
 --------
 (0 rows)
 
 -- should return 2
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 < u.age + 1 <= 50 RETURN u $$) AS (result agtype);
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 < u.age + 1 <= 50 RETURN u $$) AS (result gtype);
                                               result                                               
 ---------------------------------------------------------------------------------------------------
  {"id": 844424930131971, "label": "people", "properties": {"age": 35, "name": "Samantha"}}::vertex
@@ -788,7 +788,7 @@ SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 < u.age + 1 <= 50 R
 (2 rows)
 
 -- should return 3
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE NOT 35 < u.age + 1 <= 50 RETURN u $$) AS (result agtype);
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE NOT 35 < u.age + 1 <= 50 RETURN u $$) AS (result gtype);
                                              result                                             
 ------------------------------------------------------------------------------------------------
  {"id": 844424930131969, "label": "people", "properties": {"age": 50, "name": "Jason"}}::vertex
@@ -978,7 +978,7 @@ RETURN [
   7,
   9
 ][1].array[2]["float"]
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  3.14
@@ -989,7 +989,7 @@ $$) AS r(result agtype);
 --
 SELECT * FROM cypher('expr', $$
 RETURN "abcdefghijklmnopqrstuvwxyz" STARTS WITH "abcd"
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  true
@@ -997,7 +997,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN "abcdefghijklmnopqrstuvwxyz" ENDS WITH "wxyz"
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  true
@@ -1005,7 +1005,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN "abcdefghijklmnopqrstuvwxyz" CONTAINS "klmn"
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  true
@@ -1014,7 +1014,7 @@ $$) AS r(result agtype);
 -- these should return false
 SELECT * FROM cypher('expr', $$
 RETURN "abcdefghijklmnopqrstuvwxyz" STARTS WITH "bcde"
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  false
@@ -1022,7 +1022,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN "abcdefghijklmnopqrstuvwxyz" ENDS WITH "vwxy"
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  false
@@ -1030,7 +1030,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN "abcdefghijklmnopqrstuvwxyz" CONTAINS "klmo"
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  false
@@ -1039,7 +1039,7 @@ $$) AS r(result agtype);
 -- these should return SQL NULL
 SELECT * FROM cypher('expr', $$
 RETURN "abcdefghijklmnopqrstuvwxyz" STARTS WITH NULL
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  
@@ -1047,7 +1047,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN "abcdefghijklmnopqrstuvwxyz" ENDS WITH NULL
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  
@@ -1055,7 +1055,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN "abcdefghijklmnopqrstuvwxyz" CONTAINS NULL
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  
@@ -1073,7 +1073,7 @@ NOTICE:  graph "regex" has been created
 
 SELECT * FROM cypher('regex', $$
 CREATE (n:Person {name: 'John'}) RETURN n
-$$) AS r(result agtype);
+$$) AS r(result gtype);
                                        result                                       
 ------------------------------------------------------------------------------------
  {"id": 844424930131969, "label": "Person", "properties": {"name": "John"}}::vertex
@@ -1081,7 +1081,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('regex', $$
 CREATE (n:Person {name: 'Jeff'}) RETURN n
-$$) AS r(result agtype);
+$$) AS r(result gtype);
                                        result                                       
 ------------------------------------------------------------------------------------
  {"id": 844424930131970, "label": "Person", "properties": {"name": "Jeff"}}::vertex
@@ -1089,7 +1089,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('regex', $$
 CREATE (n:Person {name: 'Joan'}) RETURN n
-$$) AS r(result agtype);
+$$) AS r(result gtype);
                                        result                                       
 ------------------------------------------------------------------------------------
  {"id": 844424930131971, "label": "Person", "properties": {"name": "Joan"}}::vertex
@@ -1097,14 +1097,14 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('regex', $$
 MATCH (n:Person) WHERE n.name =~ 'JoHn' RETURN n
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
 (0 rows)
 
 SELECT * FROM cypher('regex', $$
 MATCH (n:Person) WHERE n.name =~ '(?i)JoHn' RETURN n
-$$) AS r(result agtype);
+$$) AS r(result gtype);
                                        result                                       
 ------------------------------------------------------------------------------------
  {"id": 844424930131969, "label": "Person", "properties": {"name": "John"}}::vertex
@@ -1112,7 +1112,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('regex', $$
 MATCH (n:Person) WHERE n.name =~ 'Jo.n' RETURN n
-$$) AS r(result agtype);
+$$) AS r(result gtype);
                                        result                                       
 ------------------------------------------------------------------------------------
  {"id": 844424930131969, "label": "Person", "properties": {"name": "John"}}::vertex
@@ -1121,7 +1121,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('regex', $$
 MATCH (n:Person) WHERE n.name =~ 'J.*' RETURN n
-$$) AS r(result agtype);
+$$) AS r(result gtype);
                                        result                                       
 ------------------------------------------------------------------------------------
  {"id": 844424930131969, "label": "Person", "properties": {"name": "John"}}::vertex
@@ -1213,16 +1213,16 @@ ERROR:  integer out of range
 SELECT * FROM cypher('type_coercion', $$
 	RETURN true
 $$) AS (i bigint);
-ERROR:  cannot cast agtype boolean to type int8
+ERROR:  cannot cast gtype boolean to type int8
 SELECT * FROM cypher('type_coercion', $$
 	RETURN {key: 1}
 $$) AS (i bigint);
-ERROR:  cannot cast non-scalar agtype to int8
+ERROR:  cannot cast non-scalar gtype to int8
 SELECT * FROM cypher('type_coercion', $$
 	RETURN [1]
 $$) AS (i bigint);
-ERROR:  cannot cast non-scalar agtype to int8
-SELECT * FROM cypher('type_coercion', $$CREATE ()-[:edge]->()$$) AS (result agtype);
+ERROR:  cannot cast non-scalar gtype to int8
+SELECT * FROM cypher('type_coercion', $$CREATE ()-[:edge]->()$$) AS (result gtype);
  result 
 --------
 (0 rows)
@@ -1231,26 +1231,26 @@ SELECT * FROM cypher('type_coercion', $$
 	MATCH (v)
 	RETURN v
 $$) AS (i bigint);
-ERROR:  cannot cast agtype vertex to type int8
+ERROR:  cannot cast gtype vertex to type int8
 SELECT * FROM cypher('type_coercion', $$
 	MATCH ()-[e]-()
 	RETURN e
 $$) AS (i bigint);
-ERROR:  cannot cast agtype edge to type int8
+ERROR:  cannot cast gtype edge to type int8
 SELECT * FROM cypher('type_coercion', $$
 	MATCH p=()-[]-()
 	RETURN p
 $$) AS (i bigint);
-ERROR:  cannot cast agtype path to type int8
+ERROR:  cannot cast gtype path to type int8
 --
 -- Test typecasting '::' transform and execution logic
 --
 --
--- Test from an agtype value to agtype int
+-- Test from an gtype value to gtype int
 --
 SELECT * FROM cypher('expr', $$
 RETURN 0.0::int
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  0
@@ -1258,7 +1258,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN 0.0::integer
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  0
@@ -1266,7 +1266,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN '0'::int
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  0
@@ -1274,7 +1274,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN '0'::integer
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  0
@@ -1282,7 +1282,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN 0.0::numeric::int
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  0
@@ -1290,7 +1290,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN 2.71::int
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  3
@@ -1298,7 +1298,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN 2.71::numeric::int
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  3
@@ -1306,7 +1306,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN ([0, {one: 1.0, pie: 3.1415927, e: 2::numeric}, 2, null][1].one)::int
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  1
@@ -1314,7 +1314,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN ([0, {one: 1.0::int, pie: 3.1415927, e: 2.718281::numeric}, 2, null][1].one)
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  1
@@ -1322,7 +1322,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN ([0, {one: 1::float, pie: 3.1415927, e: 2.718281::numeric}, 2, null][1].one)::int
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  1
@@ -1330,7 +1330,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN ([0, {one: 1, pie: 3.1415927, e: 2.718281::numeric}, 2, null][3])::int
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  
@@ -1339,47 +1339,47 @@ $$) AS r(result agtype);
 -- should return SQL null
 SELECT * FROM cypher('expr', $$
 RETURN null::int
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  
 (1 row)
 
 -- should return JSON null
-SELECT agtype_in('null::int');
- agtype_in 
------------
+SELECT gtype_in('null::int');
+ gtype_in 
+----------
  null
 (1 row)
 
 -- these should fail
 SELECT * FROM cypher('expr', $$
 RETURN '0.0'::int
-$$) AS r(result agtype);
+$$) AS r(result gtype);
 ERROR:  invalid input syntax for type bigint: "0.0"
 SELECT * FROM cypher('expr', $$
 RETURN '1.5'::int
-$$) AS r(result agtype);
+$$) AS r(result gtype);
 ERROR:  invalid input syntax for type bigint: "1.5"
 SELECT * FROM cypher('graph_name', $$
 RETURN "15555555555555555555555555555"::int
-$$) AS (string_result agtype);
+$$) AS (string_result gtype);
 ERROR:  graph "graph_name" does not exist
 LINE 1: SELECT * FROM cypher('graph_name', $$
                              ^
 SELECT * FROM cypher('expr', $$
 RETURN 'NaN'::float::int
-$$) AS r(result agtype);
+$$) AS r(result gtype);
 ERROR:  bigint out of range
 SELECT * FROM cypher('expr', $$
 RETURN 'infinity'::float::int
-$$) AS r(result agtype);
+$$) AS r(result gtype);
 ERROR:  bigint out of range
--- Test from an agtype value to an agtype numeric
+-- Test from an gtype value to an gtype numeric
 --
 SELECT * FROM cypher('expr', $$
 RETURN 0::numeric
-$$) AS r(result agtype);
+$$) AS r(result gtype);
    result   
 ------------
  0::numeric
@@ -1387,7 +1387,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN 2.71::numeric
-$$) AS r(result agtype);
+$$) AS r(result gtype);
     result     
 ---------------
  2.71::numeric
@@ -1395,7 +1395,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN '2.71'::numeric
-$$) AS r(result agtype);
+$$) AS r(result gtype);
     result     
 ---------------
  2.71::numeric
@@ -1403,7 +1403,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN (2.71::numeric)::numeric
-$$) AS r(result agtype);
+$$) AS r(result gtype);
     result     
 ---------------
  2.71::numeric
@@ -1411,7 +1411,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN ('2.71'::numeric)::numeric
-$$) AS r(result agtype);
+$$) AS r(result gtype);
     result     
 ---------------
  2.71::numeric
@@ -1419,7 +1419,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN ('NaN'::numeric)::numeric
-$$) AS r(result agtype);
+$$) AS r(result gtype);
     result    
 --------------
  NaN::numeric
@@ -1427,7 +1427,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN ((1 + 2.71) * 3)::numeric
-$$) AS r(result agtype);
+$$) AS r(result gtype);
      result     
 ----------------
  11.13::numeric
@@ -1435,7 +1435,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN ([0, {one: 1, pie: 3.1415927, e: 2.718281::numeric}, 2, null][1].pie)::numeric
-$$) AS r(result agtype);
+$$) AS r(result gtype);
        result       
 --------------------
  3.1415927::numeric
@@ -1443,7 +1443,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN ([0, {one: 1, pie: 3.1415927, e: 2.718281::numeric}, 2, null][1].e)
-$$) AS r(result agtype);
+$$) AS r(result gtype);
       result       
 -------------------
  2.718281::numeric
@@ -1451,7 +1451,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN ([0, {one: 1, pie: 3.1415927, e: 2.718281::numeric}, 2, null][1].e)::numeric
-$$) AS r(result agtype);
+$$) AS r(result gtype);
       result       
 -------------------
  2.718281::numeric
@@ -1459,7 +1459,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN ([0, {one: 1, pie: 3.1415927, e: 2.718281::numeric}, 2, null][3])::numeric
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  
@@ -1467,14 +1467,14 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN ([0, {one: 1, pie: 3.1415927, e: 2.718281::numeric}, 2::numeric, null])
-$$) AS r(result agtype);
+$$) AS r(result gtype);
                                    result                                    
 -----------------------------------------------------------------------------
  [0, {"e": 2.718281::numeric, "one": 1, "pie": 3.1415927}, 2::numeric, null]
 (1 row)
 
 -- should return SQL null
-SELECT age_tonumeric('null'::agtype);
+SELECT age_tonumeric('null'::gtype);
  age_tonumeric 
 ---------------
  
@@ -1488,27 +1488,27 @@ SELECT age_tonumeric(null);
 
 SELECT * FROM cypher('expr', $$
 RETURN null::numeric
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  
 (1 row)
 
 -- should return JSON null
-SELECT agtype_in('null::numeric');
- agtype_in 
------------
+SELECT gtype_in('null::numeric');
+ gtype_in 
+----------
  null
 (1 row)
 
 -- these should fail
 SELECT * FROM cypher('expr', $$
 RETURN ('2:71'::numeric)::numeric
-$$) AS r(result agtype);
+$$) AS r(result gtype);
 ERROR:  invalid input syntax for type numeric: "2:71"
 SELECT * FROM cypher('expr', $$
 RETURN ('inf'::numeric)::numeric
-$$) AS r(result agtype);
+$$) AS r(result gtype);
       result       
 -------------------
  Infinity::numeric
@@ -1516,45 +1516,45 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN ('infinity'::numeric)::numeric
-$$) AS r(result agtype);
+$$) AS r(result gtype);
       result       
 -------------------
  Infinity::numeric
 (1 row)
 
--- verify that output can be accepted and reproduced correctly via agtype_in
-SELECT agtype_in('2.71::numeric');
-   agtype_in   
+-- verify that output can be accepted and reproduced correctly via gtype_in
+SELECT gtype_in('2.71::numeric');
+   gtype_in    
 ---------------
  2.71::numeric
 (1 row)
 
-SELECT agtype_in('[0, {"e": 2.718281::numeric, "one": 1, "pie": 3.1415927}, 2::numeric, null]');
-                                  agtype_in                                  
+SELECT gtype_in('[0, {"e": 2.718281::numeric, "one": 1, "pie": 3.1415927}, 2::numeric, null]');
+                                  gtype_in                                   
 -----------------------------------------------------------------------------
  [0, {"e": 2.718281::numeric, "one": 1, "pie": 3.1415927}, 2::numeric, null]
 (1 row)
 
 SELECT * FROM cypher('expr', $$
 RETURN (['NaN'::numeric, {one: 1, pie: 3.1415927, nan: 'nAn'::numeric}, 2::numeric, null])
-$$) AS r(result agtype);
+$$) AS r(result gtype);
                                        result                                        
 -------------------------------------------------------------------------------------
  [NaN::numeric, {"nan": NaN::numeric, "one": 1, "pie": 3.1415927}, 2::numeric, null]
 (1 row)
 
-SELECT agtype_in('[NaN::numeric, {"nan": NaN::numeric, "one": 1, "pie": 3.1415927}, 2::numeric, null]');
-                                      agtype_in                                      
+SELECT gtype_in('[NaN::numeric, {"nan": NaN::numeric, "one": 1, "pie": 3.1415927}, 2::numeric, null]');
+                                      gtype_in                                       
 -------------------------------------------------------------------------------------
  [NaN::numeric, {"nan": NaN::numeric, "one": 1, "pie": 3.1415927}, 2::numeric, null]
 (1 row)
 
 --
--- Test from an agtype value to agtype float
+-- Test from an gtype value to gtype float
 --
 SELECT * FROM cypher('expr', $$
 RETURN 0::float
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  0.0
@@ -1562,7 +1562,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN '2.71'::float
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  2.71
@@ -1570,7 +1570,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN 2.71::float
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  2.71
@@ -1578,7 +1578,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN ([0, {one: 1, pie: 3.1415927, e: 2::numeric}, 2, null][1].one)::float
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  1.0
@@ -1586,7 +1586,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN ([0, {one: 1::float, pie: 3.1415927, e: 2.718281::numeric}, 2, null][1].one)
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  1.0
@@ -1594,7 +1594,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN ([0, {one: 1::float, pie: 3.1415927, e: 2.718281::numeric}, 2, null][1].one)::float
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  1.0
@@ -1602,7 +1602,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN ([0, {one: 1, pie: 3.1415927, e: 2.718281::numeric}, 2, null][3])::float
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  
@@ -1611,7 +1611,7 @@ $$) AS r(result agtype);
 -- test NaN, infinity, and -infinity
 SELECT * FROM cypher('expr', $$
 RETURN 'NaN'::float
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  NaN
@@ -1619,7 +1619,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN 'inf'::float
-$$) AS r(result agtype);
+$$) AS r(result gtype);
   result  
 ----------
  Infinity
@@ -1627,7 +1627,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN '-inf'::float
-$$) AS r(result agtype);
+$$) AS r(result gtype);
   result   
 -----------
  -Infinity
@@ -1635,7 +1635,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN 'infinity'::float
-$$) AS r(result agtype);
+$$) AS r(result gtype);
   result  
 ----------
  Infinity
@@ -1643,7 +1643,7 @@ $$) AS r(result agtype);
 
 SELECT * FROM cypher('expr', $$
 RETURN '-infinity'::float
-$$) AS r(result agtype);
+$$) AS r(result gtype);
   result   
 -----------
  -Infinity
@@ -1652,102 +1652,102 @@ $$) AS r(result agtype);
 -- should return SQL null
 SELECT * FROM cypher('expr', $$
 RETURN null::float
-$$) AS r(result agtype);
+$$) AS r(result gtype);
  result 
 --------
  
 (1 row)
 
 -- should return JSON null
-SELECT agtype_in('null::float');
- agtype_in 
------------
+SELECT gtype_in('null::float');
+ gtype_in 
+----------
  null
 (1 row)
 
 -- these should fail
 SELECT * FROM cypher('expr', $$
 RETURN '2:71'::float
-$$) AS r(result agtype);
+$$) AS r(result gtype);
 ERROR:  invalid input syntax for type double precision: "2:71"
 SELECT * FROM cypher('expr', $$
 RETURN 'infi'::float
-$$) AS r(result agtype);
+$$) AS r(result gtype);
 ERROR:  invalid input syntax for type double precision: "infi"
--- verify that output can be accepted and reproduced correctly via agtype_in
+-- verify that output can be accepted and reproduced correctly via gtype_in
 SELECT * FROM cypher('expr', $$
 RETURN ([0, {one: 1::float, pie: 3.1415927, e: 2.718281::numeric}, 2::numeric, null])
-$$) AS r(result agtype);
+$$) AS r(result gtype);
                                     result                                     
 -------------------------------------------------------------------------------
  [0, {"e": 2.718281::numeric, "one": 1.0, "pie": 3.1415927}, 2::numeric, null]
 (1 row)
 
-SELECT agtype_in('[0, {"e": 2.718281::numeric, "one": 1.0, "pie": 3.1415927}, 2::numeric, null]');
-                                   agtype_in                                   
+SELECT gtype_in('[0, {"e": 2.718281::numeric, "one": 1.0, "pie": 3.1415927}, 2::numeric, null]');
+                                   gtype_in                                    
 -------------------------------------------------------------------------------
  [0, {"e": 2.718281::numeric, "one": 1.0, "pie": 3.1415927}, 2::numeric, null]
 (1 row)
 
 SELECT * FROM cypher('expr', $$
 RETURN (['NaN'::float, {one: 'inf'::float, pie: 3.1415927, e: 2.718281::numeric}, 2::numeric, null])
-$$) AS r(result agtype);
+$$) AS r(result gtype);
                                         result                                        
 --------------------------------------------------------------------------------------
  [NaN, {"e": 2.718281::numeric, "one": Infinity, "pie": 3.1415927}, 2::numeric, null]
 (1 row)
 
-SELECT agtype_in('[NaN, {"e": 2.718281::numeric, "one": Infinity, "pie": 3.1415927}, 2::numeric, null]');
-                                      agtype_in                                       
+SELECT gtype_in('[NaN, {"e": 2.718281::numeric, "one": Infinity, "pie": 3.1415927}, 2::numeric, null]');
+                                       gtype_in                                       
 --------------------------------------------------------------------------------------
  [NaN, {"e": 2.718281::numeric, "one": Infinity, "pie": 3.1415927}, 2::numeric, null]
 (1 row)
 
 -- make sure that output can be read back in and reproduce the output
-SELECT agtype_in('{"name": "container 0", "vertices": [{"vertex_0": {"id": 0, "label": "vertex 0", "properties": {}}::vertex}, {"vertex_0": {"id": 0, "label": "vertex 0", "properties": {}}::vertex}]}');
-                                                                                       agtype_in                                                                                       
+SELECT gtype_in('{"name": "container 0", "vertices": [{"vertex_0": {"id": 0, "label": "vertex 0", "properties": {}}::vertex}, {"vertex_0": {"id": 0, "label": "vertex 0", "properties": {}}::vertex}]}');
+                                                                                       gtype_in                                                                                        
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  {"name": "container 0", "vertices": [{"vertex_0": {"id": 0, "label": "vertex 0", "properties": {}}::vertex}, {"vertex_0": {"id": 0, "label": "vertex 0", "properties": {}}::vertex}]}
 (1 row)
 
-SELECT agtype_in('{"name": "container 1", "edges": [{"id": 3, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge, {"id": 4, "label": "edge 1", "end_id": 0, "start_id": 1, "properties": {}}::edge]}');
-                                                                                               agtype_in                                                                                                
+SELECT gtype_in('{"name": "container 1", "edges": [{"id": 3, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge, {"id": 4, "label": "edge 1", "end_id": 0, "start_id": 1, "properties": {}}::edge]}');
+                                                                                                gtype_in                                                                                                
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  {"name": "container 1", "edges": [{"id": 3, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge, {"id": 4, "label": "edge 1", "end_id": 0, "start_id": 1, "properties": {}}::edge]}
 (1 row)
 
-SELECT agtype_in('{"name": "path 1", "path": [{"id": 0, "label": "vertex 0", "properties": {}}::vertex, {"id": 2, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge, {"id": 1, "label": "vertex 1", "properties": {}}::vertex]}');
-                                                                                                             agtype_in                                                                                                              
+SELECT gtype_in('{"name": "path 1", "path": [{"id": 0, "label": "vertex 0", "properties": {}}::vertex, {"id": 2, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge, {"id": 1, "label": "vertex 1", "properties": {}}::vertex]}');
+                                                                                                              gtype_in                                                                                                              
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  {"name": "path 1", "path": [{"id": 0, "label": "vertex 0", "properties": {}}::vertex, {"id": 2, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge, {"id": 1, "label": "vertex 1", "properties": {}}::vertex]}
 (1 row)
 
 -- test functions
 -- create some vertices and edges
-SELECT * FROM cypher('expr', $$CREATE (:v)$$) AS (a agtype);
+SELECT * FROM cypher('expr', $$CREATE (:v)$$) AS (a gtype);
  a 
 ---
 (0 rows)
 
-SELECT * FROM cypher('expr', $$CREATE (:v {i: 0})$$) AS (a agtype);
+SELECT * FROM cypher('expr', $$CREATE (:v {i: 0})$$) AS (a gtype);
  a 
 ---
 (0 rows)
 
-SELECT * FROM cypher('expr', $$CREATE (:v {i: 1})$$) AS (a agtype);
+SELECT * FROM cypher('expr', $$CREATE (:v {i: 1})$$) AS (a gtype);
  a 
 ---
 (0 rows)
 
 SELECT * FROM cypher('expr', $$
     CREATE (:v1 {id:'initial'})-[:e1]->(:v1 {id:'middle'})-[:e1]->(:v1 {id:'end'})
-$$) AS (a agtype);
+$$) AS (a gtype);
  a 
 ---
 (0 rows)
 
 -- show them
-SELECT * FROM cypher('expr', $$ MATCH (v) RETURN v $$) AS (expression agtype);
+SELECT * FROM cypher('expr', $$ MATCH (v) RETURN v $$) AS (expression gtype);
                                     expression                                    
 ----------------------------------------------------------------------------------
  {"id": 844424930131969, "label": "v", "properties": {}}::vertex
@@ -1758,7 +1758,7 @@ SELECT * FROM cypher('expr', $$ MATCH (v) RETURN v $$) AS (expression agtype);
  {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}::vertex
 (6 rows)
 
-SELECT * FROM cypher('expr', $$ MATCH ()-[e]-() RETURN e $$) AS (expression agtype);
+SELECT * FROM cypher('expr', $$ MATCH ()-[e]-() RETURN e $$) AS (expression gtype);
                                                         expression                                                         
 ---------------------------------------------------------------------------------------------------------------------------
  {"id": 1407374883553282, "label": "e1", "end_id": 1125899906842626, "start_id": 1125899906842625, "properties": {}}::edge
@@ -1770,7 +1770,7 @@ SELECT * FROM cypher('expr', $$ MATCH ()-[e]-() RETURN e $$) AS (expression agty
 -- id()
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]-() RETURN id(e)
-$$) AS (id agtype);
+$$) AS (id gtype);
         id        
 ------------------
  1407374883553282
@@ -1781,7 +1781,7 @@ $$) AS (id agtype);
 
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN id(v)
-$$) AS (id agtype);
+$$) AS (id gtype);
         id        
 ------------------
  844424930131969
@@ -1795,7 +1795,7 @@ $$) AS (id agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN id(null)
-$$) AS (id agtype);
+$$) AS (id gtype);
  id 
 ----
  
@@ -1804,7 +1804,7 @@ $$) AS (id agtype);
 -- should error
 SELECT * FROM cypher('expr', $$
     RETURN id()
-$$) AS (id agtype);
+$$) AS (id gtype);
 ERROR:  function postgraph.age_id() does not exist
 LINE 2:     RETURN id()
                    ^
@@ -1812,7 +1812,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- start_id()
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]-() RETURN start_id(e)
-$$) AS (start_id agtype);
+$$) AS (start_id gtype);
      start_id     
 ------------------
  1125899906842625
@@ -1824,7 +1824,7 @@ $$) AS (start_id agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN start_id(null)
-$$) AS (start_id agtype);
+$$) AS (start_id gtype);
  start_id 
 ----------
  
@@ -1833,11 +1833,11 @@ $$) AS (start_id agtype);
 -- should error
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN start_id(v)
-$$) AS (start_id agtype);
+$$) AS (start_id gtype);
 ERROR:  start_id() argument must be an edge
 SELECT * FROM cypher('expr', $$
     RETURN start_id()
-$$) AS (start_id agtype);
+$$) AS (start_id gtype);
 ERROR:  function postgraph.age_start_id() does not exist
 LINE 2:     RETURN start_id()
                    ^
@@ -1845,7 +1845,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- end_id()
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]-() RETURN end_id(e)
-$$) AS (end_id agtype);
+$$) AS (end_id gtype);
       end_id      
 ------------------
  1125899906842626
@@ -1857,7 +1857,7 @@ $$) AS (end_id agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN end_id(null)
-$$) AS (end_id agtype);
+$$) AS (end_id gtype);
  end_id 
 --------
  
@@ -1866,11 +1866,11 @@ $$) AS (end_id agtype);
 -- should error
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN end_id(v)
-$$) AS (end_id agtype);
+$$) AS (end_id gtype);
 ERROR:  end_id() argument must be an edge
 SELECT * FROM cypher('expr', $$
     RETURN end_id()
-$$) AS (end_id agtype);
+$$) AS (end_id gtype);
 ERROR:  function postgraph.age_end_id() does not exist
 LINE 2:     RETURN end_id()
                    ^
@@ -1878,7 +1878,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- startNode()
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]-() RETURN id(e), start_id(e), startNode(e)
-$$) AS (id agtype, start_id agtype, startNode agtype);
+$$) AS (id gtype, start_id gtype, startNode gtype);
         id        |     start_id     |                                    startnode                                     
 ------------------+------------------+----------------------------------------------------------------------------------
  1407374883553281 | 1125899906842626 | {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}::vertex
@@ -1890,7 +1890,7 @@ $$) AS (id agtype, start_id agtype, startNode agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN startNode(null)
-$$) AS (startNode agtype);
+$$) AS (startNode gtype);
  startnode 
 -----------
  
@@ -1899,11 +1899,11 @@ $$) AS (startNode agtype);
 -- should error
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN startNode(v)
-$$) AS (startNode agtype);
+$$) AS (startNode gtype);
 ERROR:  startNode() argument must be an edge or null
 SELECT * FROM cypher('expr', $$
     RETURN startNode()
-$$) AS (startNode agtype);
+$$) AS (startNode gtype);
 ERROR:  function postgraph.age_startnode() does not exist
 LINE 2:     RETURN startNode()
                    ^
@@ -1911,7 +1911,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- endNode()
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]-() RETURN id(e), end_id(e), endNode(e)
-$$) AS (id agtype, end_id agtype, endNode agtype);
+$$) AS (id gtype, end_id gtype, endNode gtype);
         id        |      end_id      |                                     endnode                                     
 ------------------+------------------+---------------------------------------------------------------------------------
  1407374883553281 | 1125899906842627 | {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}::vertex
@@ -1923,7 +1923,7 @@ $$) AS (id agtype, end_id agtype, endNode agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN endNode(null)
-$$) AS (endNode agtype);
+$$) AS (endNode gtype);
  endnode 
 ---------
  
@@ -1932,11 +1932,11 @@ $$) AS (endNode agtype);
 -- should error
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN endNode(v)
-$$) AS (endNode agtype);
+$$) AS (endNode gtype);
 ERROR:  endNode() argument must be an edge
 SELECT * FROM cypher('expr', $$
     RETURN endNode()
-$$) AS (endNode agtype);
+$$) AS (endNode gtype);
 ERROR:  function postgraph.age_endnode() does not exist
 LINE 2:     RETURN endNode()
                    ^
@@ -1944,7 +1944,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- type()
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]-() RETURN type(e)
-$$) AS (type agtype);
+$$) AS (type gtype);
  type 
 ------
  "e1"
@@ -1956,7 +1956,7 @@ $$) AS (type agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN type(null)
-$$) AS (type agtype);
+$$) AS (type gtype);
  type 
 ------
  
@@ -1965,7 +1965,7 @@ $$) AS (type agtype);
 -- should error
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN type(v)
-$$) AS (type agtype);
+$$) AS (type gtype);
  type 
 ------
  "v"
@@ -1978,7 +1978,7 @@ $$) AS (type agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN type()
-$$) AS (type agtype);
+$$) AS (type gtype);
 ERROR:  function postgraph.age_type() does not exist
 LINE 2:     RETURN type()
                    ^
@@ -1986,7 +1986,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- label ()
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN label(v)
-$$) AS (label agtype);
+$$) AS (label gtype);
  label 
 -------
  "v"
@@ -1999,7 +1999,7 @@ $$) AS (label agtype);
 
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]->() RETURN label(e)
-$$) AS (label agtype);
+$$) AS (label gtype);
  label 
 -------
  "e1"
@@ -2009,7 +2009,7 @@ $$) AS (label agtype);
 -- return NULL
 SELECT * FROM cypher('expr', $$
     RETURN label(NULL)
-$$) AS (label agtype);
+$$) AS (label gtype);
  label 
 -------
  
@@ -2024,25 +2024,25 @@ SELECT postgraph.age_label(NULL);
 -- should error
 SELECT * FROM cypher('expr', $$
     MATCH p=()-[]->() RETURN label(p)
-$$) AS (label agtype);
+$$) AS (label gtype);
 ERROR:  label() argument must resolve to an edge or vertex
 SELECT * FROM cypher('expr', $$
     RETURN label(1)
-$$) AS (label agtype);
+$$) AS (label gtype);
 ERROR:  label() argument must resolve to an edge or vertex
 SELECT * FROM cypher('expr', $$
     MATCH (n) RETURN label([n])
-$$) AS (label agtype);
+$$) AS (label gtype);
 ERROR:  label() argument must resolve to an edge or vertex
 SELECT * FROM cypher('expr', $$
     RETURN label({id: 0, label: 'failed', properties: {}})
-$$) AS (label agtype);
+$$) AS (label gtype);
 ERROR:  label() argument must resolve to an edge or vertex
 -- timestamp() can't be done as it will always have a different value
 -- size() of a string
 SELECT * FROM cypher('expr', $$
     RETURN size('12345')
-$$) AS (size agtype);
+$$) AS (size gtype);
  size 
 ------
  5
@@ -2050,7 +2050,7 @@ $$) AS (size agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN size("1234567890")
-$$) AS (size agtype);
+$$) AS (size gtype);
  size 
 ------
  10
@@ -2059,7 +2059,7 @@ $$) AS (size agtype);
 -- size() of an array
 SELECT * FROM cypher('expr', $$
     RETURN size([1, 2, 3, 4, 5])
-$$) AS (size agtype);
+$$) AS (size gtype);
  size 
 ------
  5
@@ -2067,7 +2067,7 @@ $$) AS (size agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN size([])
-$$) AS (size agtype);
+$$) AS (size gtype);
  size 
 ------
  0
@@ -2076,7 +2076,7 @@ $$) AS (size agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN size(null)
-$$) AS (size agtype);
+$$) AS (size gtype);
  size 
 ------
  
@@ -2085,11 +2085,11 @@ $$) AS (size agtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN size(1234567890)
-$$) AS (size agtype);
+$$) AS (size gtype);
 ERROR:  size() unsupported argument
 SELECT * FROM cypher('expr', $$
     RETURN size()
-$$) AS (size agtype);
+$$) AS (size gtype);
 ERROR:  function postgraph.age_size() does not exist
 LINE 2:     RETURN size()
                    ^
@@ -2097,7 +2097,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- head() of an array
 SELECT * FROM cypher('expr', $$
     RETURN head([1, 2, 3, 4, 5])
-$$) AS (head agtype);
+$$) AS (head gtype);
  head 
 ------
  1
@@ -2105,7 +2105,7 @@ $$) AS (head agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN head([1])
-$$) AS (head agtype);
+$$) AS (head gtype);
  head 
 ------
  1
@@ -2114,7 +2114,7 @@ $$) AS (head agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN head([])
-$$) AS (head agtype);
+$$) AS (head gtype);
  head 
 ------
  
@@ -2122,7 +2122,7 @@ $$) AS (head agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN head(null)
-$$) AS (head agtype);
+$$) AS (head gtype);
  head 
 ------
  
@@ -2131,11 +2131,11 @@ $$) AS (head agtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN head(1234567890)
-$$) AS (head agtype);
+$$) AS (head gtype);
 ERROR:  head() argument must resolve to a list
 SELECT * FROM cypher('expr', $$
     RETURN head()
-$$) AS (head agtype);
+$$) AS (head gtype);
 ERROR:  function postgraph.age_head() does not exist
 LINE 2:     RETURN head()
                    ^
@@ -2143,7 +2143,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- last()
 SELECT * FROM cypher('expr', $$
     RETURN last([1, 2, 3, 4, 5])
-$$) AS (last agtype);
+$$) AS (last gtype);
  last 
 ------
  5
@@ -2151,7 +2151,7 @@ $$) AS (last agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN last([1])
-$$) AS (last agtype);
+$$) AS (last gtype);
  last 
 ------
  1
@@ -2160,7 +2160,7 @@ $$) AS (last agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN last([])
-$$) AS (last agtype);
+$$) AS (last gtype);
  last 
 ------
  
@@ -2168,7 +2168,7 @@ $$) AS (last agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN last(null)
-$$) AS (last agtype);
+$$) AS (last gtype);
  last 
 ------
  
@@ -2177,11 +2177,11 @@ $$) AS (last agtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN last(1234567890)
-$$) AS (last agtype);
+$$) AS (last gtype);
 ERROR:  last() argument must resolve to a list or null
 SELECT * FROM cypher('expr', $$
     RETURN last()
-$$) AS (last agtype);
+$$) AS (last gtype);
 ERROR:  function postgraph.age_last() does not exist
 LINE 2:     RETURN last()
                    ^
@@ -2189,7 +2189,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- properties()
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN properties(v)
-$$) AS (properties agtype);
+$$) AS (properties gtype);
     properties     
 -------------------
  {}
@@ -2202,7 +2202,7 @@ $$) AS (properties agtype);
 
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]-() RETURN properties(e)
-$$) AS (properties agtype);
+$$) AS (properties gtype);
  properties 
 ------------
  {}
@@ -2214,7 +2214,7 @@ $$) AS (properties agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN properties(null)
-$$) AS (properties agtype);
+$$) AS (properties gtype);
  properties 
 ------------
  
@@ -2223,11 +2223,11 @@ $$) AS (properties agtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN properties(1234)
-$$) AS (properties agtype);
+$$) AS (properties gtype);
 ERROR:  properties() argument must be a vertex or edge
 SELECT * FROM cypher('expr', $$
     RETURN properties()
-$$) AS (properties agtype);
+$$) AS (properties gtype);
 ERROR:  function postgraph.age_properties() does not exist
 LINE 2:     RETURN properties()
                    ^
@@ -2235,7 +2235,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- coalesce
 SELECT * FROM cypher('expr', $$
     RETURN coalesce(null, 1, null, null)
-$$) AS (coalesce agtype);
+$$) AS (coalesce gtype);
  coalesce 
 ----------
  1
@@ -2243,7 +2243,7 @@ $$) AS (coalesce agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN coalesce(null, -3.14, null, null)
-$$) AS (coalesce agtype);
+$$) AS (coalesce gtype);
  coalesce 
 ----------
  -3.14
@@ -2251,7 +2251,7 @@ $$) AS (coalesce agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN coalesce(null, "string", null, null)
-$$) AS (coalesce agtype);
+$$) AS (coalesce gtype);
  coalesce 
 ----------
  "string"
@@ -2259,7 +2259,7 @@ $$) AS (coalesce agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN coalesce(null, null, null, [])
-$$) AS (coalesce agtype);
+$$) AS (coalesce gtype);
  coalesce 
 ----------
  []
@@ -2267,7 +2267,7 @@ $$) AS (coalesce agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN coalesce(null, null, null, {})
-$$) AS (coalesce agtype);
+$$) AS (coalesce gtype);
  coalesce 
 ----------
  {}
@@ -2276,7 +2276,7 @@ $$) AS (coalesce agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN coalesce(null, id(null), null)
-$$) AS (coalesce agtype);
+$$) AS (coalesce gtype);
  coalesce 
 ----------
  
@@ -2284,7 +2284,7 @@ $$) AS (coalesce agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN coalesce(null)
-$$) AS (coalesce agtype);
+$$) AS (coalesce gtype);
  coalesce 
 ----------
  
@@ -2293,14 +2293,14 @@ $$) AS (coalesce agtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN coalesce()
-$$) AS (coalesce agtype);
+$$) AS (coalesce gtype);
 ERROR:  syntax error at or near ")"
 LINE 2:     RETURN coalesce()
                             ^
 -- toBoolean()
 SELECT * FROM cypher('expr', $$
     RETURN toBoolean(true)
-$$) AS (toBoolean agtype);
+$$) AS (toBoolean gtype);
  toboolean 
 -----------
  true
@@ -2308,7 +2308,7 @@ $$) AS (toBoolean agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN toBoolean(false)
-$$) AS (toBoolean agtype);
+$$) AS (toBoolean gtype);
  toboolean 
 -----------
  false
@@ -2316,7 +2316,7 @@ $$) AS (toBoolean agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN toBoolean("true")
-$$) AS (toBoolean agtype);
+$$) AS (toBoolean gtype);
  toboolean 
 -----------
  true
@@ -2324,7 +2324,7 @@ $$) AS (toBoolean agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN toBoolean("false")
-$$) AS (toBoolean agtype);
+$$) AS (toBoolean gtype);
  toboolean 
 -----------
  false
@@ -2333,7 +2333,7 @@ $$) AS (toBoolean agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN toBoolean("falze")
-$$) AS (toBoolean agtype);
+$$) AS (toBoolean gtype);
  toboolean 
 -----------
  
@@ -2341,7 +2341,7 @@ $$) AS (toBoolean agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN toBoolean(null)
-$$) AS (toBoolean agtype);
+$$) AS (toBoolean gtype);
  toboolean 
 -----------
  
@@ -2350,11 +2350,11 @@ $$) AS (toBoolean agtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN toBoolean(1)
-$$) AS (toBoolean agtype);
-ERROR:  toBoolean() unsupported argument agtype 3
+$$) AS (toBoolean gtype);
+ERROR:  toBoolean() unsupported argument gtype 3
 SELECT * FROM cypher('expr', $$
     RETURN toBoolean()
-$$) AS (toBoolean agtype);
+$$) AS (toBoolean gtype);
 ERROR:  function postgraph.age_toboolean() does not exist
 LINE 2:     RETURN toBoolean()
                    ^
@@ -2362,7 +2362,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- toFloat()
 SELECT * FROM cypher('expr', $$
     RETURN toFloat(1)
-$$) AS (toFloat agtype);
+$$) AS (toFloat gtype);
  tofloat 
 ---------
  1.0
@@ -2370,7 +2370,7 @@ $$) AS (toFloat agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN toFloat(1.2)
-$$) AS (toFloat agtype);
+$$) AS (toFloat gtype);
  tofloat 
 ---------
  1.2
@@ -2378,7 +2378,7 @@ $$) AS (toFloat agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN toFloat("1")
-$$) AS (toFloat agtype);
+$$) AS (toFloat gtype);
  tofloat 
 ---------
  1.0
@@ -2386,7 +2386,7 @@ $$) AS (toFloat agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN toFloat("1.2")
-$$) AS (toFloat agtype);
+$$) AS (toFloat gtype);
  tofloat 
 ---------
  1.2
@@ -2394,7 +2394,7 @@ $$) AS (toFloat agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN toFloat("1.2"::numeric)
-$$) AS (toFloat agtype);
+$$) AS (toFloat gtype);
  tofloat 
 ---------
  1.2
@@ -2403,11 +2403,11 @@ $$) AS (toFloat agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN toFloat("falze")
-$$) AS (toFloat agtype);
+$$) AS (toFloat gtype);
 ERROR:  invalid input syntax for type double precision: "falze"
 SELECT * FROM cypher('expr', $$
     RETURN toFloat(null)
-$$) AS (toFloat agtype);
+$$) AS (toFloat gtype);
  tofloat 
 ---------
  
@@ -2416,11 +2416,11 @@ $$) AS (toFloat agtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN toFloat(true)
-$$) AS (toFloat agtype);
-ERROR:  cannot cast agtype boolean to type float8
+$$) AS (toFloat gtype);
+ERROR:  cannot cast gtype boolean to type float8
 SELECT * FROM cypher('expr', $$
     RETURN toFloat()
-$$) AS (toFloat agtype);
+$$) AS (toFloat gtype);
 ERROR:  function postgraph.age_tofloat() does not exist
 LINE 2:     RETURN toFloat()
                    ^
@@ -2428,7 +2428,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- toInteger()
 SELECT * FROM cypher('expr', $$
     RETURN toInteger(1)
-$$) AS (toInteger agtype);
+$$) AS (toInteger gtype);
  tointeger 
 -----------
  1
@@ -2436,7 +2436,7 @@ $$) AS (toInteger agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN toInteger(1.2)
-$$) AS (toInteger agtype);
+$$) AS (toInteger gtype);
  tointeger 
 -----------
  1
@@ -2444,7 +2444,7 @@ $$) AS (toInteger agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN toInteger("1")
-$$) AS (toInteger agtype);
+$$) AS (toInteger gtype);
  tointeger 
 -----------
  1
@@ -2452,11 +2452,11 @@ $$) AS (toInteger agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN toInteger("1.2")
-$$) AS (toInteger agtype);
+$$) AS (toInteger gtype);
 ERROR:  invalid input syntax for type bigint: "1.2"
 SELECT * FROM cypher('expr', $$
     RETURN toInteger("1.2"::numeric)
-$$) AS (toInteger agtype);
+$$) AS (toInteger gtype);
  tointeger 
 -----------
  1
@@ -2465,11 +2465,11 @@ $$) AS (toInteger agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN toInteger("falze")
-$$) AS (toInteger agtype);
+$$) AS (toInteger gtype);
 ERROR:  invalid input syntax for type bigint: "falze"
 SELECT * FROM cypher('expr', $$
     RETURN toInteger(null)
-$$) AS (toInteger agtype);
+$$) AS (toInteger gtype);
  tointeger 
 -----------
  
@@ -2478,11 +2478,11 @@ $$) AS (toInteger agtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN toInteger(true)
-$$) AS (toInteger agtype);
-ERROR:  cannot cast agtype boolean to type int8
+$$) AS (toInteger gtype);
+ERROR:  cannot cast gtype boolean to type int8
 SELECT * FROM cypher('expr', $$
     RETURN toInteger()
-$$) AS (toInteger agtype);
+$$) AS (toInteger gtype);
 ERROR:  function postgraph.age_tointeger() does not exist
 LINE 2:     RETURN toInteger()
                    ^
@@ -2490,7 +2490,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN length(null)
-$$) AS (length agtype);
+$$) AS (length gtype);
  length 
 --------
  
@@ -2499,11 +2499,11 @@ $$) AS (length agtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN length(true)
-$$) AS (length agtype);
+$$) AS (length gtype);
 ERROR:  length() argument must resolve to a path or null
 SELECT * FROM cypher('expr', $$
     RETURN length()
-$$) AS (length agtype);
+$$) AS (length gtype);
 ERROR:  function postgraph.age_length() does not exist
 LINE 2:     RETURN length()
                    ^
@@ -2511,49 +2511,49 @@ HINT:  No function matches the given name and argument types. You might need to 
 --
 -- toString()
 --
-SELECT * FROM age_toString(agtype_in('3'));
+SELECT * FROM age_toString(gtype_in('3'));
  age_tostring 
 --------------
  "3"
 (1 row)
 
-SELECT * FROM age_toString(agtype_in('3.14'));
+SELECT * FROM age_toString(gtype_in('3.14'));
  age_tostring 
 --------------
  "3.14"
 (1 row)
 
-SELECT * FROM age_toString(agtype_in('3.14::float'));
+SELECT * FROM age_toString(gtype_in('3.14::float'));
  age_tostring 
 --------------
  "3.14"
 (1 row)
 
-SELECT * FROM age_toString(agtype_in('3.14::numeric'));
+SELECT * FROM age_toString(gtype_in('3.14::numeric'));
  age_tostring 
 --------------
  "3.14"
 (1 row)
 
-SELECT * FROM age_toString(agtype_in('true'));
+SELECT * FROM age_toString(gtype_in('true'));
  age_tostring 
 --------------
  "true"
 (1 row)
 
-SELECT * FROM age_toString(agtype_in('false'));
+SELECT * FROM age_toString(gtype_in('false'));
  age_tostring 
 --------------
  "false"
 (1 row)
 
-SELECT * FROM age_toString(agtype_in('"a string"'));
+SELECT * FROM age_toString(gtype_in('"a string"'));
  age_tostring 
 --------------
  "a string"
 (1 row)
 
-SELECT * FROM cypher('expr', $$ RETURN toString(3.14::numeric) $$) AS (results agtype);
+SELECT * FROM cypher('expr', $$ RETURN toString(3.14::numeric) $$) AS (results gtype);
  results 
 ---------
  "3.14"
@@ -2566,7 +2566,7 @@ SELECT * FROM age_toString(NULL);
  
 (1 row)
 
-SELECT * FROM age_toString(agtype_in(null));
+SELECT * FROM age_toString(gtype_in(null));
  age_tostring 
 --------------
  
@@ -2578,7 +2578,7 @@ ERROR:  function age_tostring() does not exist
 LINE 1: SELECT * FROM age_toString();
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('expr', $$ RETURN toString() $$) AS (results agtype);
+SELECT * FROM cypher('expr', $$ RETURN toString() $$) AS (results gtype);
 ERROR:  function postgraph.age_tostring() does not exist
 LINE 1: SELECT * FROM cypher('expr', $$ RETURN toString() $$) AS (re...
                                                ^
@@ -2588,13 +2588,13 @@ HINT:  No function matches the given name and argument types. You might need to 
 --
 SELECT * FROM cypher('expr', $$
     RETURN reverse("gnirts a si siht")
-$$) AS (results agtype);
+$$) AS (results gtype);
       results       
 --------------------
  "this is a string"
 (1 row)
 
-SELECT * FROM age_reverse('"gnirts a si siht"'::agtype);
+SELECT * FROM age_reverse('"gnirts a si siht"'::gtype);
     age_reverse     
 --------------------
  "this is a string"
@@ -2603,7 +2603,7 @@ SELECT * FROM age_reverse('"gnirts a si siht"'::agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN reverse(null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -2623,7 +2623,7 @@ LINE 1: SELECT * FROM age_reverse([4923, 'abc', 521, NULL, 487]);
 -- Should return the reversed list
 SELECT * FROM cypher('expr', $$
     RETURN reverse([4923, 'abc', 521, NULL, 487])
-$$) AS (u agtype);
+$$) AS (u gtype);
                u               
 -------------------------------
  [487, null, 521, "abc", 4923]
@@ -2631,7 +2631,7 @@ $$) AS (u agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN reverse([4923])
-$$) AS (u agtype);
+$$) AS (u gtype);
    u    
 --------
  [4923]
@@ -2639,7 +2639,7 @@ $$) AS (u agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN reverse([4923, 257])
-$$) as (u agtype);
+$$) as (u gtype);
       u      
 -------------
  [257, 4923]
@@ -2647,7 +2647,7 @@ $$) as (u agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN reverse([4923, 257, null])
-$$) as (u agtype);
+$$) as (u gtype);
          u         
 -------------------
  [null, 257, 4923]
@@ -2655,7 +2655,7 @@ $$) as (u agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN reverse([4923, 257, 'tea'])
-$$) as (u agtype);
+$$) as (u gtype);
          u          
 --------------------
  ["tea", 257, 4923]
@@ -2663,7 +2663,7 @@ $$) as (u agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN reverse([[1, 4, 7], 4923, [1, 2, 3], 'abc', 521, NULL, 487, ['fgt', 7, 10]])
-$$) as (u agtype);
+$$) as (u gtype);
                                   u                                  
 ---------------------------------------------------------------------
  [["fgt", 7, 10], 487, null, 521, "abc", [1, 2, 3], 4923, [1, 4, 7]]
@@ -2671,7 +2671,7 @@ $$) as (u agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN reverse([4923, 257, {test1: "key"}])
-$$) as (u agtype);
+$$) as (u gtype);
                u               
 -------------------------------
  [{"test1": "key"}, 257, 4923]
@@ -2679,7 +2679,7 @@ $$) as (u agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN reverse([4923, 257, {test2: [1, 2, 3]}])
-$$) as (u agtype);
+$$) as (u gtype);
                  u                 
 -----------------------------------
  [{"test2": [1, 2, 3]}, 257, 4923]
@@ -2687,7 +2687,7 @@ $$) as (u agtype);
 
 SELECT * FROM cypher('expr', $$
     CREATE ({test: [1, 2, 3]})
-$$) as (u agtype);
+$$) as (u gtype);
  u 
 ---
 (0 rows)
@@ -2695,8 +2695,8 @@ $$) as (u agtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN reverse(true)
-$$) AS (results agtype);
-ERROR:  reverse() unsupported argument agtype 5
+$$) AS (results gtype);
+ERROR:  reverse() unsupported argument gtype 5
 SELECT * FROM age_reverse(true);
 ERROR:  function age_reverse(boolean) does not exist
 LINE 1: SELECT * FROM age_reverse(true);
@@ -2704,8 +2704,8 @@ LINE 1: SELECT * FROM age_reverse(true);
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN reverse(3.14)
-$$) AS (results agtype);
-ERROR:  reverse() unsupported argument agtype 4
+$$) AS (results gtype);
+ERROR:  reverse() unsupported argument gtype 4
 SELECT * FROM age_reverse(3.14);
 ERROR:  function age_reverse(numeric) does not exist
 LINE 1: SELECT * FROM age_reverse(3.14);
@@ -2713,7 +2713,7 @@ LINE 1: SELECT * FROM age_reverse(3.14);
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN reverse()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_reverse() does not exist
 LINE 2:     RETURN reverse()
                    ^
@@ -2728,7 +2728,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 --
 SELECT * FROM cypher('expr', $$
     RETURN toUpper('to uppercase')
-$$) AS (toUpper agtype);
+$$) AS (toUpper gtype);
     toupper     
 ----------------
  "TO UPPERCASE"
@@ -2736,7 +2736,7 @@ $$) AS (toUpper agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN toUpper('')
-$$) AS (toUpper agtype);
+$$) AS (toUpper gtype);
  toupper 
 ---------
  ""
@@ -2744,7 +2744,7 @@ $$) AS (toUpper agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN toLower('TO LOWERCASE')
-$$) AS (toLower agtype);
+$$) AS (toLower gtype);
     tolower     
 ----------------
  "to lowercase"
@@ -2753,7 +2753,7 @@ $$) AS (toLower agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN toUpper(null)
-$$) AS (toUpper agtype);
+$$) AS (toUpper gtype);
  toupper 
 ---------
  
@@ -2761,7 +2761,7 @@ $$) AS (toUpper agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN toLower(null)
-$$) AS (toLower agtype);
+$$) AS (toLower gtype);
  tolower 
 ---------
  
@@ -2782,22 +2782,22 @@ SELECT * FROM age_tolower(null);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN toUpper(true)
-$$) AS (toUpper agtype);
-ERROR:  toUpper() unsupported argument agtype 5
+$$) AS (toUpper gtype);
+ERROR:  toUpper() unsupported argument gtype 5
 SELECT * FROM cypher('expr', $$
     RETURN toUpper()
-$$) AS (toUpper agtype);
+$$) AS (toUpper gtype);
 ERROR:  function postgraph.age_toupper() does not exist
 LINE 2:     RETURN toUpper()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN toLower(true)
-$$) AS (toLower agtype);
-ERROR:  toLower() unsupported argument agtype 5
+$$) AS (toLower gtype);
+ERROR:  toLower() unsupported argument gtype 5
 SELECT * FROM cypher('expr', $$
     RETURN toLower()
-$$) AS (toLower agtype);
+$$) AS (toLower gtype);
 ERROR:  function postgraph.age_tolower() does not exist
 LINE 2:     RETURN toLower()
                    ^
@@ -2817,7 +2817,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 --
 SELECT * FROM cypher('expr', $$
     RETURN lTrim("  string   ")
-$$) AS (results agtype);
+$$) AS (results gtype);
    results   
 -------------
  "string   "
@@ -2825,7 +2825,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN rTrim("  string   ")
-$$) AS (results agtype);
+$$) AS (results gtype);
   results   
 ------------
  "  string"
@@ -2833,25 +2833,25 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN trim("  string   ")
-$$) AS (results agtype);
+$$) AS (results gtype);
  results  
 ----------
  "string"
 (1 row)
 
-SELECT * FROM age_ltrim('"  string   "'::agtype);
+SELECT * FROM age_ltrim('"  string   "'::gtype);
   age_ltrim  
 -------------
  "string   "
 (1 row)
 
-SELECT * FROM age_rtrim('"  string   "'::agtype);
+SELECT * FROM age_rtrim('"  string   "'::gtype);
  age_rtrim  
 ------------
  "  string"
 (1 row)
 
-SELECT * FROM age_trim('"  string   "'::agtype);
+SELECT * FROM age_trim('"  string   "'::gtype);
  age_trim 
 ----------
  "string"
@@ -2860,7 +2860,7 @@ SELECT * FROM age_trim('"  string   "'::agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN lTrim(null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -2868,7 +2868,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN rTrim(null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -2876,7 +2876,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN trim(null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -2903,33 +2903,33 @@ SELECT * FROM age_trim(null);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN lTrim(true)
-$$) AS (results agtype);
-ERROR:  lTrim() unsupported argument agtype 5
+$$) AS (results gtype);
+ERROR:  lTrim() unsupported argument gtype 5
 SELECT * FROM cypher('expr', $$
     RETURN rTrim(true)
-$$) AS (results agtype);
-ERROR:  rTrim() unsupported argument agtype 5
+$$) AS (results gtype);
+ERROR:  rTrim() unsupported argument gtype 5
 SELECT * FROM cypher('expr', $$
     RETURN trim(true)
-$$) AS (results agtype);
-ERROR:  Trim() unsupported argument agtype 5
+$$) AS (results gtype);
+ERROR:  Trim() unsupported argument gtype 5
 SELECT * FROM cypher('expr', $$
     RETURN lTrim()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_ltrim() does not exist
 LINE 2:     RETURN lTrim()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN rTrim()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_rtrim() does not exist
 LINE 2:     RETURN rTrim()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN trim()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_trim() does not exist
 LINE 2:     RETURN trim()
                    ^
@@ -2954,7 +2954,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- left()
 SELECT * FROM cypher('expr', $$
     RETURN left("123456789", 1)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  "1"
@@ -2962,7 +2962,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN left("123456789", 3)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  "123"
@@ -2971,7 +2971,7 @@ $$) AS (results agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN left("123456789", 0)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  ""
@@ -2979,7 +2979,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN left(null, 1)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -2987,13 +2987,13 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN left(null, null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
 (1 row)
 
-SELECT * FROM age_left(null, '1'::agtype);
+SELECT * FROM age_left(null, '1'::gtype);
  age_left 
 ----------
  
@@ -3008,7 +3008,7 @@ SELECT * FROM age_left(null, null);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN left("123456789", null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3016,7 +3016,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN left("123456789", -1)
-$$) AS (results agtype);
+$$) AS (results gtype);
   results   
 ------------
  "12345678"
@@ -3024,7 +3024,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN left()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_left() does not exist
 LINE 2:     RETURN left()
                    ^
@@ -3035,7 +3035,7 @@ SELECT * FROM age_left('123456789', null);
  
 (1 row)
 
-SELECT * FROM age_left('"123456789"'::agtype, '-1'::agtype);
+SELECT * FROM age_left('"123456789"'::gtype, '-1'::gtype);
   age_left  
 ------------
  "12345678"
@@ -3049,7 +3049,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 --right()
 SELECT * FROM cypher('expr', $$
     RETURN right("123456789", 1)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  "9"
@@ -3057,7 +3057,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN right("123456789", 3)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  "789"
@@ -3066,7 +3066,7 @@ $$) AS (results agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN right("123456789", 0)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  ""
@@ -3074,7 +3074,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN right(null, 1)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3082,13 +3082,13 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN right(null, null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
 (1 row)
 
-SELECT * FROM age_right(null, '1'::agtype);
+SELECT * FROM age_right(null, '1'::gtype);
  age_right 
 -----------
  
@@ -3103,7 +3103,7 @@ SELECT * FROM age_right(null, null);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN right("123456789", null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3111,7 +3111,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN right("123456789", -1)
-$$) AS (results agtype);
+$$) AS (results gtype);
   results   
 ------------
  "23456789"
@@ -3119,7 +3119,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN right()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_right() does not exist
 LINE 2:     RETURN right()
                    ^
@@ -3130,7 +3130,7 @@ SELECT * FROM age_right('123456789', null);
  
 (1 row)
 
-SELECT * FROM age_right('"123456789"'::agtype, '-1'::agtype);
+SELECT * FROM age_right('"123456789"'::gtype, '-1'::gtype);
  age_right  
 ------------
  "23456789"
@@ -3144,7 +3144,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- substring()
 SELECT * FROM cypher('expr', $$
     RETURN substring("0123456789", 0, 1)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  "0"
@@ -3152,7 +3152,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN substring("0123456789", 1, 3)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  "123"
@@ -3160,7 +3160,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN substring("0123456789", 3)
-$$) AS (results agtype);
+$$) AS (results gtype);
   results  
 -----------
  "3456789"
@@ -3168,7 +3168,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN substring("0123456789", 0)
-$$) AS (results agtype);
+$$) AS (results gtype);
    results    
 --------------
  "0123456789"
@@ -3177,7 +3177,7 @@ $$) AS (results agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN substring(null, null, null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3185,7 +3185,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN substring(null, null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3193,7 +3193,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN substring(null, 1)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3202,20 +3202,20 @@ $$) AS (results agtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN substring("123456789", null)
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  substring() offset or length cannot be null
 SELECT * FROM cypher('expr', $$
     RETURN substring("123456789", 0, -1)
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  substring() negative values are not supported for offset or length
 SELECT * FROM cypher('expr', $$
     RETURN substring("123456789", -1)
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  substring() negative values are not supported for offset or length
 SELECT * FROM cypher('expr', $$
     RETURN substring("123456789")
-$$) AS (results agtype);
-ERROR:  function postgraph.age_substring(agtype) does not exist
+$$) AS (results gtype);
+ERROR:  function postgraph.age_substring(gtype) does not exist
 LINE 2:     RETURN substring("123456789")
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -3224,7 +3224,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 --
 SELECT * FROM cypher('expr', $$
     RETURN split("a,b,c,d,e,f", ",")
-$$) AS (results agtype);
+$$) AS (results gtype);
             results             
 --------------------------------
  ["a", "b", "c", "d", "e", "f"]
@@ -3232,7 +3232,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN split("a,b,c,d,e,f", "")
-$$) AS (results agtype);
+$$) AS (results gtype);
                          results                         
 ---------------------------------------------------------
  ["a", ",", "b", ",", "c", ",", "d", ",", "e", ",", "f"]
@@ -3240,7 +3240,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN split("a,b,c,d,e,f", " ")
-$$) AS (results agtype);
+$$) AS (results gtype);
      results     
 -----------------
  ["a,b,c,d,e,f"]
@@ -3248,7 +3248,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN split("a,b,cd  e,f", " ")
-$$) AS (results agtype);
+$$) AS (results gtype);
         results        
 -----------------------
  ["a,b,cd", "", "e,f"]
@@ -3256,7 +3256,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN split("a,b,cd  e,f", "  ")
-$$) AS (results agtype);
+$$) AS (results gtype);
       results      
 -------------------
  ["a,b,cd", "e,f"]
@@ -3264,7 +3264,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN split("a,b,c,d,e,f", "c,")
-$$) AS (results agtype);
+$$) AS (results gtype);
       results      
 -------------------
  ["a,b,", "d,e,f"]
@@ -3273,7 +3273,7 @@ $$) AS (results agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN split(null, null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3281,7 +3281,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN split("a,b,c,d,e,f", null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3289,7 +3289,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN split(null, ",")
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3301,13 +3301,13 @@ SELECT * FROM age_split(null, null);
  
 (1 row)
 
-SELECT * FROM age_split('"a,b,c,d,e,f"'::agtype, null);
+SELECT * FROM age_split('"a,b,c,d,e,f"'::gtype, null);
  age_split 
 -----------
  
 (1 row)
 
-SELECT * FROM age_split(null, '","'::agtype);
+SELECT * FROM age_split(null, '","'::gtype);
  age_split 
 -----------
  
@@ -3316,33 +3316,33 @@ SELECT * FROM age_split(null, '","'::agtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN split(123456789, ",")
-$$) AS (results agtype);
-ERROR:  split() unsupported argument agtype 3
+$$) AS (results gtype);
+ERROR:  split() unsupported argument gtype 3
 SELECT * FROM cypher('expr', $$
     RETURN split("a,b,c,d,e,f", -1)
-$$) AS (results agtype);
-ERROR:  split() unsupported argument agtype 3
+$$) AS (results gtype);
+ERROR:  split() unsupported argument gtype 3
 SELECT * FROM cypher('expr', $$
     RETURN split("a,b,c,d,e,f")
-$$) AS (results agtype);
-ERROR:  function postgraph.age_split(agtype) does not exist
+$$) AS (results gtype);
+ERROR:  function postgraph.age_split(gtype) does not exist
 LINE 2:     RETURN split("a,b,c,d,e,f")
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN split()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_split() does not exist
 LINE 2:     RETURN split()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_split('123456789'::agtype, '","'::agtype);
-ERROR:  split() unsupported argument agtype 3
-SELECT * FROM age_split('"a,b,c,d,e,f"'::agtype, '-1'::agtype);
-ERROR:  split() unsupported argument agtype 3
-SELECT * FROM age_split('"a,b,c,d,e,f"'::agtype);
-ERROR:  function age_split(agtype) does not exist
-LINE 1: SELECT * FROM age_split('"a,b,c,d,e,f"'::agtype);
+SELECT * FROM age_split('123456789'::gtype, '","'::gtype);
+ERROR:  split() unsupported argument gtype 3
+SELECT * FROM age_split('"a,b,c,d,e,f"'::gtype, '-1'::gtype);
+ERROR:  split() unsupported argument gtype 3
+SELECT * FROM age_split('"a,b,c,d,e,f"'::gtype);
+ERROR:  function age_split(gtype) does not exist
+LINE 1: SELECT * FROM age_split('"a,b,c,d,e,f"'::gtype);
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM age_split();
@@ -3355,7 +3355,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 --
 SELECT * FROM cypher('expr', $$
     RETURN replace("Hello", "lo", "p")
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  "Help"
@@ -3363,7 +3363,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN replace("Hello", "hello", "Good bye")
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  "Hello"
@@ -3371,7 +3371,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN replace("abcabcabc", "abc", "a")
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  "aaa"
@@ -3379,7 +3379,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN replace("abcabcabc", "ab", "")
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  "ccc"
@@ -3387,7 +3387,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN replace("ababab", "ab", "ab")
-$$) AS (results agtype);
+$$) AS (results gtype);
  results  
 ----------
  "ababab"
@@ -3396,7 +3396,7 @@ $$) AS (results agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN replace(null, null, null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3404,7 +3404,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN replace("Hello", null, null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3412,7 +3412,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN replace("Hello", "", null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3420,7 +3420,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN replace("", "", "")
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3428,7 +3428,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN replace("Hello", "Hello", "")
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3436,7 +3436,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN replace("", "Hello", "Mellow")
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3445,63 +3445,63 @@ $$) AS (results agtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN replace()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_replace() does not exist
 LINE 2:     RETURN replace()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN replace("Hello")
-$$) AS (results agtype);
-ERROR:  function postgraph.age_replace(agtype) does not exist
+$$) AS (results gtype);
+ERROR:  function postgraph.age_replace(gtype) does not exist
 LINE 2:     RETURN replace("Hello")
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN replace("Hello", null)
-$$) AS (results agtype);
-ERROR:  function postgraph.age_replace(agtype, agtype) does not exist
+$$) AS (results gtype);
+ERROR:  function postgraph.age_replace(gtype, gtype) does not exist
 LINE 2:     RETURN replace("Hello", null)
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN replace("Hello", "e", 1)
-$$) AS (results agtype);
-ERROR:  replace() unsupported argument agtype 3
+$$) AS (results gtype);
+ERROR:  replace() unsupported argument gtype 3
 SELECT * FROM cypher('expr', $$
     RETURN replace("Hello", 1, "e")
-$$) AS (results agtype);
-ERROR:  replace() unsupported argument agtype 3
+$$) AS (results gtype);
+ERROR:  replace() unsupported argument gtype 3
 --
 -- sin, cos, tan, cot
 --
-SELECT sin::agtype = results FROM cypher('expr', $$
+SELECT sin::gtype = results FROM cypher('expr', $$
     RETURN sin(3.1415)
-$$) AS (results agtype), sin(3.1415);
+$$) AS (results gtype), sin(3.1415);
  ?column? 
 ----------
  t
 (1 row)
 
-SELECT cos::agtype = results FROM cypher('expr', $$
+SELECT cos::gtype = results FROM cypher('expr', $$
     RETURN cos(3.1415)
-$$) AS (results agtype), cos(3.1415);
+$$) AS (results gtype), cos(3.1415);
  ?column? 
 ----------
  t
 (1 row)
 
-SELECT tan::agtype = results FROM cypher('expr', $$
+SELECT tan::gtype = results FROM cypher('expr', $$
     RETURN tan(3.1415)
-$$) AS (results agtype), tan(3.1415);
+$$) AS (results gtype), tan(3.1415);
  ?column? 
 ----------
  t
 (1 row)
 
-SELECT cot::agtype = results FROM cypher('expr', $$
+SELECT cot::gtype = results FROM cypher('expr', $$
     RETURN cot(3.1415)
-$$) AS (results agtype), cot(3.1415);
+$$) AS (results gtype), cot(3.1415);
  ?column? 
 ----------
  t
@@ -3510,7 +3510,7 @@ $$) AS (results agtype), cot(3.1415);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN sin(null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3518,7 +3518,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN cos(null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3526,7 +3526,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN tan(null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3534,7 +3534,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN cot(null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3567,44 +3567,44 @@ SELECT * FROM age_cot(null);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN sin("0")
-$$) AS (results agtype);
-ERROR:  sin() unsupported argument agtype 1
+$$) AS (results gtype);
+ERROR:  sin() unsupported argument gtype 1
 SELECT * FROM cypher('expr', $$
     RETURN cos("0")
-$$) AS (results agtype);
-ERROR:  cos() unsupported argument agtype 1
+$$) AS (results gtype);
+ERROR:  cos() unsupported argument gtype 1
 SELECT * FROM cypher('expr', $$
     RETURN tan("0")
-$$) AS (results agtype);
-ERROR:  tan() unsupported argument agtype 1
+$$) AS (results gtype);
+ERROR:  tan() unsupported argument gtype 1
 SELECT * FROM cypher('expr', $$
     RETURN cot("0")
-$$) AS (results agtype);
-ERROR:  cot() unsupported argument agtype 1
+$$) AS (results gtype);
+ERROR:  cot() unsupported argument gtype 1
 SELECT * FROM cypher('expr', $$
     RETURN sin()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_sin() does not exist
 LINE 2:     RETURN sin()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN cos()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_cos() does not exist
 LINE 2:     RETURN cos()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN tan()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_tan() does not exist
 LINE 2:     RETURN tan()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN cot()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_cot() does not exist
 LINE 2:     RETURN cot()
                    ^
@@ -3658,7 +3658,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 --
 SELECT * FROM cypher('expr', $$
     RETURN asin(1)*2
-$$) AS (results agtype);
+$$) AS (results gtype);
      results      
 ------------------
  3.14159265358979
@@ -3666,7 +3666,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN acos(0)*2
-$$) AS (results agtype);
+$$) AS (results gtype);
      results      
 ------------------
  3.14159265358979
@@ -3674,7 +3674,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN atan(1)*4
-$$) AS (results agtype);
+$$) AS (results gtype);
      results      
 ------------------
  3.14159265358979
@@ -3682,31 +3682,31 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN atan2(1, 1)*4
-$$) AS (results agtype);
+$$) AS (results gtype);
      results      
 ------------------
  3.14159265358979
 (1 row)
 
-SELECT * FROM asin(1), age_asin('1'::agtype);
+SELECT * FROM asin(1), age_asin('1'::gtype);
       asin       |    age_asin     
 -----------------+-----------------
  1.5707963267949 | 1.5707963267949
 (1 row)
 
-SELECT * FROM acos(0), age_acos('0'::agtype);
+SELECT * FROM acos(0), age_acos('0'::gtype);
       acos       |    age_acos     
 -----------------+-----------------
  1.5707963267949 | 1.5707963267949
 (1 row)
 
-SELECT * FROM atan(1), age_atan('1'::agtype);
+SELECT * FROM atan(1), age_atan('1'::gtype);
        atan        |     age_atan      
 -------------------+-------------------
  0.785398163397448 | 0.785398163397448
 (1 row)
 
-SELECT * FROM atan2(1, 1), age_atan2('1'::agtype, '1'::agtype);
+SELECT * FROM atan2(1, 1), age_atan2('1'::gtype, '1'::gtype);
        atan2       |     age_atan2     
 -------------------+-------------------
  0.785398163397448 | 0.785398163397448
@@ -3715,23 +3715,23 @@ SELECT * FROM atan2(1, 1), age_atan2('1'::agtype, '1'::agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN asin(1.1)
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  input is out of range
 SELECT * FROM cypher('expr', $$
     RETURN acos(1.1)
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  input is out of range
 SELECT * FROM cypher('expr', $$
     RETURN asin(-1.1)
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  input is out of range
 SELECT * FROM cypher('expr', $$
     RETURN acos(-1.1)
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  input is out of range
 SELECT * FROM cypher('expr', $$
     RETURN asin(null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3739,7 +3739,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN acos(null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3747,7 +3747,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN atan(null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3755,7 +3755,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN atan2(null, null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3763,7 +3763,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN atan2(null, 1)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3771,7 +3771,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN atan2(1, null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -3801,13 +3801,13 @@ SELECT * FROM age_atan2(null, null);
  
 (1 row)
 
-SELECT * FROM age_atan2('1'::agtype, null);
+SELECT * FROM age_atan2('1'::gtype, null);
  age_atan2 
 -----------
  
 (1 row)
 
-SELECT * FROM age_atan2(null, '1'::agtype);
+SELECT * FROM age_atan2(null, '1'::gtype);
  age_atan2 
 -----------
  
@@ -3816,56 +3816,56 @@ SELECT * FROM age_atan2(null, '1'::agtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN asin("0")
-$$) AS (results agtype);
-ERROR:  asin() unsupported argument agtype 1
+$$) AS (results gtype);
+ERROR:  asin() unsupported argument gtype 1
 SELECT * FROM cypher('expr', $$
     RETURN acos("0")
-$$) AS (results agtype);
-ERROR:  acos() unsupported argument agtype 1
+$$) AS (results gtype);
+ERROR:  acos() unsupported argument gtype 1
 SELECT * FROM cypher('expr', $$
     RETURN atan("0")
-$$) AS (results agtype);
-ERROR:  atan() unsupported argument agtype 1
+$$) AS (results gtype);
+ERROR:  atan() unsupported argument gtype 1
 SELECT * FROM cypher('expr', $$
     RETURN atan2("0", 1)
-$$) AS (results agtype);
-ERROR:  atan2() unsupported argument agtype 1
+$$) AS (results gtype);
+ERROR:  atan2() unsupported argument gtype 1
 SELECT * FROM cypher('expr', $$
     RETURN atan2(0, "1")
-$$) AS (results agtype);
-ERROR:  atan2() unsupported argument agtype 1
+$$) AS (results gtype);
+ERROR:  atan2() unsupported argument gtype 1
 SELECT * FROM cypher('expr', $$
     RETURN asin()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_asin() does not exist
 LINE 2:     RETURN asin()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN acos()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_acos() does not exist
 LINE 2:     RETURN acos()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN atan()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_atan() does not exist
 LINE 2:     RETURN atan()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN atan2()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_atan2() does not exist
 LINE 2:     RETURN atan2()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN atan2(null)
-$$) AS (results agtype);
-ERROR:  function postgraph.age_atan2(agtype) does not exist
+$$) AS (results gtype);
+ERROR:  function postgraph.age_atan2(gtype) does not exist
 LINE 2:     RETURN atan2(null)
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -3887,10 +3887,10 @@ SELECT * FROM age_atan('0');
  0.0
 (1 row)
 
-SELECT * FROM age_atan2('"0"'::agtype, '1'::agtype);
-ERROR:  atan2() unsupported argument agtype 1
-SELECT * FROM age_atan2('1'::agtype, '"0"'::agtype);
-ERROR:  atan2() unsupported argument agtype 1
+SELECT * FROM age_atan2('"0"'::gtype, '1'::gtype);
+ERROR:  atan2() unsupported argument gtype 1
+SELECT * FROM age_atan2('1'::gtype, '"0"'::gtype);
+ERROR:  atan2() unsupported argument gtype 1
 SELECT * FROM age_asin();
 ERROR:  function age_asin() does not exist
 LINE 1: SELECT * FROM age_asin();
@@ -3911,9 +3911,9 @@ ERROR:  function age_atan2() does not exist
 LINE 1: SELECT * FROM age_atan2();
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_atan2('1'::agtype);
-ERROR:  function age_atan2(agtype) does not exist
-LINE 1: SELECT * FROM age_atan2('1'::agtype);
+SELECT * FROM age_atan2('1'::gtype);
+ERROR:  function age_atan2(gtype) does not exist
+LINE 1: SELECT * FROM age_atan2('1'::gtype);
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
@@ -3921,7 +3921,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 --
 SELECT * FROM cypher('expr', $$
     RETURN pi()
-$$) AS (results agtype);
+$$) AS (results gtype);
      results      
 ------------------
  3.14159265358979
@@ -3929,7 +3929,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN sin(pi())
-$$) AS (results agtype);
+$$) AS (results gtype);
        results        
 ----------------------
  1.22464679914735e-16
@@ -3937,7 +3937,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN sin(pi()/4)
-$$) AS (results agtype);
+$$) AS (results gtype);
       results      
 -------------------
  0.707106781186547
@@ -3945,7 +3945,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN cos(pi())
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  -1.0
@@ -3953,7 +3953,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN cos(pi()/2)
-$$) AS (results agtype);
+$$) AS (results gtype);
        results        
 ----------------------
  6.12323399573677e-17
@@ -3961,7 +3961,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN sin(pi()/2)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  1.0
@@ -3970,15 +3970,15 @@ $$) AS (results agtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN pi(null)
-$$) AS (results agtype);
-ERROR:  function postgraph.age_pi(agtype) does not exist
+$$) AS (results gtype);
+ERROR:  function postgraph.age_pi(gtype) does not exist
 LINE 2:     RETURN pi(null)
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN pi(1)
-$$) AS (results agtype);
-ERROR:  function postgraph.age_pi(agtype) does not exist
+$$) AS (results gtype);
+ERROR:  function postgraph.age_pi(gtype) does not exist
 LINE 2:     RETURN pi(1)
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -3987,7 +3987,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 --
 SELECT * FROM cypher('expr', $$
     RETURN radians(0)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  0.0
@@ -3995,7 +3995,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN degrees(0)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  0.0
@@ -4003,7 +4003,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN radians(360), 2*pi()
-$$) AS (results agtype, Two_PI agtype);
+$$) AS (results gtype, Two_PI gtype);
      results      |      two_pi      
 ------------------+------------------
  6.28318530717959 | 6.28318530717959
@@ -4011,7 +4011,7 @@ $$) AS (results agtype, Two_PI agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN degrees(2*pi())
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  360.0
@@ -4019,7 +4019,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN radians(180), pi()
-$$) AS (results agtype, PI agtype);
+$$) AS (results gtype, PI gtype);
      results      |        pi        
 ------------------+------------------
  3.14159265358979 | 3.14159265358979
@@ -4027,7 +4027,7 @@ $$) AS (results agtype, PI agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN degrees(pi())
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  180.0
@@ -4035,7 +4035,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN radians(90), pi()/2
-$$) AS (results agtype, Half_PI agtype);
+$$) AS (results gtype, Half_PI gtype);
      results     |     half_pi     
 -----------------+-----------------
  1.5707963267949 | 1.5707963267949
@@ -4043,7 +4043,7 @@ $$) AS (results agtype, Half_PI agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN degrees(pi()/2)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  90.0
@@ -4052,7 +4052,7 @@ $$) AS (results agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN radians(null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -4060,7 +4060,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN degrees(null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -4069,32 +4069,32 @@ $$) AS (results agtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN radians()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_radians() does not exist
 LINE 2:     RETURN radians()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN degrees()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_degrees() does not exist
 LINE 2:     RETURN degrees()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN radians("1")
-$$) AS (results agtype);
-ERROR:  radians() unsupported argument agtype 1
+$$) AS (results gtype);
+ERROR:  radians() unsupported argument gtype 1
 SELECT * FROM cypher('expr', $$
     RETURN degrees("1")
-$$) AS (results agtype);
-ERROR:  degrees() unsupported argument agtype 1
+$$) AS (results gtype);
+ERROR:  degrees() unsupported argument gtype 1
 --
 -- abs(), ceil(), floor(), & round()
 --
 SELECT * FROM cypher('expr', $$
     RETURN abs(0)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  0
@@ -4102,7 +4102,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN abs(10)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  10
@@ -4110,7 +4110,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN abs(-10)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  10
@@ -4118,7 +4118,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN ceil(0)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  0.0
@@ -4126,7 +4126,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN ceil(1)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  1.0
@@ -4134,7 +4134,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN ceil(-1)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  -1.0
@@ -4142,7 +4142,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN ceil(1.01)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  2.0
@@ -4150,7 +4150,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN ceil(-1.01)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  -1.0
@@ -4158,7 +4158,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN floor(0)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  0.0
@@ -4166,7 +4166,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN floor(1)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  1.0
@@ -4174,7 +4174,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN floor(-1)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  -1.0
@@ -4182,7 +4182,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN floor(1.01)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  1.0
@@ -4190,7 +4190,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN floor(-1.01)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  -2.0
@@ -4198,7 +4198,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN round(0)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  0.0
@@ -4206,7 +4206,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN round(4.49999999)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  4.0
@@ -4214,7 +4214,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN round(4.5)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  5.0
@@ -4222,7 +4222,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN round(-4.49999999)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  -4.0
@@ -4230,7 +4230,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN round(-4.5)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  -5.0
@@ -4238,7 +4238,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN round(7.4163, 3)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  7.416
@@ -4246,7 +4246,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN round(7.416343479, 8)
-$$) AS (results agtype);
+$$) AS (results gtype);
   results   
 ------------
  7.41634348
@@ -4254,7 +4254,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN round(7.416343479, NULL)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  7.0
@@ -4262,7 +4262,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN round(NULL, 7)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -4270,7 +4270,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN round(7, 2)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  7.0
@@ -4278,7 +4278,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN round(7.4342, 2.1123)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  7.43
@@ -4286,7 +4286,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN round(NULL, NULL)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -4294,7 +4294,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN sign(10)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  1
@@ -4302,7 +4302,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN sign(-10)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  -1
@@ -4310,7 +4310,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN sign(0)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  0
@@ -4319,7 +4319,7 @@ $$) AS (results agtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN abs(null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -4327,7 +4327,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN ceil(null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -4335,7 +4335,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN floor(null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -4343,7 +4343,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN round(null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -4351,7 +4351,7 @@ $$) AS (results agtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN sign(null)
-$$) AS (results agtype);
+$$) AS (results gtype);
  results 
 ---------
  
@@ -4360,59 +4360,59 @@ $$) AS (results agtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN abs()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_abs() does not exist
 LINE 2:     RETURN abs()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN ceil()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_ceil() does not exist
 LINE 2:     RETURN ceil()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN floor()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_floor() does not exist
 LINE 2:     RETURN floor()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN round()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_round() does not exist
 LINE 2:     RETURN round()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN sign()
-$$) AS (results agtype);
+$$) AS (results gtype);
 ERROR:  function postgraph.age_sign() does not exist
 LINE 2:     RETURN sign()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN abs("1")
-$$) AS (results agtype);
-ERROR:  abs() unsupported argument agtype 1
+$$) AS (results gtype);
+ERROR:  abs() unsupported argument gtype 1
 SELECT * FROM cypher('expr', $$
     RETURN ceil("1")
-$$) AS (results agtype);
-ERROR:  ceil() unsupported argument agtype 1
+$$) AS (results gtype);
+ERROR:  ceil() unsupported argument gtype 1
 SELECT * FROM cypher('expr', $$
     RETURN floor("1")
-$$) AS (results agtype);
-ERROR:  floor() unsupported argument agtype 1
+$$) AS (results gtype);
+ERROR:  floor() unsupported argument gtype 1
 SELECT * FROM cypher('expr', $$
     RETURN round("1")
-$$) AS (results agtype);
-ERROR:  round() unsupported argument agtype 1
+$$) AS (results gtype);
+ERROR:  round() unsupported argument gtype 1
 SELECT * FROM cypher('expr', $$
     RETURN sign("1")
-$$) AS (results agtype);
-ERROR:  sign() unsupported argument agtype 1
+$$) AS (results gtype);
+ERROR:  sign() unsupported argument gtype 1
 --
 -- rand()
 --
@@ -4428,10 +4428,10 @@ WHERE result >= 1 or result < 0;
 -- should select 0 rows as rand() should not return the same value
 SELECT * FROM cypher('expr', $$
     RETURN rand()
-$$) AS cypher_1(result agtype),
+$$) AS cypher_1(result gtype),
     cypher('expr', $$
     RETURN rand()
-$$) AS cypher_2(result agtype)
+$$) AS cypher_2(result gtype)
 WHERE cypher_1.result = cypher_2.result;
  result | result 
 --------+--------
@@ -4442,7 +4442,7 @@ WHERE cypher_1.result = cypher_2.result;
 --
 SELECT * from cypher('expr', $$
     RETURN log(2.718281828459045)
-$$) as (result agtype);
+$$) as (result gtype);
  result 
 --------
  1.0
@@ -4450,7 +4450,7 @@ $$) as (result agtype);
 
 SELECT * from cypher('expr', $$
     RETURN log10(10)
-$$) as (result agtype);
+$$) as (result gtype);
  result 
 --------
  1.0
@@ -4459,7 +4459,7 @@ $$) as (result agtype);
 -- should return null
 SELECT * from cypher('expr', $$
     RETURN log(null)
-$$) as (result agtype);
+$$) as (result gtype);
  result 
 --------
  
@@ -4467,7 +4467,7 @@ $$) as (result agtype);
 
 SELECT * from cypher('expr', $$
     RETURN log10(null)
-$$) as (result agtype);
+$$) as (result gtype);
  result 
 --------
  
@@ -4475,31 +4475,31 @@ $$) as (result agtype);
 
 SELECT * from cypher('expr', $$
     RETURN log(0)
-$$) as (result agtype);
+$$) as (result gtype);
 ERROR:  cannot take logarithm of zero
 SELECT * from cypher('expr', $$
     RETURN log10(0)
-$$) as (result agtype);
+$$) as (result gtype);
 ERROR:  cannot take logarithm of zero
 SELECT * from cypher('expr', $$
     RETURN log(-1)
-$$) as (result agtype);
+$$) as (result gtype);
 ERROR:  cannot take logarithm of a negative number
 SELECT * from cypher('expr', $$
     RETURN log10(-1)
-$$) as (result agtype);
+$$) as (result gtype);
 ERROR:  cannot take logarithm of a negative number
 -- should fail
 SELECT * from cypher('expr', $$
     RETURN log()
-$$) as (result agtype);
+$$) as (result gtype);
 ERROR:  function postgraph.age_log() does not exist
 LINE 2:     RETURN log()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * from cypher('expr', $$
     RETURN log10()
-$$) as (result agtype);
+$$) as (result gtype);
 ERROR:  function postgraph.age_log10() does not exist
 LINE 2:     RETURN log10()
                    ^
@@ -4509,7 +4509,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 --
 SELECT * from cypher('expr', $$
     RETURN e()
-$$) as (result agtype);
+$$) as (result gtype);
       result      
 ------------------
  2.71828182845905
@@ -4517,7 +4517,7 @@ $$) as (result agtype);
 
 SELECT * from cypher('expr', $$
     RETURN log(e())
-$$) as (result agtype);
+$$) as (result gtype);
  result 
 --------
  1.0
@@ -4528,7 +4528,7 @@ $$) as (result agtype);
 --
 SELECT * from cypher('expr', $$
     RETURN exp(1)
-$$) as (result agtype);
+$$) as (result gtype);
       result      
 ------------------
  2.71828182845905
@@ -4536,7 +4536,7 @@ $$) as (result agtype);
 
 SELECT * from cypher('expr', $$
     RETURN exp(0)
-$$) as (result agtype);
+$$) as (result gtype);
  result 
 --------
  1.0
@@ -4545,7 +4545,7 @@ $$) as (result agtype);
 -- should return null
 SELECT * from cypher('expr', $$
     RETURN exp(null)
-$$) as (result agtype);
+$$) as (result gtype);
  result 
 --------
  
@@ -4554,21 +4554,21 @@ $$) as (result agtype);
 -- should fail
 SELECT * from cypher('expr', $$
     RETURN exp()
-$$) as (result agtype);
+$$) as (result gtype);
 ERROR:  function postgraph.age_exp() does not exist
 LINE 2:     RETURN exp()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * from cypher('expr', $$
     RETURN exp("1")
-$$) as (result agtype);
-ERROR:  exp() unsupported argument agtype 1
+$$) as (result gtype);
+ERROR:  exp() unsupported argument gtype 1
 --
 -- sqrt()
 --
 SELECT * from cypher('expr', $$
     RETURN sqrt(25)
-$$) as (result agtype);
+$$) as (result gtype);
  result 
 --------
  5.0
@@ -4576,7 +4576,7 @@ $$) as (result agtype);
 
 SELECT * from cypher('expr', $$
     RETURN sqrt(1)
-$$) as (result agtype);
+$$) as (result gtype);
  result 
 --------
  1.0
@@ -4584,7 +4584,7 @@ $$) as (result agtype);
 
 SELECT * from cypher('expr', $$
     RETURN sqrt(0)
-$$) as (result agtype);
+$$) as (result gtype);
  result 
 --------
  0.0
@@ -4593,11 +4593,11 @@ $$) as (result agtype);
 -- should return null
 SELECT * from cypher('expr', $$
     RETURN sqrt(-1)
-$$) as (result agtype);
+$$) as (result gtype);
 ERROR:  cannot take square root of a negative number
 SELECT * from cypher('expr', $$
     RETURN sqrt(null)
-$$) as (result agtype);
+$$) as (result gtype);
  result 
 --------
  
@@ -4606,15 +4606,15 @@ $$) as (result agtype);
 -- should fail
 SELECT * from cypher('expr', $$
     RETURN sqrt()
-$$) as (result agtype);
+$$) as (result gtype);
 ERROR:  function postgraph.age_sqrt() does not exist
 LINE 2:     RETURN sqrt()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * from cypher('expr', $$
     RETURN sqrt("1")
-$$) as (result agtype);
-ERROR:  sqrt() unsupported argument agtype 1
+$$) as (result gtype);
+ERROR:  sqrt() unsupported argument gtype 1
 --
 -- aggregate functions avg(), sum(), count(), & count(*)
 --
@@ -4625,42 +4625,42 @@ NOTICE:  graph "UCSC" has been created
  
 (1 row)
 
-SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Jack", gpa: 3.0, age: 21, zip: 94110})$$) AS (a agtype);
+SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Jack", gpa: 3.0, age: 21, zip: 94110})$$) AS (a gtype);
  a 
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Jill", gpa: 3.5, age: 27, zip: 95060})$$) AS (a agtype);
+SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Jill", gpa: 3.5, age: 27, zip: 95060})$$) AS (a gtype);
  a 
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Jim", gpa: 3.75, age: 32, zip: 96062})$$) AS (a agtype);
+SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Jim", gpa: 3.75, age: 32, zip: 96062})$$) AS (a gtype);
  a 
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Rick", gpa: 2.5, age: 24, zip: "95060"})$$) AS (a agtype);
+SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Rick", gpa: 2.5, age: 24, zip: "95060"})$$) AS (a gtype);
  a 
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Ann", gpa: 3.8::numeric, age: 23})$$) AS (a agtype);
+SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Ann", gpa: 3.8::numeric, age: 23})$$) AS (a gtype);
  a 
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Derek", gpa: 4.0, age: 19, zip: 90210})$$) AS (a agtype);
+SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Derek", gpa: 4.0, age: 19, zip: 90210})$$) AS (a gtype);
  a 
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Jessica", gpa: 3.9::numeric, age: 20})$$) AS (a agtype);
+SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Jessica", gpa: 3.9::numeric, age: 20})$$) AS (a gtype);
  a 
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex agtype);
+SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex gtype);
                                                            vertex                                                            
 -----------------------------------------------------------------------------------------------------------------------------
  {"id": 844424930131969, "label": "students", "properties": {"age": 21, "gpa": 3.0, "zip": 94110, "name": "Jack"}}::vertex
@@ -4673,23 +4673,23 @@ SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex agtype);
 (7 rows)
 
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN avg(u.gpa), sum(u.gpa), sum(u.gpa)/count(u.gpa), count(u.gpa), count(*) $$) 
-AS (avg agtype, sum agtype, sum_divided_by_count agtype, count agtype, count_star agtype);
+AS (avg gtype, sum gtype, sum_divided_by_count gtype, count gtype, count_star gtype);
        avg        |      sum       |    sum_divided_by_count     | count | count_star 
 ------------------+----------------+-----------------------------+-------+------------
  3.49285714285714 | 24.45::numeric | 3.4928571428571429::numeric | 7     | 7
 (1 row)
 
-SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Dave", age: 24})$$) AS (a agtype);
+SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Dave", age: 24})$$) AS (a gtype);
  a 
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Mike", age: 18})$$) AS (a agtype);
+SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Mike", age: 18})$$) AS (a gtype);
  a 
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex agtype);
+SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex gtype);
                                                            vertex                                                            
 -----------------------------------------------------------------------------------------------------------------------------
  {"id": 844424930131969, "label": "students", "properties": {"age": 21, "gpa": 3.0, "zip": 94110, "name": "Jack"}}::vertex
@@ -4704,44 +4704,44 @@ SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex agtype);
 (9 rows)
 
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN avg(u.gpa), sum(u.gpa), sum(u.gpa)/count(u.gpa), count(u.gpa), count(*) $$) 
-AS (avg agtype, sum agtype, sum_divided_by_count agtype, count agtype, count_star agtype);
+AS (avg gtype, sum gtype, sum_divided_by_count gtype, count gtype, count_star gtype);
        avg        |      sum       |    sum_divided_by_count     | count | count_star 
 ------------------+----------------+-----------------------------+-------+------------
  3.49285714285714 | 24.45::numeric | 3.4928571428571429::numeric | 7     | 9
 (1 row)
 
 -- should return null
-SELECT * FROM cypher('UCSC', $$ RETURN avg(NULL) $$) AS (avg agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN avg(NULL) $$) AS (avg gtype);
  avg 
 -----
  
 (1 row)
 
-SELECT * FROM cypher('UCSC', $$ RETURN sum(NULL) $$) AS (sum agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN sum(NULL) $$) AS (sum gtype);
  sum 
 -----
  
 (1 row)
 
 -- should return 0
-SELECT * FROM cypher('UCSC', $$ RETURN count(NULL) $$) AS (count agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN count(NULL) $$) AS (count gtype);
  count 
 -------
  0
 (1 row)
 
 -- should fail
-SELECT * FROM cypher('UCSC', $$ RETURN avg() $$) AS (avg agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN avg() $$) AS (avg gtype);
 ERROR:  function postgraph.age_avg() does not exist
-LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN avg() $$) AS (avg agt...
+LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN avg() $$) AS (avg gty...
                                                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('UCSC', $$ RETURN sum() $$) AS (sum agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN sum() $$) AS (sum gtype);
 ERROR:  function postgraph.age_sum() does not exist
-LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN sum() $$) AS (sum agt...
+LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN sum() $$) AS (sum gty...
                                                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('UCSC', $$ RETURN count() $$) AS (count agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN count() $$) AS (count gtype);
 ERROR:  postgraph.age_count(*) must be used to call a parameterless aggregate function
 LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN count() $$) AS (count...
                                                ^
@@ -4749,21 +4749,21 @@ LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN count() $$) AS (count...
 -- aggregate functions min() & max()
 --
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN min(u.gpa), max(u.gpa), count(u.gpa), count(*) $$)
-AS (min agtype, max agtype, count agtype, count_star agtype);
+AS (min gtype, max gtype, count gtype, count_star gtype);
  min | max | count | count_star 
 -----+-----+-------+------------
  2.5 | 4.0 | 7     | 9
 (1 row)
 
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN min(u.gpa), max(u.gpa), count(u.gpa), count(*) $$)
-AS (min agtype, max agtype, count agtype, count_star agtype);
+AS (min gtype, max gtype, count gtype, count_star gtype);
  min | max | count | count_star 
 -----+-----+-------+------------
  2.5 | 4.0 | 7     | 9
 (1 row)
 
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN min(u.name), max(u.name), count(u.name), count(*) $$)
-AS (min agtype, max agtype, count agtype, count_star agtype);
+AS (min gtype, max gtype, count gtype, count_star gtype);
   min  |  max   | count | count_star 
 -------+--------+-------+------------
  "Ann" | "Rick" | 9     | 9
@@ -4771,14 +4771,14 @@ AS (min agtype, max agtype, count agtype, count_star agtype);
 
 -- check that min() & max() can work against mixed types
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN min(u.zip), max(u.zip), count(u.zip), count(*) $$)
-AS (min agtype, max agtype, count agtype, count_star agtype);
+AS (min gtype, max gtype, count gtype, count_star gtype);
    min   |  max  | count | count_star 
 ---------+-------+-------+------------
  "95060" | 96062 | 5     | 9
 (1 row)
 
-CREATE TABLE min_max_tbl (id agtype);
-insert into min_max_tbl VALUES ('16'::agtype), ('17188'::agtype), ('1000'::agtype), ('869'::agtype);
+CREATE TABLE min_max_tbl (id gtype);
+insert into min_max_tbl VALUES ('16'::gtype), ('17188'::gtype), ('1000'::gtype), ('869'::gtype);
 SELECT age_min(id), age_max(id) FROM min_max_tbl;
  age_min | age_max 
 ---------+---------
@@ -4805,13 +4805,13 @@ SELECT age_min(age_tostring(id)), age_max(age_tostring(id)) FROM min_max_tbl;
 
 DROP TABLE min_max_tbl;
 -- should return null
-SELECT * FROM cypher('UCSC', $$ RETURN min(NULL) $$) AS (min agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN min(NULL) $$) AS (min gtype);
  min 
 -----
  
 (1 row)
 
-SELECT * FROM cypher('UCSC', $$ RETURN max(NULL) $$) AS (max agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN max(NULL) $$) AS (max gtype);
  max 
 -----
  
@@ -4823,7 +4823,7 @@ SELECT age_min(NULL);
  
 (1 row)
 
-SELECT age_min(agtype_in('null'));
+SELECT age_min(gtype_in('null'));
  age_min 
 ---------
  
@@ -4835,21 +4835,21 @@ SELECT age_max(NULL);
  
 (1 row)
 
-SELECT age_max(agtype_in('null'));
+SELECT age_max(gtype_in('null'));
  age_max 
 ---------
  
 (1 row)
 
 -- should fail
-SELECT * FROM cypher('UCSC', $$ RETURN min() $$) AS (min agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN min() $$) AS (min gtype);
 ERROR:  function postgraph.age_min() does not exist
-LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN min() $$) AS (min agt...
+LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN min() $$) AS (min gty...
                                                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('UCSC', $$ RETURN max() $$) AS (max agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN max() $$) AS (max gtype);
 ERROR:  function postgraph.age_max() does not exist
-LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN max() $$) AS (max agt...
+LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN max() $$) AS (max gty...
                                                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT age_min();
@@ -4866,32 +4866,32 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- aggregate functions stDev() & stDevP()
 --
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN stDev(u.gpa), stDevP(u.gpa) $$)
-AS (stDev agtype, stDevP agtype);
+AS (stDev gtype, stDevP gtype);
        stdev       |      stdevp       
 -------------------+-------------------
  0.549566929066706 | 0.508800109100232
 (1 row)
 
 -- should return 0
-SELECT * FROM cypher('UCSC', $$ RETURN stDev(NULL) $$) AS (stDev agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN stDev(NULL) $$) AS (stDev gtype);
  stdev 
 -------
  0.0
 (1 row)
 
-SELECT * FROM cypher('UCSC', $$ RETURN stDevP(NULL) $$) AS (stDevP agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN stDevP(NULL) $$) AS (stDevP gtype);
  stdevp 
 --------
  0.0
 (1 row)
 
 -- should fail
-SELECT * FROM cypher('UCSC', $$ RETURN stDev() $$) AS (stDev agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN stDev() $$) AS (stDev gtype);
 ERROR:  function postgraph.age_stdev() does not exist
 LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN stDev() $$) AS (stDev...
                                                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('UCSC', $$ RETURN stDevP() $$) AS (stDevP agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN stDevP() $$) AS (stDevP gtype);
 ERROR:  function postgraph.age_stdevp() does not exist
 LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN stDevP() $$) AS (stDe...
                                                ^
@@ -4900,101 +4900,101 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- aggregate functions percentileCont() & percentileDisc()
 --
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN percentileCont(u.gpa, .55), percentileDisc(u.gpa, .55), percentileCont(u.gpa, .9), percentileDisc(u.gpa, .9) $$)
-AS (percentileCont1 agtype, percentileDisc1 agtype, percentileCont2 agtype, percentileDisc2 agtype);
+AS (percentileCont1 gtype, percentileDisc1 gtype, percentileCont2 gtype, percentileDisc2 gtype);
  percentilecont1 | percentiledisc1 | percentilecont2 | percentiledisc2 
 -----------------+-----------------+-----------------+-----------------
  3.765           | 3.75            | 3.94            | 4.0
 (1 row)
 
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN percentileCont(u.gpa, .55) $$)
-AS (percentileCont agtype);
+AS (percentileCont gtype);
  percentilecont 
 ----------------
  3.765
 (1 row)
 
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN percentileDisc(u.gpa, .55) $$)
-AS (percentileDisc agtype);
+AS (percentileDisc gtype);
  percentiledisc 
 ----------------
  3.75
 (1 row)
 
 -- should return null
-SELECT * FROM cypher('UCSC', $$ RETURN percentileCont(NULL, .5) $$) AS (percentileCont agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN percentileCont(NULL, .5) $$) AS (percentileCont gtype);
  percentilecont 
 ----------------
  
 (1 row)
 
-SELECT * FROM cypher('UCSC', $$ RETURN percentileDisc(NULL, .5) $$) AS (percentileDisc agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN percentileDisc(NULL, .5) $$) AS (percentileDisc gtype);
  percentiledisc 
 ----------------
  
 (1 row)
 
 -- should fail
-SELECT * FROM cypher('UCSC', $$ RETURN percentileCont(.5, NULL) $$) AS (percentileCont agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN percentileCont(.5, NULL) $$) AS (percentileCont gtype);
 ERROR:  percentile value NULL is not a valid numeric value
-SELECT * FROM cypher('UCSC', $$ RETURN percentileDisc(.5, NULL) $$) AS (percentileDisc agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN percentileDisc(.5, NULL) $$) AS (percentileDisc gtype);
 ERROR:  percentile value NULL is not a valid numeric value
 --
 -- aggregate function collect()
 --
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN collect(u.name), collect(u.age), collect(u.gpa), collect(u.zip) $$)
-AS (name agtype, age agtype, gqa agtype, zip agtype);
+AS (name gtype, age gtype, gqa gtype, zip gtype);
                                     name                                    |                 age                  |                          gqa                           |                  zip                  
 ----------------------------------------------------------------------------+--------------------------------------+--------------------------------------------------------+---------------------------------------
  ["Jack", "Jill", "Jim", "Rick", "Ann", "Derek", "Jessica", "Dave", "Mike"] | [21, 27, 32, 24, 23, 19, 20, 24, 18] | [3.0, 3.5, 3.75, 2.5, 3.8::numeric, 4.0, 3.9::numeric] | [94110, 95060, 96062, "95060", 90210]
 (1 row)
 
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN collect(u.gpa), collect(u.gpa) $$)
-AS (gpa1 agtype, gpa2 agtype);
+AS (gpa1 gtype, gpa2 gtype);
                           gpa1                          |                          gpa2                          
 --------------------------------------------------------+--------------------------------------------------------
  [3.0, 3.5, 3.75, 2.5, 3.8::numeric, 4.0, 3.9::numeric] | [3.0, 3.5, 3.75, 2.5, 3.8::numeric, 4.0, 3.9::numeric]
 (1 row)
 
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN collect(u.zip), collect(u.zip) $$)
-AS (zip1 agtype, zip2 agtype);
+AS (zip1 gtype, zip2 gtype);
                  zip1                  |                 zip2                  
 ---------------------------------------+---------------------------------------
  [94110, 95060, 96062, "95060", 90210] | [94110, 95060, 96062, "95060", 90210]
 (1 row)
 
-SELECT * FROM cypher('UCSC', $$ RETURN collect(5) $$) AS (result agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN collect(5) $$) AS (result gtype);
  result 
 --------
  [5]
 (1 row)
 
 -- should return an empty aray
-SELECT * FROM cypher('UCSC', $$ RETURN collect(NULL) $$) AS (empty agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN collect(NULL) $$) AS (empty gtype);
  empty 
 -------
  []
 (1 row)
 
-SELECT * FROM cypher('UCSC', $$ MATCH (u) WHERE u.name =~ "doesn't exist" RETURN collect(u.name) $$) AS (name agtype);
+SELECT * FROM cypher('UCSC', $$ MATCH (u) WHERE u.name =~ "doesn't exist" RETURN collect(u.name) $$) AS (name gtype);
  name 
 ------
  []
 (1 row)
 
 -- should fail
-SELECT * FROM cypher('UCSC', $$ RETURN collect() $$) AS (collect agtype);
+SELECT * FROM cypher('UCSC', $$ RETURN collect() $$) AS (collect gtype);
 ERROR:  function postgraph.age_collect() does not exist
 LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN collect() $$) AS (col...
                                                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- test DISTINCT inside aggregate functions
 SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Sven", gpa: 3.2, age: 27, zip: 94110})$$)
-AS (a agtype);
+AS (a gtype);
  a 
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex agtype);
+SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex gtype);
                                                            vertex                                                            
 -----------------------------------------------------------------------------------------------------------------------------
  {"id": 844424930131969, "label": "students", "properties": {"age": 21, "gpa": 3.0, "zip": 94110, "name": "Jack"}}::vertex
@@ -5010,14 +5010,14 @@ SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex agtype);
 (10 rows)
 
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN count(u.zip), count(DISTINCT u.zip) $$)
-AS (zip agtype, distinct_zip agtype);
+AS (zip gtype, distinct_zip gtype);
  zip | distinct_zip 
 -----+--------------
  6   | 5
 (1 row)
 
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN count(u.age), count(DISTINCT u.age) $$)
-AS (age agtype, distinct_age agtype);
+AS (age gtype, distinct_age gtype);
  age | distinct_age 
 -----+--------------
  10  | 8
@@ -5031,27 +5031,27 @@ NOTICE:  graph "group_by" has been created
  
 (1 row)
 
-SELECT * FROM cypher('group_by', $$CREATE (:row {i: 1, j: 2, k:3})$$) AS (result agtype);
+SELECT * FROM cypher('group_by', $$CREATE (:row {i: 1, j: 2, k:3})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('group_by', $$CREATE (:row {i: 1, j: 2, k:4})$$) AS (result agtype);
+SELECT * FROM cypher('group_by', $$CREATE (:row {i: 1, j: 2, k:4})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('group_by', $$CREATE (:row {i: 1, j: 3, k:5})$$) AS (result agtype);
+SELECT * FROM cypher('group_by', $$CREATE (:row {i: 1, j: 3, k:5})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('group_by', $$CREATE (:row {i: 2, j: 3, k:6})$$) AS (result agtype);
+SELECT * FROM cypher('group_by', $$CREATE (:row {i: 2, j: 3, k:6})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('group_by', $$MATCH (u:row) RETURN u.i, u.j, u.k$$) AS (i agtype, j agtype, k agtype);
+SELECT * FROM cypher('group_by', $$MATCH (u:row) RETURN u.i, u.j, u.k$$) AS (i gtype, j gtype, k gtype);
  i | j | k 
 ---+---+---
  1 | 2 | 3
@@ -5060,7 +5060,7 @@ SELECT * FROM cypher('group_by', $$MATCH (u:row) RETURN u.i, u.j, u.k$$) AS (i a
  2 | 3 | 6
 (4 rows)
 
-SELECT * FROM cypher('group_by', $$MATCH (u:row) RETURN u.i, u.j, sum(u.k)$$) AS (i agtype, j agtype, sumk agtype);
+SELECT * FROM cypher('group_by', $$MATCH (u:row) RETURN u.i, u.j, sum(u.k)$$) AS (i gtype, j gtype, sumk gtype);
  i | j | sumk 
 ---+---+------
  1 | 2 | 7
@@ -5068,23 +5068,23 @@ SELECT * FROM cypher('group_by', $$MATCH (u:row) RETURN u.i, u.j, sum(u.k)$$) AS
  1 | 3 | 5
 (3 rows)
 
-SELECT * FROM cypher('group_by', $$CREATE (:L {a: 1, b: 2, c:3})$$) AS (result agtype);
+SELECT * FROM cypher('group_by', $$CREATE (:L {a: 1, b: 2, c:3})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('group_by', $$CREATE (:L {a: 2, b: 3, c:1})$$) AS (result agtype);
+SELECT * FROM cypher('group_by', $$CREATE (:L {a: 2, b: 3, c:1})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('group_by', $$CREATE (:L {a: 3, b: 1, c:2})$$) AS (result agtype);
+SELECT * FROM cypher('group_by', $$CREATE (:L {a: 3, b: 1, c:2})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
 SELECT * FROM cypher('group_by', $$MATCH (x:L) RETURN x.a, x.b, x.c, x.a + count(*) + x.b + count(*) + x.c$$)
-AS (a agtype, b agtype, c agtype, result agtype);
+AS (a gtype, b gtype, c gtype, result gtype);
  a | b | c | result 
 ---+---+---+--------
  3 | 1 | 2 | 8
@@ -5093,7 +5093,7 @@ AS (a agtype, b agtype, c agtype, result agtype);
 (3 rows)
 
 SELECT * FROM cypher('group_by', $$MATCH (x:L) RETURN x.a + x.b + x.c, x.a + x.b + x.c + count(*) + count(*) $$)
-AS (a_b_c agtype,  result agtype);
+AS (a_b_c gtype,  result gtype);
  a_b_c | result 
 -------+--------
  6     | 12
@@ -5101,7 +5101,7 @@ AS (a_b_c agtype,  result agtype);
 
 -- with WITH clause
 SELECT * FROM cypher('group_by', $$MATCH(x:L) WITH x, count(x) AS c RETURN x.a + x.b + x.c + c$$)
-AS (result agtype);
+AS (result gtype);
  result 
 --------
  7
@@ -5110,7 +5110,7 @@ AS (result agtype);
 (3 rows)
 
 SELECT * FROM cypher('group_by', $$MATCH(x:L) WITH x, count(x) AS c RETURN x.a + x.b + x.c + c + c$$)
-AS (result agtype);
+AS (result gtype);
  result 
 --------
  8
@@ -5119,7 +5119,7 @@ AS (result agtype);
 (3 rows)
 
 SELECT * FROM cypher('group_by', $$MATCH(x:L) WITH x.a + x.b + x.c AS v, count(x) as c RETURN v + c + c $$)
-AS (result agtype);
+AS (result gtype);
  result 
 --------
  12
@@ -5127,12 +5127,12 @@ AS (result agtype);
 
 -- should fail
 SELECT * FROM cypher('group_by', $$MATCH (x:L) RETURN x.a, x.a + count(*) + x.b + count(*) + x.c$$)
-AS (a agtype, result agtype);
+AS (a gtype, result gtype);
 ERROR:  "x" must be either part of an explicitly listed key or used inside an aggregate function
 LINE 1: ...p_by', $$MATCH (x:L) RETURN x.a, x.a + count(*) + x.b + coun...
                                                              ^
 SELECT * FROM cypher('group_by', $$MATCH (x:L) RETURN x.a + count(*) + x.b + count(*) + x.c$$)
-AS (result agtype);
+AS (result gtype);
 ERROR:  "x" must be either part of an explicitly listed key or used inside an aggregate function
 LINE 1: ...CT * FROM cypher('group_by', $$MATCH (x:L) RETURN x.a + coun...
                                                              ^
@@ -5144,47 +5144,47 @@ NOTICE:  graph "order_by" has been created
  
 (1 row)
 
-SELECT * FROM cypher('order_by', $$CREATE ()$$) AS (result agtype);
+SELECT * FROM cypher('order_by', $$CREATE ()$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('order_by', $$CREATE ({i: '1'})$$) AS (result agtype);
+SELECT * FROM cypher('order_by', $$CREATE ({i: '1'})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('order_by', $$CREATE ({i: 1})$$) AS (result agtype);
+SELECT * FROM cypher('order_by', $$CREATE ({i: 1})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('order_by', $$CREATE ({i: 1.0})$$) AS (result agtype);
+SELECT * FROM cypher('order_by', $$CREATE ({i: 1.0})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('order_by', $$CREATE ({i: 1::numeric})$$) AS (result agtype);
+SELECT * FROM cypher('order_by', $$CREATE ({i: 1::numeric})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('order_by', $$CREATE ({i: true})$$) AS (result agtype);
+SELECT * FROM cypher('order_by', $$CREATE ({i: true})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('order_by', $$CREATE ({i: false})$$) AS (result agtype);
+SELECT * FROM cypher('order_by', $$CREATE ({i: false})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('order_by', $$CREATE ({i: {key: 'value'}})$$) AS (result agtype);
+SELECT * FROM cypher('order_by', $$CREATE ({i: {key: 'value'}})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('order_by', $$CREATE ({i: [1]})$$) AS (result agtype);
+SELECT * FROM cypher('order_by', $$CREATE ({i: [1]})$$) AS (result gtype);
  result 
 --------
 (0 rows)
@@ -5193,7 +5193,7 @@ SELECT * FROM cypher('order_by', $$
 	MATCH (u)
 	RETURN u.i
 	ORDER BY u.i
-$$) AS (i agtype);
+$$) AS (i gtype);
         i         
 ------------------
  {"key": "value"}
@@ -5211,7 +5211,7 @@ SELECT * FROM cypher('order_by', $$
 	MATCH (u)
 	RETURN u.i
 	ORDER BY u.i DESC
-$$) AS (i agtype);
+$$) AS (i gtype);
         i         
 ------------------
  
@@ -5233,32 +5233,32 @@ NOTICE:  graph "case_statement" has been created
  
 (1 row)
 
-SELECT * FROM cypher('case_statement', $$CREATE ({i: 1, j: null})$$) AS (result agtype);
+SELECT * FROM cypher('case_statement', $$CREATE ({i: 1, j: null})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('case_statement', $$CREATE ({i: 'a', j: 'b'})$$) AS (result agtype);
+SELECT * FROM cypher('case_statement', $$CREATE ({i: 'a', j: 'b'})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('case_statement', $$CREATE ({i: 0, j: 1})$$) AS (result agtype);
+SELECT * FROM cypher('case_statement', $$CREATE ({i: 0, j: 1})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('case_statement', $$CREATE ({i: true, j: false})$$) AS (result agtype);
+SELECT * FROM cypher('case_statement', $$CREATE ({i: true, j: false})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('case_statement', $$CREATE ({i: [], j: [0,1,2]})$$) AS (result agtype);
+SELECT * FROM cypher('case_statement', $$CREATE ({i: [], j: [0,1,2]})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('case_statement', $$CREATE ({i: {}, j: {i:1}})$$) AS (result agtype);
+SELECT * FROM cypher('case_statement', $$CREATE ({i: {}, j: {i:1}})$$) AS (result gtype);
  result 
 --------
 (0 rows)
@@ -5274,7 +5274,7 @@ SELECT * FROM cypher('case_statement', $$
     WHEN n.i = true OR n.j = true THEN 'i or j true'
 		ELSE 'default'
 	END
-$$ ) AS (i agtype, j agtype, case_statement agtype);
+$$ ) AS (i gtype, j gtype, case_statement gtype);
   i   |     j     | case_statement 
 ------+-----------+----------------
  1    |           | "i is 1"
@@ -5297,7 +5297,7 @@ SELECT * FROM cypher('case_statement', $$
     WHEN {i:1} THEN {i:1}
 		ELSE 'not a or b'
 	END
-$$ ) AS (j agtype, case_statement agtype);
+$$ ) AS (j gtype, case_statement gtype);
      j     | case_statement 
 -----------+----------------
            | "not a or b"
@@ -5316,12 +5316,12 @@ NOTICE:  graph "opt_forms" has been created
  
 (1 row)
 
-SELECT * FROM cypher('opt_forms', $$CREATE ({i:1})-[:KNOWS]->({i:2})<-[:KNOWS]-({i:3})$$)AS (result agtype);
+SELECT * FROM cypher('opt_forms', $$CREATE ({i:1})-[:KNOWS]->({i:2})<-[:KNOWS]-({i:3})$$)AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN u$$) AS (result agtype);
+SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN u$$) AS (result gtype);
                                 result                                
 ----------------------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {"i": 1}}::vertex
@@ -5329,7 +5329,7 @@ SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN u$$) AS (result agtype);
  {"id": 281474976710659, "label": "", "properties": {"i": 3}}::vertex
 (3 rows)
 
-SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN *$$) AS (result agtype);
+SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN *$$) AS (result gtype);
                                 result                                
 ----------------------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {"i": 1}}::vertex
@@ -5337,7 +5337,7 @@ SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN *$$) AS (result agtype);
  {"id": 281474976710659, "label": "", "properties": {"i": 3}}::vertex
 (3 rows)
 
-SELECT * FROM cypher('opt_forms', $$MATCH (u)--(v) RETURN u.i, v.i$$) AS (u agtype, v agtype);
+SELECT * FROM cypher('opt_forms', $$MATCH (u)--(v) RETURN u.i, v.i$$) AS (u gtype, v gtype);
  u | v 
 ---+---
  2 | 3
@@ -5346,28 +5346,28 @@ SELECT * FROM cypher('opt_forms', $$MATCH (u)--(v) RETURN u.i, v.i$$) AS (u agty
  2 | 1
 (4 rows)
 
-SELECT * FROM cypher('opt_forms', $$MATCH (u)-->(v) RETURN u.i, v.i$$) AS (u agtype, v agtype);
+SELECT * FROM cypher('opt_forms', $$MATCH (u)-->(v) RETURN u.i, v.i$$) AS (u gtype, v gtype);
  u | v 
 ---+---
  3 | 2
  1 | 2
 (2 rows)
 
-SELECT * FROM cypher('opt_forms', $$MATCH (u)<--(v) RETURN u.i, v.i$$) AS (u agtype, v agtype);
+SELECT * FROM cypher('opt_forms', $$MATCH (u)<--(v) RETURN u.i, v.i$$) AS (u gtype, v gtype);
  u | v 
 ---+---
  2 | 3
  2 | 1
 (2 rows)
 
-SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN u.i, v.i$$) AS (u agtype, v agtype);
+SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN u.i, v.i$$) AS (u gtype, v gtype);
  u | v 
 ---+---
  3 | 1
  1 | 3
 (2 rows)
 
-SELECT * FROM cypher('opt_forms', $$MATCH (u) CREATE (u)-[:edge]->() RETURN *$$) AS (results agtype);
+SELECT * FROM cypher('opt_forms', $$MATCH (u) CREATE (u)-[:edge]->() RETURN *$$) AS (results gtype);
                                results                                
 ----------------------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {"i": 1}}::vertex
@@ -5375,7 +5375,7 @@ SELECT * FROM cypher('opt_forms', $$MATCH (u) CREATE (u)-[:edge]->() RETURN *$$)
  {"id": 281474976710659, "label": "", "properties": {"i": 3}}::vertex
 (3 rows)
 
-SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN *$$) AS (col1 agtype, col2 agtype);
+SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN *$$) AS (col1 gtype, col2 gtype);
                                  col1                                 |                                 col2                                 
 ----------------------------------------------------------------------+----------------------------------------------------------------------
  {"id": 281474976710659, "label": "", "properties": {"i": 3}}::vertex | {"id": 281474976710657, "label": "", "properties": {"i": 1}}::vertex
@@ -5391,32 +5391,32 @@ NOTICE:  graph "keys" has been created
 (1 row)
 
 -- keys()
-SELECT * FROM cypher('keys', $$CREATE ({name: 'hikaru utada', age: 38, job: 'singer'})-[:collaborated_with {song:"face my fears"}]->( {name: 'sonny moore', age: 33, stage_name: 'skrillex', job: 'producer'})$$) AS (result agtype);
+SELECT * FROM cypher('keys', $$CREATE ({name: 'hikaru utada', age: 38, job: 'singer'})-[:collaborated_with {song:"face my fears"}]->( {name: 'sonny moore', age: 33, stage_name: 'skrillex', job: 'producer'})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('keys', $$CREATE ({name: 'alexander guy cook', age: 31, stage_name:"a. g. cook", job: 'producer'})$$) AS (result agtype);
+SELECT * FROM cypher('keys', $$CREATE ({name: 'alexander guy cook', age: 31, stage_name:"a. g. cook", job: 'producer'})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('keys', $$CREATE ({name: 'keiko fuji', age: 62, job: 'singer'})$$) AS (result agtype);
+SELECT * FROM cypher('keys', $$CREATE ({name: 'keiko fuji', age: 62, job: 'singer'})$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('keys', $$MATCH (a),(b) WHERE a.name = 'hikaru utada' AND b.name = 'alexander guy cook' CREATE (a)-[:collaborated_with {song:"one last kiss"}]->(b)$$) AS (result agtype);
+SELECT * FROM cypher('keys', $$MATCH (a),(b) WHERE a.name = 'hikaru utada' AND b.name = 'alexander guy cook' CREATE (a)-[:collaborated_with {song:"one last kiss"}]->(b)$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('keys', $$MATCH (a),(b) WHERE a.name = 'hikaru utada' AND b.name = 'keiko fuji' CREATE (a)-[:knows]->(b)$$) AS (result agtype);
+SELECT * FROM cypher('keys', $$MATCH (a),(b) WHERE a.name = 'hikaru utada' AND b.name = 'keiko fuji' CREATE (a)-[:knows]->(b)$$) AS (result gtype);
  result 
 --------
 (0 rows)
 
-SELECT * FROM cypher('keys', $$MATCH (v) RETURN keys(v)$$) AS (vertex_keys agtype);
+SELECT * FROM cypher('keys', $$MATCH (v) RETURN keys(v)$$) AS (vertex_keys gtype);
              vertex_keys              
 --------------------------------------
  ["age", "job", "name"]
@@ -5425,7 +5425,7 @@ SELECT * FROM cypher('keys', $$MATCH (v) RETURN keys(v)$$) AS (vertex_keys agtyp
  ["age", "job", "name"]
 (4 rows)
 
-SELECT * FROM cypher('keys', $$MATCH ()-[e]-() RETURN keys(e)$$) AS (edge_keys agtype);
+SELECT * FROM cypher('keys', $$MATCH ()-[e]-() RETURN keys(e)$$) AS (edge_keys gtype);
  edge_keys 
 -----------
  []
@@ -5436,32 +5436,32 @@ SELECT * FROM cypher('keys', $$MATCH ()-[e]-() RETURN keys(e)$$) AS (edge_keys a
  ["song"]
 (6 rows)
 
-SELECT * FROM cypher('keys', $$RETURN keys({a:1,b:'two',c:[1,2,3]})$$) AS (keys agtype);
+SELECT * FROM cypher('keys', $$RETURN keys({a:1,b:'two',c:[1,2,3]})$$) AS (keys gtype);
       keys       
 -----------------
  ["a", "b", "c"]
 (1 row)
 
 --should return empty list
-SELECT * FROM cypher('keys', $$RETURN keys({})$$) AS (keys agtype);
+SELECT * FROM cypher('keys', $$RETURN keys({})$$) AS (keys gtype);
  keys 
 ------
  []
 (1 row)
 
 --should return sql null
-SELECT * FROM cypher('keys', $$RETURN keys(null)$$) AS (keys agtype);
+SELECT * FROM cypher('keys', $$RETURN keys(null)$$) AS (keys gtype);
  keys 
 ------
  
 (1 row)
 
 --should return error
-SELECT * from cypher('keys', $$RETURN keys([1,2,3])$$) as (keys agtype);
+SELECT * from cypher('keys', $$RETURN keys([1,2,3])$$) as (keys gtype);
 ERROR:  keys() argument must be a vertex, edge, object or null
-SELECT * from cypher('keys', $$RETURN keys("string")$$) as (keys agtype);
+SELECT * from cypher('keys', $$RETURN keys("string")$$) as (keys gtype);
 ERROR:  keys() argument must be a vertex, edge, object or null
-SELECT * from cypher('keys', $$MATCH u=()-[]-() RETURN keys(u)$$) as (keys agtype);
+SELECT * from cypher('keys', $$MATCH u=()-[]-() RETURN keys(u)$$) as (keys gtype);
 ERROR:  keys() argument must be a vertex, edge, object or null
 SELECT create_graph('list');
 NOTICE:  graph "list" has been created
@@ -5470,20 +5470,20 @@ NOTICE:  graph "list" has been created
  
 (1 row)
 
-SELECT * from cypher('list', $$CREATE p=({name:"rick"})-[:knows]->({name:"morty"}) RETURN p$$) as (path agtype);
+SELECT * from cypher('list', $$CREATE p=({name:"rick"})-[:knows]->({name:"morty"}) RETURN p$$) as (path gtype);
                                                                                                                                               path                                                                                                                                              
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  [{"id": 281474976710657, "label": "", "properties": {"name": "rick"}}::vertex, {"id": 844424930131969, "label": "knows", "end_id": 281474976710658, "start_id": 281474976710657, "properties": {}}::edge, {"id": 281474976710658, "label": "", "properties": {"name": "morty"}}::vertex]::path
 (1 row)
 
-SELECT * from cypher('list', $$CREATE p=({name:'rachael'})-[:knows]->({name:'monica'})-[:knows]->({name:'phoebe'}) RETURN p$$) as (path agtype);
+SELECT * from cypher('list', $$CREATE p=({name:'rachael'})-[:knows]->({name:'monica'})-[:knows]->({name:'phoebe'}) RETURN p$$) as (path gtype);
                                                                                                                                                                                                                                                      path                                                                                                                                                                                                                                                      
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  [{"id": 281474976710659, "label": "", "properties": {"name": "rachael"}}::vertex, {"id": 844424930131971, "label": "knows", "end_id": 281474976710660, "start_id": 281474976710659, "properties": {}}::edge, {"id": 281474976710660, "label": "", "properties": {"name": "monica"}}::vertex, {"id": 844424930131970, "label": "knows", "end_id": 281474976710661, "start_id": 281474976710660, "properties": {}}::edge, {"id": 281474976710661, "label": "", "properties": {"name": "phoebe"}}::vertex]::path
 (1 row)
 
 -- nodes()
-SELECT * from cypher('list', $$MATCH p=()-[]->() RETURN nodes(p)$$) as (nodes agtype);
+SELECT * from cypher('list', $$MATCH p=()-[]->() RETURN nodes(p)$$) as (nodes gtype);
                                                                                nodes                                                                               
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
  [{"id": 281474976710657, "label": "", "properties": {"name": "rick"}}::vertex, {"id": 281474976710658, "label": "", "properties": {"name": "morty"}}::vertex]
@@ -5491,36 +5491,36 @@ SELECT * from cypher('list', $$MATCH p=()-[]->() RETURN nodes(p)$$) as (nodes ag
  [{"id": 281474976710659, "label": "", "properties": {"name": "rachael"}}::vertex, {"id": 281474976710660, "label": "", "properties": {"name": "monica"}}::vertex]
 (3 rows)
 
-SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->() RETURN nodes(p)$$) as (nodes agtype);
+SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->() RETURN nodes(p)$$) as (nodes gtype);
                                                                                                                        nodes                                                                                                                       
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  [{"id": 281474976710659, "label": "", "properties": {"name": "rachael"}}::vertex, {"id": 281474976710660, "label": "", "properties": {"name": "monica"}}::vertex, {"id": 281474976710661, "label": "", "properties": {"name": "phoebe"}}::vertex]
 (1 row)
 
 -- should return nothing
-SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->()-[]->() RETURN nodes(p)$$) as (nodes agtype);
+SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->()-[]->() RETURN nodes(p)$$) as (nodes gtype);
  nodes 
 -------
 (0 rows)
 
 -- should return SQL NULL
-SELECT * from cypher('list', $$RETURN nodes(NULL)$$) as (nodes agtype);
+SELECT * from cypher('list', $$RETURN nodes(NULL)$$) as (nodes gtype);
  nodes 
 -------
  
 (1 row)
 
 -- should return an error
-SELECT * from cypher('list', $$MATCH (u) RETURN nodes([1,2,3])$$) as (nodes agtype);
+SELECT * from cypher('list', $$MATCH (u) RETURN nodes([1,2,3])$$) as (nodes gtype);
 ERROR:  nodes() argument must resolve to a scalar value
-SELECT * from cypher('list', $$MATCH (u) RETURN nodes("string")$$) as (nodes agtype);
+SELECT * from cypher('list', $$MATCH (u) RETURN nodes("string")$$) as (nodes gtype);
 ERROR:  nodes() argument must be a path
-SELECT * from cypher('list', $$MATCH (u) RETURN nodes(u)$$) as (nodes agtype);
+SELECT * from cypher('list', $$MATCH (u) RETURN nodes(u)$$) as (nodes gtype);
 ERROR:  nodes() argument must be a path
-SELECT * from cypher('list', $$MATCH (u)-[]->() RETURN nodes(u)$$) as (nodes agtype);
+SELECT * from cypher('list', $$MATCH (u)-[]->() RETURN nodes(u)$$) as (nodes gtype);
 ERROR:  nodes() argument must be a path
 -- relationships()
-SELECT * from cypher('list', $$MATCH p=()-[]->() RETURN relationships(p)$$) as (relationships agtype);
+SELECT * from cypher('list', $$MATCH p=()-[]->() RETURN relationships(p)$$) as (relationships gtype);
                                                         relationships                                                        
 -----------------------------------------------------------------------------------------------------------------------------
  [{"id": 844424930131969, "label": "knows", "end_id": 281474976710658, "start_id": 281474976710657, "properties": {}}::edge]
@@ -5528,135 +5528,135 @@ SELECT * from cypher('list', $$MATCH p=()-[]->() RETURN relationships(p)$$) as (
  [{"id": 844424930131971, "label": "knows", "end_id": 281474976710660, "start_id": 281474976710659, "properties": {}}::edge]
 (3 rows)
 
-SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->() RETURN relationships(p)$$) as (relationships agtype);
+SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->() RETURN relationships(p)$$) as (relationships gtype);
                                                                                                                      relationships                                                                                                                      
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  [{"id": 844424930131971, "label": "knows", "end_id": 281474976710660, "start_id": 281474976710659, "properties": {}}::edge, {"id": 844424930131970, "label": "knows", "end_id": 281474976710661, "start_id": 281474976710660, "properties": {}}::edge]
 (1 row)
 
 -- should return nothing
-SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->()-[]->() RETURN relationships(p)$$) as (relationships agtype);
+SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->()-[]->() RETURN relationships(p)$$) as (relationships gtype);
  relationships 
 ---------------
 (0 rows)
 
 -- should return SQL NULL
-SELECT * from cypher('list', $$RETURN relationships(NULL)$$) as (relationships agtype);
+SELECT * from cypher('list', $$RETURN relationships(NULL)$$) as (relationships gtype);
  relationships 
 ---------------
  
 (1 row)
 
 -- should return an error
-SELECT * from cypher('list', $$MATCH (u) RETURN relationships([1,2,3])$$) as (relationships agtype);
+SELECT * from cypher('list', $$MATCH (u) RETURN relationships([1,2,3])$$) as (relationships gtype);
 ERROR:  relationships() argument must resolve to a scalar value
-SELECT * from cypher('list', $$MATCH (u) RETURN relationships("string")$$) as (relationships agtype);
+SELECT * from cypher('list', $$MATCH (u) RETURN relationships("string")$$) as (relationships gtype);
 ERROR:  relationships() argument must be a path
-SELECT * from cypher('list', $$MATCH (u) RETURN relationships(u)$$) as (relationships agtype);
+SELECT * from cypher('list', $$MATCH (u) RETURN relationships(u)$$) as (relationships gtype);
 ERROR:  relationships() argument must be a path
-SELECT * from cypher('list', $$MATCH ()-[e]->() RETURN relationships(e)$$) as (relationships agtype);
+SELECT * from cypher('list', $$MATCH ()-[e]->() RETURN relationships(e)$$) as (relationships gtype);
 ERROR:  relationships() argument must be a path
 -- range()
-SELECT * from cypher('list', $$RETURN range(0, 10)$$) as (range agtype);
+SELECT * from cypher('list', $$RETURN range(0, 10)$$) as (range gtype);
                range                
 ------------------------------------
  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 (1 row)
 
-SELECT * from cypher('list', $$RETURN range(0, 10, null)$$) as (range agtype);
+SELECT * from cypher('list', $$RETURN range(0, 10, null)$$) as (range gtype);
                range                
 ------------------------------------
  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 (1 row)
 
-SELECT * from cypher('list', $$RETURN range(0, 10, 1)$$) as (range agtype);
+SELECT * from cypher('list', $$RETURN range(0, 10, 1)$$) as (range gtype);
                range                
 ------------------------------------
  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 (1 row)
 
-SELECT * from cypher('list', $$RETURN range(0, 10, 3)$$) as (range agtype);
+SELECT * from cypher('list', $$RETURN range(0, 10, 3)$$) as (range gtype);
     range     
 --------------
  [0, 3, 6, 9]
 (1 row)
 
-SELECT * from cypher('list', $$RETURN range(0, -10, -1)$$) as (range agtype);
+SELECT * from cypher('list', $$RETURN range(0, -10, -1)$$) as (range gtype);
                     range                     
 ----------------------------------------------
  [0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10]
 (1 row)
 
-SELECT * from cypher('list', $$RETURN range(0, -10, -3)$$) as (range agtype);
+SELECT * from cypher('list', $$RETURN range(0, -10, -3)$$) as (range gtype);
       range      
 -----------------
  [0, -3, -6, -9]
 (1 row)
 
-SELECT * from cypher('list', $$RETURN range(0, 10, 11)$$) as (range agtype);
+SELECT * from cypher('list', $$RETURN range(0, 10, 11)$$) as (range gtype);
  range 
 -------
  [0]
 (1 row)
 
-SELECT * from cypher('list', $$RETURN range(-20, 10, 5)$$) as (range agtype);
+SELECT * from cypher('list', $$RETURN range(-20, 10, 5)$$) as (range gtype);
              range             
 -------------------------------
  [-20, -15, -10, -5, 0, 5, 10]
 (1 row)
 
 -- should return an empty list []
-SELECT * from cypher('list', $$RETURN range(0, -10)$$) as (range agtype);
+SELECT * from cypher('list', $$RETURN range(0, -10)$$) as (range gtype);
  range 
 -------
  []
 (1 row)
 
-SELECT * from cypher('list', $$RETURN range(0, 10, -1)$$) as (range agtype);
+SELECT * from cypher('list', $$RETURN range(0, 10, -1)$$) as (range gtype);
  range 
 -------
  []
 (1 row)
 
-SELECT * from cypher('list', $$RETURN range(-10, 10, -1)$$) as (range agtype);
+SELECT * from cypher('list', $$RETURN range(-10, 10, -1)$$) as (range gtype);
  range 
 -------
  []
 (1 row)
 
 -- should return an error
-SELECT * from cypher('list', $$RETURN range(null, -10, -3)$$) as (range agtype);
+SELECT * from cypher('list', $$RETURN range(null, -10, -3)$$) as (range gtype);
 ERROR:  range(): neither start or end can be NULL
-SELECT * from cypher('list', $$RETURN range(0, null, -3)$$) as (range agtype);
+SELECT * from cypher('list', $$RETURN range(0, null, -3)$$) as (range gtype);
 ERROR:  range(): neither start or end can be NULL
-SELECT * from cypher('list', $$RETURN range(0, -10.0, -3.0)$$) as (range agtype);
+SELECT * from cypher('list', $$RETURN range(0, -10.0, -3.0)$$) as (range gtype);
 ERROR:  range() unsupported argument type
 -- labels()
-SELECT * from cypher('list', $$CREATE (u:People {name: "John"}) RETURN u$$) as (Vertices agtype);
+SELECT * from cypher('list', $$CREATE (u:People {name: "John"}) RETURN u$$) as (Vertices gtype);
                                       vertices                                       
 -------------------------------------------------------------------------------------
  {"id": 1125899906842625, "label": "People", "properties": {"name": "John"}}::vertex
 (1 row)
 
-SELECT * from cypher('list', $$CREATE (u:People {name: "Larry"}) RETURN u$$) as (Vertices agtype);
+SELECT * from cypher('list', $$CREATE (u:People {name: "Larry"}) RETURN u$$) as (Vertices gtype);
                                        vertices                                       
 --------------------------------------------------------------------------------------
  {"id": 1125899906842626, "label": "People", "properties": {"name": "Larry"}}::vertex
 (1 row)
 
-SELECT * from cypher('list', $$CREATE (u:Cars {name: "G35"}) RETURN u$$) as (Vertices agtype);
+SELECT * from cypher('list', $$CREATE (u:Cars {name: "G35"}) RETURN u$$) as (Vertices gtype);
                                      vertices                                     
 ----------------------------------------------------------------------------------
  {"id": 1407374883553281, "label": "Cars", "properties": {"name": "G35"}}::vertex
 (1 row)
 
-SELECT * from cypher('list', $$CREATE (u:Cars {name: "MR2"}) RETURN u$$) as (Vertices agtype);
+SELECT * from cypher('list', $$CREATE (u:Cars {name: "MR2"}) RETURN u$$) as (Vertices gtype);
                                      vertices                                     
 ----------------------------------------------------------------------------------
  {"id": 1407374883553282, "label": "Cars", "properties": {"name": "MR2"}}::vertex
 (1 row)
 
-SELECT * from cypher('list', $$MATCH (u) RETURN labels(u), u$$) as (Labels agtype, Vertices agtype);
+SELECT * from cypher('list', $$MATCH (u) RETURN labels(u), u$$) as (Labels gtype, Vertices gtype);
    labels   |                                       vertices                                       
 ------------+--------------------------------------------------------------------------------------
  [""]       | {"id": 281474976710657, "label": "", "properties": {"name": "rick"}}::vertex
@@ -5671,14 +5671,14 @@ SELECT * from cypher('list', $$MATCH (u) RETURN labels(u), u$$) as (Labels agtyp
 (9 rows)
 
 -- should return SQL NULL
-SELECT * from cypher('list', $$RETURN labels(NULL)$$) as (Labels agtype);
+SELECT * from cypher('list', $$RETURN labels(NULL)$$) as (Labels gtype);
  labels 
 --------
  
 (1 row)
 
 -- should return an error
-SELECT * from cypher('list', $$RETURN labels("string")$$) as (Labels agtype);
+SELECT * from cypher('list', $$RETURN labels("string")$$) as (Labels gtype);
 ERROR:  labels() argument must be a vertex
 --
 -- Cleanup

@@ -35,7 +35,7 @@ SELECT name, namespace FROM ag_graph WHERE name = 'g';
 (1 row)
 
 -- create a label to test drop_label()
-SELECT * FROM cypher('g', $$CREATE (:l)$$) AS r(a agtype);
+SELECT * FROM cypher('g', $$CREATE (:l)$$) AS r(a gtype);
  a 
 ---
 (0 rows)
@@ -49,7 +49,7 @@ NOTICE:  label "g"."l" has been dropped
 (1 row)
 
 -- create a label to test drop_graph()
-SELECT * FROM cypher('g', $$CREATE (:v)$$) AS r(a agtype);
+SELECT * FROM cypher('g', $$CREATE (:v)$$) AS r(a gtype);
  a 
 ---
 (0 rows)
@@ -222,7 +222,7 @@ NOTICE:  graph "g" has been created
 (1 row)
 
 -- label id starts from 1
-SELECT * FROM cypher('g', $$CREATE (:v1)$$) AS r(a agtype);
+SELECT * FROM cypher('g', $$CREATE (:v1)$$) AS r(a gtype);
  a 
 ---
 (0 rows)
@@ -243,7 +243,7 @@ SELECT nextval('g._label_id_seq');
 (1 row)
 
 -- label id is now 3
-SELECT * FROM cypher('g', $$CREATE (:v3)$$) as r(a agtype);
+SELECT * FROM cypher('g', $$CREATE (:v3)$$) as r(a gtype);
  a 
 ---
 (0 rows)
@@ -265,7 +265,7 @@ SELECT setval('g._label_id_seq', 65534);
 (1 row)
 
 -- label id is now 65535
-SELECT * FROM cypher('g', $$CREATE (:v65535)$$) as r(a agtype);
+SELECT * FROM cypher('g', $$CREATE (:v65535)$$) as r(a gtype);
  a 
 ---
 (0 rows)
@@ -281,7 +281,7 @@ SELECT name, id, kind, relation FROM ag_label;
 (5 rows)
 
 -- after cycle, label id is now 2
-SELECT * FROM cypher('g', $$CREATE (:v2)$$) as r(a agtype);
+SELECT * FROM cypher('g', $$CREATE (:v2)$$) as r(a gtype);
  a 
 ---
 (0 rows)

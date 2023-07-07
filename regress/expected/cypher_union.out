@@ -25,39 +25,39 @@ NOTICE:  graph "cypher_union" has been created
  
 (1 row)
 
-SELECT * FROM cypher('cypher_union', $$CREATE ()$$) as (a agtype);
+SELECT * FROM cypher('cypher_union', $$CREATE ()$$) as (a gtype);
  a 
 ---
 (0 rows)
 
-SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION MATCH (n) RETURN n$$) as (a agtype);
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION MATCH (n) RETURN n$$) as (a gtype);
                                a                                
 ----------------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {}}::vertex
 (1 row)
 
-SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION ALL MATCH (n) RETURN n$$) as (a agtype);
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION ALL MATCH (n) RETURN n$$) as (a gtype);
                                a                                
 ----------------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {}}::vertex
  {"id": 281474976710657, "label": "", "properties": {}}::vertex
 (2 rows)
 
-SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION RETURN 1$$) as (a agtype);
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION RETURN 1$$) as (a gtype);
                                a                                
 ----------------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {}}::vertex
  1
 (2 rows)
 
-SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION RETURN NULL$$) as (a agtype);
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION RETURN NULL$$) as (a gtype);
                                a                                
 ----------------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {}}::vertex
  
 (2 rows)
 
-SELECT * FROM cypher('cypher_union', $$RETURN [1,2,3] UNION RETURN 1$$) as (a agtype);
+SELECT * FROM cypher('cypher_union', $$RETURN [1,2,3] UNION RETURN 1$$) as (a gtype);
      a     
 -----------
  [1, 2, 3]
@@ -65,14 +65,14 @@ SELECT * FROM cypher('cypher_union', $$RETURN [1,2,3] UNION RETURN 1$$) as (a ag
 (2 rows)
 
 /*should return 1 row*/
-SELECT * FROM cypher('cypher_union', $$RETURN NULL UNION RETURN NULL$$) AS (result agtype);
+SELECT * FROM cypher('cypher_union', $$RETURN NULL UNION RETURN NULL$$) AS (result gtype);
  result 
 --------
  
 (1 row)
 
 /*should return 2 rows*/
-SELECT * FROM cypher('cypher_union', $$RETURN NULL UNION ALL RETURN NULL$$) AS (result agtype);
+SELECT * FROM cypher('cypher_union', $$RETURN NULL UNION ALL RETURN NULL$$) AS (result gtype);
  result 
 --------
  
@@ -82,14 +82,14 @@ SELECT * FROM cypher('cypher_union', $$RETURN NULL UNION ALL RETURN NULL$$) AS (
 /*
  *multiple unions, precedence
  */
-SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION MATCH (n) RETURN n UNION MATCH (n) RETURN n$$) AS (result agtype);
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION MATCH (n) RETURN n UNION MATCH (n) RETURN n$$) AS (result gtype);
                              result                             
 ----------------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {}}::vertex
 (1 row)
 
 /*should return triple*/
-SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION ALL MATCH (n) RETURN n UNION ALL MATCH(n) RETURN n$$) AS (result agtype);
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION ALL MATCH (n) RETURN n UNION ALL MATCH(n) RETURN n$$) AS (result gtype);
                              result                             
 ----------------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {}}::vertex
@@ -98,14 +98,14 @@ SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION ALL MATCH (n) RE
 (3 rows)
 
 /*should return single*/
-SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION ALL MATCH (n) RETURN n UNION MATCH(n) RETURN n$$) AS (result agtype);
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION ALL MATCH (n) RETURN n UNION MATCH(n) RETURN n$$) AS (result gtype);
                              result                             
 ----------------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {}}::vertex
 (1 row)
 
 /*should return just a pair*/
-SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION MATCH (n) RETURN n UNION ALL MATCH(n) RETURN n$$) AS (result agtype);
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION MATCH (n) RETURN n UNION ALL MATCH(n) RETURN n$$) AS (result gtype);
                              result                             
 ----------------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {}}::vertex
@@ -113,7 +113,7 @@ SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION MATCH (n) RETURN
 (2 rows)
 
 /*should return 3 null rows*/
-SELECT * FROM cypher('cypher_union', $$RETURN NULL UNION ALL RETURN NULL UNION ALL RETURN NULL$$) AS (result agtype);
+SELECT * FROM cypher('cypher_union', $$RETURN NULL UNION ALL RETURN NULL UNION ALL RETURN NULL$$) AS (result gtype);
  result 
 --------
  
@@ -122,14 +122,14 @@ SELECT * FROM cypher('cypher_union', $$RETURN NULL UNION ALL RETURN NULL UNION A
 (3 rows)
 
 /*should return 1 null row*/
-SELECT * FROM cypher('cypher_union', $$RETURN NULL UNION ALL RETURN NULL UNION RETURN NULL$$) AS (result agtype);
+SELECT * FROM cypher('cypher_union', $$RETURN NULL UNION ALL RETURN NULL UNION RETURN NULL$$) AS (result gtype);
  result 
 --------
  
 (1 row)
 
 /*should return 2 null rows*/
-SELECT * FROM cypher('cypher_union', $$RETURN NULL UNION RETURN NULL UNION ALL RETURN NULL$$) AS (result agtype);
+SELECT * FROM cypher('cypher_union', $$RETURN NULL UNION RETURN NULL UNION ALL RETURN NULL$$) AS (result gtype);
  result 
 --------
  
@@ -137,28 +137,28 @@ SELECT * FROM cypher('cypher_union', $$RETURN NULL UNION RETURN NULL UNION ALL R
 (2 rows)
 
 /* scoping */
-SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION ALL MATCH (m) RETURN n$$) AS (result agtype);
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION ALL MATCH (m) RETURN n$$) AS (result gtype);
 ERROR:  could not find rte for n
 LINE 2: ..., $$MATCH (n) RETURN n UNION ALL MATCH (m) RETURN n$$) AS (r...
                                                              ^
 /*
  *UNION and UNION ALL, type casting
  */
-SELECT * FROM cypher('cypher_union', $$RETURN 1.0::int UNION RETURN 1::float UNION ALL RETURN 2.0::float$$) AS (result agtype);
+SELECT * FROM cypher('cypher_union', $$RETURN 1.0::int UNION RETURN 1::float UNION ALL RETURN 2.0::float$$) AS (result gtype);
  result 
 --------
  1
  2.0
 (2 rows)
 
-SELECT * FROM cypher('cypher_union', $$RETURN 1.0::int UNION RETURN 1.0::float UNION ALL RETURN 1::int$$) AS (result agtype);
+SELECT * FROM cypher('cypher_union', $$RETURN 1.0::int UNION RETURN 1.0::float UNION ALL RETURN 1::int$$) AS (result gtype);
  result 
 --------
  1
  1
 (2 rows)
 
-SELECT * FROM cypher('cypher_union', $$RETURN 1.0::float UNION RETURN 1::int UNION RETURN 1::float$$) AS (result agtype);
+SELECT * FROM cypher('cypher_union', $$RETURN 1.0::float UNION RETURN 1::int UNION RETURN 1::float$$) AS (result gtype);
  result 
 --------
  1.0

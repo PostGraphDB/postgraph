@@ -34,7 +34,7 @@
 #include "executor/cypher_executor.h"
 #include "executor/cypher_utils.h"
 #include "nodes/cypher_nodes.h"
-#include "utils/agtype.h"
+#include "utils/gtype.h"
 #include "utils/graphid.h"
 
 static void begin_cypher_create(CustomScanState *node, EState *estate,
@@ -504,7 +504,7 @@ static Datum create_vertex(cypher_create_custom_scan_state *css,
             ps = css->css.ss.ps.lefttree;
             scantuple = ps->ps_ExprContext->ecxt_scantuple;
 
-            // make the vertex agtype
+            // make the vertex gtype
             result = make_vertex(
                 id, CStringGetDatum(node->label_name),
                 PointerGetDatum(scanTupleSlot->tts_values[node->prop_attr_num]));
@@ -529,28 +529,28 @@ static Datum create_vertex(cypher_create_custom_scan_state *css,
     }
     else
     {
-        agtype *a;
-        agtype_value *v;
-        agtype_value *id_value;
+        gtype *a;
+        gtype_value *v;
+        gtype_value *id_value;
         TupleTableSlot *scantuple;
         PlanState *ps;
 
         ps = css->css.ss.ps.lefttree;
         scantuple = ps->ps_ExprContext->ecxt_scantuple;
 
-        // get the vertex agtype in the scanTupleSlot
-        a = DATUM_GET_AGTYPE_P(scantuple->tts_values[node->tuple_position - 1]);
+        // get the vertex gtype in the scanTupleSlot
+        a = DATUM_GET_GTYPE_P(scantuple->tts_values[node->tuple_position - 1]);
 
-        // Convert to an agtype value
-        v = get_ith_agtype_value_from_container(&a->root, 0);
+        // Convert to an gtype value
+        v = get_ith_gtype_value_from_container(&a->root, 0);
 
         if (v->type != AGTV_VERTEX)
             ereport(ERROR,
                     (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                     errmsg("agtype must resolve to a vertex")));
+                     errmsg("gtype must resolve to a vertex")));
 
-        // extract the id agtype field
-        id_value = GET_AGTYPE_VALUE_OBJECT_VALUE(v, "id");
+        // extract the id gtype field
+        id_value = GET_GTYPE_VALUE_OBJECT_VALUE(v, "id");
 
         // extract the graphid and cast to a Datum
         id = GRAPHID_GET_DATUM(id_value->val.int_value);

@@ -61,7 +61,7 @@
 #include "catalog/ag_label.h"
 #include "commands/label_commands.h"
 #include "utils/ag_cache.h"
-#include "utils/agtype.h"
+#include "utils/gtype.h"
 #include "utils/graphid.h"
 
 #define AGE_VERTIX 1

@@ -21,7 +21,7 @@
 #define AG_AGE_GLOBAL_GRAPH_H
 
 #include "utils/graphid.h"
-#include "utils/age_graphid_ds.h"
+#include "utils/queue.h"
 
 /*
  * We declare the graph nodes and edges here, and in this way, so that it may be
@@ -43,21 +43,21 @@ graph_context *manage_graph_contexts(char *graph_name,
 graph_context *find_graph_context(Oid graph_oid);
 bool is_ggctx_invalid(graph_context *ggctx);
 /* GRAPH retrieval functions */
-ListGraphId *get_graph_vertices(graph_context *ggctx);
+Queue *get_graph_vertices(graph_context *ggctx);
 vertex_entry *get_vertex_entry(graph_context *ggctx,
                                graphid vertex_id);
 edge_entry *get_edge_entry(graph_context *ggctx, graphid edge_id);
 /* vertex entry accessor functions*/
 graphid get_vertex_entry_id(vertex_entry *ve);
-ListGraphId *get_vertex_entry_edges_in(vertex_entry *ve);
-ListGraphId *get_vertex_entry_edges_out(vertex_entry *ve);
-ListGraphId *get_vertex_entry_edges_self(vertex_entry *ve);
+Queue *get_vertex_entry_edges_in(vertex_entry *ve);
+Queue *get_vertex_entry_edges_out(vertex_entry *ve);
+Queue *get_vertex_entry_edges_self(vertex_entry *ve);
 Oid get_vertex_entry_label_table_oid(vertex_entry *ve);
 Datum get_vertex_entry_properties(vertex_entry *ve);
 /* edge entry accessor functions */
 graphid get_edge_entry_id(edge_entry *ee);
 Oid get_edge_entry_label_table_oid(edge_entry *ee);
 Datum get_edge_entry_properties(edge_entry *ee);
-graphid get_edge_entry_start_vertex_id(edge_entry *ee);
-graphid get_edge_entry_end_vertex_id(edge_entry *ee);
+graphid get_start_id(edge_entry *ee);
+graphid get_end_id(edge_entry *ee);
 #endif

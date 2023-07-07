@@ -33,12 +33,12 @@ CREATE EXTENSION postgraph;
 
 SELECT create_graph('drop');
 
--- Create a schema that uses the agtype, so we can't just drop postgraph.
+-- Create a schema that uses the gtype, so we can't just drop postgraph.
 CREATE SCHEMA other_schema;
 
-CREATE TABLE other_schema.tbl (id agtype);
+CREATE TABLE other_schema.tbl (id gtype);
 
--- Should Fail because agtype can't be dropped
+-- Should Fail because gtype can't be dropped
 DROP EXTENSION postgraph;
 
 -- Check the graph still exist, because the DROP command failed

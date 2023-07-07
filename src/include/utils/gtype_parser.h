@@ -29,35 +29,35 @@
  */
 
 /*
- * Declarations for agtype parser.
+ * Declarations for gtype parser.
  */
 
-#ifndef AG_AGTYPE_PARSER_H
-#define AG_AGTYPE_PARSER_H
+#ifndef AG_GTYPE_PARSER_H
+#define AG_GTYPE_PARSER_H
 
 #include "lib/stringinfo.h"
 
 typedef enum
 {
-    AGTYPE_TOKEN_INVALID,
-    AGTYPE_TOKEN_STRING,
-    AGTYPE_TOKEN_INTEGER,
-    AGTYPE_TOKEN_FLOAT,
-    AGTYPE_TOKEN_NUMERIC,
-    AGTYPE_TOKEN_TIMESTAMP,
-    AGTYPE_TOKEN_OBJECT_START,
-    AGTYPE_TOKEN_OBJECT_END,
-    AGTYPE_TOKEN_ARRAY_START,
-    AGTYPE_TOKEN_ARRAY_END,
-    AGTYPE_TOKEN_COMMA,
-    AGTYPE_TOKEN_COLON,
-    AGTYPE_TOKEN_ANNOTATION,
-    AGTYPE_TOKEN_IDENTIFIER,
-    AGTYPE_TOKEN_TRUE,
-    AGTYPE_TOKEN_FALSE,
-    AGTYPE_TOKEN_NULL,
-    AGTYPE_TOKEN_END
-} agtype_token_type;
+    GTYPE_TOKEN_INVALID,
+    GTYPE_TOKEN_STRING,
+    GTYPE_TOKEN_INTEGER,
+    GTYPE_TOKEN_FLOAT,
+    GTYPE_TOKEN_NUMERIC,
+    GTYPE_TOKEN_TIMESTAMP,
+    GTYPE_TOKEN_OBJECT_START,
+    GTYPE_TOKEN_OBJECT_END,
+    GTYPE_TOKEN_ARRAY_START,
+    GTYPE_TOKEN_ARRAY_END,
+    GTYPE_TOKEN_COMMA,
+    GTYPE_TOKEN_COLON,
+    GTYPE_TOKEN_ANNOTATION,
+    GTYPE_TOKEN_IDENTIFIER,
+    GTYPE_TOKEN_TRUE,
+    GTYPE_TOKEN_FALSE,
+    GTYPE_TOKEN_NULL,
+    GTYPE_TOKEN_END
+} gtype_token_type;
 
 /*
  * All the fields in this structure should be treated as read-only.
@@ -72,57 +72,57 @@ typedef enum
  * AFTER the end of the token, i.e. where there would be a nul byte
  * if we were using nul-terminated strings.
  */
-typedef struct agtype_lex_context
+typedef struct gtype_lex_context
 {
     char *input;
     int input_length;
     char *token_start;
     char *token_terminator;
     char *prev_token_terminator;
-    agtype_token_type token_type;
+    gtype_token_type token_type;
     int lex_level;
     int line_number;
     char *line_start;
     StringInfo strval;
-} agtype_lex_context;
+} gtype_lex_context;
 
-typedef void (*agtype_struct_action)(void *state);
-typedef void (*agtype_ofield_action)(void *state, char *fname, bool isnull);
-typedef void (*agtype_aelem_action)(void *state, bool isnull);
-typedef void (*agtype_scalar_action)(void *state, char *token,
-                                     agtype_token_type tokentype,
+typedef void (*gtype_struct_action)(void *state);
+typedef void (*gtype_ofield_action)(void *state, char *fname, bool isnull);
+typedef void (*gtype_aelem_action)(void *state, bool isnull);
+typedef void (*gtype_scalar_action)(void *state, char *token,
+                                     gtype_token_type tokentype,
                                      char *annotation);
-typedef void (*agtype_annotation_action)(void *state, char *annotation);
+typedef void (*gtype_annotation_action)(void *state, char *annotation);
 
 /*
- * Semantic Action structure for use in parsing agtype.
+ * Semantic Action structure for use in parsing gtype.
  * Any of these actions can be NULL, in which case nothing is done at that
  * point, Likewise, semstate can be NULL. Using an all-NULL structure amounts
  * to doing a pure parse with no side-effects, and is therefore exactly
- * what the agtype input routines do.
+ * what the gtype input routines do.
  *
  * The 'fname' and 'token' strings passed to these actions are palloc'd.
  * They are not free'd or used further by the parser, so the action function
  * is free to do what it wishes with them.
  */
-typedef struct agtype_sem_action
+typedef struct gtype_sem_action
 {
     void *semstate;
-    agtype_struct_action object_start;
-    agtype_struct_action object_end;
-    agtype_struct_action array_start;
-    agtype_struct_action array_end;
-    agtype_ofield_action object_field_start;
-    agtype_ofield_action object_field_end;
-    agtype_aelem_action array_element_start;
-    agtype_aelem_action array_element_end;
-    agtype_scalar_action scalar;
+    gtype_struct_action object_start;
+    gtype_struct_action object_end;
+    gtype_struct_action array_start;
+    gtype_struct_action array_end;
+    gtype_ofield_action object_field_start;
+    gtype_ofield_action object_field_end;
+    gtype_aelem_action array_element_start;
+    gtype_aelem_action array_element_end;
+    gtype_scalar_action scalar;
     /* annotations (typecast) */
-    agtype_annotation_action agtype_annotation;
-} agtype_sem_action;
+    gtype_annotation_action gtype_annotation;
+} gtype_sem_action;
 
 /*
- * parse_agtype will parse the string in the lex calling the
+ * parse_gtype will parse the string in the lex calling the
  * action functions in sem at the appropriate points. It is
  * up to them to keep what state they need in semstate. If they
  * need access to the state of the lexer, then its pointer
@@ -130,28 +130,28 @@ typedef struct agtype_sem_action
  * points to. If the action pointers are NULL the parser
  * does nothing and just continues.
  */
-void parse_agtype(agtype_lex_context *lex, agtype_sem_action *sem);
+void parse_gtype(gtype_lex_context *lex, gtype_sem_action *sem);
 
 /*
- * constructors for agtype_lex_context, with or without strval element.
+ * constructors for gtype_lex_context, with or without strval element.
  * If supplied, the strval element will contain a de-escaped version of
  * the lexeme. However, doing this imposes a performance penalty, so
  * it should be avoided if the de-escaped lexeme is not required.
  *
- * If you already have the agtype as a text* value, use the first of these
- * functions, otherwise use ag_make_agtype_lex_context_cstring_len().
+ * If you already have the gtype as a text* value, use the first of these
+ * functions, otherwise use ag_make_gtype_lex_context_cstring_len().
  */
-agtype_lex_context *make_agtype_lex_context(text *t, bool need_escapes);
-agtype_lex_context *make_agtype_lex_context_cstring_len(char *str, int len,
+gtype_lex_context *make_gtype_lex_context(text *t, bool need_escapes);
+gtype_lex_context *make_gtype_lex_context_cstring_len(char *str, int len,
                                                         bool need_escapes);
 
 /*
- * Utility function to check if a string is a valid agtype number.
+ * Utility function to check if a string is a valid gtype number.
  *
  * str argument does not need to be null-terminated.
  */
-extern bool is_valid_agtype_number(const char *str, int len);
+extern bool is_valid_gtype_number(const char *str, int len);
 
-extern char *agtype_encode_date_time(char *buf, Datum value, Oid typid);
+extern char *gtype_encode_date_time(char *buf, Datum value, Oid typid);
 
 #endif

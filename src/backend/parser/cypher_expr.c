@@ -54,7 +54,7 @@
 #include "parser/cypher_parse_node.h"
 #include "parser/cypher_transform_entity.h"
 #include "utils/ag_func.h"
-#include "utils/agtype.h"
+#include "utils/gtype.h"
 
 #define is_a_slice(node) \
     (IsA((node), A_Indices) && ((A_Indices *)(node))->is_slice)
@@ -182,7 +182,7 @@ transform_a_const(cypher_parsestate *cpstate, A_Const *ac) {
     switch (nodeTag(v))
     {
     case T_Integer:
-        d = integer_to_agtype((int64)intVal(v));
+        d = integer_to_gtype((int64)intVal(v));
         break;
     case T_Float:
         {
@@ -190,16 +190,16 @@ transform_a_const(cypher_parsestate *cpstate, A_Const *ac) {
             int64 i;
 
             if (scanint8(n, true, &i)) {
-                d = integer_to_agtype(i);
+                d = integer_to_gtype(i);
             } else {
                 float8 f = float8in_internal(n, NULL, "double precision", n);
 
-                d = float_to_agtype(f);
+                d = float_to_gtype(f);
             }
         }
         break;
     case T_String:
-        d = string_to_agtype(strVal(v));
+        d = string_to_gtype(strVal(v));
         break;
     case T_Null:
         is_null = true;
@@ -210,8 +210,8 @@ transform_a_const(cypher_parsestate *cpstate, A_Const *ac) {
         return NULL;
     }
 
-    // typtypmod, typcollation, typlen, and typbyval of agtype are hard-coded.
-    c = makeConst(AGTYPEOID, -1, InvalidOid, -1, d, is_null, false);
+    // typtypmod, typcollation, typlen, and typbyval of gtype are hard-coded.
+    c = makeConst(GTYPEOID, -1, InvalidOid, -1, d, is_null, false);
     c->location = ac->location;
     return (Node *)c;
 }
@@ -292,9 +292,9 @@ transform_column_ref(cypher_parsestate *cpstate, ColumnRef *cref) {
                              errmsg("could not find column %s in rel %s of rte", colname, relname),
                              parser_errposition(pstate, cref->location)));
 
-                /* coerce it to AGTYPE if possible */
+                /* coerce it to GTYPE if possible */
                 inputTypeId = exprType(node);
-                targetTypeId = AGTYPEOID;
+                targetTypeId = GTYPEOID;
 
                 if (can_coerce_type(1, &inputTypeId, &targetTypeId, COERCION_EXPLICIT)) {
                     node = coerce_type(pstate, node, inputTypeId, targetTypeId,
@@ -374,10 +374,10 @@ transform_bool_expr(cypher_parsestate *cpstate, BoolExpr *expr) {
 static Node *
 transform_cypher_bool_const(cypher_parsestate *cpstate, cypher_bool_const *b) {
 
-    Datum agt = boolean_to_agtype(b->boolean);
+    Datum agt = boolean_to_gtype(b->boolean);
 
-    // typtypmod, typcollation, typlen, and typbyval of agtype are hard-coded.
-    Const *c = makeConst(AGTYPEOID, -1, InvalidOid, -1, agt, false, false);
+    // typtypmod, typcollation, typlen, and typbyval of gtype are hard-coded.
+    Const *c = makeConst(GTYPEOID, -1, InvalidOid, -1, agt, false, false);
     c->location = b->location;
 
     return (Node *)c;
@@ -386,10 +386,10 @@ transform_cypher_bool_const(cypher_parsestate *cpstate, cypher_bool_const *b) {
 static Node *
 transform_cypher_integer_const(cypher_parsestate *cpstate, cypher_integer_const *i) {
 
-    Datum agt = integer_to_agtype(i->integer);
+    Datum agt = integer_to_gtype(i->integer);
 
-    // typtypmod, typcollation, typlen, and typbyval of agtype are hard-coded.
-    Const *c = makeConst(AGTYPEOID, -1, InvalidOid, -1, agt, false, false);
+    // typtypmod, typcollation, typlen, and typbyval of gtype are hard-coded.
+    Const *c = makeConst(GTYPEOID, -1, InvalidOid, -1, agt, false, false);
     c->location = i->location;
 
     return (Node *)c;
@@ -406,7 +406,7 @@ transform_cypher_param(cypher_parsestate *cpstate, cypher_param *p) {
              errmsg("parameters argument is missing from cypher() function call"),
              parser_errposition(pstate, p->location)));
 
-    const_str = makeConst(AGTYPEOID, -1, InvalidOid, -1, string_to_agtype(p->name), false, false);
+    const_str = makeConst(GTYPEOID, -1, InvalidOid, -1, string_to_gtype(p->name), false, false);
 
     return (Node *)make_op(pstate, list_make1(makeString("->")), (Node *)cpstate->params, (Node *)const_str, pstate->p_last_srf,  -1);
 }
@@ -430,18 +430,18 @@ transform_cypher_map(cypher_parsestate *cpstate, cypher_map *cm) {
 
         Node *newval = transform_cypher_expr_recurse(cpstate, val);
 
-        // typtypmod, typcollation, typlen, and typbyval of agtype are hard-coded.
+        // typtypmod, typcollation, typlen, and typbyval of gtype are hard-coded.
         Const *newkey = makeConst(TEXTOID, -1, InvalidOid, -1, CStringGetTextDatum(strVal(key)), false, false);
 
         newkeyvals = lappend(lappend(newkeyvals, newkey), newval);
     }
 
     if (list_length(newkeyvals) == 0)
-        func_oid = get_ag_func_oid("agtype_build_map", 0);
+        func_oid = get_ag_func_oid("gtype_build_map", 0);
     else
-        func_oid = get_ag_func_oid("agtype_build_map", 1, ANYOID);
+        func_oid = get_ag_func_oid("gtype_build_map", 1, ANYOID);
 
-    fexpr = makeFuncExpr(func_oid, AGTYPEOID, newkeyvals, InvalidOid, InvalidOid, COERCE_EXPLICIT_CALL);
+    fexpr = makeFuncExpr(func_oid, GTYPEOID, newkeyvals, InvalidOid, InvalidOid, COERCE_EXPLICIT_CALL);
     fexpr->location = cm->location;
 
     return (Node *)fexpr;
@@ -457,11 +457,11 @@ transform_cypher_list(cypher_parsestate *cpstate, cypher_list *cl) {
 
     Oid oid;
     if (list_length(args) == 0)
-        oid = get_ag_func_oid("agtype_build_list", 0);
+        oid = get_ag_func_oid("gtype_build_list", 0);
     else
-        oid = get_ag_func_oid("agtype_build_list", 1, ANYOID);
+        oid = get_ag_func_oid("gtype_build_list", 1, ANYOID);
 
-    FuncExpr *expr = makeFuncExpr(oid, AGTYPEOID, args, InvalidOid, InvalidOid, COERCE_EXPLICIT_CALL);
+    FuncExpr *expr = makeFuncExpr(oid, GTYPEOID, args, InvalidOid, InvalidOid, COERCE_EXPLICIT_CALL);
     expr->location = cl->location;
 
     return (Node *)expr;
@@ -538,18 +538,18 @@ transform_a_indirection(cypher_parsestate *cpstate, A_Indirection *a_ind) {
 
             // lower bound
             if (!indices->lidx)
-                args = lappend(args, makeConst(AGTYPEOID, -1, InvalidOid, -1, (Datum)NULL, true, false));
+                args = lappend(args, makeConst(GTYPEOID, -1, InvalidOid, -1, (Datum)NULL, true, false));
             else
                 args = lappend(args, transform_cypher_expr_recurse(cpstate, indices->lidx));
 
             // upper bound
             if (!indices->uidx)
-                args = lappend(args, makeConst(AGTYPEOID, -1, InvalidOid, -1, (Datum)NULL, true, false));
+                args = lappend(args, makeConst(GTYPEOID, -1, InvalidOid, -1, (Datum)NULL, true, false));
             else
                 args = lappend(args, transform_cypher_expr_recurse(cpstate, indices->uidx));
 
-            Oid oid = get_ag_func_oid("agtype_access_slice", 3, AGTYPEOID, AGTYPEOID, AGTYPEOID);
-            FuncExpr *func_expr = makeFuncExpr(oid, AGTYPEOID, args, InvalidOid, InvalidOid, COERCE_EXPLICIT_CALL);
+            Oid oid = get_ag_func_oid("gtype_access_slice", 3, GTYPEOID, GTYPEOID, GTYPEOID);
+            FuncExpr *func_expr = makeFuncExpr(oid, GTYPEOID, args, InvalidOid, InvalidOid, COERCE_EXPLICIT_CALL);
             func_expr->location = exprLocation(cur);
 
             cur = (Node *)func_expr;
@@ -565,7 +565,7 @@ transform_a_indirection(cypher_parsestate *cpstate, A_Indirection *a_ind) {
             List *fields = cr->fields;
             Value *string = linitial(fields);
 
-            Const *const_str = makeConst(AGTYPEOID, -1, InvalidOid, -1, string_to_agtype(strVal(string)), false, false);
+            Const *const_str = makeConst(GTYPEOID, -1, InvalidOid, -1, string_to_gtype(strVal(string)), false, false);
 
             cur = (Node *)make_op(pstate, list_make1(makeString("->")), cur, (Node *)const_str, pstate->p_last_srf,  -1);
 
@@ -591,24 +591,24 @@ transform_cypher_string_match(cypher_parsestate *cpstate, cypher_string_match *c
     switch (csm_node->operation)
     {
     case CSMO_STARTS_WITH:
-        func_name = "agtype_string_match_starts_with";
+        func_name = "gtype_string_match_starts_with";
         break;
     case CSMO_ENDS_WITH:
-        func_name = "agtype_string_match_ends_with";
+        func_name = "gtype_string_match_ends_with";
         break;
     case CSMO_CONTAINS:
-        func_name = "agtype_string_match_contains";
+        func_name = "gtype_string_match_contains";
         break;
     default:
         ereport(ERROR, (errmsg_internal("unknown Cypher string match operation")));
     }
 
-    Oid oid = get_ag_func_oid(func_name, 2, AGTYPEOID, AGTYPEOID);
+    Oid oid = get_ag_func_oid(func_name, 2, GTYPEOID, GTYPEOID);
 
     List *args = list_make2(transform_cypher_expr_recurse(cpstate, csm_node->lhs),
                             transform_cypher_expr_recurse(cpstate, csm_node->rhs));
 
-    FuncExpr *expr = makeFuncExpr(oid, AGTYPEOID, args, InvalidOid, InvalidOid, COERCE_EXPLICIT_CALL);
+    FuncExpr *expr = makeFuncExpr(oid, GTYPEOID, args, InvalidOid, InvalidOid, COERCE_EXPLICIT_CALL);
     expr->location = csm_node->location;
 
     return (Node *)expr;
@@ -675,8 +675,8 @@ make_qualified_function_name(cypher_parsestate *cpstate, List *lst, List *targs)
     // Some functions need the graph name passed to them in order to work
     if (strcmp("startNode", name) == 0 || strcmp("endNode", name) == 0 || strcmp("vle", name) == 0 || strcmp("vertex_stats", name) == 0) {
         char *graph_name = cpstate->graph_name;
-        Datum d = string_to_agtype(graph_name);
-        Const *c = makeConst(AGTYPEOID, -1, InvalidOid, -1, d, false, false);
+        Datum d = string_to_gtype(graph_name);
+        Const *c = makeConst(GTYPEOID, -1, InvalidOid, -1, d, false, false);
 
         targs = lcons(c, targs);
     }
@@ -735,14 +735,14 @@ transform_coalesce_expr(cypher_parsestate *cpstate, CoalesceExpr *cexpr) {
 
     newcexpr->coalescetype = select_common_type(pstate, newargs, "COALESCE", NULL);
 
-    if (newcexpr->coalescetype != AGTYPEOID)
+    if (newcexpr->coalescetype != GTYPEOID)
         ereport(ERROR,
                 (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                 errmsg("COALESCE in a cypher query expects to return agtype"),
+                 errmsg("COALESCE in a cypher query expects to return gtype"),
                  parser_errposition(pstate, exprLocation((Node*)cexpr))));
 
 
-    // coearce each agruement to agtype
+    // coearce each agruement to gtype
     List *newcoercedargs = NIL;
     foreach(lc, newargs) {
         Node *e = (Node *)lfirst(lc);
@@ -777,7 +777,7 @@ transform_case_expr(cypher_parsestate *cpstate, CaseExpr *cexpr) {
     CaseTestExpr *placeholder;
     if (arg) {
         if (exprType(arg) == UNKNOWNOID)
-            arg = coerce_to_common_type(pstate, arg, AGTYPEOID, "CASE");
+            arg = coerce_to_common_type(pstate, arg, GTYPEOID, "CASE");
 
         assign_expr_collations(pstate, arg);
 

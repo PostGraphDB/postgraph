@@ -48,7 +48,7 @@
 typedef uint32 eentry;
 
 /*
- * An edge, within an agtype Datum.
+ * An edge, within an gtype Datum.
  *
  * An array has one child for each element, stored in array order.
  */

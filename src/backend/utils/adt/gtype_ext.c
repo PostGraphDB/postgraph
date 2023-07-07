@@ -21,16 +21,16 @@
  * Portions Copyright (c) 1996-2010, Bitnine Global
  */
 
-#include "utils/agtype_ext.h"
-#include "utils/agtype.h"
+#include "utils/gtype_ext.h"
+#include "utils/gtype.h"
 #include "utils/graphid.h"
 
 /* define the type and size of the agt_header */
 #define AGT_HEADER_TYPE uint32
 #define AGT_HEADER_SIZE sizeof(AGT_HEADER_TYPE)
 
-static void ag_deserialize_composite(char *base, enum agtype_value_type type,
-                                     agtype_value *result);
+static void ag_deserialize_composite(char *base, enum gtype_value_type type,
+                                     gtype_value *result);
 
 static short ag_serialize_header(StringInfo buffer, uint32 type)
 {
@@ -49,7 +49,7 @@ static short ag_serialize_header(StringInfo buffer, uint32 type)
  * Returns false if the type is not defined. Otherwise, true.
  */
 bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
-                                agtype_value *scalar_val)
+                                gtype_value *scalar_val)
 {
     short padlen;
     int numlen;
@@ -65,7 +65,7 @@ bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
         offset = reserve_from_buffer(buffer, numlen);
         *((int64 *)(buffer->data + offset)) = scalar_val->val.int_value;
 
-        *agtentry = AGTENTRY_IS_AGTYPE | (padlen + numlen + AGT_HEADER_SIZE);
+        *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
         break;
 
     case AGTV_FLOAT:
@@ -76,7 +76,7 @@ bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
         offset = reserve_from_buffer(buffer, numlen);
         *((float8 *)(buffer->data + offset)) = scalar_val->val.float_value;
 
-        *agtentry = AGTENTRY_IS_AGTYPE | (padlen + numlen + AGT_HEADER_SIZE);
+        *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
         break;
     case AGTV_TIMESTAMP:
         padlen = ag_serialize_header(buffer, AGT_HEADER_TIMESTAMP);
@@ -84,7 +84,7 @@ bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
         offset = reserve_from_buffer(buffer, sizeof(int64));
         *((int64 *)(buffer->data + offset)) = scalar_val->val.int_value;
 
-	*agtentry = AGTENTRY_IS_AGTYPE | (sizeof(int64) + AGT_HEADER_SIZE);
+	*agtentry = AGTENTRY_IS_GTYPE | (sizeof(int64) + AGT_HEADER_SIZE);
         break;
     case AGTV_VERTEX:
     {
@@ -101,7 +101,7 @@ bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
          */
         object_ae += pad_buffer_to_int(buffer);
 
-        *agtentry = AGTENTRY_IS_AGTYPE |
+        *agtentry = AGTENTRY_IS_GTYPE |
                     ((AGTENTRY_OFFLENMASK & (int)object_ae) + AGT_HEADER_SIZE);
         break;
     }
@@ -121,7 +121,7 @@ bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
          */
         object_ae += pad_buffer_to_int(buffer);
 
-        *agtentry = AGTENTRY_IS_AGTYPE |
+        *agtentry = AGTENTRY_IS_GTYPE |
                     ((AGTENTRY_OFFLENMASK & (int)object_ae) + AGT_HEADER_SIZE);
         break;
     }
@@ -141,7 +141,7 @@ bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
          */
         object_ae += pad_buffer_to_int(buffer);
 
-        *agtentry = AGTENTRY_IS_AGTYPE |
+        *agtentry = AGTENTRY_IS_GTYPE |
                     ((AGTENTRY_OFFLENMASK & (int)object_ae) + AGT_HEADER_SIZE);
         break;
     }
@@ -158,7 +158,7 @@ bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
  * AGT_HEADER type.
  */
 void ag_deserialize_extended_type(char *base_addr, uint32 offset,
-                                  agtype_value *result)
+                                  gtype_value *result)
 {
     char *base = base_addr + INTALIGN(offset);
     AGT_HEADER_TYPE agt_header = *((AGT_HEADER_TYPE *)base);
@@ -200,26 +200,26 @@ void ag_deserialize_extended_type(char *base_addr, uint32 offset,
 /*
  * Deserializes a composite type.
  */
-static void ag_deserialize_composite(char *base, enum agtype_value_type type,
-                                     agtype_value *result)
+static void ag_deserialize_composite(char *base, enum gtype_value_type type,
+                                     gtype_value *result)
 {
-    agtype_iterator *it = NULL;
-    agtype_iterator_token tok;
-    agtype_parse_state *parse_state = NULL;
-    agtype_value *r = NULL;
-    agtype_value *parsed_agtype_value = NULL;
+    gtype_iterator *it = NULL;
+    gtype_iterator_token tok;
+    gtype_parse_state *parse_state = NULL;
+    gtype_value *r = NULL;
+    gtype_value *parsed_gtype_value = NULL;
     //offset container by the extended type header
     char *container_base = base + AGT_HEADER_SIZE;
 
-    r = palloc(sizeof(agtype_value));
+    r = palloc(sizeof(gtype_value));
 
-    it = agtype_iterator_init((agtype_container *)container_base);
-    while ((tok = agtype_iterator_next(&it, r, true)) != WAGT_DONE)
+    it = gtype_iterator_init((gtype_container *)container_base);
+    while ((tok = gtype_iterator_next(&it, r, true)) != WAGT_DONE)
     {
-        parsed_agtype_value = push_agtype_value(
+        parsed_gtype_value = push_gtype_value(
             &parse_state, tok, tok < WAGT_BEGIN_ARRAY ? r : NULL);
     }
 
     result->type = type;
-    result->val = parsed_agtype_value->val;
+    result->val = parsed_gtype_value->val;
 }

@@ -50,7 +50,7 @@
 #include "catalog/ag_label.h"
 #include "commands/label_commands.h"
 #include "utils/ag_cache.h"
-#include "utils/agtype.h"
+#include "utils/gtype.h"
 #include "utils/graphid.h"
 
 /*
@@ -315,7 +315,7 @@ void create_label(char *graph_name, char *label_name, char label_type,
 //   "id" graphid PRIMARY KEY DEFAULT CATALOG_SCHEMA."_graphid"(...),
 //   "start_id" graphid NOT NULL note: only for edge labels
 //   "end_id" graphid NOT NULL  note: only for edge labels
-//   "properties" agtype NOT NULL DEFAULT CATALOG_SCHEMA."agtype_build_map"()
+//   "properties" gtype NOT NULL DEFAULT CATALOG_SCHEMA."gtype_build_map"()
 // )
 static void create_table_for_label(char *graph_name, char *label_name,
                                    char *schema_name, char *rel_name,
@@ -373,7 +373,7 @@ static void create_table_for_label(char *graph_name, char *label_name,
 //   "id" graphid PRIMARY KEY DEFAULT CATALOG_SCHEMA."_graphid"(...),
 //   "start_id" graphid NOT NULL
 //   "end_id" graphid NOT NULL
-//   "properties" agtype NOT NULL DEFAULT CATALOG_SCHEMA."agtype_build_map"()
+//   "properties" gtype NOT NULL DEFAULT CATALOG_SCHEMA."gtype_build_map"()
 // )
 static List *create_edge_table_elements(char *graph_name, char *label_name,
                                         char *schema_name, char *rel_name,
@@ -399,8 +399,8 @@ static List *create_edge_table_elements(char *graph_name, char *label_name,
     end_id = makeColumnDef(AG_EDGE_COLNAME_END_ID, GRAPHIDOID, -1, InvalidOid);
     end_id->constraints = list_make1(build_not_null_constraint());
 
-    // "properties" agtype NOT NULL DEFAULT CATALOG_SCHEMA."agtype_build_map"()
-    props = makeColumnDef(AG_EDGE_COLNAME_PROPERTIES, AGTYPEOID, -1,
+    // "properties" gtype NOT NULL DEFAULT CATALOG_SCHEMA."gtype_build_map"()
+    props = makeColumnDef(AG_EDGE_COLNAME_PROPERTIES, GTYPEOID, -1,
                           InvalidOid);
     props->constraints = list_make2(build_not_null_constraint(),
                                     build_properties_default());
@@ -410,7 +410,7 @@ static List *create_edge_table_elements(char *graph_name, char *label_name,
 
 // CREATE TABLE `schema_name`.`rel_name` (
 //   "id" graphid PRIMARY KEY DEFAULT CATALOG_SCHEMA."_graphid"(...),
-//   "properties" agtype NOT NULL DEFAULT CATALOG_SCHEMA."agtype_build_map"()
+//   "properties" gtype NOT NULL DEFAULT CATALOG_SCHEMA."gtype_build_map"()
 // )
 static List *create_vertex_table_elements(char *graph_name, char *label_name,
                                           char *schema_name, char *rel_name,
@@ -425,8 +425,8 @@ static List *create_vertex_table_elements(char *graph_name, char *label_name,
                                  build_id_default(graph_name, label_name,
                                                   schema_name, seq_name));
 
-    // "properties" agtype NOT NULL DEFAULT CATALOG_SCHEMA."agtype_build_map"()
-    props = makeColumnDef(AG_VERTEX_COLNAME_PROPERTIES, AGTYPEOID, -1,
+    // "properties" gtype NOT NULL DEFAULT CATALOG_SCHEMA."gtype_build_map"()
+    props = makeColumnDef(AG_VERTEX_COLNAME_PROPERTIES, GTYPEOID, -1,
                           InvalidOid);
     props->constraints = list_make2(build_not_null_constraint(),
                                     build_properties_default());
@@ -571,16 +571,16 @@ static Constraint *build_not_null_constraint(void)
     return not_null;
 }
 
-// DEFAULT CATALOG_SCHEMA."agtype_build_map"()
+// DEFAULT CATALOG_SCHEMA."gtype_build_map"()
 static Constraint *build_properties_default(void)
 {
     List *func_name;
     FuncCall *func;
     Constraint *props_default;
 
-    // CATALOG_SCHEMA."agtype_build_map"()
+    // CATALOG_SCHEMA."gtype_build_map"()
     func_name = list_make2(makeString(CATALOG_SCHEMA),
-                           makeString("agtype_build_map"));
+                           makeString("gtype_build_map"));
     func = makeFuncCall(func_name, NIL, COERCE_SQL_SYNTAX, -1);
 
     props_default = makeNode(Constraint);

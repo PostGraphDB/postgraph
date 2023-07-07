@@ -35,7 +35,7 @@ SELECT * FROM cypher('scan', $$
  */
 RETURN 0
 /**/
-$$) AS t(a agtype);
+$$) AS t(a gtype);
 
 SELECT * FROM cypher('scan', $$
 /* unterminated /* comment
@@ -51,7 +51,7 @@ SELECT * FROM cypher('scan', $$
 // single-line
 // comment
 RETURN 0
-$$) AS t(a agtype);
+$$) AS t(a gtype);
 
 --
 -- decimal integer
@@ -59,18 +59,18 @@ $$) AS t(a agtype);
 
 SELECT * FROM cypher('scan', $$
 RETURN 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
-$$) AS t(a agtype, b agtype, c agtype, d agtype, e agtype,
-         f agtype, g agtype, h agtype, i agtype, j agtype);
+$$) AS t(a gtype, b gtype, c gtype, d gtype, e gtype,
+         f gtype, g gtype, h gtype, i gtype, j gtype);
 
 SELECT * FROM cypher('scan', $$
 RETURN 11, 22, 33, 44, 55, 66, 77, 88, 99
-$$) AS t(a agtype, b agtype, c agtype, d agtype, e agtype,
-         f agtype, g agtype, h agtype, i agtype);
+$$) AS t(a gtype, b gtype, c gtype, d gtype, e gtype,
+         f gtype, g gtype, h gtype, i gtype);
 
 -- 2^31 - 1, 2^31
 SELECT * FROM cypher('scan', $$
 RETURN 2147483647, 2147483648
-$$) AS t(a agtype, b agtype);
+$$) AS t(a gtype, b gtype);
 
 --
 -- octal integer
@@ -78,23 +78,23 @@ $$) AS t(a agtype, b agtype);
 
 SELECT * FROM cypher('scan', $$
 RETURN 00, 01, 02, 03, 04, 05, 06, 07, 010
-$$) AS t(a agtype, b agtype, c agtype, d agtype, e agtype,
-         f agtype, g agtype, h agtype, i agtype);
+$$) AS t(a gtype, b gtype, c gtype, d gtype, e gtype,
+         f gtype, g gtype, h gtype, i gtype);
 
 SELECT * FROM cypher('scan', $$
 RETURN 000, 011, 022, 033, 044, 055, 066, 077
-$$) AS t(a agtype, b agtype, c agtype, d agtype, e agtype,
-         f agtype, g agtype, h agtype);
+$$) AS t(a gtype, b gtype, c gtype, d gtype, e gtype,
+         f gtype, g gtype, h gtype);
 
 -- 2^31 - 1, 2^31
 SELECT * FROM cypher('scan', $$
 RETURN 000000000000, 017777777777, 0020000000000
-$$) AS t(a agtype, b agtype, c agtype);
+$$) AS t(a gtype, b gtype, c gtype);
 
 -- 2^60 - 1, 2^64 - 1
 SELECT * FROM cypher('scan', $$
 RETURN 077777777777777777777, 01777777777777777777777
-$$) AS t(a agtype, b agtype);
+$$) AS t(a gtype, b gtype);
 
 -- an invalid character after reading valid digits
 SELECT * FROM cypher('scan', $$
@@ -112,31 +112,31 @@ $$) AS t(a int);
 
 SELECT * FROM cypher('scan', $$
 RETURN 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9
-$$) AS t(a agtype, b agtype, c agtype, d agtype, e agtype,
-         f agtype, g agtype, h agtype, i agtype, j agtype);
+$$) AS t(a gtype, b gtype, c gtype, d gtype, e gtype,
+         f gtype, g gtype, h gtype, i gtype, j gtype);
 
 SELECT * FROM cypher('scan', $$
 RETURN 0xA, 0xB, 0xC, 0xD, 0xE, 0xF
-$$) AS t(a agtype, b agtype, c agtype, d agtype, e agtype, f agtype);
+$$) AS t(a gtype, b gtype, c gtype, d gtype, e gtype, f gtype);
 
 SELECT * FROM cypher('scan', $$
 RETURN 0X00, 0X11, 0X22, 0X33, 0X44, 0X55, 0X66, 0X77, 0X88, 0X99
-$$) AS t(a agtype, b agtype, c agtype, d agtype, e agtype,
-         f agtype, g agtype, h agtype, i agtype, j agtype);
+$$) AS t(a gtype, b gtype, c gtype, d gtype, e gtype,
+         f gtype, g gtype, h gtype, i gtype, j gtype);
 
 SELECT * FROM cypher('scan', $$
 RETURN 0XAa, 0XBb, 0XCc, 0XDd, 0XEe, 0xFf
-$$) AS t(a agtype, b agtype, c agtype, d agtype, e agtype, f agtype);
+$$) AS t(a gtype, b gtype, c gtype, d gtype, e gtype, f gtype);
 
 -- 2^31 - 1, 2^31
 SELECT * FROM cypher('scan', $$
 RETURN 0x00000000, 0x7FFFFFFF, 0x080000000
-$$) AS t(a agtype, b agtype, c agtype);
+$$) AS t(a gtype, b gtype, c gtype);
 
 -- 10^18, 2^64 - 1
 SELECT * FROM cypher('scan', $$
 RETURN 0xde0b6b3a7640000, 0xffffffffffffffff
-$$) AS t(a agtype, b agtype);
+$$) AS t(a gtype, b gtype);
 
 -- an invalid character after reading valid digits
 SELECT * FROM cypher('scan', $$
@@ -159,7 +159,7 @@ $$) AS t(a int);
 
 SELECT * FROM cypher('scan', $$
 RETURN 03., 3.141592, .141592
-$$) AS t(a agtype, b agtype, c agtype);
+$$) AS t(a gtype, b gtype, c gtype);
 
 -- "0" and ".."
 SELECT * FROM cypher('scan', $$
@@ -172,7 +172,7 @@ $$) AS t(a text, b text, c text);
 
 SELECT * FROM cypher('scan', $$
 RETURN 3141592e-6, 3.141592E0, .3141592e+1
-$$) AS t(a agtype, b agtype, c agtype);
+$$) AS t(a gtype, b gtype, c gtype);
 
 -- invalid exponent parts
 
@@ -195,12 +195,12 @@ $$) AS t(a text);
 -- a long string
 SELECT * FROM cypher('scan', $$
 RETURN " !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ !#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-$$) AS t(a agtype);
+$$) AS t(a gtype);
 
 -- escape sequences
 SELECT * FROM cypher('scan', $$
 RETURN " \" \" ' \' ", ' \' \' " \" ', " / \/ \\ \b \f \n \r \t "
-$$) AS t(a agtype, b agtype, c agtype);
+$$) AS t(a gtype, b gtype, c gtype);
 
 -- invalid escape sequence
 SELECT * FROM cypher('scan', $$
@@ -213,7 +213,7 @@ RETURN "\u03A9 (GREEK CAPITAL LETTER OMEGA, U+03A9, Ω)",
        "\U0001d6e9 (MATHEMATICAL ITALIC CAPITAL THETA, U+1D6E9, 𝛩)",
        "\ud835\U0000DEF0 (MATHEMATICAL ITALIC CAPITAL OMICRON, U+1D6F0, 𝛰)",
        "\u002E (FULL STOP, U+002E, .)"
-$$) AS t(a agtype, b agtype, c agtype, d agtype);
+$$) AS t(a gtype, b gtype, c gtype, d gtype);
 
 -- invalid Unicode surrogate pair (need a low surrogate)
 SELECT * FROM cypher('scan', $$

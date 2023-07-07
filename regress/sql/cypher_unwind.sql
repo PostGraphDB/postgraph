@@ -24,22 +24,22 @@ SELECT create_graph('cypher_unwind');
 
 SELECT * FROM cypher('cypher_unwind', $$
     UNWIND [1, 2, 3] AS i RETURN i
-$$) as (i agtype);
+$$) as (i gtype);
 
 SELECT * FROM cypher('cypher_unwind', $$
     CREATE ({a: [1, 2, 3]}), ({a: [4, 5, 6]})
-$$) as (i agtype);
+$$) as (i gtype);
 
 SELECT * FROM cypher('cypher_unwind', $$
     MATCH (n) WITH n.a AS a UNWIND a AS i RETURN *
-$$) as (i agtype, j agtype);
+$$) as (i gtype, j gtype);
 
 SELECT * FROM cypher('cypher_unwind', $$
     WITH [[1, 2], [3, 4], 5] AS nested
     UNWIND nested AS x
     UNWIND x AS y
     RETURN y
-$$) as (i agtype);
+$$) as (i gtype);
 
 SELECT * FROM cypher('cypher_unwind', $$
     MATCH (n_1)
@@ -47,6 +47,6 @@ SELECT * FROM cypher('cypher_unwind', $$
     UNWIND n as a
     SET a.i = 1
     RETURN a
-$$) as (i agtype);
+$$) as (i gtype);
 
 SELECT drop_graph('cypher_unwind', true);

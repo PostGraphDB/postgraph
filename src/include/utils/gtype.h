@@ -29,11 +29,11 @@
  */
 
 /*
- * Declarations for agtype data type support.
+ * Declarations for gtype data type support.
  */
 
-#ifndef AG_AGTYPE_H
-#define AG_AGTYPE_H
+#ifndef AG_GTYPE_H
+#define AG_GTYPE_H
 
 #include "access/htup_details.h"
 #include "fmgr.h"
@@ -47,7 +47,7 @@
 #include "catalog/pg_type.h"
 #include "utils/graphid.h"
 
-/* Tokens used when sequentially processing an agtype value */
+/* Tokens used when sequentially processing an gtype value */
 typedef enum
 {
     WAGT_DONE,
@@ -58,19 +58,19 @@ typedef enum
     WAGT_END_ARRAY,
     WAGT_BEGIN_OBJECT,
     WAGT_END_OBJECT
-} agtype_iterator_token;
+} gtype_iterator_token;
 
-#define AGTYPE_ITERATOR_TOKEN_IS_HASHABLE(x) \
+#define GTYPE_ITERATOR_TOKEN_IS_HASHABLE(x) \
     (x > WAGT_DONE && x < WAGT_BEGIN_ARRAY)
 
 /* Strategy numbers for GIN index opclasses */
-#define AGTYPE_CONTAINS_STRATEGY_NUMBER    7
-#define AGTYPE_EXISTS_STRATEGY_NUMBER      9
-#define AGTYPE_EXISTS_ANY_STRATEGY_NUMBER 10
-#define AGTYPE_EXISTS_ALL_STRATEGY_NUMBER 11
+#define GTYPE_CONTAINS_STRATEGY_NUMBER    7
+#define GTYPE_EXISTS_STRATEGY_NUMBER      9
+#define GTYPE_EXISTS_ANY_STRATEGY_NUMBER 10
+#define GTYPE_EXISTS_ALL_STRATEGY_NUMBER 11
 
 /*
- * In the standard agtype_ops GIN opclass for agtype, we choose to index both
+ * In the standard gtype_ops GIN opclass for gtype, we choose to index both
  * keys and values.  The storage format is text.  The first byte of the text
  * string distinguishes whether this is a key (always a string), null value,
  * boolean value, numeric value, or string value.  However, array elements
@@ -99,25 +99,25 @@ typedef enum
 #define AGT_GIN_MAX_LENGTH   125 // max length of text part before hashing
 
 /* Convenience macros */
-#define DATUM_GET_AGTYPE_P(d) ((agtype *)PG_DETOAST_DATUM(d))
-#define AGTYPE_P_GET_DATUM(p) PointerGetDatum(p)
-#define AG_GET_ARG_AGTYPE_P(x) DATUM_GET_AGTYPE_P(PG_GETARG_DATUM(x))
-#define AG_RETURN_AGTYPE_P(x) PG_RETURN_POINTER(x)
+#define DATUM_GET_GTYPE_P(d) ((gtype *)PG_DETOAST_DATUM(d))
+#define GTYPE_P_GET_DATUM(p) PointerGetDatum(p)
+#define AG_GET_ARG_GTYPE_P(x) DATUM_GET_GTYPE_P(PG_GETARG_DATUM(x))
+#define AG_RETURN_GTYPE_P(x) PG_RETURN_POINTER(x)
 
-typedef struct agtype_pair agtype_pair;
-typedef struct agtype_value agtype_value;
+typedef struct gtype_pair gtype_pair;
+typedef struct gtype_value gtype_value;
 
 /*
- * agtypes are varlena objects, so must meet the varlena convention that the
+ * gtypes are varlena objects, so must meet the varlena convention that the
  * first int32 of the object contains the total object size in bytes.  Be sure
  * to use VARSIZE() and SET_VARSIZE() to access it, though!
  *
- * agtype is the on-disk representation, in contrast to the in-memory
- * agtype_value representation.  Often, agtype_values are just shims through
- * which a agtype buffer is accessed, but they can also be deep copied and
+ * gtype is the on-disk representation, in contrast to the in-memory
+ * gtype_value representation.  Often, gtype_values are just shims through
+ * which a gtype buffer is accessed, but they can also be deep copied and
  * passed around.
  *
- * agtype is a tree structure. Each node in the tree consists of an agtentry
+ * gtype is a tree structure. Each node in the tree consists of an agtentry
  * header and a variable-length content (possibly of zero size).  The agtentry
  * header indicates what kind of a node it is, e.g. a string or an array,
  * and provides the length of its variable-length portion.
@@ -132,11 +132,11 @@ typedef struct agtype_value agtype_value;
  * so we can get away without the type indicator as long as we can distinguish
  * the two.  For that purpose, both an array and an object begin with a uint32
  * header field, which contains an AGT_FOBJECT or AGT_FARRAY flag.  When a
- * naked scalar value needs to be stored as an agtype value, what we actually
+ * naked scalar value needs to be stored as an gtype value, what we actually
  * store is an array with one element, with the flags in the array's header
  * field set to AGT_FSCALAR | AGT_FARRAY.
  *
- * Overall, the agtype struct requires 4-bytes alignment. Within the struct,
+ * Overall, the gtype struct requires 4-bytes alignment. Within the struct,
  * the variable-length portion of some node types is aligned to a 4-byte
  * boundary, while others are not. When alignment is needed, the padding is
  * in the beginning of the node that requires it. For example, if a numeric
@@ -157,7 +157,7 @@ typedef struct agtype_value agtype_value;
  * The reason for the offset-or-length complication is to compromise between
  * access speed and data compressibility.  In the initial design each agtentry
  * always stored an offset, but this resulted in agtentry arrays with horrible
- * compressibility properties, so that TOAST compression of an agtype did not
+ * compressibility properties, so that TOAST compression of an gtype did not
  * work well.  Storing only lengths would greatly improve compressibility,
  * but it makes random access into large arrays expensive (O(N) not O(1)).
  * So what we do is store an offset in every AGT_OFFSET_STRIDE'th agtentry and
@@ -184,7 +184,7 @@ typedef uint32 agtentry;
 #define AGTENTRY_IS_BOOL_TRUE  0x3000
 #define AGTENTRY_IS_NULL       0x4000
 #define AGTENTRY_IS_CONTAINER  0x5000 /* array or object */
-#define AGTENTRY_IS_AGTYPE     0x7000 /* our type designator */
+#define AGTENTRY_IS_GTYPE     0x7000 /* our type designator */
 
 /* Access macros.  Note possible multiple evaluations */
 #define AGTE_OFFLENFLD(agte_) \
@@ -205,8 +205,8 @@ typedef uint32 agtentry;
     (((agte_)&AGTENTRY_TYPEMASK) == AGTENTRY_IS_BOOL_FALSE)
 #define AGTE_IS_BOOL(agte_) \
     (AGTE_IS_BOOL_TRUE(agte_) || AGTE_IS_BOOL_FALSE(agte_))
-#define AGTE_IS_AGTYPE(agte_) \
-    (((agte_)&AGTENTRY_TYPEMASK) == AGTENTRY_IS_AGTYPE)
+#define AGTE_IS_GTYPE(agte_) \
+    (((agte_)&AGTENTRY_TYPEMASK) == AGTENTRY_IS_GTYPE)
 
 /* Macro for advancing an offset variable to the next agtentry */
 #define AGTE_ADVANCE_OFFSET(offset, agte) \
@@ -221,7 +221,7 @@ typedef uint32 agtentry;
 
 /*
  * We store an offset, not a length, every AGT_OFFSET_STRIDE children.
- * Caution: this macro should only be referenced when creating an agtype
+ * Caution: this macro should only be referenced when creating an gtype
  * value.  When examining an existing value, pay attention to the HAS_OFF
  * bits instead.  This allows changes in the offset-placement heuristic
  * without breaking on-disk compatibility.
@@ -229,7 +229,7 @@ typedef uint32 agtentry;
 #define AGT_OFFSET_STRIDE 32
 
 /*
- * An agtype array or object node, within an agtype Datum.
+ * An gtype array or object node, within an gtype Datum.
  *
  * An array has one child for each element, stored in array order.
  *
@@ -238,15 +238,15 @@ typedef uint32 agtentry;
  * key order.  This arrangement keeps the keys compact in memory, making a
  * search for a particular key more cache-friendly.
  */
-typedef struct agtype_container
+typedef struct gtype_container
 {
     uint32 header; /* number of elements or key/value pairs, and flags */
     agtentry children[FLEXIBLE_ARRAY_MEMBER];
 
     /* the data for each child node follows. */
-} agtype_container;
+} gtype_container;
 
-/* flags for the header-field in agtype_container*/
+/* flags for the header-field in gtype_container*/
 #define AGT_CMASK   0x0FFF /* mask for count field */
 #define AGT_FSCALAR 0x1000 /* flag bits */
 #define AGT_FOBJECT 0x2000
@@ -255,7 +255,7 @@ typedef struct agtype_container
 
 /*
  * AGT_FBINARY utilizes the AGTV_BINARY mechanism,
- * it is not necessarily an agtype serialized (binary) value. We are just using
+ * it is not necessarily an gtype serialized (binary) value. We are just using
  * that mechanism to pass blobs of data more quickly between components. In the
  * case of the path from the VLE routine, the blob is a graphid array where the
  * first element contains the header embedded in it. This way it is just cast to
@@ -264,34 +264,34 @@ typedef struct agtype_container
  */
 
 /*
- * Flags for the agtype_container type AGT_FBINARY are in the AGT_CMASK (count)
+ * Flags for the gtype_container type AGT_FBINARY are in the AGT_CMASK (count)
  * field. We put the flags here as this is a strictly AGTV_BINARY blob of data
  * and count is irrelevant because there is only one. The additional flags allow
  * for differing types of user defined binary blobs. To be consistent and clear,
  * we create binary specific masks, flags, and macros.
  */
 #define AGT_FBINARY_MASK          0x0FFF /* mask for binary flags */
-#define AGTYPE_FBINARY_CONTAINER_TYPE(agtc) \
+#define GTYPE_FBINARY_CONTAINER_TYPE(agtc) \
     ((agtc)->header &AGT_FBINARY_MASK)
 #define AGT_ROOT_DATA_FBINARY(agtp_) \
     VARDATA(agtp_);
 #define AGT_FBINARY_TYPE_VLE_PATH 0x0001
 
-/* convenience macros for accessing an agtype_container struct */
-#define AGTYPE_CONTAINER_SIZE(agtc)       ((agtc)->header & AGT_CMASK)
-#define AGTYPE_CONTAINER_IS_SCALAR(agtc) (((agtc)->header & AGT_FSCALAR) != 0)
-#define AGTYPE_CONTAINER_IS_OBJECT(agtc) (((agtc)->header & AGT_FOBJECT) != 0)
-#define AGTYPE_CONTAINER_IS_ARRAY(agtc)  (((agtc)->header & AGT_FARRAY)  != 0)
-#define AGTYPE_CONTAINER_IS_BINARY(agtc) (((agtc)->header & AGT_FBINARY) != 0)
+/* convenience macros for accessing an gtype_container struct */
+#define GTYPE_CONTAINER_SIZE(agtc)       ((agtc)->header & AGT_CMASK)
+#define GTYPE_CONTAINER_IS_SCALAR(agtc) (((agtc)->header & AGT_FSCALAR) != 0)
+#define GTYPE_CONTAINER_IS_OBJECT(agtc) (((agtc)->header & AGT_FOBJECT) != 0)
+#define GTYPE_CONTAINER_IS_ARRAY(agtc)  (((agtc)->header & AGT_FARRAY)  != 0)
+#define GTYPE_CONTAINER_IS_BINARY(agtc) (((agtc)->header & AGT_FBINARY) != 0)
 
-// The top-level on-disk format for an agtype datum.
+// The top-level on-disk format for an gtype datum.
 typedef struct
 {
     int32 vl_len_; // varlena header (do not touch directly!)
-    agtype_container root;
-} agtype;
+    gtype_container root;
+} gtype;
 
-// convenience macros for accessing the root container in an agtype datum */
+// convenience macros for accessing the root container in an gtype datum */
 #define AGT_ROOT_COUNT(agtp_) (*(uint32 *)VARDATA(agtp_) & AGT_CMASK)
 #define AGT_ROOT_IS_SCALAR(agtp_) \
     ((*(uint32 *)VARDATA(agtp_) & AGT_FSCALAR) != 0)
@@ -304,7 +304,7 @@ typedef struct
 #define AGT_ROOT_BINARY_FLAGS(agtp_) \
     (*(uint32 *)VARDATA(agtp_) & AGT_FBINARY_MASK)
 
-// values for the AGTYPE header field to denote the stored data type
+// values for the GTYPE header field to denote the stored data type
 #define AGT_HEADER_INTEGER 0x0000
 #define AGT_HEADER_FLOAT   0x0001
 #define AGT_HEADER_VERTEX  0x0002
@@ -314,12 +314,12 @@ typedef struct
 
 #define AGT_IS_VERTEX(agt) \
     (AGT_ROOT_IS_SCALAR(agt) &&\
-     AGTE_IS_AGTYPE((agt)->root.children[0]) &&\
+     AGTE_IS_GTYPE((agt)->root.children[0]) &&\
      (((agt)->root.children[1] & AGT_HEADER_VERTEX) == AGT_HEADER_VERTEX))
 
 #define AGT_IS_EDGE(agt) \
     (AGT_ROOT_IS_SCALAR(agt) &&\
-     AGTE_IS_AGTYPE((agt)->root.children[0]) &&\
+     AGTE_IS_GTYPE((agt)->root.children[0]) &&\
      (((agt)->root.children[1] & AGT_HEADER_EDGE) == AGT_HEADER_EDGE))
 
 #define AGT_IS_INTEGER(agte_) \
@@ -329,11 +329,11 @@ typedef struct
     (((agte_) == AGT_HEADER_FLOAT))
 
 #define AGT_IS_TIMESTAMP(agt) \
-    (AGTE_IS_AGTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_TIMESTAMP)
+    (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_TIMESTAMP)
 
 #define AGT_IS_PATH(agt) \
-    (AGTE_IS_AGTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_PATH)
-enum agtype_value_type
+    (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_PATH)
+enum gtype_value_type
 {
     /* Scalar types */
     AGTV_NULL = 0x0,
@@ -349,33 +349,33 @@ enum agtype_value_type
     /* Composite types */
     AGTV_ARRAY = 0x20,
     AGTV_OBJECT,
-    /* Binary (i.e. struct agtype) AGTV_ARRAY/AGTV_OBJECT */
+    /* Binary (i.e. struct gtype) AGTV_ARRAY/AGTV_OBJECT */
     AGTV_BINARY
 };
 
 /*
- * agtype_value: In-memory representation of agtype.  This is a convenient
+ * gtype_value: In-memory representation of gtype.  This is a convenient
  * deserialized representation, that can easily support using the "val"
- * union across underlying types during manipulation.  The agtype on-disk
+ * union across underlying types during manipulation.  The gtype on-disk
  * representation has various alignment considerations.
  */
-struct agtype_value
+struct gtype_value
 {
-    enum agtype_value_type type;
+    enum gtype_value_type type;
     union {
         int64 int_value; // 8-byte Integer
         float8 float_value; // 8-byte Float
         Numeric numeric;
         bool boolean;
         struct { int len; char *val; /* Not necessarily null-terminated */ } string; // String primitive type
-        struct { int num_elems; agtype_value *elems; bool raw_scalar; } array;       // Array container type
-        struct { int num_pairs; agtype_pair *pairs; } object;                        // Associative container type
-        struct { int len; agtype_container *data; } binary;                          // Array or object, in on-disk format
+        struct { int num_elems; gtype_value *elems; bool raw_scalar; } array;       // Array container type
+        struct { int num_pairs; gtype_pair *pairs; } object;                        // Associative container type
+        struct { int len; gtype_container *data; } binary;                          // Array or object, in on-disk format
     } val;
 };
 
-#define IS_A_AGTYPE_SCALAR(agtype_val) \
-    ((agtype_val)->type >= AGTV_NULL && (agtype_val)->type < AGTV_ARRAY)
+#define IS_A_GTYPE_SCALAR(gtype_val) \
+    ((gtype_val)->type >= AGTV_NULL && (gtype_val)->type < AGTV_ARRAY)
 
 /*
  * Key/value pair within an Object.
@@ -384,19 +384,19 @@ struct agtype_value
  * observed pair ordering for the purpose of removing duplicates in a
  * well-defined way (which is "last observed wins").
  */
-struct agtype_pair
+struct gtype_pair
 {
-    agtype_value key; /* Must be a AGTV_STRING */
-    agtype_value value; /* May be of any type */
+    gtype_value key; /* Must be a AGTV_STRING */
+    gtype_value value; /* May be of any type */
     uint32 order; /* Pair's index in original sequence */
 };
 
-/* Conversion state used when parsing agtype from text, or for type coercion */
-typedef struct agtype_parse_state
+/* Conversion state used when parsing gtype from text, or for type coercion */
+typedef struct gtype_parse_state
 {
-    agtype_value cont_val;
+    gtype_value cont_val;
     Size size;
-    struct agtype_parse_state *next;
+    struct gtype_parse_state *next;
     /*
      * This holds the last append_value scalar copy or the last append_element
      * scalar copy - it can only be one of the two. It is needed because when
@@ -405,12 +405,12 @@ typedef struct agtype_parse_state
      * close and need this to update that value if necessary. Which is the
      * case for some casts.
      */
-    agtype_value *last_updated_value;
-} agtype_parse_state;
+    gtype_value *last_updated_value;
+} gtype_parse_state;
 
 /*
- * agtype_iterator holds details of the type for each iteration. It also stores
- * an agtype varlena buffer, which can be directly accessed in some contexts.
+ * gtype_iterator holds details of the type for each iteration. It also stores
+ * an gtype varlena buffer, which can be directly accessed in some contexts.
  */
 typedef enum
 {
@@ -421,9 +421,9 @@ typedef enum
     AGTI_OBJECT_VALUE
 } agt_iterator_state;
 
-typedef struct agtype_iterator
+typedef struct gtype_iterator
 {
-    agtype_container *container; // Container being iterated
+    gtype_container *container; // Container being iterated
     uint32 num_elems;            // Number of elements in children array (will be num_pairs for objects)
     bool is_scalar;              // Pseudo-array scalar value?
     agtentry *children;          // agtentrys for child nodes
@@ -437,77 +437,77 @@ typedef struct agtype_iterator
      */
     uint32 curr_value_offset;
     agt_iterator_state state;    // Private state
-    struct agtype_iterator *parent;
-} agtype_iterator;
+    struct gtype_iterator *parent;
+} gtype_iterator;
 
-/* agtype parse state */
-typedef struct agtype_in_state {
-    agtype_parse_state *parse_state;
-    agtype_value *res;
-} agtype_in_state;
+/* gtype parse state */
+typedef struct gtype_in_state {
+    gtype_parse_state *parse_state;
+    gtype_value *res;
+} gtype_in_state;
 
 /* Support functions */
 int reserve_from_buffer(StringInfo buffer, int len);
 short pad_buffer_to_int(StringInfo buffer);
-uint32 get_agtype_offset(const agtype_container *agtc, int index);
-uint32 get_agtype_length(const agtype_container *agtc, int index);
-int compare_agtype_containers_orderability(agtype_container *a, agtype_container *b);
-agtype_value *find_agtype_value_from_container(agtype_container *container, uint32 flags, const agtype_value *key);
-agtype_value *get_ith_agtype_value_from_container(agtype_container *container, uint32 i);
-agtype_value *push_agtype_value(agtype_parse_state **pstate, agtype_iterator_token seq, agtype_value *agtval);
-agtype_iterator *agtype_iterator_init(agtype_container *container);
-agtype_iterator_token agtype_iterator_next(agtype_iterator **it, agtype_value *val, bool skip_nested);
-agtype *agtype_value_to_agtype(agtype_value *val);
-bool agtype_deep_contains(agtype_iterator **val, agtype_iterator **m_contained);
-void agtype_hash_scalar_value(const agtype_value *scalar_val, uint32 *hash);
-void agtype_hash_scalar_value_extended(const agtype_value *scalar_val, uint64 *hash, uint64 seed);
-void convert_extended_array(StringInfo buffer, agtentry *pheader, agtype_value *val);
-void convert_extended_object(StringInfo buffer, agtentry *pheader, agtype_value *val);
-Datum get_numeric_datum_from_agtype_value(agtype_value *agtv);
-bool is_numeric_result(agtype_value *lhs, agtype_value *rhs);
+uint32 get_gtype_offset(const gtype_container *agtc, int index);
+uint32 get_gtype_length(const gtype_container *agtc, int index);
+int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b);
+gtype_value *find_gtype_value_from_container(gtype_container *container, uint32 flags, const gtype_value *key);
+gtype_value *get_ith_gtype_value_from_container(gtype_container *container, uint32 i);
+gtype_value *push_gtype_value(gtype_parse_state **pstate, gtype_iterator_token seq, gtype_value *agtval);
+gtype_iterator *gtype_iterator_init(gtype_container *container);
+gtype_iterator_token gtype_iterator_next(gtype_iterator **it, gtype_value *val, bool skip_nested);
+gtype *gtype_value_to_gtype(gtype_value *val);
+bool gtype_deep_contains(gtype_iterator **val, gtype_iterator **m_contained);
+void gtype_hash_scalar_value(const gtype_value *scalar_val, uint32 *hash);
+void gtype_hash_scalar_value_extended(const gtype_value *scalar_val, uint64 *hash, uint64 seed);
+void convert_extended_array(StringInfo buffer, agtentry *pheader, gtype_value *val);
+void convert_extended_object(StringInfo buffer, agtentry *pheader, gtype_value *val);
+Datum get_numeric_datum_from_gtype_value(gtype_value *agtv);
+bool is_numeric_result(gtype_value *lhs, gtype_value *rhs);
 
-#define GET_AGTYPE_VALUE_OBJECT_VALUE(agtv_object, search_key) \
-        get_agtype_value_object_value(agtv_object, search_key, sizeof(search_key) - 1)
+#define GET_GTYPE_VALUE_OBJECT_VALUE(agtv_object, search_key) \
+        get_gtype_value_object_value(agtv_object, search_key, sizeof(search_key) - 1)
 
-agtype_value *get_agtype_value_object_value(const agtype_value *agtv_object, char *search_key, int search_key_length);
-char *agtype_to_cstring(StringInfo out, agtype_container *in, int estimated_len);
-char *agtype_to_cstring_indent(StringInfo out, agtype_container *in, int estimated_len);
+gtype_value *get_gtype_value_object_value(const gtype_value *agtv_object, char *search_key, int search_key_length);
+char *gtype_to_cstring(StringInfo out, gtype_container *in, int estimated_len);
+char *gtype_to_cstring_indent(StringInfo out, gtype_container *in, int estimated_len);
 
-Datum agtype_from_cstring(char *str, int len);
+Datum gtype_from_cstring(char *str, int len);
 
 size_t check_string_length(size_t len);
-Datum integer_to_agtype(int64 i);
-Datum float_to_agtype(float8 f);
-Datum string_to_agtype(char *s);
-Datum boolean_to_agtype(bool b);
-void uniqueify_agtype_object(agtype_value *object);
-char *agtype_value_type_to_string(enum agtype_value_type type);
+Datum integer_to_gtype(int64 i);
+Datum float_to_gtype(float8 f);
+Datum string_to_gtype(char *s);
+Datum boolean_to_gtype(bool b);
+void uniqueify_gtype_object(gtype_value *object);
+char *gtype_value_type_to_string(enum gtype_value_type type);
 bool is_decimal_needed(char *numstr);
-int compare_agtype_scalar_values(agtype_value *a, agtype_value *b);
-agtype_value *alter_property_value(agtype_value *properties, char *var_name, agtype *new_v, bool remove_property);
-agtype *get_one_agtype_from_variadic_args(FunctionCallInfo fcinfo, int variadic_offset, int expected_nargs);
+int compare_gtype_scalar_values(gtype_value *a, gtype_value *b);
+gtype_value *alter_property_value(gtype_value *properties, char *var_name, gtype *new_v, bool remove_property);
+gtype *get_one_gtype_from_variadic_args(FunctionCallInfo fcinfo, int variadic_offset, int expected_nargs);
 Datum make_vertex(Datum id, Datum label, Datum properties);
 Datum make_edge(Datum id, Datum startid, Datum endid, Datum label, Datum properties);
 Datum make_path(List *path);
 Datum column_get_datum(TupleDesc tupdesc, HeapTuple tuple, int column, const char *attname, Oid typid, bool isnull);
-agtype_value *agtype_value_build_vertex(graphid id, char *label, Datum properties);
-agtype_value *agtype_value_build_edge(graphid id, char *label, graphid end_id, graphid start_id, Datum properties);
-agtype_value *get_agtype_value(char *funcname, agtype *agt_arg, enum agtype_value_type type, bool error);
-bool is_agtype_null(agtype *agt_arg);
-agtype_value *string_to_agtype_value(char *s);
-agtype_value *integer_to_agtype_value(int64 int_value);
-void add_agtype(Datum val, bool is_null, agtype_in_state *result, Oid val_type, bool key_scalar);
+gtype_value *gtype_value_build_vertex(graphid id, char *label, Datum properties);
+gtype_value *gtype_value_build_edge(graphid id, char *label, graphid end_id, graphid start_id, Datum properties);
+gtype_value *get_gtype_value(char *funcname, gtype *agt_arg, enum gtype_value_type type, bool error);
+bool is_gtype_null(gtype *agt_arg);
+gtype_value *string_to_gtype_value(char *s);
+gtype_value *integer_to_gtype_value(int64 int_value);
+void add_gtype(Datum val, bool is_null, gtype_in_state *result, Oid val_type, bool key_scalar);
 
-Datum agtype_to_float8(PG_FUNCTION_ARGS);
+Datum gtype_to_float8(PG_FUNCTION_ARGS);
 
-#define AGTYPEOID \
-    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("agtype"), ObjectIdGetDatum(postgraph_namespace_id())))
+#define GTYPEOID \
+    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("gtype"), ObjectIdGetDatum(postgraph_namespace_id())))
 
-#define AGTYPEARRAYOID \
-    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("_agtype"), ObjectIdGetDatum(postgraph_namespace_id())))
+#define GTYPEARRAYOID \
+    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("_gtype"), ObjectIdGetDatum(postgraph_namespace_id())))
 
-Datum agtype_object_field_impl(FunctionCallInfo fcinfo, agtype *agtype_in, char *key, int key_len, bool as_text);
+Datum gtype_object_field_impl(FunctionCallInfo fcinfo, gtype *gtype_in, char *key, int key_len, bool as_text);
 
-void agtype_put_escaped_value(StringInfo out, agtype_value *scalar_val);
+void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val);
 
 #endif

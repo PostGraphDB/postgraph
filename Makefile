@@ -47,14 +47,14 @@ OBJS = src/backend/postgraph.o \
        src/backend/parser/cypher_parse_node.o \
        src/backend/parser/cypher_parser.o \
        src/backend/parser/cypher_transform_entity.o \
-       src/backend/utils/adt/age_graphid_ds.o \
-       src/backend/utils/adt/agtype.o \
-       src/backend/utils/adt/agtype_ext.o \
-       src/backend/utils/adt/agtype_gin.o \
-       src/backend/utils/adt/agtype_ops.o \
-       src/backend/utils/adt/agtype_parser.o \
-       src/backend/utils/adt/agtype_typecasting.o \
-       src/backend/utils/adt/agtype_util.o \
+       src/backend/utils/adt/queue.o \
+       src/backend/utils/adt/gtype.o \
+       src/backend/utils/adt/gtype_ext.o \
+       src/backend/utils/adt/gtype_gin.o \
+       src/backend/utils/adt/gtype_ops.o \
+       src/backend/utils/adt/gtype_parser.o \
+       src/backend/utils/adt/gtype_typecasting.o \
+       src/backend/utils/adt/gtype_util.o \
        src/backend/utils/adt/age_global_graph.o \
        src/backend/utils/adt/age_vle.o \
        src/backend/utils/adt/cypher_funcs.o \
@@ -73,7 +73,7 @@ DATA = postgraph--0.0.1.sql
 # sorted in dependency order
 REGRESS = scan \
           graphid \
-          agtype \
+          gtype \
           vertex \
           edge \
           variable_edge \

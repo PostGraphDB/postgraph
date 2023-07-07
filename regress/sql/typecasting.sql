@@ -20,5 +20,5 @@ SET extra_float_digits = 0;
 SET search_path TO postgraph;
 
 
-SELECT text_to_agtype(NULL::text);
-SELECT 'Hello World' ::text::agtype;
+SELECT text_to_gtype(NULL::text);
+SELECT 'Hello World' ::text::gtype;

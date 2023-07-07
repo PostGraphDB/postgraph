@@ -29,7 +29,7 @@
  */
 
 /*
- * Declarations for agtype data type support.
+ * Declarations for gtype data type support.
  */
 
 #ifndef AG_VERTEX_H
@@ -57,7 +57,7 @@
 typedef uint32 ventry;
 
 /*
- * An vertex, within an agtype Datum.
+ * An vertex, within an gtype Datum.
  *
  * An array has one child for each element, stored in array order.
  */
