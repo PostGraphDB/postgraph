@@ -55,8 +55,8 @@ OBJS = src/backend/postgraph.o \
        src/backend/utils/adt/gtype_parser.o \
        src/backend/utils/adt/gtype_typecasting.o \
        src/backend/utils/adt/gtype_util.o \
-       src/backend/utils/adt/age_global_graph.o \
-       src/backend/utils/adt/age_vle.o \
+       src/backend/utils/path_finding/age_global_graph.o \
+       src/backend/utils/path_finding/age_vle.o \
        src/backend/utils/adt/cypher_funcs.o \
        src/backend/utils/adt/edge.o \
        src/backend/utils/adt/graphid.o \
