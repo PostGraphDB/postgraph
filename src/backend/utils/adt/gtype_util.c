@@ -275,7 +275,6 @@ int compare_gtype_containers_orderability(gtype_container *a,
                 case AGTV_BOOL:
                 case AGTV_INTEGER:
                 case AGTV_FLOAT:
-	        case AGTV_PARTIAL_PATH:
                     res = compare_gtype_scalar_values(&va, &vb);
                     break;
                 case AGTV_ARRAY:
@@ -1557,29 +1556,6 @@ int compare_gtype_scalar_values(gtype_value *a, gtype_value *b)
                 return -1;
         case AGTV_FLOAT:
             return compare_two_floats_orderability(a->val.float_value, b->val.float_value);
-	case AGTV_PARTIAL_PATH:
-        {
-            int i;
-
-            if (a->val.array.num_elems != b->val.array.num_elems)
-                return  a->val.array.num_elems > b->val.array.num_elems ? 1 : -1;
-
-            for (i = 0; i < a->val.array.num_elems; i++)
-            {
-                gtype_value a_elem, b_elem;
-                int res;
-
-                a_elem = a->val.array.elems[i];
-                b_elem = b->val.array.elems[i];
-
-                res = compare_gtype_scalar_values(&a_elem, &b_elem);
-
-                if (res)
-                    return res;
-            }
-
-            return 0;
-        }
         default:
             ereport(ERROR, (errmsg("invalid gtype scalar type %d for compare",
                                    a->type)));

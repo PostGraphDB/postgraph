@@ -296,14 +296,7 @@ typedef struct
 // values for the GTYPE header field to denote the stored data type
 #define AGT_HEADER_INTEGER 0x0000
 #define AGT_HEADER_FLOAT   0x0001
-#define AGT_HEADER_EDGE    0x0003
-#define AGT_HEADER_PARTIAL_PATH    0x0005
 #define AGT_HEADER_TIMESTAMP 0x0006
-
-#define AGT_IS_EDGE(agt) \
-    (AGT_ROOT_IS_SCALAR(agt) &&\
-     AGTE_IS_GTYPE((agt)->root.children[0]) &&\
-     (((agt)->root.children[1] & AGT_HEADER_EDGE) == AGT_HEADER_EDGE))
 
 #define AGT_IS_INTEGER(agte_) \
     (((agte_) == AGT_HEADER_INTEGER))
@@ -313,9 +306,6 @@ typedef struct
 
 #define AGT_IS_TIMESTAMP(agt) \
     (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_TIMESTAMP)
-
-#define AGT_IS_PARTIAL_PATH(agt) \
-    (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_PARTIAL_PATH)
 
 enum gtype_value_type
 {
@@ -328,7 +318,6 @@ enum gtype_value_type
     AGTV_BOOL,
     AGTV_TIMESTAMP,
     AGTV_EDGE,
-    AGTV_PARTIAL_PATH,
     /* Composite types */
     AGTV_ARRAY = 0x20,
     AGTV_OBJECT,
@@ -449,10 +438,7 @@ void convert_extended_object(StringInfo buffer, agtentry *pheader, gtype_value *
 Datum get_numeric_datum_from_gtype_value(gtype_value *agtv);
 bool is_numeric_result(gtype_value *lhs, gtype_value *rhs);
 
-#define GET_GTYPE_VALUE_OBJECT_VALUE(agtv_object, search_key) \
-        get_gtype_value_object_value(agtv_object, search_key, sizeof(search_key) - 1)
 
-gtype_value *get_gtype_value_object_value(const gtype_value *agtv_object, char *search_key, int search_key_length);
 char *gtype_to_cstring(StringInfo out, gtype_container *in, int estimated_len);
 char *gtype_to_cstring_indent(StringInfo out, gtype_container *in, int estimated_len);
 
@@ -469,7 +455,6 @@ bool is_decimal_needed(char *numstr);
 int compare_gtype_scalar_values(gtype_value *a, gtype_value *b);
 gtype_value *alter_property_value(gtype *properties, char *var_name, gtype *new_v, bool remove_property);
 gtype *get_one_gtype_from_variadic_args(FunctionCallInfo fcinfo, int variadic_offset, int expected_nargs);
-Datum make_edge(Datum id, Datum startid, Datum endid, Datum label, Datum properties);
 Datum column_get_datum(TupleDesc tupdesc, HeapTuple tuple, int column, const char *attname, Oid typid, bool isnull);
 gtype_value *gtype_value_build_edge(graphid id, char *label, graphid end_id, graphid start_id, Datum properties);
 gtype_value *get_gtype_value(char *funcname, gtype *agt_arg, enum gtype_value_type type, bool error);
