@@ -1868,29 +1868,6 @@ static ParseNamespaceItem *append_vle_to_from_clause(cypher_parsestate *cpstate,
     setNamespaceLateralState(pstate->p_namespace, false, true);
         
     return lfirst(list_head(namespace));
-
-
-}
-
-static FuncCall *make_vle_make_edge_func_call(cypher_relationship *rel)
-{
-    List *args = NIL;
-    List *fname = NIL;
-
-    if (rel->label == NULL)                                                      
-        args = lappend(args, make_null_const(-1));                             
-    else                                                                         
-        args = lappend(args, make_string_const(rel->label, -1));               
-                                                                                 
-    if (rel->props == NULL)                                                      
-        args = lappend(args, make_null_const(-1));                             
-    else                                                                         
-        args = lappend(args, rel->props);                                      
-    
-    fname = list_make2(makeString("postgraph"),                                 
-                       makeString("age_build_vle_match_edge"));                  
-                                                                                 
-    return makeFuncCall(fname, args, COERCE_SQL_SYNTAX, -1);     
 }
 
 static FuncCall *make_vle_func_call(cypher_parsestate *cpstate,
@@ -1923,9 +1900,6 @@ static FuncCall *make_vle_func_call(cypher_parsestate *cpstate,
     cref->fields = list_make1(makeString(next_node->name));
     args = lappend(args, cref);
 
-    //edge constraints
-    args = lappend(args, make_vle_make_edge_func_call(rel));
-
     // lower bound
     if (ai == NULL || ai->lidx == NULL)
         args = lappend(args, make_null_const(-1));
@@ -1941,8 +1915,15 @@ static FuncCall *make_vle_func_call(cypher_parsestate *cpstate,
     // direction
     args = lappend(args, make_int_const(rel->dir, -1));
 
-    // caching mechanic
-    //args = lappend(args, make_int_const(get_a_unique_number(), -1));
+    if (rel->label == NULL)
+        args = lappend(args, make_null_const(-1));
+    else 
+        args = lappend(args, make_string_const(rel->label, -1));
+	
+    if (rel->props == NULL)
+        args = lappend(args, make_null_const(-1));                          
+    else                    
+        args = lappend(args, rel->props);   
 
     return makeFuncCall(list_make1(makeString("vle")), args, COERCE_SQL_SYNTAX, -1);
 }

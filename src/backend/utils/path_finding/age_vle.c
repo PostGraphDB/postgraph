@@ -176,6 +176,14 @@ static bool is_an_edge_match(path_finding_context *path_ctx, edge_entry *ee)
     char *label_name = NULL;
     int num_propertiess = 0;
     int num_edge_properties = 0;
+    // get the edge label name from the oid 
+    label_name = get_rel_name(get_edge_entry_label_table_oid(ee));
+
+    if (path_ctx->label_name != NULL && strcmp(path_ctx->label_name, label_name) != 0)
+        return false;
+
+    if (path_ctx->properties == NULL)
+	    return true;
 
     // get the number of conditions from the prototype edge 
     num_propertiess = AGT_ROOT_COUNT(path_ctx->properties);
@@ -185,7 +193,7 @@ static bool is_an_edge_match(path_finding_context *path_ctx, edge_entry *ee)
      * We don't care about extra unmatched properties. If there aren't any edge
      * constraints, then the edge passes by default.
      */
-    if (path_ctx->label_name == NULL && num_propertiess == 0)
+    if (num_propertiess == 0)
         return true;
 
     // get the edge label name from the oid 
@@ -204,12 +212,6 @@ static bool is_an_edge_match(path_finding_context *path_ctx, edge_entry *ee)
      * can't possibly match.
      */
     if (num_propertiess > num_edge_properties)
-        return false;
-
-    /*
-     * Check for a label constraint. If the label name is NULL, there isn't one.
-     */
-    if (path_ctx->label_name != NULL && strcmp(path_ctx->label_name, label_name) != 0)
         return false;
 
     // get the iterators 
@@ -273,16 +275,8 @@ static path_finding_context *build_vle_context(FunctionCallInfo fcinfo, FuncCall
     Assert(path_ctx->next_vertex);
     
     // start id
-  //  agtv_temp = get_gtype_value("age_vle", AG_GET_ARG_GTYPE_P(1), AGTV_VERTEX, false);
     vertex *v = AG_GET_ARG_VERTEX(1);
     path_ctx->vsid = *((int64 *)(&v->children[0]));
-/*
-    if (agtv_temp->type == AGTV_VERTEX)
-        agtv_temp = GET_GTYPE_VALUE_OBJECT_VALUE(agtv_temp, "id");
-    else if (agtv_temp == NULL || agtv_temp->type != AGTV_INTEGER)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("invalid start id")));
-*/
- //   path_ctx->vsid = agtv_temp->val.int_value;
 
     // end id - determines which path function is used.
     if (PG_ARGISNULL(2)) {
@@ -291,52 +285,44 @@ static path_finding_context *build_vle_context(FunctionCallInfo fcinfo, FuncCall
     } else {
 	vertex *v = AG_GET_ARG_VERTEX(2);
 	path_ctx->veid = *((int64 *)(&v->children[0]));
-/*
-        agtv_temp = get_gtype_value("age_vle", AG_GET_ARG_GTYPE_P(2), AGTV_VERTEX, false);
-	if (agtv_temp->type == AGTV_VERTEX)
-            agtv_temp = GET_GTYPE_VALUE_OBJECT_VALUE(agtv_temp, "id");
-        else if (agtv_temp->type != AGTV_INTEGER)
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("invalid end id")));
-  */      
         path_ctx->path_function = VLE_FUNCTION_PATHS_BETWEEN;
-  //      path_ctx->veid = agtv_temp->val.int_value;
     }
-
-    // get the VLE edge prototype 
-    agtv_temp = get_gtype_value("age_vle", AG_GET_ARG_GTYPE_P(3), AGTV_EDGE, true);
-
-    // get the edge prototype's property conditions 
-    gtype_value *agtv_object = GET_GTYPE_VALUE_OBJECT_VALUE(agtv_temp, "properties");
-    // store the properties as an gtype 
-    path_ctx->properties = gtype_value_to_gtype(agtv_object);
-
-    // get the edge prototype's label name 
-    agtv_temp = GET_GTYPE_VALUE_OBJECT_VALUE(agtv_temp, "label");
-    if (agtv_temp->type == AGTV_STRING && agtv_temp->val.string.len != 0)
-        path_ctx->label_name = pnstrdup(agtv_temp->val.string.val, agtv_temp->val.string.len);
-    else
-        path_ctx->label_name = NULL;
-
+    
     // get the left range index 
-    if (PG_ARGISNULL(4) || is_gtype_null(AG_GET_ARG_GTYPE_P(4))) {
+    if (PG_ARGISNULL(3) || is_gtype_null(AG_GET_ARG_GTYPE_P(3))) {
         path_ctx->lidx = 1;
     } else {
-        agtv_temp = get_gtype_value("age_vle", AG_GET_ARG_GTYPE_P(4), AGTV_INTEGER, true);
+        agtv_temp = get_gtype_value("age_vle", AG_GET_ARG_GTYPE_P(3), AGTV_INTEGER, true);
         path_ctx->lidx = agtv_temp->val.int_value;
     }
 
     // get the right range index. NULL means infinite 
-    if (PG_ARGISNULL(5) || is_gtype_null(AG_GET_ARG_GTYPE_P(5))) {
+    if (PG_ARGISNULL(4) || is_gtype_null(AG_GET_ARG_GTYPE_P(4))) {
         path_ctx->uidx_infinite = true;
         path_ctx->uidx = 0;
     } else {
-        agtv_temp = get_gtype_value("age_vle", AG_GET_ARG_GTYPE_P(5), AGTV_INTEGER, true);
+        agtv_temp = get_gtype_value("age_vle", AG_GET_ARG_GTYPE_P(4), AGTV_INTEGER, true);
         path_ctx->uidx = agtv_temp->val.int_value;
         path_ctx->uidx_infinite = false;
     }
     // get edge direction 
-    agtv_temp = get_gtype_value("age_vle", AG_GET_ARG_GTYPE_P(6), AGTV_INTEGER, true);
+    agtv_temp = get_gtype_value("age_vle", AG_GET_ARG_GTYPE_P(5), AGTV_INTEGER, true);
     path_ctx->edge_direction = agtv_temp->val.int_value;
+
+    // label name
+    if (PG_ARGISNULL(6)  || is_gtype_null(AG_GET_ARG_GTYPE_P(6))) {
+        path_ctx->label_name = NULL;
+    } else {
+	agtv_temp = get_gtype_value("age_vle", AG_GET_ARG_GTYPE_P(6), AGTV_STRING, true);
+        path_ctx->label_name = agtv_temp->val.string.val;
+    }
+
+    if (PG_ARGISNULL(7)  || is_gtype_null(AG_GET_ARG_GTYPE_P(7))) {
+        path_ctx->properties = NULL;
+    } else {
+        path_ctx->properties = AG_GET_ARG_GTYPE_P(7);
+
+    }
 
     create_hashtable(path_ctx);
 
@@ -960,7 +946,7 @@ Datum age_vle(PG_FUNCTION_ARGS) {
     // Initialization for the first call to the SRF 
     if (SRF_IS_FIRSTCALL()) {
         // all of these arguments need to be non NULL 
-        if (PG_ARGISNULL(0) || PG_ARGISNULL(1) || PG_ARGISNULL(3) || PG_ARGISNULL(6))
+        if (PG_ARGISNULL(0) || PG_ARGISNULL(1) || PG_ARGISNULL(5))
              ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("age_vle: invalid NULL argument passed")));
 
@@ -1363,69 +1349,6 @@ Datum age_match_vle_terminal_edge_end(PG_FUNCTION_ARGS) {
     PG_RETURN_BOOL(vertex->val.object.pairs[2].value.val.int_value == vsid);
 }
 
-
-static const gtype_value agtv_nstr = {
-    .type = AGTV_STRING,
-    .val.string = {0, NULL}
-};
-
-static const gtype_value agtv_zero = {
-    .type = AGTV_INTEGER,
-    .val.int_value = 0
-};
-
-// PG helper function to build an gtype (Datum) edge for matching 
-PG_FUNCTION_INFO_V1(age_build_vle_match_edge);
-Datum age_build_vle_match_edge(PG_FUNCTION_ARGS) {
-    gtype_in_state result;
-    memset(&result, 0, sizeof(gtype_in_state));
-
-    // start object 
-    result.res = push_gtype_value(&result.parse_state, WAGT_BEGIN_OBJECT, NULL);
-
-    // id 
-    result.res = push_gtype_value(&result.parse_state, WAGT_KEY, string_to_gtype_value("id"));
-    result.res = push_gtype_value(&result.parse_state, WAGT_VALUE, &agtv_zero);
-    
-    // label 
-    result.res = push_gtype_value(&result.parse_state, WAGT_KEY, string_to_gtype_value("label"));
-    if (!PG_ARGISNULL(0)) {
-        gtype_value *agtv_temp = get_gtype_value("build_vle_match_edge", AG_GET_ARG_GTYPE_P(0), AGTV_STRING, true);
-        result.res = push_gtype_value(&result.parse_state, WAGT_VALUE, agtv_temp);
-    } else {
-        result.res = push_gtype_value(&result.parse_state, WAGT_VALUE, &agtv_nstr);
-    }
-
-    // end_id 
-    result.res = push_gtype_value(&result.parse_state, WAGT_KEY, string_to_gtype_value("end_id"));
-    result.res = push_gtype_value(&result.parse_state, WAGT_VALUE, &agtv_zero);
-    // start_id 
-    result.res = push_gtype_value(&result.parse_state, WAGT_KEY, string_to_gtype_value("start_id"));
-    result.res = push_gtype_value(&result.parse_state, WAGT_VALUE, &agtv_zero);
-
-    // properties 
-    result.res = push_gtype_value(&result.parse_state, WAGT_KEY, string_to_gtype_value("properties"));
-    if (!PG_ARGISNULL(1)) {
-        gtype *properties = NULL;
-
-        properties = AG_GET_ARG_GTYPE_P(1);
-
-        if (!AGT_ROOT_IS_OBJECT(properties))
-            PG_RETURN_NULL();
-
-        add_gtype((Datum)properties, false, &result, GTYPEOID, false);
-
-    } else {
-        result.res = push_gtype_value(&result.parse_state, WAGT_BEGIN_OBJECT, NULL);
-        result.res = push_gtype_value(&result.parse_state, WAGT_END_OBJECT, NULL);
-    }
-
-    result.res = push_gtype_value(&result.parse_state, WAGT_END_OBJECT, NULL);
-
-    result.res->type = AGTV_EDGE;
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(result.res));
-}
 
 /*
  * This function checks the edges in a MATCH clause to see if they are unique or

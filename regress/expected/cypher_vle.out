@@ -49,7 +49,11 @@ $$) AS (b vertex, e vertex);
 (1 row)
 
 -- Insert start and end points for graph
-INSERT INTO start_and_end_points (SELECT * FROM cypher('cypher_vle', $$MATCH (b:begin)-[:edge]->()-[:edge]->()-[:edge]->()-[:edge]->(e:end) RETURN b, e $$) AS (b vertex, e vertex));
+INSERT INTO start_and_end_points 
+SELECT * FROM cypher('cypher_vle', $$
+	MATCH (b:begin)-[:edge]->()-[:edge]->()-[:edge]->()-[:edge]->(e:end)
+	RETURN b, e
+$$) AS (b vertex, e vertex);
 -- Display our points
 SELECT * FROM start_and_end_points;
                         start_vertex                         |                         end_vertex                         
@@ -62,66 +66,64 @@ FROM start_and_end_points,
      age_vle(
 	'"cypher_vle"'::gtype,
 	start_vertex, end_vertex,
-	'{"id": 1, "label": "", "end_id": 2, "start_id": 3, "properties": {}}::edge'::gtype,
 	'3'::gtype,
 	'3'::gtype,
 	'-1'::gtype);
-                                                                                                                                                                                                                                                                                            edges                                                                                                                                                                                                                                                                                             
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685253, "start_id": 1407374883553283, "end_id": 1407374883553282, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1407374883553283, "label": "middle", "properties": {}}, {"id": 2251799813685252, "start_id": 1688849860263937, "end_id": 1407374883553283, "label": "alternate_edge", "properties": {"name": "backup edge"}}]
-(1 row)
-
+ERROR:  function age_vle(gtype, vertex, vertex, gtype, gtype, gtype) does not exist
+LINE 3:      age_vle(
+             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- Count the total paths from left (start) to right (end) -[]-> should be 400
-SELECT count(edges) FROM start_and_end_points, age_vle( '"cypher_vle"'::gtype, start_vertex, end_vertex, '{"id": 1, "label": "", "end_id": 2, "start_id": 3, "properties": {}}::edge'::gtype, '1'::gtype, 'null'::gtype, '1'::gtype) group by ctid;
+SELECT count(edges) FROM start_and_end_points, age_vle( '"cypher_vle"'::gtype, start_vertex, end_vertex, '1'::gtype, 'null'::gtype, '1'::gtype, NULL, NULL);
  count 
 -------
    400
 (1 row)
 
 -- Count the total paths from right (end) to left (start) <-[]- should be 2
-SELECT count(edges) FROM start_and_end_points, age_vle( '"cypher_vle"'::gtype, start_vertex, end_vertex, '{"id": 1, "label": "", "end_id": 2, "start_id": 3, "properties": {}}::edge'::gtype, '1'::gtype, 'null'::gtype, '-1'::gtype) group by ctid;
+SELECT count(edges) FROM start_and_end_points, age_vle( '"cypher_vle"'::gtype, start_vertex, end_vertex, '1'::gtype, 'null'::gtype, '-1'::gtype, NULL, NULL);
  count 
 -------
      2
 (1 row)
 
 -- Count the total paths undirectional -[]- should be 7092
-SELECT count(edges) FROM start_and_end_points, age_vle( '"cypher_vle"'::gtype, start_vertex, end_vertex, '{"id": 1, "label": "", "end_id": 2, "start_id": 3, "properties": {}}::edge'::gtype, '1'::gtype, 'null'::gtype, '0'::gtype) group by ctid;
+SELECT count(edges) FROM start_and_end_points, age_vle( '"cypher_vle"'::gtype, start_vertex, end_vertex, '1'::gtype, 'null'::gtype, '0'::gtype, NULL, NULL);
  count 
 -------
   7092
 (1 row)
 
 -- All paths of length 3 -[]-> should be 2
-SELECT count(edges) FROM start_and_end_points, age_vle( '"cypher_vle"'::gtype, start_vertex, end_vertex, '{"id": 1, "label": "", "end_id": 2, "start_id": 3, "properties": {}}::edge'::gtype, '3'::gtype, '3'::gtype, '1'::gtype);
+SELECT count(edges) FROM start_and_end_points, age_vle( '"cypher_vle"'::gtype, start_vertex, end_vertex, '3'::gtype, '3'::gtype, '1'::gtype, NULL, NULL);
  count 
 -------
      2
 (1 row)
 
 -- All paths of length 3 <-[]- should be 1
-SELECT count(edges) FROM start_and_end_points, age_vle( '"cypher_vle"'::gtype, start_vertex, end_vertex, '{"id": 1, "label": "", "end_id": 2, "start_id": 3, "properties": {}}::edge'::gtype, '3'::gtype, '3'::gtype, '-1'::gtype);
+SELECT count(edges) FROM start_and_end_points, age_vle( '"cypher_vle"'::gtype, start_vertex, end_vertex, '3'::gtype, '3'::gtype, '-1'::gtype, NULL, NULL);
  count 
 -------
      1
 (1 row)
 
 -- All paths of length 3 -[]- should be 12
-SELECT count(edges) FROM start_and_end_points, age_vle( '"cypher_vle"'::gtype, start_vertex, end_vertex, '{"id": 1, "label": "", "end_id": 2, "start_id": 3, "properties": {}}::edge'::gtype, '3'::gtype, '3'::gtype, '0'::gtype);
+SELECT count(edges) FROM start_and_end_points, age_vle( '"cypher_vle"'::gtype, start_vertex, end_vertex, '3'::gtype, '3'::gtype, '0'::gtype, NULL, NULL);
  count 
 -------
     12
 (1 row)
 
 -- Test edge label matching - should match 1
-SELECT count(edges) FROM start_and_end_points, age_vle( '"cypher_vle"'::gtype, start_vertex, end_vertex, '{"id": 1, "label": "edge", "end_id": 2, "start_id": 3, "properties": {}}::edge'::gtype, '1'::gtype, 'null'::gtype, '1'::gtype);
+SELECT count(edges) FROM start_and_end_points, age_vle( '"cypher_vle"'::gtype, start_vertex, end_vertex, '1'::gtype, 'null'::gtype, '1'::gtype, '"edge"'::gtype, NULL);
  count 
 -------
      1
 (1 row)
 
 -- Test scalar property matching - should match 1
-SELECT count(edges) FROM start_and_end_points, age_vle( '"cypher_vle"'::gtype, start_vertex, end_vertex, '{"id": 1, "label": "", "end_id": 2, "start_id": 3, "properties": {"name": "main edge"}}::edge'::gtype, '1'::gtype, 'null'::gtype, '1'::gtype);
+SELECT count(edges) FROM start_and_end_points, age_vle( '"cypher_vle"'::gtype, start_vertex, end_vertex, '1'::gtype, 'null'::gtype, '1'::gtype, NULL::gtype, '{"name": "main edge"}'::gtype);
  count 
 -------
      1
