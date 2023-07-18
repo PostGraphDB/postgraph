@@ -415,16 +415,6 @@ static void gtype_typecast_object(gtype_in_state *state, char *annotation) {
         Assert(last_updated_value->type == AGTV_OBJECT);
     }
 
-    /* check for a cast to a vertex */
-    else if (len == 4 && pg_strncasecmp(annotation, "edge", len) == 0) {
-        if (is_object_edge(agtv)) {
-            agtv->type = AGTV_EDGE;
-            if (!top)
-                last_updated_value->type = AGTV_EDGE;
-        } else {
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("object is not a edge")));
-        }
-    }
     /* otherwise this isn't a supported typecast */
     else
     {
@@ -614,9 +604,6 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
         else
             appendBinaryStringInfo(out, "false", 5);
         break;
-    case AGTV_EDGE:
-        gtype_put_object(out, scalar_val);  
-        appendBinaryStringInfo(out, "::edge", 6);
     case AGTV_PARTIAL_PATH:
         gtype_put_array(out, scalar_val);
         appendBinaryStringInfo(out, "::partial_path", 6);
@@ -1543,104 +1530,6 @@ gtype_value *integer_to_gtype_value(int64 int_value)
     return agtv;
 }
 
-PG_FUNCTION_INFO_V1(_gtype_build_edge);
-/*
- * SQL function gtype_build_edge(graphid, graphid, graphid, cstring, gtype)
- */
-Datum _gtype_build_edge(PG_FUNCTION_ARGS)
-{
-    gtype_in_state result;
-    graphid id, start_id, end_id;
-
-    memset(&result, 0, sizeof(gtype_in_state));
-
-    result.res = push_gtype_value(&result.parse_state, WAGT_BEGIN_OBJECT,
-                                   NULL);
-
-    /* process graph id */
-    result.res = push_gtype_value(&result.parse_state, WAGT_KEY,
-                                   string_to_gtype_value("id"));
-
-    if (fcinfo->args[0].isnull)
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("_gtype_build_edge() graphid cannot be NULL")));
-
-    id = AG_GETARG_GRAPHID(0);
-    result.res = push_gtype_value(&result.parse_state, WAGT_VALUE,
-                                   integer_to_gtype_value(id));
-
-    /* process label */
-    result.res = push_gtype_value(&result.parse_state, WAGT_KEY,
-                                   string_to_gtype_value("label"));
-
-    if (fcinfo->args[3].isnull)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("_gtype_build_vertex() label cannot be NULL")));
-
-    result.res =
-        push_gtype_value(&result.parse_state, WAGT_VALUE,
-                          string_to_gtype_value(PG_GETARG_CSTRING(3)));
-
-    /* process end_id */
-    result.res = push_gtype_value(&result.parse_state, WAGT_KEY,
-                                   string_to_gtype_value("end_id"));
-
-    if (fcinfo->args[2].isnull)
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("_gtype_build_edge() endid cannot be NULL")));
-
-    end_id = AG_GETARG_GRAPHID(2);
-    result.res = push_gtype_value(&result.parse_state, WAGT_VALUE,
-                                   integer_to_gtype_value(end_id));
-
-    /* process start_id */
-    result.res = push_gtype_value(&result.parse_state, WAGT_KEY,
-                                   string_to_gtype_value("start_id"));
-
-    if (fcinfo->args[1].isnull)
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("_gtype_build_edge() startid cannot be NULL")));
-
-    start_id = AG_GETARG_GRAPHID(1);
-    result.res = push_gtype_value(&result.parse_state, WAGT_VALUE,
-                                   integer_to_gtype_value(start_id));
-
-    /* process properties */
-    result.res = push_gtype_value(&result.parse_state, WAGT_KEY,
-                                   string_to_gtype_value("properties"));
-
-    /* if the properties object is null, push an empty object */
-    if (fcinfo->args[4].isnull)
-    {
-        result.res = push_gtype_value(&result.parse_state, WAGT_BEGIN_OBJECT, NULL);
-        result.res = push_gtype_value(&result.parse_state, WAGT_END_OBJECT, NULL);
-    }
-    else
-    {
-        gtype *properties = AG_GET_ARG_GTYPE_P(4);
-
-        if (!AGT_ROOT_IS_OBJECT(properties))
-            ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("_gtype_build_edge() properties argument must be an object")));
-
-        add_gtype((Datum)properties, false, &result, GTYPEOID, false);
-    }
-
-    result.res = push_gtype_value(&result.parse_state, WAGT_END_OBJECT, NULL);
-
-    result.res->type = AGTV_EDGE;
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(result.res));
-}
-
-Datum make_edge(Datum id, Datum startid, Datum endid, Datum label, Datum properties) {
-    return DirectFunctionCall5(_gtype_build_edge, id, startid, endid, label, properties);
-}
-
 PG_FUNCTION_INFO_V1(gtype_build_map);
 
 /*
@@ -1803,7 +1692,6 @@ static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqlt
         {AGTV_BOOL, gettext_noop("cannot cast gtype boolean to type %s")},
         {AGTV_ARRAY, gettext_noop("cannot cast gtype array to type %s")},
         {AGTV_OBJECT, gettext_noop("cannot cast gtype object to type %s")},
-        {AGTV_EDGE, gettext_noop("cannot cast gtype edge to type %s")},
         {AGTV_BINARY,
          gettext_noop("cannot cast gtype array or object to type %s")}};
     int i;
@@ -2865,35 +2753,6 @@ Datum gtype_to_graphid(PG_FUNCTION_ARGS)
     PG_FREE_IF_COPY(gtype_in, 0);
 
     PG_RETURN_INT16(agtv.val.int_value);
-}
-
-PG_FUNCTION_INFO_V1(age_label);
-Datum age_label(PG_FUNCTION_ARGS)
-{
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    gtype_value *agtv_value;
-    gtype_value *label;
-
-    if (AGTE_IS_NULL(agt->root.children[0]))
-            PG_RETURN_NULL();
-
-    // edges and vertices are considered scalars
-    if (!AGT_ROOT_IS_SCALAR(agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("label() argument must resolve to an edge or vertex")));
-
-    agtv_value = get_ith_gtype_value_from_container(&agt->root, 0);
-
-    // fail if gtype value isn't an edge or vertex
-    if (agtv_value->type != AGTV_EDGE)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("label() argument must resolve to an edge or vertex")));
-
-
-    // extract the label gtype value from the vertex or edge
-    label = GET_GTYPE_VALUE_OBJECT_VALUE(agtv_value, "label");
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(label));
 }
 
 static gtype_iterator *get_next_list_element(gtype_iterator *it,
@@ -5244,47 +5103,6 @@ Datum age_collect_aggfinalfn(PG_FUNCTION_ARGS) {
     PG_RETURN_POINTER(gtype_value_to_gtype(castate->res));
 }
 
-/* helper function to quickly build an gtype_value edge */
-gtype_value *gtype_value_build_edge(graphid id, char *label, graphid end_id, graphid start_id, Datum properties) {
-    gtype_in_state result;
-
-    /* the label can't be NULL */
-    Assert(label != NULL);
-
-    memset(&result, 0, sizeof(gtype_in_state));
-
-    /* push in the object beginning */
-    result.res = push_gtype_value(&result.parse_state, WAGT_BEGIN_OBJECT, NULL);
-    /* push the graph id key/value pair */
-    result.res = push_gtype_value(&result.parse_state, WAGT_KEY, string_to_gtype_value("id"));
-    result.res = push_gtype_value(&result.parse_state, WAGT_VALUE, integer_to_gtype_value(id));
-
-    /* push the label key/value pair */
-    result.res = push_gtype_value(&result.parse_state, WAGT_KEY, string_to_gtype_value("label"));
-    result.res = push_gtype_value(&result.parse_state, WAGT_VALUE, string_to_gtype_value(label));
-
-    /* push the end_id key/value pair */
-    result.res = push_gtype_value(&result.parse_state, WAGT_KEY, string_to_gtype_value("end_id"));
-    result.res = push_gtype_value(&result.parse_state, WAGT_VALUE, integer_to_gtype_value(end_id));
-
-    /* push the start_id key/value pair */
-    result.res = push_gtype_value(&result.parse_state, WAGT_KEY, string_to_gtype_value("start_id"));
-    result.res = push_gtype_value(&result.parse_state, WAGT_VALUE, integer_to_gtype_value(start_id));
-
-    /* push the properties key/value pair */
-    result.res = push_gtype_value(&result.parse_state, WAGT_KEY, string_to_gtype_value("properties"));
-    add_gtype((Datum)properties, false, &result, GTYPEOID, false);
-
-    /* push in the object end */
-    result.res = push_gtype_value(&result.parse_state, WAGT_END_OBJECT, NULL);
-
-    /* set it as an edge */
-    result.res->type = AGTV_EDGE;
-
-    /* return the result that was build (allocated) inside the result */
-    return result.res;
-}
-
 /*
  * Extract an gtype_value from an gtype and optionally verify that it is of
  * the correct type. It will always complain if the passed argument is not a
@@ -5477,24 +5295,9 @@ Datum age_keys(PG_FUNCTION_ARGS)
     if (is_gtype_null(agt_arg))
         PG_RETURN_NULL();
 
-    if (AGT_ROOT_IS_SCALAR(agt_arg)) {
-        agtv_result = get_ith_gtype_value_from_container(&agt_arg->root, 0);
-
-        if (agtv_result->type == AGTV_EDGE) {
-            agtv_result = GET_GTYPE_VALUE_OBJECT_VALUE(agtv_result, "properties");
-
-            Assert(agtv_result != NULL);
-            Assert(agtv_result->type = AGTV_OBJECT);
-        } else {
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                    errmsg("keys() argument must be a vertex, edge, object or null")));
-        }
-
-        agt_arg = gtype_value_to_gtype(agtv_result);
-        agtv_result = NULL;
-    } else if (!AGT_ROOT_IS_OBJECT(agt_arg)) {
+    if (!AGT_ROOT_IS_OBJECT(agt_arg)) {
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                errmsg("keys() argument must be a vertex, edge, object or null")));
+                errmsg("keys() argument must be an object")));
     }
 
     agtv_result = push_gtype_value(&parse_state, WAGT_BEGIN_ARRAY, NULL);
@@ -5690,11 +5493,6 @@ Datum age_unnest(PG_FUNCTION_ARGS)
             Datum values[1];
             bool nulls[1] = {false};
             gtype *val = gtype_value_to_gtype(&v);
-
-            if (block_types && (v.type == AGTV_EDGE))
-                ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                                errmsg("UNWIND clause does not support gtype %s",
-                                       gtype_value_type_to_string(v.type))));
 
             /* use the tmp context so we can clean up after each tuple is done */
             old_cxt = MemoryContextSwitchTo(tmp_cxt);

@@ -394,45 +394,6 @@ SELECT i, pg_typeof(i) FROM (SELECT '{"bool":false, "int":3, "float":3.14}'::gty
 SELECT i, pg_typeof(i) FROM (SELECT '{"bool":false, "int":3, "float":3.14}'::gtype->'"true"'::gtype->2 as i) a;
 
 
---
--- Edge
---
---Basic Edge Creation
-SELECT _gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			  $$label_name$$, gtype_build_map());
-
-SELECT _gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			  $$label$$, gtype_build_map('id', 2));
-
---Null properties
-SELECT _gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			  $$label_name$$, NULL);
-
---Edge in a map
-SELECT gtype_build_map(
-	'edge',
-	_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			   $$label_name$$, gtype_build_map()));
-
---Edge in a list
-SELECT gtype_build_list(
-	_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			   $$label_name$$, gtype_build_map()),
-	_gtype_build_edge('2'::graphid, '2'::graphid, '3'::graphid,
-			   $$label_name$$, gtype_build_map()));
-
---
--- id, startid, endid
---
-SELECT age_id(_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			  $$label_name$$, gtype_build_map('id', 2)));
-
-SELECT age_start_id(_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			  $$label_name$$, gtype_build_map('id', 2)));
-
-SELECT age_end_id(_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			  $$label_name$$, gtype_build_map('id', 2)));
-
 SELECT age_id(gtype_in('1'));
 
 SELECT age_id(NULL);
@@ -503,9 +464,7 @@ SELECT gtype_hash_cmp(gtype_in('[null, null, null]'));
 SELECT gtype_hash_cmp(gtype_in('[null, null, null, null]'));
 SELECT gtype_hash_cmp(gtype_in('[null, null, null, null, null]'));
 SELECT gtype_hash_cmp('{"id":1, "label":"test", "properties":{"id":100}}'::gtype);
-
 SELECT gtype_hash_cmp('{"id":2, "start_id":1, "end_id": 3, "label":"elabel", "properties":{}}'::gtype);
-SELECT gtype_hash_cmp('{"id":2, "start_id":1, "end_id": 3, "label":"elabel", "properties":{}}::edge'::gtype);
 
 --Agtype BTree Comparison Function
 SELECT gtype_btree_cmp('1'::gtype, '1'::gtype);
@@ -526,15 +485,6 @@ SELECT gtype_btree_cmp(
 SELECT gtype_btree_cmp(
 	'{"id":1, "label":"test", "properties":{"id":100}}'::gtype,
 	'{"id":1, "label":"test", "properties":{"id":200}}'::gtype);
-SELECT gtype_btree_cmp(
-	'{"id":2, "start_id":1, "end_id": 3, "label":"elabel", "properties":{}}::edge'::gtype,
-	'{"id":2, "start_id":1, "end_id": 3, "label":"elabel", "properties":{}}::edge'::gtype);
-SELECT gtype_btree_cmp(
-	'{"id":2, "start_id":1, "end_id": 3, "label":"elabel", "properties":{"prop1": 1}}::edge'::gtype,
-	'{"id":2, "start_id":4, "end_id": 5, "label":"elabel", "properties":{"prop2": 2}}::edge'::gtype);
-SELECT gtype_btree_cmp(
-	'{"id":2, "start_id":1, "end_id": 3, "label":"elabel", "properties":{"prop1": 1}}::edge'::gtype,
-	'{"id":8, "start_id":4, "end_id": 5, "label":"elabel", "properties":{"prop2": 2}}::edge'::gtype);
 
 --
 -- Cleanup

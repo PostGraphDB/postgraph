@@ -275,7 +275,6 @@ int compare_gtype_containers_orderability(gtype_container *a,
                 case AGTV_BOOL:
                 case AGTV_INTEGER:
                 case AGTV_FLOAT:
-                case AGTV_EDGE:
 	        case AGTV_PARTIAL_PATH:
                     res = compare_gtype_scalar_values(&va, &vb);
                     break;
@@ -1430,15 +1429,6 @@ void gtype_hash_scalar_value_extended(const gtype_value *scalar_val,
             hashfloat8extended, Float8GetDatum(scalar_val->val.float_value),
             UInt64GetDatum(seed)));
         break;
-    case AGTV_EDGE:
-    {
-        graphid id;
-        gtype_value *id_agt = GET_GTYPE_VALUE_OBJECT_VALUE(scalar_val, "id");
-        id = id_agt->val.int_value;
-        tmp = DatumGetUInt64(DirectFunctionCall2(
-            hashint8extended, Float8GetDatum(id), UInt64GetDatum(seed)));
-        break;
-    }
     default:
         ereport(
             ERROR,
@@ -1567,24 +1557,6 @@ int compare_gtype_scalar_values(gtype_value *a, gtype_value *b)
                 return -1;
         case AGTV_FLOAT:
             return compare_two_floats_orderability(a->val.float_value, b->val.float_value);
-        case AGTV_EDGE:
-        {
-            gtype_value *a_id, *b_id;
-            graphid a_graphid, b_graphid;
-
-            a_id = GET_GTYPE_VALUE_OBJECT_VALUE(a, "id");
-            b_id = GET_GTYPE_VALUE_OBJECT_VALUE(b, "id");
-
-            a_graphid = a_id->val.int_value;
-            b_graphid = b_id->val.int_value;
-
-            if (a_graphid == b_graphid)
-                return 0;
-            else if (a_graphid > b_graphid)
-                return 1;
-            else
-                return -1;
-        }
 	case AGTV_PARTIAL_PATH:
         {
             int i;
@@ -2178,8 +2150,6 @@ char *gtype_value_type_to_string(enum gtype_value_type type)
             return "float";
         case AGTV_BOOL:
             return "boolean";
-        case AGTV_EDGE:
-            return "edge";
         case AGTV_ARRAY:
             return "array";
         case AGTV_OBJECT:

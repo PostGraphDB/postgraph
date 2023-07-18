@@ -1918,44 +1918,31 @@ ERROR:  function postgraph.age_endnode() does not exist
 LINE 2:     RETURN endNode()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
--- type()
+-- type() TODO: Move to other regression files
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]-() RETURN type(e)
-$$) AS (type gtype);
- type 
-------
- "e1"
- "e1"
- "e1"
- "e1"
-(4 rows)
-
+$$) AS (type edge);
+ERROR:  cannot cast type gtype to edge for column "type"
+LINE 1: SELECT * FROM cypher('expr', $$
+                      ^
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN type(null)
-$$) AS (type gtype);
- type 
-------
- 
-(1 row)
-
+$$) AS (type edge);
+ERROR:  function postgraph.age_type(gtype) does not exist
+LINE 2:     RETURN type(null)
+                   ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should error
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN type(v)
-$$) AS (type gtype);
- type 
-------
- "v"
- "v"
- "v"
- "v1"
- "v1"
- "v1"
-(6 rows)
-
+$$) AS (type vertex);
+ERROR:  cannot cast type gtype to vertex for column "type"
+LINE 1: SELECT * FROM cypher('expr', $$
+                      ^
 SELECT * FROM cypher('expr', $$
     RETURN type()
-$$) AS (type gtype);
+$$) AS (type vertex);
 ERROR:  function postgraph.age_type() does not exist
 LINE 2:     RETURN type()
                    ^
@@ -1963,35 +1950,24 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- label ()
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN label(v)
-$$) AS (label gtype);
- label 
--------
- "v"
- "v"
- "v"
- "v1"
- "v1"
- "v1"
-(6 rows)
-
+$$) AS (label vertex);
+ERROR:  cannot cast type gtype to vertex for column "label"
+LINE 1: SELECT * FROM cypher('expr', $$
+                      ^
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]->() RETURN label(e)
-$$) AS (label gtype);
- label 
--------
- "e1"
- "e1"
-(2 rows)
-
+$$) AS (label edge);
+ERROR:  cannot cast type gtype to edge for column "label"
+LINE 1: SELECT * FROM cypher('expr', $$
+                      ^
 -- return NULL
 SELECT * FROM cypher('expr', $$
     RETURN label(NULL)
-$$) AS (label gtype);
- label 
--------
- 
-(1 row)
-
+$$) AS (label edge);
+ERROR:  function postgraph.age_label(gtype) does not exist
+LINE 2:     RETURN label(NULL)
+                   ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT postgraph.age_label(NULL);
 ERROR:  function postgraph.age_label(unknown) is not unique
 LINE 1: SELECT postgraph.age_label(NULL);
@@ -2008,15 +1984,24 @@ HINT:  No function matches the given name and argument types. You might need to 
 SELECT * FROM cypher('expr', $$
     RETURN label(1)
 $$) AS (label gtype);
-ERROR:  label() argument must resolve to an edge or vertex
+ERROR:  function postgraph.age_label(gtype) does not exist
+LINE 2:     RETURN label(1)
+                   ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     MATCH (n) RETURN label([n])
 $$) AS (label gtype);
-ERROR:  label() argument must resolve to an edge or vertex
+ERROR:  function postgraph.age_label(gtype) does not exist
+LINE 2:     MATCH (n) RETURN label([n])
+                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN label({id: 0, label: 'failed', properties: {}})
 $$) AS (label gtype);
-ERROR:  label() argument must resolve to an edge or vertex
+ERROR:  function postgraph.age_label(gtype) does not exist
+LINE 2:     RETURN label({id: 0, label: 'failed', properties: {}})
+                   ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- timestamp() can't be done as it will always have a different value
 -- size() of a string
 SELECT * FROM cypher('expr', $$
@@ -5408,9 +5393,9 @@ SELECT * FROM cypher('keys', $$RETURN keys(null)$$) AS (keys gtype);
 
 --should return error
 SELECT * from cypher('keys', $$RETURN keys([1,2,3])$$) as (keys gtype);
-ERROR:  keys() argument must be a vertex, edge, object or null
+ERROR:  keys() argument must be an object
 SELECT * from cypher('keys', $$RETURN keys("string")$$) as (keys gtype);
-ERROR:  keys() argument must be a vertex, edge, object or null
+ERROR:  keys() argument must be an object
 SELECT * from cypher('keys', $$MATCH u=()-[]-() RETURN keys(u)$$) as (keys gtype);
 ERROR:  function postgraph.age_keys(traversal) does not exist
 LINE 1: ...T * from cypher('keys', $$MATCH u=()-[]-() RETURN keys(u)$$)...
