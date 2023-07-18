@@ -482,7 +482,6 @@ cannot_cast_gtype_value(enum gtype_value_type type, const char *sqltype) {
         {AGTV_OBJECT, gettext_noop("cannot cast gtype object to type %s")},
         {AGTV_VERTEX, gettext_noop("cannot cast gtype vertex to type %s")},
         {AGTV_EDGE, gettext_noop("cannot cast gtype edge to type %s")},
-        {AGTV_PATH, gettext_noop("cannot cast gtype path to type %s")},
         {AGTV_BINARY,
          gettext_noop("cannot cast gtype array or object to type %s")}};
 

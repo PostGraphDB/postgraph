@@ -442,52 +442,6 @@ SELECT gtype_build_list(
 	_gtype_build_edge('2'::graphid, '2'::graphid, '3'::graphid,
 			   $$label_name$$, gtype_build_map()));
 
-SELECT _gtype_build_path(
-	_gtype_build_vertex('2'::graphid, $$label_name$$, gtype_build_map()),
-	_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			  $$label$$, gtype_build_map('id', 2)),
-	_gtype_build_vertex('3'::graphid, $$label_name$$, gtype_build_map())
-);
-
---All these paths should produce Errors
-SELECT _gtype_build_path(
-	_gtype_build_vertex('2'::graphid, $$label_name$$, gtype_build_map()),
-	_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			  $$label$$, gtype_build_map('id', 2))
-);
-
-SELECT _gtype_build_path(
-       _gtype_build_vertex('2'::graphid, $$label_name$$, gtype_build_map()),
-       _gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-                         $$label$$, gtype_build_map('id', 2)),
-       _gtype_build_vertex('3'::graphid, $$label_name$$, gtype_build_map()),
-       _gtype_build_edge('1'::graphid, '4'::graphid, '5'::graphid,
-                         $$label$$, gtype_build_map('id', 2))
-);
-
-SELECT _gtype_build_path(
-	_gtype_build_vertex('2'::graphid, $$label_name$$, gtype_build_map()),
-	_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			  $$label$$, gtype_build_map('id', 2)),
-	NULL
-);
-
-SELECT _gtype_build_path(
-	_gtype_build_vertex('2'::graphid, $$label_name$$, gtype_build_map()),
-	_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			  $$label$$, gtype_build_map('id', 2)),
-	1
-);
-
-SELECT _gtype_build_path(
-	_gtype_build_vertex('2'::graphid, $$label_name$$, gtype_build_map()),
-	_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			  $$label$$, gtype_build_map('id', 2)),
-	_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			  $$label$$, gtype_build_map('id', 2))
-);
-
-
 --
 -- id, startid, endid
 --
@@ -500,14 +454,6 @@ SELECT age_start_id(_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
 
 SELECT age_end_id(_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
 			  $$label_name$$, gtype_build_map('id', 2)));
-
-
-SELECT age_id(_gtype_build_path(
-	_gtype_build_vertex('2'::graphid, $$label_name$$, gtype_build_map()),
-	_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			  $$label$$, gtype_build_map('id', 2)),
-	_gtype_build_vertex('3'::graphid, $$label$$, gtype_build_map('id', 2))
-));
 
 SELECT age_id(gtype_in('1'));
 

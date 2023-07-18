@@ -254,16 +254,6 @@ typedef struct gtype_container
 #define AGT_FBINARY 0x8000 /* our binary objects */
 
 /*
- * AGT_FBINARY utilizes the AGTV_BINARY mechanism,
- * it is not necessarily an gtype serialized (binary) value. We are just using
- * that mechanism to pass blobs of data more quickly between components. In the
- * case of the path from the VLE routine, the blob is a graphid array where the
- * first element contains the header embedded in it. This way it is just cast to
- * the graphid array to be used after verifying that it is an AGT_FBINARY and an
- * AGT_FBINARY_TYPE_VLE_PATH.
- */
-
-/*
  * Flags for the gtype_container type AGT_FBINARY are in the AGT_CMASK (count)
  * field. We put the flags here as this is a strictly AGTV_BINARY blob of data
  * and count is irrelevant because there is only one. The additional flags allow
@@ -275,7 +265,6 @@ typedef struct gtype_container
     ((agtc)->header &AGT_FBINARY_MASK)
 #define AGT_ROOT_DATA_FBINARY(agtp_) \
     VARDATA(agtp_);
-#define AGT_FBINARY_TYPE_VLE_PATH 0x0001
 
 /* convenience macros for accessing an gtype_container struct */
 #define GTYPE_CONTAINER_SIZE(agtc)       ((agtc)->header & AGT_CMASK)
@@ -309,7 +298,6 @@ typedef struct
 #define AGT_HEADER_FLOAT   0x0001
 #define AGT_HEADER_VERTEX  0x0002
 #define AGT_HEADER_EDGE    0x0003
-#define AGT_HEADER_PATH    0x0004
 #define AGT_HEADER_PARTIAL_PATH    0x0005
 #define AGT_HEADER_TIMESTAMP 0x0006
 
@@ -332,9 +320,6 @@ typedef struct
 #define AGT_IS_TIMESTAMP(agt) \
     (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_TIMESTAMP)
 
-#define AGT_IS_PATH(agt) \
-    (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_PATH)
-
 #define AGT_IS_PARTIAL_PATH(agt) \
     (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_PARTIAL_PATH)
 
@@ -350,7 +335,6 @@ enum gtype_value_type
     AGTV_TIMESTAMP,
     AGTV_VERTEX,
     AGTV_EDGE,
-    AGTV_PATH,
     AGTV_PARTIAL_PATH,
     /* Composite types */
     AGTV_ARRAY = 0x20,
@@ -494,7 +478,6 @@ gtype_value *alter_property_value(gtype *properties, char *var_name, gtype *new_
 gtype *get_one_gtype_from_variadic_args(FunctionCallInfo fcinfo, int variadic_offset, int expected_nargs);
 Datum make_vertex(Datum id, Datum label, Datum properties);
 Datum make_edge(Datum id, Datum startid, Datum endid, Datum label, Datum properties);
-Datum make_path(List *path);
 Datum column_get_datum(TupleDesc tupdesc, HeapTuple tuple, int column, const char *attname, Oid typid, bool isnull);
 gtype_value *gtype_value_build_vertex(graphid id, char *label, Datum properties);
 gtype_value *gtype_value_build_edge(graphid id, char *label, graphid end_id, graphid start_id, Datum properties);

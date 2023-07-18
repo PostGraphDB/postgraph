@@ -226,7 +226,7 @@ static bool check_path(gtype_value *path, graphid updated_id)
     return false;
 }
 
-/*
+/* XXX: Update to new datatype
  * Construct a new gtype path with the entity with updated_id
  * replacing all of its intances in path with updated_entity
  */
@@ -280,7 +280,7 @@ static gtype_value *replace_entity_in_path(gtype_value *path, graphid updated_id
     }
 
     parsed_gtype_value = push_gtype_value(&parse_state, WAGT_END_ARRAY, NULL);
-    parsed_gtype_value->type = AGTV_PATH;
+    //parsed_gtype_value->type = AGTV_PATH;
 
     return parsed_gtype_value;
 }
@@ -326,7 +326,7 @@ static void update_all_paths(CustomScanState *node, graphid id,
         original_entity_value = get_ith_gtype_value_from_container(&original_entity->root, 0);
 
         // we found a path
-        if (original_entity_value->type == AGTV_PATH)
+        if (original_entity_value->type == 1)// AGTV_PATH)
         {
             // check if the path contains the entity.
             if (check_path(original_entity_value, id))

@@ -1101,17 +1101,6 @@ $$) AS (toInteger gtype);
 SELECT * FROM cypher('expr', $$
     RETURN toInteger()
 $$) AS (toInteger gtype);
--- should return null
-SELECT * FROM cypher('expr', $$
-    RETURN length(null)
-$$) AS (length gtype);
--- should fail
-SELECT * FROM cypher('expr', $$
-    RETURN length(true)
-$$) AS (length gtype);
-SELECT * FROM cypher('expr', $$
-    RETURN length()
-$$) AS (length gtype);
 
 --
 -- toString()

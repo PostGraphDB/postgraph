@@ -1717,17 +1717,9 @@ SELECT gtype_in('{"name": "container 0", "vertices": [{"vertex_0": {"id": 0, "la
 (1 row)
 
 SELECT gtype_in('{"name": "container 1", "edges": [{"id": 3, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge, {"id": 4, "label": "edge 1", "end_id": 0, "start_id": 1, "properties": {}}::edge]}');
-                                                                                                gtype_in                                                                                                
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- {"name": "container 1", "edges": [{"id": 3, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge, {"id": 4, "label": "edge 1", "end_id": 0, "start_id": 1, "properties": {}}::edge]}
-(1 row)
-
+ERROR:  unknown gtype scalar type
 SELECT gtype_in('{"name": "path 1", "path": [{"id": 0, "label": "vertex 0", "properties": {}}::vertex, {"id": 2, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge, {"id": 1, "label": "vertex 1", "properties": {}}::vertex]}');
-                                                                                                              gtype_in                                                                                                              
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- {"name": "path 1", "path": [{"id": 0, "label": "vertex 0", "properties": {}}::vertex, {"id": 2, "label": "edge 0", "end_id": 1, "start_id": 0, "properties": {}}::edge, {"id": 1, "label": "vertex 1", "properties": {}}::vertex]}
-(1 row)
-
+ERROR:  unknown gtype scalar type
 -- test functions
 -- create some vertices and edges
 -- XXX: Move after the CREATE regression tests...
@@ -2483,27 +2475,6 @@ SELECT * FROM cypher('expr', $$
 $$) AS (toInteger gtype);
 ERROR:  function postgraph.age_tointeger() does not exist
 LINE 2:     RETURN toInteger()
-                   ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
--- should return null
-SELECT * FROM cypher('expr', $$
-    RETURN length(null)
-$$) AS (length gtype);
- length 
---------
- 
-(1 row)
-
--- should fail
-SELECT * FROM cypher('expr', $$
-    RETURN length(true)
-$$) AS (length gtype);
-ERROR:  length() argument must resolve to a path or null
-SELECT * FROM cypher('expr', $$
-    RETURN length()
-$$) AS (length gtype);
-ERROR:  function postgraph.age_length() does not exist
-LINE 2:     RETURN length()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --

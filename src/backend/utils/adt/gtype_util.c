@@ -279,7 +279,6 @@ int compare_gtype_containers_orderability(gtype_container *a,
                 case AGTV_FLOAT:
                 case AGTV_EDGE:
                 case AGTV_VERTEX:
-                case AGTV_PATH:
 	        case AGTV_PARTIAL_PATH:
                     res = compare_gtype_scalar_values(&va, &vb);
                     break;
@@ -1452,17 +1451,6 @@ void gtype_hash_scalar_value_extended(const gtype_value *scalar_val,
             hashint8extended, Float8GetDatum(id), UInt64GetDatum(seed)));
         break;
     }
-    case AGTV_PATH:
-    {
-        int i;
-        for (i = 0; i < scalar_val->val.array.num_elems; i++)
-        {
-            gtype_value v;
-            v = scalar_val->val.array.elems[i];
-            gtype_hash_scalar_value_extended(&v, &tmp, seed);
-        }
-        break;
-    }
     default:
         ereport(
             ERROR,
@@ -1619,7 +1607,6 @@ int compare_gtype_scalar_values(gtype_value *a, gtype_value *b)
             else
                 return -1;
         }
-        case AGTV_PATH:
 	case AGTV_PARTIAL_PATH:
         {
             int i;

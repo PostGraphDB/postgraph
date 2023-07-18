@@ -548,7 +548,6 @@ static Datum make_scalar_key(const gtype_value *scalarVal, bool is_key)
         break;
     case AGTV_VERTEX:
     case AGTV_EDGE:
-    case AGTV_PATH:
         elog(ERROR, "gtype type: %d is not a scalar", scalarVal->type);
         break;
     default:
