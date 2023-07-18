@@ -165,6 +165,15 @@ Datum traversal_nodes(PG_FUNCTION_ARGS) {
     PG_RETURN_ARRAYTYPE_P(result);
 }
 
+PG_FUNCTION_INFO_V1(traversal_size);
+Datum traversal_size(PG_FUNCTION_ARGS) {
+    traversal *v = AG_GET_ARG_TRAVERSAL(0);
+
+    gtype_value gtv = { .type = AGTV_INTEGER, .val = { .int_value = v->children[0] } };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
 
 static void
 append_to_buffer(StringInfo buffer, const char *data, int len) {

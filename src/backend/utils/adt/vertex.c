@@ -335,31 +335,8 @@ vertex_id(PG_FUNCTION_ARGS) {
     gtype_value gtv = { .type = AGTV_INTEGER, .val = {.int_value = *((int64 *)(&v->children[0])) } };    
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
-//    AG_RETURN_GRAPHID(*((int64 *)(&v->children[0])));
 }
-/*
-PG_FUNCTION_INFO_V1(gtype_vertex_id);
-Datum
-age_vertex_id(PG_FUNCTION_ARGS) {
-    vertex *v = AG_GET_ARG_VERTEX(0);
 
-    gtype_value gtv = { .type = AGTV_INTEGER, .val = {.int_value = *((int64 *)(&v->children[0])) } };    
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
-}
-*/
-/*
-PG_FUNCTION_INFO_V1(vertex_label);
-Datum
-vertex_label(PG_FUNCTION_ARGS) {
-    vertex *v = AG_GET_ARG_VERTEX(0);
-    char *label = extract_vertex_label(v);
-
-    Datum d = string_to_gtype(label);
-
-    PG_RETURN_POINTER(d);
-}
-*/
 PG_FUNCTION_INFO_V1(vertex_properties);
 Datum
 vertex_properties(PG_FUNCTION_ARGS) {
