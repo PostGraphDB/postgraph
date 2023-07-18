@@ -613,26 +613,6 @@ static bool dfs_find_a_path_from(path_finding_context *path_ctx)
     return false;
 }
 
-/*
- * Helper routine to quickly check if an edge_id is in the path queue. It is
- * only meant as a quick check to avoid doing a much more costly hash search for
- * smaller sized lists. But, it is O(n) so it should only be used for small
- * path_queues and where appropriate.
- */
-static bool is_edge_in_path(path_finding_context *path_ctx, graphid edge_id) {
-    QueueNode *edge = peek_queue_head(path_ctx->dfs_path_queue);
-
-    // go through the path queue, return true if we find the edge 
-    while (edge) {
-        if (get_graphid(edge) == edge_id)
-            return true;
-
-        edge = next_queue_node(edge);
-    }
-
-    return false;
-}
-
 // add in valid vertex edges as part of the dfs path algorithm.
 static void add_valid_vertex_edges(path_finding_context *path_ctx, graphid vertex_id) {
     Queue *edges = NULL;
@@ -835,92 +815,6 @@ static path_container *build_path_container(path_finding_context *path_ctx) {
 
     // return the container 
     return vpc;
-}
-
-// helper function to build a VPC for just the start vertex 
-
-// build an AGTV_ARRAY of edges from an array of graphids.
-static gtype_value *build_edge_list(path_container *vpc) {
-    gtype_in_state edges_result;
-
-    // get the graph context
-    graph_context *ggctx = find_graph_context(vpc->graph_oid);
-    Assert(ggctx != NULL);
-
-    // get the graphid_array and size 
-    graphid *graphid_array = GET_GRAPHID_ARRAY_FROM_CONTAINER(vpc);
-    int graphid_array_size = vpc->graphid_array_size;
-
-    // initialize our gtype array 
-    MemSet(&edges_result, 0, sizeof(gtype_in_state));
-    edges_result.res = push_gtype_value(&edges_result.parse_state, WAGT_BEGIN_ARRAY, NULL);
-
-    for (int index = 1; index < graphid_array_size - 1; index += 2) {
-        // get the edge entry from the hashtable 
-        edge_entry *ee = get_edge_entry(ggctx, graphid_array[index]);
-        // get the label name from the oid 
-        char *label_name = get_rel_name(get_edge_entry_label_table_oid(ee));
-        // reconstruct the edge 
-        gtype_value *agtv_edge = gtype_value_build_edge(get_edge_entry_id(ee), label_name,
-                                            get_end_id(ee),
-                                            get_start_id(ee),
-                                            get_edge_entry_properties(ee));
-        // push the edge
-        edges_result.res = push_gtype_value(&edges_result.parse_state, WAGT_ELEM, agtv_edge);
-    }
-
-    edges_result.res = push_gtype_value(&edges_result.parse_state, WAGT_END_ARRAY, NULL);
-
-    return edges_result.res;
-}
-
-// Build an array of type AGTV_PATH from an array of graphids.
-static gtype_value *build_path(path_container *vpc) {
-    graph_context *ggctx = NULL;
-    gtype_in_state path_result;
-
-    ggctx = find_graph_context(vpc->graph_oid);
-   
-    Assert(ggctx != NULL);
-
-    graphid *graphid_array = GET_GRAPHID_ARRAY_FROM_CONTAINER(vpc);
-    int graphid_array_size = vpc->graphid_array_size;
-
-    MemSet(&path_result, 0, sizeof(gtype_in_state));
-    path_result.res = push_gtype_value(&path_result.parse_state, WAGT_BEGIN_ARRAY, NULL);
-
-    for (int index = 0; index < graphid_array_size; index += 2) {
-        // get the vertex entry from the hashtable
-	if (index != 0 && index + 1 != graphid_array_size) { 
-            vertex_entry *ve = get_vertex_entry(ggctx, graphid_array[index]);
-            char *label_name = get_rel_name(get_vertex_entry_label_table_oid(ve));
-            gtype_value *agtv_vertex = gtype_value_build_vertex(get_vertex_entry_id(ve),
-			                                        label_name,
-								get_vertex_entry_properties(ve));
-            path_result.res = push_gtype_value(&path_result.parse_state, WAGT_ELEM, agtv_vertex);
-	}
-
-	if (index + 1 == graphid_array_size)
-		break;
-
-        // get the edge entry from the hashtable 
-        edge_entry *ee = get_edge_entry(ggctx, graphid_array[index+1]);
-        // get the label name from the oid 
-        char *label_name = get_rel_name(get_edge_entry_label_table_oid(ee));
-        // reconstruct the edge 
-        gtype_value *agtv_edge = gtype_value_build_edge(get_edge_entry_id(ee), label_name,
-                                                        get_end_id(ee), get_start_id(ee),
-                                                        get_edge_entry_properties(ee));
-        // push the edge
-        path_result.res = push_gtype_value(&path_result.parse_state, WAGT_ELEM, agtv_edge);
-    }
-
-    // close our gtype array 
-    path_result.res = push_gtype_value(&path_result.parse_state, WAGT_END_ARRAY, NULL);
-
-    path_result.res->type = AGTV_PARTIAL_PATH;
-
-    return path_result.res;
 }
 
 /*
