@@ -1480,15 +1480,15 @@ $$) AS r(result gtype);
 (1 row)
 
 -- should return SQL null
-SELECT age_tonumeric('null'::gtype);
- age_tonumeric 
----------------
+SELECT tonumeric('null'::gtype);
+ tonumeric 
+-----------
  
 (1 row)
 
-SELECT age_tonumeric(null);
- age_tonumeric 
----------------
+SELECT tonumeric(null);
+ tonumeric 
+-----------
  
 (1 row)
 
@@ -1763,7 +1763,7 @@ $$) AS (id gtype);
 SELECT * FROM cypher('expr', $$
     RETURN id(null)
 $$) AS (id gtype);
-ERROR:  function postgraph.age_id(gtype) does not exist
+ERROR:  function postgraph.id(gtype) does not exist
 LINE 2:     RETURN id(null)
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -1771,7 +1771,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 SELECT * FROM cypher('expr', $$
     RETURN id()
 $$) AS (id gtype);
-ERROR:  function postgraph.age_id() does not exist
+ERROR:  function postgraph.id() does not exist
 LINE 2:     RETURN id()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -1791,7 +1791,7 @@ $$) AS (start_id gtype);
 SELECT * FROM cypher('expr', $$
     RETURN start_id(null)
 $$) AS (start_id gtype);
-ERROR:  function postgraph.age_start_id(gtype) does not exist
+ERROR:  function postgraph.start_id(gtype) does not exist
 LINE 2:     RETURN start_id(null)
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -1799,14 +1799,14 @@ HINT:  No function matches the given name and argument types. You might need to 
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN start_id(v)
 $$) AS (start_id gtype);
-ERROR:  function postgraph.age_start_id(vertex) does not exist
+ERROR:  function postgraph.start_id(vertex) does not exist
 LINE 2:     MATCH (v) RETURN start_id(v)
                              ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN start_id()
 $$) AS (start_id gtype);
-ERROR:  function postgraph.age_start_id() does not exist
+ERROR:  function postgraph.start_id() does not exist
 LINE 2:     RETURN start_id()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -1821,7 +1821,7 @@ LINE 1: SELECT * FROM cypher('expr', $$
 SELECT * FROM cypher('expr', $$
     RETURN end_id(null)
 $$) AS (end_id edge);
-ERROR:  function postgraph.age_end_id(gtype) does not exist
+ERROR:  function postgraph.end_id(gtype) does not exist
 LINE 2:     RETURN end_id(null)
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -1829,14 +1829,14 @@ HINT:  No function matches the given name and argument types. You might need to 
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN end_id(v)
 $$) AS (end_id vertex);
-ERROR:  function postgraph.age_end_id(vertex) does not exist
+ERROR:  function postgraph.end_id(vertex) does not exist
 LINE 2:     MATCH (v) RETURN end_id(v)
                              ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN end_id()
 $$) AS (end_id edge);
-ERROR:  function postgraph.age_end_id() does not exist
+ERROR:  function postgraph.end_id() does not exist
 LINE 2:     RETURN end_id()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -1856,7 +1856,7 @@ $$) AS (id gtype, start_id gtype, startNode vertex);
 SELECT * FROM cypher('expr', $$
     RETURN startNode(null)
 $$) AS (startNode vertex);
-ERROR:  function postgraph.age_startnode(gtype, gtype) does not exist
+ERROR:  function postgraph.startnode(gtype, gtype) does not exist
 LINE 2:     RETURN startNode(null)
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -1864,14 +1864,14 @@ HINT:  No function matches the given name and argument types. You might need to 
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN startNode(v)
 $$) AS (startNode vertex);
-ERROR:  function postgraph.age_startnode(gtype, vertex) does not exist
+ERROR:  function postgraph.startnode(gtype, vertex) does not exist
 LINE 2:     MATCH (v) RETURN startNode(v)
                              ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN startNode()
 $$) AS (startNode vertex);
-ERROR:  function postgraph.age_startnode() does not exist
+ERROR:  function postgraph.startnode() does not exist
 LINE 2:     RETURN startNode()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -1891,7 +1891,7 @@ $$) AS (id gtype, end_id gtype, endNode vertex);
 SELECT * FROM cypher('expr', $$
     RETURN endNode(null)
 $$) AS (endNode vertex);
-ERROR:  function postgraph.age_endnode(gtype, gtype) does not exist
+ERROR:  function postgraph.endnode(gtype, gtype) does not exist
 LINE 2:     RETURN endNode(null)
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -1899,14 +1899,14 @@ HINT:  No function matches the given name and argument types. You might need to 
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN endNode(v)
 $$) AS (endNode vertex);
-ERROR:  function postgraph.age_endnode(gtype, vertex) does not exist
+ERROR:  function postgraph.endnode(gtype, vertex) does not exist
 LINE 2:     MATCH (v) RETURN endNode(v)
                              ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN endNode()
 $$) AS (endNode vertex);
-ERROR:  function postgraph.age_endnode() does not exist
+ERROR:  function postgraph.endnode() does not exist
 LINE 2:     RETURN endNode()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -1921,7 +1921,7 @@ LINE 1: SELECT * FROM cypher('expr', $$
 SELECT * FROM cypher('expr', $$
     RETURN type(null)
 $$) AS (type edge);
-ERROR:  function postgraph.age_type(gtype) does not exist
+ERROR:  function postgraph.type(gtype) does not exist
 LINE 2:     RETURN type(null)
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -1935,7 +1935,7 @@ LINE 1: SELECT * FROM cypher('expr', $$
 SELECT * FROM cypher('expr', $$
     RETURN type()
 $$) AS (type vertex);
-ERROR:  function postgraph.age_type() does not exist
+ERROR:  function postgraph.type() does not exist
 LINE 2:     RETURN type()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -1956,41 +1956,41 @@ LINE 1: SELECT * FROM cypher('expr', $$
 SELECT * FROM cypher('expr', $$
     RETURN label(NULL)
 $$) AS (label edge);
-ERROR:  function postgraph.age_label(gtype) does not exist
+ERROR:  function postgraph.label(gtype) does not exist
 LINE 2:     RETURN label(NULL)
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT postgraph.age_label(NULL);
-ERROR:  function postgraph.age_label(unknown) is not unique
-LINE 1: SELECT postgraph.age_label(NULL);
+SELECT postgraph.label(NULL);
+ERROR:  function postgraph.label(unknown) is not unique
+LINE 1: SELECT postgraph.label(NULL);
                ^
 HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
 -- should error
 SELECT * FROM cypher('expr', $$
     MATCH p=()-[]->() RETURN label(p)
 $$) AS (label gtype);
-ERROR:  function postgraph.age_label(traversal) does not exist
+ERROR:  function postgraph.label(traversal) does not exist
 LINE 2:     MATCH p=()-[]->() RETURN label(p)
                                      ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN label(1)
 $$) AS (label gtype);
-ERROR:  function postgraph.age_label(gtype) does not exist
+ERROR:  function postgraph.label(gtype) does not exist
 LINE 2:     RETURN label(1)
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     MATCH (n) RETURN label([n])
 $$) AS (label gtype);
-ERROR:  function postgraph.age_label(gtype) does not exist
+ERROR:  function postgraph.label(gtype) does not exist
 LINE 2:     MATCH (n) RETURN label([n])
                              ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN label({id: 0, label: 'failed', properties: {}})
 $$) AS (label gtype);
-ERROR:  function postgraph.age_label(gtype) does not exist
+ERROR:  function postgraph.label(gtype) does not exist
 LINE 2:     RETURN label({id: 0, label: 'failed', properties: {}})
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -2045,7 +2045,7 @@ ERROR:  size() unsupported argument
 SELECT * FROM cypher('expr', $$
     RETURN size()
 $$) AS (size gtype);
-ERROR:  function postgraph.age_size() does not exist
+ERROR:  function postgraph.size() does not exist
 LINE 2:     RETURN size()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -2091,7 +2091,7 @@ ERROR:  head() argument must resolve to a list
 SELECT * FROM cypher('expr', $$
     RETURN head()
 $$) AS (head gtype);
-ERROR:  function postgraph.age_head() does not exist
+ERROR:  function postgraph.head() does not exist
 LINE 2:     RETURN head()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -2137,7 +2137,7 @@ ERROR:  last() argument must resolve to a list or null
 SELECT * FROM cypher('expr', $$
     RETURN last()
 $$) AS (last gtype);
-ERROR:  function postgraph.age_last() does not exist
+ERROR:  function postgraph.last() does not exist
 LINE 2:     RETURN last()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -2170,7 +2170,7 @@ $$) AS (properties gtype);
 SELECT * FROM cypher('expr', $$
     RETURN properties(null)
 $$) AS (properties gtype);
-ERROR:  function postgraph.age_properties(gtype) does not exist
+ERROR:  function postgraph.properties(gtype) does not exist
 LINE 2:     RETURN properties(null)
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -2178,14 +2178,14 @@ HINT:  No function matches the given name and argument types. You might need to 
 SELECT * FROM cypher('expr', $$
     RETURN properties(1234)
 $$) AS (properties gtype);
-ERROR:  function postgraph.age_properties(gtype) does not exist
+ERROR:  function postgraph.properties(gtype) does not exist
 LINE 2:     RETURN properties(1234)
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN properties()
 $$) AS (properties gtype);
-ERROR:  function postgraph.age_properties() does not exist
+ERROR:  function postgraph.properties() does not exist
 LINE 2:     RETURN properties()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -2234,7 +2234,7 @@ $$) AS (coalesce gtype);
 SELECT * FROM cypher('expr', $$
     RETURN coalesce(null, id(null), null)
 $$) AS (coalesce gtype);
-ERROR:  function postgraph.age_id(gtype) does not exist
+ERROR:  function postgraph.id(gtype) does not exist
 LINE 2:     RETURN coalesce(null, id(null), null)
                                   ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -2311,7 +2311,7 @@ ERROR:  toBoolean() unsupported argument gtype 3
 SELECT * FROM cypher('expr', $$
     RETURN toBoolean()
 $$) AS (toBoolean gtype);
-ERROR:  function postgraph.age_toboolean() does not exist
+ERROR:  function postgraph.toboolean() does not exist
 LINE 2:     RETURN toBoolean()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -2377,7 +2377,7 @@ ERROR:  cannot cast gtype boolean to type float8
 SELECT * FROM cypher('expr', $$
     RETURN toFloat()
 $$) AS (toFloat gtype);
-ERROR:  function postgraph.age_tofloat() does not exist
+ERROR:  function postgraph.tofloat() does not exist
 LINE 2:     RETURN toFloat()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -2439,52 +2439,52 @@ ERROR:  cannot cast gtype boolean to type int8
 SELECT * FROM cypher('expr', $$
     RETURN toInteger()
 $$) AS (toInteger gtype);
-ERROR:  function postgraph.age_tointeger() does not exist
+ERROR:  function postgraph.tointeger() does not exist
 LINE 2:     RETURN toInteger()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
 -- toString()
 --
-SELECT * FROM age_toString(gtype_in('3'));
- age_tostring 
---------------
+SELECT * FROM toString(gtype_in('3'));
+ tostring 
+----------
  "3"
 (1 row)
 
-SELECT * FROM age_toString(gtype_in('3.14'));
- age_tostring 
---------------
+SELECT * FROM toString(gtype_in('3.14'));
+ tostring 
+----------
  "3.14"
 (1 row)
 
-SELECT * FROM age_toString(gtype_in('3.14::float'));
- age_tostring 
---------------
+SELECT * FROM toString(gtype_in('3.14::float'));
+ tostring 
+----------
  "3.14"
 (1 row)
 
-SELECT * FROM age_toString(gtype_in('3.14::numeric'));
- age_tostring 
---------------
+SELECT * FROM toString(gtype_in('3.14::numeric'));
+ tostring 
+----------
  "3.14"
 (1 row)
 
-SELECT * FROM age_toString(gtype_in('true'));
- age_tostring 
---------------
+SELECT * FROM toString(gtype_in('true'));
+ tostring 
+----------
  "true"
 (1 row)
 
-SELECT * FROM age_toString(gtype_in('false'));
- age_tostring 
---------------
+SELECT * FROM toString(gtype_in('false'));
+ tostring 
+----------
  "false"
 (1 row)
 
-SELECT * FROM age_toString(gtype_in('"a string"'));
- age_tostring 
---------------
+SELECT * FROM toString(gtype_in('"a string"'));
+  tostring  
+------------
  "a string"
 (1 row)
 
@@ -2495,26 +2495,26 @@ SELECT * FROM cypher('expr', $$ RETURN toString(3.14::numeric) $$) AS (results g
 (1 row)
 
 -- should return null
-SELECT * FROM age_toString(NULL);
- age_tostring 
---------------
+SELECT * FROM toString(NULL);
+ tostring 
+----------
  
 (1 row)
 
-SELECT * FROM age_toString(gtype_in(null));
- age_tostring 
---------------
+SELECT * FROM toString(gtype_in(null));
+ tostring 
+----------
  
 (1 row)
 
 -- should fail
-SELECT * FROM age_toString();
-ERROR:  function age_tostring() does not exist
-LINE 1: SELECT * FROM age_toString();
+SELECT * FROM toString();
+ERROR:  function tostring() does not exist
+LINE 1: SELECT * FROM toString();
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$ RETURN toString() $$) AS (results gtype);
-ERROR:  function postgraph.age_tostring() does not exist
+ERROR:  function postgraph.tostring() does not exist
 LINE 1: SELECT * FROM cypher('expr', $$ RETURN toString() $$) AS (re...
                                                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -2529,8 +2529,8 @@ $$) AS (results gtype);
  "this is a string"
 (1 row)
 
-SELECT * FROM age_reverse('"gnirts a si siht"'::gtype);
-    age_reverse     
+SELECT * FROM reverse('"gnirts a si siht"'::gtype);
+      reverse       
 --------------------
  "this is a string"
 (1 row)
@@ -2544,17 +2544,17 @@ $$) AS (results gtype);
  
 (1 row)
 
-SELECT * FROM age_reverse(null);
- age_reverse 
--------------
+SELECT * FROM reverse(null);
+ reverse 
+---------
  
 (1 row)
 
 -- should return error
-SELECT * FROM age_reverse([4923, 'abc', 521, NULL, 487]);
+SELECT * FROM reverse([4923, 'abc', 521, NULL, 487]);
 ERROR:  syntax error at or near "["
-LINE 1: SELECT * FROM age_reverse([4923, 'abc', 521, NULL, 487]);
-                                  ^
+LINE 1: SELECT * FROM reverse([4923, 'abc', 521, NULL, 487]);
+                              ^
 -- Should return the reversed list
 SELECT * FROM cypher('expr', $$
     RETURN reverse([4923, 'abc', 521, NULL, 487])
@@ -2632,30 +2632,30 @@ SELECT * FROM cypher('expr', $$
     RETURN reverse(true)
 $$) AS (results gtype);
 ERROR:  reverse() unsupported argument gtype 5
-SELECT * FROM age_reverse(true);
-ERROR:  function age_reverse(boolean) does not exist
-LINE 1: SELECT * FROM age_reverse(true);
+SELECT * FROM reverse(true);
+ERROR:  function reverse(boolean) does not exist
+LINE 1: SELECT * FROM reverse(true);
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN reverse(3.14)
 $$) AS (results gtype);
 ERROR:  reverse() unsupported argument gtype 4
-SELECT * FROM age_reverse(3.14);
-ERROR:  function age_reverse(numeric) does not exist
-LINE 1: SELECT * FROM age_reverse(3.14);
+SELECT * FROM reverse(3.14);
+ERROR:  function reverse(numeric) does not exist
+LINE 1: SELECT * FROM reverse(3.14);
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN reverse()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_reverse() does not exist
+ERROR:  function postgraph.reverse() does not exist
 LINE 2:     RETURN reverse()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_reverse();
-ERROR:  function age_reverse() does not exist
-LINE 1: SELECT * FROM age_reverse();
+SELECT * FROM reverse();
+ERROR:  function reverse() does not exist
+LINE 1: SELECT * FROM reverse();
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
@@ -2702,15 +2702,15 @@ $$) AS (toLower gtype);
  
 (1 row)
 
-SELECT * FROM age_toupper(null);
- age_toupper 
--------------
+SELECT * FROM toupper(null);
+ toupper 
+---------
  
 (1 row)
 
-SELECT * FROM age_tolower(null);
- age_tolower 
--------------
+SELECT * FROM tolower(null);
+ tolower 
+---------
  
 (1 row)
 
@@ -2722,7 +2722,7 @@ ERROR:  toUpper() unsupported argument gtype 5
 SELECT * FROM cypher('expr', $$
     RETURN toUpper()
 $$) AS (toUpper gtype);
-ERROR:  function postgraph.age_toupper() does not exist
+ERROR:  function postgraph.toupper() does not exist
 LINE 2:     RETURN toUpper()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -2733,18 +2733,18 @@ ERROR:  toLower() unsupported argument gtype 5
 SELECT * FROM cypher('expr', $$
     RETURN toLower()
 $$) AS (toLower gtype);
-ERROR:  function postgraph.age_tolower() does not exist
+ERROR:  function postgraph.tolower() does not exist
 LINE 2:     RETURN toLower()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_toupper();
-ERROR:  function age_toupper() does not exist
-LINE 1: SELECT * FROM age_toupper();
+SELECT * FROM toupper();
+ERROR:  function toupper() does not exist
+LINE 1: SELECT * FROM toupper();
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_tolower();
-ERROR:  function age_tolower() does not exist
-LINE 1: SELECT * FROM age_tolower();
+SELECT * FROM tolower();
+ERROR:  function tolower() does not exist
+LINE 1: SELECT * FROM tolower();
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
@@ -2774,24 +2774,23 @@ $$) AS (results gtype);
  "string"
 (1 row)
 
-SELECT * FROM age_ltrim('"  string   "'::gtype);
-  age_ltrim  
+SELECT * FROM ltrim('"  string   "'::gtype);
+    ltrim    
 -------------
  "string   "
 (1 row)
 
-SELECT * FROM age_rtrim('"  string   "'::gtype);
- age_rtrim  
+SELECT * FROM rtrim('"  string   "'::gtype);
+   rtrim    
 ------------
  "  string"
 (1 row)
 
-SELECT * FROM age_trim('"  string   "'::gtype);
- age_trim 
-----------
- "string"
-(1 row)
-
+SELECT * FROM trim('"  string   "'::gtype);
+ERROR:  function pg_catalog.btrim(gtype) does not exist
+LINE 1: SELECT * FROM trim('"  string   "'::gtype);
+                      ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN lTrim(null)
@@ -2817,21 +2816,21 @@ $$) AS (results gtype);
  
 (1 row)
 
-SELECT * FROM age_ltrim(null);
- age_ltrim 
------------
+SELECT * FROM ltrim(null);
+ ltrim 
+-------
  
 (1 row)
 
-SELECT * FROM age_rtrim(null);
- age_rtrim 
------------
+SELECT * FROM rtrim(null);
+ rtrim 
+-------
  
 (1 row)
 
-SELECT * FROM age_trim(null);
- age_trim 
-----------
+SELECT * FROM trim(null);
+ btrim 
+-------
  
 (1 row)
 
@@ -2851,39 +2850,38 @@ ERROR:  Trim() unsupported argument gtype 5
 SELECT * FROM cypher('expr', $$
     RETURN lTrim()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_ltrim() does not exist
+ERROR:  function postgraph.ltrim() does not exist
 LINE 2:     RETURN lTrim()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN rTrim()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_rtrim() does not exist
+ERROR:  function postgraph.rtrim() does not exist
 LINE 2:     RETURN rTrim()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN trim()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_trim() does not exist
+ERROR:  function postgraph.trim() does not exist
 LINE 2:     RETURN trim()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_ltrim();
-ERROR:  function age_ltrim() does not exist
-LINE 1: SELECT * FROM age_ltrim();
+SELECT * FROM ltrim();
+ERROR:  function ltrim() does not exist
+LINE 1: SELECT * FROM ltrim();
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_rtrim();
-ERROR:  function age_rtrim() does not exist
-LINE 1: SELECT * FROM age_rtrim();
+SELECT * FROM rtrim();
+ERROR:  function rtrim() does not exist
+LINE 1: SELECT * FROM rtrim();
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_trim();
-ERROR:  function age_trim() does not exist
-LINE 1: SELECT * FROM age_trim();
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+SELECT * FROM trim();
+ERROR:  syntax error at or near ")"
+LINE 1: SELECT * FROM trim();
+                           ^
 --
 -- left(), right(), & substring()
 -- left()
@@ -2928,18 +2926,17 @@ $$) AS (results gtype);
  
 (1 row)
 
-SELECT * FROM age_left(null, '1'::gtype);
- age_left 
-----------
+SELECT * FROM left(null, '1'::gtype);
+ left 
+------
  
 (1 row)
 
-SELECT * FROM age_left(null, null);
- age_left 
-----------
- 
-(1 row)
-
+SELECT * FROM left(null, null);
+ERROR:  function left(unknown, unknown) is not unique
+LINE 1: SELECT * FROM left(null, null);
+                      ^
+HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN left("123456789", null)
@@ -2960,25 +2957,24 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN left()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_left() does not exist
+ERROR:  function postgraph.left() does not exist
 LINE 2:     RETURN left()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_left('123456789', null);
- age_left 
-----------
- 
-(1 row)
-
-SELECT * FROM age_left('"123456789"'::gtype, '-1'::gtype);
-  age_left  
+SELECT * FROM left('123456789', null);
+ERROR:  function left(unknown, unknown) is not unique
+LINE 1: SELECT * FROM left('123456789', null);
+                      ^
+HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
+SELECT * FROM left('"123456789"'::gtype, '-1'::gtype);
+    left    
 ------------
  "12345678"
 (1 row)
 
-SELECT * FROM age_left();
-ERROR:  function age_left() does not exist
-LINE 1: SELECT * FROM age_left();
+SELECT * FROM left();
+ERROR:  function left() does not exist
+LINE 1: SELECT * FROM left();
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --right()
@@ -3023,18 +3019,17 @@ $$) AS (results gtype);
  
 (1 row)
 
-SELECT * FROM age_right(null, '1'::gtype);
- age_right 
------------
+SELECT * FROM right(null, '1'::gtype);
+ right 
+-------
  
 (1 row)
 
-SELECT * FROM age_right(null, null);
- age_right 
------------
- 
-(1 row)
-
+SELECT * FROM right(null, null);
+ERROR:  function right(unknown, unknown) is not unique
+LINE 1: SELECT * FROM right(null, null);
+                      ^
+HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN right("123456789", null)
@@ -3055,25 +3050,24 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN right()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_right() does not exist
+ERROR:  function postgraph.right() does not exist
 LINE 2:     RETURN right()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_right('123456789', null);
- age_right 
------------
- 
-(1 row)
-
-SELECT * FROM age_right('"123456789"'::gtype, '-1'::gtype);
- age_right  
+SELECT * FROM right('123456789', null);
+ERROR:  function right(unknown, unknown) is not unique
+LINE 1: SELECT * FROM right('123456789', null);
+                      ^
+HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
+SELECT * FROM right('"123456789"'::gtype, '-1'::gtype);
+   right    
 ------------
  "23456789"
 (1 row)
 
-SELECT * FROM age_right();
-ERROR:  function age_right() does not exist
-LINE 1: SELECT * FROM age_right();
+SELECT * FROM right();
+ERROR:  function right() does not exist
+LINE 1: SELECT * FROM right();
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- substring()
@@ -3150,7 +3144,7 @@ ERROR:  substring() negative values are not supported for offset or length
 SELECT * FROM cypher('expr', $$
     RETURN substring("123456789")
 $$) AS (results gtype);
-ERROR:  function postgraph.age_substring(gtype) does not exist
+ERROR:  function postgraph.substring(gtype) does not exist
 LINE 2:     RETURN substring("123456789")
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -3230,21 +3224,21 @@ $$) AS (results gtype);
  
 (1 row)
 
-SELECT * FROM age_split(null, null);
- age_split 
------------
+SELECT * FROM split(null, null);
+ split 
+-------
  
 (1 row)
 
-SELECT * FROM age_split('"a,b,c,d,e,f"'::gtype, null);
- age_split 
------------
+SELECT * FROM split('"a,b,c,d,e,f"'::gtype, null);
+ split 
+-------
  
 (1 row)
 
-SELECT * FROM age_split(null, '","'::gtype);
- age_split 
------------
+SELECT * FROM split(null, '","'::gtype);
+ split 
+-------
  
 (1 row)
 
@@ -3260,29 +3254,29 @@ ERROR:  split() unsupported argument gtype 3
 SELECT * FROM cypher('expr', $$
     RETURN split("a,b,c,d,e,f")
 $$) AS (results gtype);
-ERROR:  function postgraph.age_split(gtype) does not exist
+ERROR:  function postgraph.split(gtype) does not exist
 LINE 2:     RETURN split("a,b,c,d,e,f")
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN split()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_split() does not exist
+ERROR:  function postgraph.split() does not exist
 LINE 2:     RETURN split()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_split('123456789'::gtype, '","'::gtype);
+SELECT * FROM split('123456789'::gtype, '","'::gtype);
 ERROR:  split() unsupported argument gtype 3
-SELECT * FROM age_split('"a,b,c,d,e,f"'::gtype, '-1'::gtype);
+SELECT * FROM split('"a,b,c,d,e,f"'::gtype, '-1'::gtype);
 ERROR:  split() unsupported argument gtype 3
-SELECT * FROM age_split('"a,b,c,d,e,f"'::gtype);
-ERROR:  function age_split(gtype) does not exist
-LINE 1: SELECT * FROM age_split('"a,b,c,d,e,f"'::gtype);
+SELECT * FROM split('"a,b,c,d,e,f"'::gtype);
+ERROR:  function split(gtype) does not exist
+LINE 1: SELECT * FROM split('"a,b,c,d,e,f"'::gtype);
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_split();
-ERROR:  function age_split() does not exist
-LINE 1: SELECT * FROM age_split();
+SELECT * FROM split();
+ERROR:  function split() does not exist
+LINE 1: SELECT * FROM split();
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
@@ -3381,21 +3375,21 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN replace()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_replace() does not exist
+ERROR:  function postgraph.replace() does not exist
 LINE 2:     RETURN replace()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN replace("Hello")
 $$) AS (results gtype);
-ERROR:  function postgraph.age_replace(gtype) does not exist
+ERROR:  function postgraph.replace(gtype) does not exist
 LINE 2:     RETURN replace("Hello")
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN replace("Hello", null)
 $$) AS (results gtype);
-ERROR:  function postgraph.age_replace(gtype, gtype) does not exist
+ERROR:  function postgraph.replace(gtype, gtype) does not exist
 LINE 2:     RETURN replace("Hello", null)
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -3475,30 +3469,26 @@ $$) AS (results gtype);
  
 (1 row)
 
-SELECT * FROM age_sin(null);
- age_sin 
----------
- 
-(1 row)
-
-SELECT * FROM age_cos(null);
- age_cos 
----------
- 
-(1 row)
-
-SELECT * FROM age_tan(null);
- age_tan 
----------
- 
-(1 row)
-
-SELECT * FROM age_cot(null);
- age_cot 
----------
- 
-(1 row)
-
+SELECT * FROM sin(null);
+ERROR:  function sin(unknown) is not unique
+LINE 1: SELECT * FROM sin(null);
+                      ^
+HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
+SELECT * FROM cos(null);
+ERROR:  function cos(unknown) is not unique
+LINE 1: SELECT * FROM cos(null);
+                      ^
+HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
+SELECT * FROM tan(null);
+ERROR:  function tan(unknown) is not unique
+LINE 1: SELECT * FROM tan(null);
+                      ^
+HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
+SELECT * FROM cot(null);
+ERROR:  function cot(unknown) is not unique
+LINE 1: SELECT * FROM cot(null);
+                      ^
+HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN sin("0")
@@ -3519,73 +3509,73 @@ ERROR:  cot() unsupported argument gtype 1
 SELECT * FROM cypher('expr', $$
     RETURN sin()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_sin() does not exist
+ERROR:  function postgraph.sin() does not exist
 LINE 2:     RETURN sin()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN cos()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_cos() does not exist
+ERROR:  function postgraph.cos() does not exist
 LINE 2:     RETURN cos()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN tan()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_tan() does not exist
+ERROR:  function postgraph.tan() does not exist
 LINE 2:     RETURN tan()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN cot()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_cot() does not exist
+ERROR:  function postgraph.cot() does not exist
 LINE 2:     RETURN cot()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_sin('0');
- age_sin 
----------
+SELECT * FROM sin('0'::gtype);
+ sin 
+-----
  0.0
 (1 row)
 
-SELECT * FROM age_cos('0');
- age_cos 
----------
+SELECT * FROM cos('0'::gtype);
+ cos 
+-----
  1.0
 (1 row)
 
-SELECT * FROM age_tan('0');
- age_tan 
----------
+SELECT * FROM tan('0'::gtype);
+ tan 
+-----
  0.0
 (1 row)
 
-SELECT * FROM age_cot('0');
- age_cot  
+SELECT * FROM cot('0'::gtype);
+   cot    
 ----------
  Infinity
 (1 row)
 
-SELECT * FROM age_sin();
-ERROR:  function age_sin() does not exist
-LINE 1: SELECT * FROM age_sin();
+SELECT * FROM sin();
+ERROR:  function sin() does not exist
+LINE 1: SELECT * FROM sin();
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_cos();
-ERROR:  function age_cos() does not exist
-LINE 1: SELECT * FROM age_cos();
+SELECT * FROM cos();
+ERROR:  function cos() does not exist
+LINE 1: SELECT * FROM cos();
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_tan();
-ERROR:  function age_tan() does not exist
-LINE 1: SELECT * FROM age_tan();
+SELECT * FROM tan();
+ERROR:  function tan() does not exist
+LINE 1: SELECT * FROM tan();
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_cot();
-ERROR:  function age_cot() does not exist
-LINE 1: SELECT * FROM age_cot();
+SELECT * FROM cot();
+ERROR:  function cot() does not exist
+LINE 1: SELECT * FROM cot();
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
@@ -3623,30 +3613,14 @@ $$) AS (results gtype);
  3.14159265358979
 (1 row)
 
-SELECT * FROM asin(1), age_asin('1'::gtype);
-      asin       |    age_asin     
------------------+-----------------
- 1.5707963267949 | 1.5707963267949
-(1 row)
-
-SELECT * FROM acos(0), age_acos('0'::gtype);
-      acos       |    age_acos     
------------------+-----------------
- 1.5707963267949 | 1.5707963267949
-(1 row)
-
-SELECT * FROM atan(1), age_atan('1'::gtype);
-       atan        |     age_atan      
--------------------+-------------------
- 0.785398163397448 | 0.785398163397448
-(1 row)
-
-SELECT * FROM atan2(1, 1), age_atan2('1'::gtype, '1'::gtype);
-       atan2       |     age_atan2     
--------------------+-------------------
- 0.785398163397448 | 0.785398163397448
-(1 row)
-
+SELECT * FROM asin(1), asin('1'::gtype);
+ERROR:  table name "asin" specified more than once
+SELECT * FROM acos(0), acos('0'::gtype);
+ERROR:  table name "acos" specified more than once
+SELECT * FROM atan(1), atan('1'::gtype);
+ERROR:  table name "atan" specified more than once
+SELECT * FROM atan2(1, 1), atan2('1'::gtype, '1'::gtype);
+ERROR:  table name "atan2" specified more than once
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN asin(1.1)
@@ -3712,39 +3686,35 @@ $$) AS (results gtype);
  
 (1 row)
 
-SELECT * FROM age_asin(null);
- age_asin 
-----------
+SELECT * FROM asin(null);
+ERROR:  function asin(unknown) is not unique
+LINE 1: SELECT * FROM asin(null);
+                      ^
+HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
+SELECT * FROM acos(null);
+ERROR:  function acos(unknown) is not unique
+LINE 1: SELECT * FROM acos(null);
+                      ^
+HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
+SELECT * FROM atan(null);
+ERROR:  function atan(unknown) is not unique
+LINE 1: SELECT * FROM atan(null);
+                      ^
+HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
+SELECT * FROM atan2(null, null);
+ERROR:  function atan2(unknown, unknown) is not unique
+LINE 1: SELECT * FROM atan2(null, null);
+                      ^
+HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
+SELECT * FROM atan2('1'::gtype, null);
+ atan2 
+-------
  
 (1 row)
 
-SELECT * FROM age_acos(null);
- age_acos 
-----------
- 
-(1 row)
-
-SELECT * FROM age_atan(null);
- age_atan 
-----------
- 
-(1 row)
-
-SELECT * FROM age_atan2(null, null);
- age_atan2 
------------
- 
-(1 row)
-
-SELECT * FROM age_atan2('1'::gtype, null);
- age_atan2 
------------
- 
-(1 row)
-
-SELECT * FROM age_atan2(null, '1'::gtype);
- age_atan2 
------------
+SELECT * FROM atan2(null, '1'::gtype);
+ atan2 
+-------
  
 (1 row)
 
@@ -3772,83 +3742,83 @@ ERROR:  atan2() unsupported argument gtype 1
 SELECT * FROM cypher('expr', $$
     RETURN asin()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_asin() does not exist
+ERROR:  function postgraph.asin() does not exist
 LINE 2:     RETURN asin()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN acos()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_acos() does not exist
+ERROR:  function postgraph.acos() does not exist
 LINE 2:     RETURN acos()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN atan()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_atan() does not exist
+ERROR:  function postgraph.atan() does not exist
 LINE 2:     RETURN atan()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN atan2()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_atan2() does not exist
+ERROR:  function postgraph.atan2() does not exist
 LINE 2:     RETURN atan2()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN atan2(null)
 $$) AS (results gtype);
-ERROR:  function postgraph.age_atan2(gtype) does not exist
+ERROR:  function postgraph.atan2(gtype) does not exist
 LINE 2:     RETURN atan2(null)
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_asin('0');
- age_asin 
-----------
+SELECT * FROM asin('0'::gtype);
+ asin 
+------
  0.0
 (1 row)
 
-SELECT * FROM age_acos('0');
-    age_acos     
+SELECT * FROM acos('0'::gtype);
+      acos       
 -----------------
  1.5707963267949
 (1 row)
 
-SELECT * FROM age_atan('0');
- age_atan 
-----------
+SELECT * FROM atan('0'::gtype);
+ atan 
+------
  0.0
 (1 row)
 
-SELECT * FROM age_atan2('"0"'::gtype, '1'::gtype);
+SELECT * FROM atan2('"0"'::gtype, '1'::gtype);
 ERROR:  atan2() unsupported argument gtype 1
-SELECT * FROM age_atan2('1'::gtype, '"0"'::gtype);
+SELECT * FROM atan2('1'::gtype, '"0"'::gtype);
 ERROR:  atan2() unsupported argument gtype 1
-SELECT * FROM age_asin();
-ERROR:  function age_asin() does not exist
-LINE 1: SELECT * FROM age_asin();
+SELECT * FROM asin();
+ERROR:  function asin() does not exist
+LINE 1: SELECT * FROM asin();
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_acos();
-ERROR:  function age_acos() does not exist
-LINE 1: SELECT * FROM age_acos();
+SELECT * FROM acos();
+ERROR:  function acos() does not exist
+LINE 1: SELECT * FROM acos();
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_atan();
-ERROR:  function age_atan() does not exist
-LINE 1: SELECT * FROM age_atan();
+SELECT * FROM atan();
+ERROR:  function atan() does not exist
+LINE 1: SELECT * FROM atan();
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_atan2();
-ERROR:  function age_atan2() does not exist
-LINE 1: SELECT * FROM age_atan2();
+SELECT * FROM atan2();
+ERROR:  function atan2() does not exist
+LINE 1: SELECT * FROM atan2();
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM age_atan2('1'::gtype);
-ERROR:  function age_atan2(gtype) does not exist
-LINE 1: SELECT * FROM age_atan2('1'::gtype);
+SELECT * FROM atan2('1'::gtype);
+ERROR:  function atan2(gtype) does not exist
+LINE 1: SELECT * FROM atan2('1'::gtype);
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
@@ -3906,14 +3876,14 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN pi(null)
 $$) AS (results gtype);
-ERROR:  function postgraph.age_pi(gtype) does not exist
+ERROR:  function postgraph.pi(gtype) does not exist
 LINE 2:     RETURN pi(null)
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN pi(1)
 $$) AS (results gtype);
-ERROR:  function postgraph.age_pi(gtype) does not exist
+ERROR:  function postgraph.pi(gtype) does not exist
 LINE 2:     RETURN pi(1)
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -4005,14 +3975,14 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN radians()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_radians() does not exist
+ERROR:  function postgraph.radians() does not exist
 LINE 2:     RETURN radians()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN degrees()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_degrees() does not exist
+ERROR:  function postgraph.degrees() does not exist
 LINE 2:     RETURN degrees()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -4296,35 +4266,35 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN abs()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_abs() does not exist
+ERROR:  function postgraph.abs() does not exist
 LINE 2:     RETURN abs()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN ceil()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_ceil() does not exist
+ERROR:  function postgraph.ceil() does not exist
 LINE 2:     RETURN ceil()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN floor()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_floor() does not exist
+ERROR:  function postgraph.floor() does not exist
 LINE 2:     RETURN floor()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN round()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_round() does not exist
+ERROR:  function postgraph.round() does not exist
 LINE 2:     RETURN round()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN sign()
 $$) AS (results gtype);
-ERROR:  function postgraph.age_sign() does not exist
+ERROR:  function postgraph.sign() does not exist
 LINE 2:     RETURN sign()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -4428,14 +4398,14 @@ ERROR:  cannot take logarithm of a negative number
 SELECT * from cypher('expr', $$
     RETURN log()
 $$) as (result gtype);
-ERROR:  function postgraph.age_log() does not exist
+ERROR:  function postgraph.log() does not exist
 LINE 2:     RETURN log()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * from cypher('expr', $$
     RETURN log10()
 $$) as (result gtype);
-ERROR:  function postgraph.age_log10() does not exist
+ERROR:  function postgraph.log10() does not exist
 LINE 2:     RETURN log10()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -4490,7 +4460,7 @@ $$) as (result gtype);
 SELECT * from cypher('expr', $$
     RETURN exp()
 $$) as (result gtype);
-ERROR:  function postgraph.age_exp() does not exist
+ERROR:  function postgraph.exp() does not exist
 LINE 2:     RETURN exp()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -4542,7 +4512,7 @@ $$) as (result gtype);
 SELECT * from cypher('expr', $$
     RETURN sqrt()
 $$) as (result gtype);
-ERROR:  function postgraph.age_sqrt() does not exist
+ERROR:  function postgraph.sqrt() does not exist
 LINE 2:     RETURN sqrt()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -4667,17 +4637,17 @@ SELECT * FROM cypher('UCSC', $$ RETURN count(NULL) $$) AS (count gtype);
 
 -- should fail
 SELECT * FROM cypher('UCSC', $$ RETURN avg() $$) AS (avg gtype);
-ERROR:  function postgraph.age_avg() does not exist
+ERROR:  function postgraph.avg() does not exist
 LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN avg() $$) AS (avg gty...
                                                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('UCSC', $$ RETURN sum() $$) AS (sum gtype);
-ERROR:  function postgraph.age_sum() does not exist
+ERROR:  function postgraph.sum() does not exist
 LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN sum() $$) AS (sum gty...
                                                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('UCSC', $$ RETURN count() $$) AS (count gtype);
-ERROR:  postgraph.age_count(*) must be used to call a parameterless aggregate function
+ERROR:  postgraph.count(*) must be used to call a parameterless aggregate function
 LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN count() $$) AS (count...
                                                ^
 --
@@ -4714,28 +4684,28 @@ AS (min gtype, max gtype, count gtype, count_star gtype);
 
 CREATE TABLE min_max_tbl (id gtype);
 insert into min_max_tbl VALUES ('16'::gtype), ('17188'::gtype), ('1000'::gtype), ('869'::gtype);
-SELECT age_min(id), age_max(id) FROM min_max_tbl;
- age_min | age_max 
----------+---------
- 16      | 17188
+SELECT min(id), max(id) FROM min_max_tbl;
+ min |  max  
+-----+-------
+ 16  | 17188
 (1 row)
 
-SELECT age_min(age_tofloat(id)), age_max(age_tofloat(id)) FROM min_max_tbl;
- age_min | age_max 
----------+---------
- 16.0    | 17188.0
+SELECT min(tofloat(id)), max(tofloat(id)) FROM min_max_tbl;
+ min  |   max   
+------+---------
+ 16.0 | 17188.0
 (1 row)
 
-SELECT age_min(age_tonumeric(id)), age_max(age_tonumeric(id)) FROM min_max_tbl;
-   age_min   |    age_max     
+SELECT min(tonumeric(id)), max(tonumeric(id)) FROM min_max_tbl;
+     min     |      max       
 -------------+----------------
  16::numeric | 17188::numeric
 (1 row)
 
-SELECT age_min(age_tostring(id)), age_max(age_tostring(id)) FROM min_max_tbl;
- age_min | age_max 
----------+---------
- "1000"  | "869"
+SELECT min(tostring(id)), max(tostring(id)) FROM min_max_tbl;
+  min   |  max  
+--------+-------
+ "1000" | "869"
 (1 row)
 
 DROP TABLE min_max_tbl;
@@ -4752,49 +4722,49 @@ SELECT * FROM cypher('UCSC', $$ RETURN max(NULL) $$) AS (max gtype);
  
 (1 row)
 
-SELECT age_min(NULL);
- age_min 
----------
+SELECT min(NULL);
+ min 
+-----
  
 (1 row)
 
-SELECT age_min(gtype_in('null'));
- age_min 
----------
+SELECT min(gtype_in('null'));
+ min 
+-----
  
 (1 row)
 
-SELECT age_max(NULL);
- age_max 
----------
+SELECT max(NULL);
+ max 
+-----
  
 (1 row)
 
-SELECT age_max(gtype_in('null'));
- age_max 
----------
+SELECT max(gtype_in('null'));
+ max 
+-----
  
 (1 row)
 
 -- should fail
 SELECT * FROM cypher('UCSC', $$ RETURN min() $$) AS (min gtype);
-ERROR:  function postgraph.age_min() does not exist
+ERROR:  function postgraph.min() does not exist
 LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN min() $$) AS (min gty...
                                                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('UCSC', $$ RETURN max() $$) AS (max gtype);
-ERROR:  function postgraph.age_max() does not exist
+ERROR:  function postgraph.max() does not exist
 LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN max() $$) AS (max gty...
                                                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT age_min();
-ERROR:  function age_min() does not exist
-LINE 1: SELECT age_min();
+SELECT min();
+ERROR:  function min() does not exist
+LINE 1: SELECT min();
                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT age_min();
-ERROR:  function age_min() does not exist
-LINE 1: SELECT age_min();
+SELECT min();
+ERROR:  function min() does not exist
+LINE 1: SELECT min();
                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
@@ -4822,12 +4792,12 @@ SELECT * FROM cypher('UCSC', $$ RETURN stDevP(NULL) $$) AS (stDevP gtype);
 
 -- should fail
 SELECT * FROM cypher('UCSC', $$ RETURN stDev() $$) AS (stDev gtype);
-ERROR:  function postgraph.age_stdev() does not exist
+ERROR:  function postgraph.stdev() does not exist
 LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN stDev() $$) AS (stDev...
                                                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('UCSC', $$ RETURN stDevP() $$) AS (stDevP gtype);
-ERROR:  function postgraph.age_stdevp() does not exist
+ERROR:  function postgraph.stdevp() does not exist
 LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN stDevP() $$) AS (stDe...
                                                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -4918,7 +4888,7 @@ SELECT * FROM cypher('UCSC', $$ MATCH (u) WHERE u.name =~ "doesn't exist" RETURN
 
 -- should fail
 SELECT * FROM cypher('UCSC', $$ RETURN collect() $$) AS (collect gtype);
-ERROR:  function postgraph.age_collect() does not exist
+ERROR:  function postgraph.collect() does not exist
 LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN collect() $$) AS (col...
                                                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -5385,7 +5355,7 @@ ERROR:  keys() argument must be an object
 SELECT * from cypher('keys', $$RETURN keys("string")$$) as (keys gtype);
 ERROR:  keys() argument must be an object
 SELECT * from cypher('keys', $$MATCH u=()-[]-() RETURN keys(u)$$) as (keys gtype);
-ERROR:  function postgraph.age_keys(traversal) does not exist
+ERROR:  function postgraph.keys(traversal) does not exist
 LINE 1: ...T * from cypher('keys', $$MATCH u=()-[]-() RETURN keys(u)$$)...
                                                              ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -5411,45 +5381,45 @@ SELECT * from cypher('list', $$CREATE p=({name:'rachael'})-[:knows]->({name:'mon
 -- nodes()
 -- XXX: Not Working
 SELECT * from cypher('list', $$MATCH p=()-[]->() RETURN nodes(p)$$) as (nodes gtype);
-ERROR:  function postgraph.age_nodes(traversal) does not exist
+ERROR:  function postgraph.nodes(traversal) does not exist
 LINE 1: ... * from cypher('list', $$MATCH p=()-[]->() RETURN nodes(p)$$...
                                                              ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->() RETURN nodes(p)$$) as (nodes gtype);
-ERROR:  function postgraph.age_nodes(traversal) does not exist
+ERROR:  function postgraph.nodes(traversal) does not exist
 LINE 1: ... cypher('list', $$MATCH p=()-[]->()-[]->() RETURN nodes(p)$$...
                                                              ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should return nothing
 SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->()-[]->() RETURN nodes(p)$$) as (nodes gtype);
-ERROR:  function postgraph.age_nodes(traversal) does not exist
+ERROR:  function postgraph.nodes(traversal) does not exist
 LINE 1: ...('list', $$MATCH p=()-[]->()-[]->()-[]->() RETURN nodes(p)$$...
                                                              ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should return SQL NULL
 SELECT * from cypher('list', $$RETURN nodes(NULL)$$) as (nodes gtype);
-ERROR:  function postgraph.age_nodes(gtype) does not exist
+ERROR:  function postgraph.nodes(gtype) does not exist
 LINE 1: SELECT * from cypher('list', $$RETURN nodes(NULL)$$) as (nod...
                                               ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should return an error
 SELECT * from cypher('list', $$MATCH (u) RETURN nodes([1,2,3])$$) as (nodes gtype);
-ERROR:  function postgraph.age_nodes(gtype) does not exist
+ERROR:  function postgraph.nodes(gtype) does not exist
 LINE 1: SELECT * from cypher('list', $$MATCH (u) RETURN nodes([1,2,3...
                                                         ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * from cypher('list', $$MATCH (u) RETURN nodes("string")$$) as (nodes gtype);
-ERROR:  function postgraph.age_nodes(gtype) does not exist
+ERROR:  function postgraph.nodes(gtype) does not exist
 LINE 1: SELECT * from cypher('list', $$MATCH (u) RETURN nodes("strin...
                                                         ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * from cypher('list', $$MATCH (u) RETURN nodes(u)$$) as (nodes gtype);
-ERROR:  function postgraph.age_nodes(vertex) does not exist
+ERROR:  function postgraph.nodes(vertex) does not exist
 LINE 1: SELECT * from cypher('list', $$MATCH (u) RETURN nodes(u)$$) ...
                                                         ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * from cypher('list', $$MATCH (u)-[]->() RETURN nodes(u)$$) as (nodes gtype);
-ERROR:  function postgraph.age_nodes(vertex) does not exist
+ERROR:  function postgraph.nodes(vertex) does not exist
 LINE 1: ...T * from cypher('list', $$MATCH (u)-[]->() RETURN nodes(u)$$...
                                                              ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -5554,19 +5524,19 @@ SELECT * from cypher('list', $$CREATE (u:Cars {name: "MR2"}) RETURN u$$) as (Ver
 (1 row)
 
 SELECT * from cypher('list', $$MATCH (u) RETURN labels(u), u$$) as (Labels gtype, Vertices vertex);
-ERROR:  function postgraph.age_labels(vertex) does not exist
+ERROR:  function postgraph.labels(vertex) does not exist
 LINE 1: SELECT * from cypher('list', $$MATCH (u) RETURN labels(u), u...
                                                         ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should return SQL NULL
 SELECT * from cypher('list', $$RETURN labels(NULL)$$) as (Labels gtype);
-ERROR:  function postgraph.age_labels(gtype) does not exist
+ERROR:  function postgraph.labels(gtype) does not exist
 LINE 1: SELECT * from cypher('list', $$RETURN labels(NULL)$$) as (La...
                                               ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should return an error
 SELECT * from cypher('list', $$RETURN labels("string")$$) as (Labels gtype);
-ERROR:  function postgraph.age_labels(gtype) does not exist
+ERROR:  function postgraph.labels(gtype) does not exist
 LINE 1: SELECT * from cypher('list', $$RETURN labels("string")$$) as...
                                               ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.

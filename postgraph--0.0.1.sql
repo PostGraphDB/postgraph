@@ -175,7 +175,7 @@ CREATE OPERATOR ?& (LEFTARG = vertex, RIGHTARG = text[], FUNCTION = vertex_exist
 --
 -- vertex functions
 --
-CREATE FUNCTION id(vertex) RETURNS graphid LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'vertex_id';
+CREATE FUNCTION id(vertex) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'vertex_id';
 CREATE FUNCTION label(vertex) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'vertex_label';
 CREATE FUNCTION properties(vertex) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'vertex_properties';
 CREATE FUNCTION age_properties(vertex) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'vertex_properties';
@@ -207,9 +207,9 @@ CREATE OPERATOR <> (FUNCTION = edge_ne, LEFTARG = edge, RIGHTARG = edge, COMMUTA
 --
 -- edge functions
 --
-CREATE FUNCTION id(edge) RETURNS graphid LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'edge_id';
-CREATE FUNCTION start_id(edge) RETURNS graphid LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'edge_start_id';
-CREATE FUNCTION end_id(edge) RETURNS graphid LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'edge_end_id';
+CREATE FUNCTION id(edge) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'edge_id';
+CREATE FUNCTION start_id(edge) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'edge_start_id';
+CREATE FUNCTION end_id(edge) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'edge_end_id';
 CREATE FUNCTION label(edge) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'edge_label';
 CREATE FUNCTION properties(edge) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'edge_properties';
 CREATE FUNCTION age_properties(edge) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'edge_properties';
@@ -228,7 +228,7 @@ CREATE TYPE traversal (INPUT = traversal_in, OUTPUT = traversal_out, LIKE = json
 --
 -- traversal functions
 --
-CREATE FUNCTION age_relationships(traversal) RETURNS edge[] LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'traversal_edges';
+CREATE FUNCTION relationships(traversal) RETURNS edge[] LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'traversal_edges';
 
 
 --
@@ -451,12 +451,12 @@ CREATE CAST (gtype AS int[]) WITH FUNCTION gtype_to_int4_array(gtype);
 --
 -- XXX: Need to merge the underlying logic between this and the above functions
 --
-CREATE FUNCTION age_toboolean(gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_tofloat(gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_tointeger(gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_tointeger';
-CREATE FUNCTION age_tostring(gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_tonumeric(gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_totimestamp(gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
+CREATE FUNCTION toboolean (gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_toboolean';
+CREATE FUNCTION tofloat (gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_tofloat';
+CREATE FUNCTION tointeger(gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_tointeger';
+CREATE FUNCTION tostring (gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_tostring';
+CREATE FUNCTION tonumeric (gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_tonumeric';
+CREATE FUNCTION totimestamp (gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_totimestamp';
 
 
 --
@@ -475,7 +475,7 @@ CREATE OPERATOR @= (FUNCTION = gtype_in_operator, LEFTARG = gtype, RIGHTARG = gt
 CREATE FUNCTION gtype_string_match_starts_with(gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION gtype_string_match_ends_with(gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION gtype_string_match_contains(gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_eq_tilde(gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION eq_tilde (gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_eq_tilde';
 
 --
 -- functions for updating clauses
@@ -496,74 +496,68 @@ CREATE FUNCTION get_cypher_keywords(OUT word text, OUT catcode "char", OUT catde
 --
 -- Scalar Functions
 --
-CREATE FUNCTION age_id(vertex) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'age_vertex_id';
-CREATE FUNCTION age_id(edge) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'age_edge_id';
-CREATE FUNCTION age_start_id(edge) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'age_edge_start_id';
-CREATE FUNCTION age_end_id(edge) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'age_edge_end_id';
-CREATE FUNCTION age_head(gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_last(gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_startnode(gtype, edge) RETURNS vertex LANGUAGE c STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'age_edge_startnode';
-CREATE FUNCTION age_endnode(gtype, edge) RETURNS vertex LANGUAGE c STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'age_edge_endnode';
-CREATE FUNCTION age_size(gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_type(vertex) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME','age_vertex_label';
-CREATE FUNCTION age_label(vertex) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME','age_vertex_label';
+CREATE FUNCTION head (gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_head';
+CREATE FUNCTION last (gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_last';
+CREATE FUNCTION startnode(gtype, edge) RETURNS vertex LANGUAGE c STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'edge_startnode';
+CREATE FUNCTION endnode(gtype, edge) RETURNS vertex LANGUAGE c STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'edge_endnode';
+CREATE FUNCTION size (gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_size';
+CREATE FUNCTION type(vertex) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME','vertex_label';
 
-CREATE FUNCTION age_type(edge) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME','age_edge_label';
-CREATE FUNCTION age_label(edge) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME','age_edge_label';
+CREATE FUNCTION type(edge) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME','edge_label';
 
 --
 -- list functions
 --
-CREATE FUNCTION age_keys(gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_keys(vertex) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'age_vertex_keys';
-CREATE FUNCTION age_keys(edge) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'age_edge_keys';
+CREATE FUNCTION keys (gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_keys';
+CREATE FUNCTION keys(vertex) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'vertex_keys';
+CREATE FUNCTION keys(edge) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'edge_keys';
 
-CREATE FUNCTION age_range(gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_range(gtype, gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_unnest(gtype, block_types boolean = false) RETURNS SETOF gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION range (gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_range';
+CREATE FUNCTION range (gtype, gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_range';
+CREATE FUNCTION unnest (gtype, block_types boolean = false) RETURNS SETOF gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_unnest';
 
 --
 -- String functions
 --
-CREATE FUNCTION age_reverse(gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_toupper(gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_tolower(gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_ltrim(gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_rtrim(gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_trim(gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_right(gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_left(gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_substring(gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_substring(gtype, gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_split(gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_replace(gtype, gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION reverse (gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_reverse';
+CREATE FUNCTION toupper (gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_toupper';
+CREATE FUNCTION tolower (gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_tolower';
+CREATE FUNCTION ltrim (gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_ltrim';
+CREATE FUNCTION rtrim (gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_rtrim';
+CREATE FUNCTION "trim" (gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_trim';
+CREATE FUNCTION right (gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_right';
+CREATE FUNCTION left (gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_left';
+CREATE FUNCTION "substring" (gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_substring';
+CREATE FUNCTION "substring" (gtype, gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_substring';
+CREATE FUNCTION split (gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_split';
+CREATE FUNCTION replace (gtype, gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_replace';
 
 --
 -- Trig functions - radian input
 --
-CREATE FUNCTION age_sin(gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_cos(gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_tan(gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_cot(gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_asin(gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_acos(gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_atan(gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_atan2(gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_degrees(gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_radians(gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_round(gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_round(gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_ceil(gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_floor(gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_abs(gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_sign(gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_log(gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_log10(gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_e() RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_exp(gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_sqrt(gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_pi() RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_rand() RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION sin (gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_sin';
+CREATE FUNCTION cos (gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_cos';
+CREATE FUNCTION tan (gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_tan';
+CREATE FUNCTION cot (gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_cot';
+CREATE FUNCTION asin (gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_asin';
+CREATE FUNCTION acos (gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_acos';
+CREATE FUNCTION atan (gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_atan';
+CREATE FUNCTION atan2 (gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_atan2';
+CREATE FUNCTION degrees (gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_degrees';
+CREATE FUNCTION radians (gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_radians';
+CREATE FUNCTION round (gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_round';
+CREATE FUNCTION round (gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_round';
+CREATE FUNCTION ceil (gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_ceil';
+CREATE FUNCTION floor (gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_floor';
+CREATE FUNCTION abs (gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_abs';
+CREATE FUNCTION sign (gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_sign';
+CREATE FUNCTION log (gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_log';
+CREATE FUNCTION log10 (gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_log10';
+CREATE FUNCTION e () RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_e';
+CREATE FUNCTION exp (gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_exp';
+CREATE FUNCTION sqrt (gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE RETURNS NULL ON NULL INPUT AS 'MODULE_PATHNAME', 'gtype_sqrt';
+CREATE FUNCTION pi () RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_pi';
+CREATE FUNCTION rand () RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_rand';
 
 --
 -- Agreggation
@@ -572,41 +566,41 @@ CREATE FUNCTION age_rand() RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS '
 CREATE FUNCTION gtype_accum(float8[], gtype) RETURNS float8[] LANGUAGE c IMMUTABLE STRICT PARALLEL SAFE AS 'MODULE_PATHNAME';
 
 -- count
-CREATE AGGREGATE age_count(*) (stype = int8, sfunc = int8inc, finalfunc = int8_to_gtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
-CREATE AGGREGATE age_count(gtype) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_gtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
-CREATE AGGREGATE age_count(vertex) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_gtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
-CREATE AGGREGATE age_count(edge) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_gtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
-CREATE AGGREGATE age_count(traversal) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_gtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
-CREATE AGGREGATE age_count(variable_edge) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_gtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
+CREATE AGGREGATE count(*) (stype = int8, sfunc = int8inc, finalfunc = int8_to_gtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
+CREATE AGGREGATE count(gtype) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_gtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
+CREATE AGGREGATE count(vertex) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_gtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
+CREATE AGGREGATE count(edge) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_gtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
+CREATE AGGREGATE count(traversal) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_gtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
+CREATE AGGREGATE count(variable_edge) (stype = int8, sfunc = int8inc_any, finalfunc = int8_to_gtype, combinefunc = int8pl, finalfunc_modify = READ_ONLY, initcond = 0, parallel = SAFE);
 -- stdev
 CREATE FUNCTION gtype_stddev_samp_final(float8[]) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE AGGREGATE age_stdev(gtype) (stype = float8[], sfunc = gtype_accum, finalfunc = gtype_stddev_samp_final, combinefunc = float8_combine, finalfunc_modify = READ_ONLY, initcond = '{0,0,0}', parallel = SAFE);
+CREATE AGGREGATE stdev(gtype) (stype = float8[], sfunc = gtype_accum, finalfunc = gtype_stddev_samp_final, combinefunc = float8_combine, finalfunc_modify = READ_ONLY, initcond = '{0,0,0}', parallel = SAFE);
 -- stdevp
 CREATE FUNCTION gtype_stddev_pop_final(float8[]) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE AGGREGATE age_stdevp(gtype) (stype = float8[], sfunc = gtype_accum, finalfunc = gtype_stddev_pop_final, combinefunc = float8_combine, finalfunc_modify = READ_ONLY, initcond = '{0,0,0}', parallel = SAFE);
+CREATE AGGREGATE stdevp(gtype) (stype = float8[], sfunc = gtype_accum, finalfunc = gtype_stddev_pop_final, combinefunc = float8_combine, finalfunc_modify = READ_ONLY, initcond = '{0,0,0}', parallel = SAFE);
 -- avg
-CREATE AGGREGATE age_avg(gtype) (stype = float8[], sfunc = gtype_accum, finalfunc = float8_avg, combinefunc = float8_combine, finalfunc_modify = READ_ONLY, initcond = '{0,0,0}', parallel = SAFE);
+CREATE AGGREGATE avg(gtype) (stype = float8[], sfunc = gtype_accum, finalfunc = float8_avg, combinefunc = float8_combine, finalfunc_modify = READ_ONLY, initcond = '{0,0,0}', parallel = SAFE);
 -- sum
-CREATE FUNCTION age_gtype_sum(gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE STRICT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE AGGREGATE age_sum(gtype) (stype = gtype, sfunc = age_gtype_sum, combinefunc = age_gtype_sum, finalfunc_modify = READ_ONLY, parallel = SAFE);
+CREATE FUNCTION gtype_sum (gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE STRICT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_gtype_sum';
+CREATE AGGREGATE sum(gtype) (stype = gtype, sfunc = gtype_sum, combinefunc = gtype_sum, finalfunc_modify = READ_ONLY, parallel = SAFE);
 -- max
 CREATE FUNCTION gtype_max_trans(gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE AGGREGATE age_max(gtype) (stype = gtype, sfunc = gtype_max_trans, combinefunc = gtype_max_trans, finalfunc_modify = READ_ONLY, parallel = SAFE);
+CREATE AGGREGATE max(gtype) (stype = gtype, sfunc = gtype_max_trans, combinefunc = gtype_max_trans, finalfunc_modify = READ_ONLY, parallel = SAFE);
 -- min
 CREATE FUNCTION gtype_min_trans(gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE AGGREGATE age_min(gtype) (stype = gtype, sfunc = gtype_min_trans, combinefunc = gtype_min_trans, finalfunc_modify = READ_ONLY, parallel = SAFE);
+CREATE AGGREGATE min(gtype) (stype = gtype, sfunc = gtype_min_trans, combinefunc = gtype_min_trans, finalfunc_modify = READ_ONLY, parallel = SAFE);
 -- percentileCont and percentileDisc
-CREATE FUNCTION age_percentile_aggtransfn(internal, gtype, gtype) RETURNS internal LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_percentile_cont_aggfinalfn(internal) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_percentile_disc_aggfinalfn(internal) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE AGGREGATE age_percentilecont(gtype, gtype) (stype = internal, sfunc = age_percentile_aggtransfn, finalfunc = age_percentile_cont_aggfinalfn, parallel = SAFE);
-CREATE AGGREGATE age_percentiledisc(gtype, gtype) (stype = internal, sfunc = age_percentile_aggtransfn, finalfunc = age_percentile_disc_aggfinalfn, parallel = SAFE);
+CREATE FUNCTION percentile_aggtransfn (internal, gtype, gtype) RETURNS internal LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_percentile_aggtransfn';
+CREATE FUNCTION percentile_cont_aggfinalfn (internal) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_percentile_cont_aggfinalfn';
+CREATE FUNCTION percentile_disc_aggfinalfn (internal) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_percentile_disc_aggfinalfn';
+CREATE AGGREGATE percentilecont(gtype, gtype) (stype = internal, sfunc = percentile_aggtransfn, finalfunc = percentile_cont_aggfinalfn, parallel = SAFE);
+CREATE AGGREGATE percentiledisc(gtype, gtype) (stype = internal, sfunc = percentile_aggtransfn, finalfunc = percentile_disc_aggfinalfn, parallel = SAFE);
 -- collect
-CREATE FUNCTION age_collect_aggtransfn(internal, gtype) RETURNS internal LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE FUNCTION age_collect_aggfinalfn(internal) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE AGGREGATE age_collect(gtype) (stype = internal, sfunc = age_collect_aggtransfn, finalfunc = age_collect_aggfinalfn, parallel = safe);
+CREATE FUNCTION collect_aggtransfn (internal, gtype) RETURNS internal LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_collect_aggtransfn';
+CREATE FUNCTION collect_aggfinalfn (internal) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_collect_aggfinalfn';
+CREATE AGGREGATE collect(gtype) (stype = internal, sfunc = collect_aggtransfn, finalfunc = collect_aggfinalfn, parallel = safe);
 
-CREATE FUNCTION age_vle(IN gtype, IN vertex, IN vertex, IN gtype, IN gtype, IN gtype, IN gtype, IN gtype, OUT edges variable_edge) RETURNS SETOF variable_edge LANGUAGE C STABLE CALLED ON NULL INPUT PARALLEL UNSAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION vle (IN gtype, IN vertex, IN vertex, IN gtype, IN gtype, IN gtype, IN gtype, IN gtype, OUT edges variable_edge) RETURNS SETOF variable_edge LANGUAGE C STABLE CALLED ON NULL INPUT PARALLEL UNSAFE AS 'MODULE_PATHNAME', 'gtype_vle';
 
 CREATE FUNCTION match_vles(variable_edge, variable_edge) RETURNS boolean LANGUAGE C IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE OPERATOR !!= (FUNCTION = match_vles, LEFTARG = variable_edge, RIGHTARG = variable_edge);

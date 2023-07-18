@@ -2192,8 +2192,8 @@ static Datum get_vertex_1(const char *graph, const char *vertex_label, int64 gra
     return result;
 }
 
-PG_FUNCTION_INFO_V1(age_edge_startnode);
-Datum age_edge_startnode(PG_FUNCTION_ARGS) {
+PG_FUNCTION_INFO_V1(edge_startnode);
+Datum edge_startnode(PG_FUNCTION_ARGS) {
     gtype *agt_arg = NULL;
     gtype_value *agtv_object = NULL;
     gtype_value *agtv_value = NULL;
@@ -2218,8 +2218,8 @@ Datum age_edge_startnode(PG_FUNCTION_ARGS) {
     return result;
 }
 
-PG_FUNCTION_INFO_V1(age_edge_endnode);
-Datum age_edge_endnode(PG_FUNCTION_ARGS) {
+PG_FUNCTION_INFO_V1(edge_endnode);
+Datum edge_endnode(PG_FUNCTION_ARGS) {
     gtype *agt_arg = NULL;
     gtype_value *agtv_object = NULL;
     gtype_value *agtv_value = NULL;
@@ -2244,9 +2244,9 @@ Datum age_edge_endnode(PG_FUNCTION_ARGS) {
     return result;
 }
 
-PG_FUNCTION_INFO_V1(age_head);
+PG_FUNCTION_INFO_V1(gtype_head);
 
-Datum age_head(PG_FUNCTION_ARGS)
+Datum gtype_head(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
 
@@ -2264,9 +2264,9 @@ Datum age_head(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_last);
+PG_FUNCTION_INFO_V1(gtype_last);
 
-Datum age_last(PG_FUNCTION_ARGS)
+Datum gtype_last(PG_FUNCTION_ARGS)
 {
     gtype *agt_arg = NULL;
     gtype_value *agtv_result = NULL;
@@ -2298,9 +2298,9 @@ Datum age_last(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_toboolean);
+PG_FUNCTION_INFO_V1(gtype_toboolean);
 Datum
-age_toboolean(PG_FUNCTION_ARGS) {
+gtype_toboolean(PG_FUNCTION_ARGS) {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
 
     if (!AGT_ROOT_IS_SCALAR(agt))
@@ -2334,8 +2334,8 @@ age_toboolean(PG_FUNCTION_ARGS) {
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_size);
-Datum age_size(PG_FUNCTION_ARGS) {
+PG_FUNCTION_INFO_V1(gtype_size);
+Datum gtype_size(PG_FUNCTION_ARGS) {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
     int64 result;
 
@@ -2425,9 +2425,9 @@ static gtype_iterator *get_next_list_element(gtype_iterator *it,
     return it;
 }
 
-PG_FUNCTION_INFO_V1(age_reverse);
+PG_FUNCTION_INFO_V1(gtype_reverse);
 
-Datum age_reverse(PG_FUNCTION_ARGS)
+Datum gtype_reverse(PG_FUNCTION_ARGS)
 {
     int nargs;
     Datum *args;
@@ -2537,9 +2537,9 @@ Datum age_reverse(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_toupper);
+PG_FUNCTION_INFO_V1(gtype_toupper);
 
-Datum age_toupper(PG_FUNCTION_ARGS)
+Datum gtype_toupper(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
 
@@ -2571,9 +2571,9 @@ Datum age_toupper(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_tolower);
+PG_FUNCTION_INFO_V1(gtype_tolower);
 
-Datum age_tolower(PG_FUNCTION_ARGS)
+Datum gtype_tolower(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
 
@@ -2605,9 +2605,9 @@ Datum age_tolower(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_rtrim);
+PG_FUNCTION_INFO_V1(gtype_rtrim);
 
-Datum age_rtrim(PG_FUNCTION_ARGS)
+Datum gtype_rtrim(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
 
@@ -2634,9 +2634,9 @@ Datum age_rtrim(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_ltrim);
+PG_FUNCTION_INFO_V1(gtype_ltrim);
 
-Datum age_ltrim(PG_FUNCTION_ARGS)
+Datum gtype_ltrim(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
 
@@ -2663,9 +2663,9 @@ Datum age_ltrim(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_trim);
+PG_FUNCTION_INFO_V1(gtype_trim);
 
-Datum age_trim(PG_FUNCTION_ARGS)
+Datum gtype_trim(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
 
@@ -2692,9 +2692,9 @@ Datum age_trim(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_right);
+PG_FUNCTION_INFO_V1(gtype_right);
 
-Datum age_right(PG_FUNCTION_ARGS)
+Datum gtype_right(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
 
@@ -2734,9 +2734,9 @@ Datum age_right(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_left);
+PG_FUNCTION_INFO_V1(gtype_left);
 
-Datum age_left(PG_FUNCTION_ARGS)
+Datum gtype_left(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
 
@@ -2776,9 +2776,9 @@ Datum age_left(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_substring);
+PG_FUNCTION_INFO_V1(gtype_substring);
 
-Datum age_substring(PG_FUNCTION_ARGS)
+Datum gtype_substring(PG_FUNCTION_ARGS)
 {
     int nargs;
     Datum *args;
@@ -2945,9 +2945,9 @@ Datum age_substring(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_split);
+PG_FUNCTION_INFO_V1(gtype_split);
 
-Datum age_split(PG_FUNCTION_ARGS)
+Datum gtype_split(PG_FUNCTION_ARGS)
 {
     text *text_string;
     text *text_delimiter;
@@ -2992,9 +2992,9 @@ Datum age_split(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(result.res));
 }
 
-PG_FUNCTION_INFO_V1(age_replace);
+PG_FUNCTION_INFO_V1(gtype_replace);
 
-Datum age_replace(PG_FUNCTION_ARGS)
+Datum gtype_replace(PG_FUNCTION_ARGS)
 {
     int nargs;
     Datum *args;
@@ -3266,9 +3266,9 @@ static Numeric get_numeric_compatible_arg(Datum arg, Oid type, char *funcname,
     return result;
 }
 
-PG_FUNCTION_INFO_V1(age_sin);
+PG_FUNCTION_INFO_V1(gtype_sin);
 
-Datum age_sin(PG_FUNCTION_ARGS)
+Datum gtype_sin(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
     gtype_value agtv_result;
@@ -3287,9 +3287,9 @@ Datum age_sin(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_cos);
+PG_FUNCTION_INFO_V1(gtype_cos);
 
-Datum age_cos(PG_FUNCTION_ARGS)
+Datum gtype_cos(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
     gtype_value agtv_result;
@@ -3308,9 +3308,9 @@ Datum age_cos(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_tan);
+PG_FUNCTION_INFO_V1(gtype_tan);
 
-Datum age_tan(PG_FUNCTION_ARGS)
+Datum gtype_tan(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
     gtype_value agtv_result;
@@ -3329,9 +3329,9 @@ Datum age_tan(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_cot);
+PG_FUNCTION_INFO_V1(gtype_cot);
 
-Datum age_cot(PG_FUNCTION_ARGS)
+Datum gtype_cot(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
     gtype_value agtv_result;
@@ -3350,9 +3350,9 @@ Datum age_cot(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_asin);
+PG_FUNCTION_INFO_V1(gtype_asin);
 
-Datum age_asin(PG_FUNCTION_ARGS)
+Datum gtype_asin(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
     gtype_value agtv_result;
@@ -3371,9 +3371,9 @@ Datum age_asin(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_acos);
+PG_FUNCTION_INFO_V1(gtype_acos);
 
-Datum age_acos(PG_FUNCTION_ARGS)
+Datum gtype_acos(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
     gtype_value agtv_result;
@@ -3392,9 +3392,9 @@ Datum age_acos(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_atan);
+PG_FUNCTION_INFO_V1(gtype_atan);
 
-Datum age_atan(PG_FUNCTION_ARGS)
+Datum gtype_atan(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
     gtype_value agtv_result;
@@ -3413,9 +3413,9 @@ Datum age_atan(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_atan2);
+PG_FUNCTION_INFO_V1(gtype_atan2);
 
-Datum age_atan2(PG_FUNCTION_ARGS)
+Datum gtype_atan2(PG_FUNCTION_ARGS)
 {
     gtype *x_agt = AG_GET_ARG_GTYPE_P(0);
     gtype *y_agt = AG_GET_ARG_GTYPE_P(1);
@@ -3444,9 +3444,9 @@ Datum age_atan2(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_degrees);
+PG_FUNCTION_INFO_V1(gtype_degrees);
 
-Datum age_degrees(PG_FUNCTION_ARGS)
+Datum gtype_degrees(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
     gtype_value agtv_result;
@@ -3465,9 +3465,9 @@ Datum age_degrees(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_radians);
+PG_FUNCTION_INFO_V1(gtype_radians);
 
-Datum age_radians(PG_FUNCTION_ARGS)
+Datum gtype_radians(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
     gtype_value agtv_result;
@@ -3486,9 +3486,9 @@ Datum age_radians(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_round);
+PG_FUNCTION_INFO_V1(gtype_round);
 
-Datum age_round(PG_FUNCTION_ARGS)
+Datum gtype_round(PG_FUNCTION_ARGS)
 {
     Datum *args = NULL;
     bool *nulls = NULL;
@@ -3562,9 +3562,9 @@ Datum age_round(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_ceil);
+PG_FUNCTION_INFO_V1(gtype_ceil);
 
-Datum age_ceil(PG_FUNCTION_ARGS)
+Datum gtype_ceil(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
     bool is_null = true;
@@ -3591,9 +3591,9 @@ Datum age_ceil(PG_FUNCTION_ARGS)
     }
 }
 
-PG_FUNCTION_INFO_V1(age_floor);
+PG_FUNCTION_INFO_V1(gtype_floor);
 
-Datum age_floor(PG_FUNCTION_ARGS)
+Datum gtype_floor(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
     bool is_null = true;
@@ -3620,9 +3620,9 @@ Datum age_floor(PG_FUNCTION_ARGS)
     }
 }
 
-PG_FUNCTION_INFO_V1(age_abs);
+PG_FUNCTION_INFO_V1(gtype_abs);
 
-Datum age_abs(PG_FUNCTION_ARGS)
+Datum gtype_abs(PG_FUNCTION_ARGS)
 {
     gtype_value agtv_result;
     bool is_null;
@@ -3662,8 +3662,8 @@ Datum age_abs(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_sign);
-Datum age_sign(PG_FUNCTION_ARGS) {
+PG_FUNCTION_INFO_V1(gtype_sign);
+Datum gtype_sign(PG_FUNCTION_ARGS) {
     int nargs;
     Datum *args;
     bool *nulls;
@@ -3708,8 +3708,8 @@ Datum age_sign(PG_FUNCTION_ARGS) {
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_log);
-Datum age_log(PG_FUNCTION_ARGS) {
+PG_FUNCTION_INFO_V1(gtype_log);
+Datum gtype_log(PG_FUNCTION_ARGS) {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
     bool is_null = true;
 
@@ -3735,8 +3735,8 @@ Datum age_log(PG_FUNCTION_ARGS) {
     }
 }
 
-PG_FUNCTION_INFO_V1(age_log10);
-Datum age_log10(PG_FUNCTION_ARGS) {
+PG_FUNCTION_INFO_V1(gtype_log10);
+Datum gtype_log10(PG_FUNCTION_ARGS) {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
     bool is_null = true;
 
@@ -3762,9 +3762,9 @@ Datum age_log10(PG_FUNCTION_ARGS) {
     }
 }
 
-PG_FUNCTION_INFO_V1(age_e);
+PG_FUNCTION_INFO_V1(gtype_e);
 
-Datum age_e(PG_FUNCTION_ARGS)
+Datum gtype_e(PG_FUNCTION_ARGS)
 {
     gtype_value agtv_result = {
         .type = AGTV_FLOAT,
@@ -3774,9 +3774,9 @@ Datum age_e(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_pi);
+PG_FUNCTION_INFO_V1(gtype_pi);
     
-Datum age_pi(PG_FUNCTION_ARGS)
+Datum gtype_pi(PG_FUNCTION_ARGS)
 {   
     gtype_value agtv_result = {
         .type = AGTV_FLOAT,
@@ -3786,9 +3786,9 @@ Datum age_pi(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
 }   
 
-PG_FUNCTION_INFO_V1(age_rand);
+PG_FUNCTION_INFO_V1(gtype_rand);
 
-Datum age_rand(PG_FUNCTION_ARGS)
+Datum gtype_rand(PG_FUNCTION_ARGS)
 {
     gtype_value agtv_result = {
         .type = AGTV_FLOAT,
@@ -3798,9 +3798,9 @@ Datum age_rand(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_exp);
+PG_FUNCTION_INFO_V1(gtype_exp);
 
-Datum age_exp(PG_FUNCTION_ARGS)
+Datum gtype_exp(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
     bool is_null = true;
@@ -3827,9 +3827,9 @@ Datum age_exp(PG_FUNCTION_ARGS)
     }
 }
 
-PG_FUNCTION_INFO_V1(age_sqrt);
+PG_FUNCTION_INFO_V1(gtype_sqrt);
 
-Datum age_sqrt(PG_FUNCTION_ARGS)
+Datum gtype_sqrt(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
     bool is_null = true;
@@ -4109,9 +4109,9 @@ gtype *get_one_gtype_from_variadic_args(FunctionCallInfo fcinfo, int variadic_of
  * Note: The sql definition is STRICT so no input NULLs need to
  * be dealt with except for gtype.
  */
-PG_FUNCTION_INFO_V1(age_gtype_sum);
+PG_FUNCTION_INFO_V1(gtype_gtype_sum);
 
-Datum age_gtype_sum(PG_FUNCTION_ARGS)
+Datum gtype_gtype_sum(PG_FUNCTION_ARGS)
 {
     gtype *agt_arg0 = AG_GET_ARG_GTYPE_P(0);
     gtype *agt_arg1 = AG_GET_ARG_GTYPE_P(1);
@@ -4420,9 +4420,9 @@ static Datum float8_lerp(Datum lo, Datum hi, double pct)
 }
 
 /* Code borrowed and adjusted from PG's ordered_set_transition function */
-PG_FUNCTION_INFO_V1(age_percentile_aggtransfn);
+PG_FUNCTION_INFO_V1(gtype_percentile_aggtransfn);
 
-Datum age_percentile_aggtransfn(PG_FUNCTION_ARGS)
+Datum gtype_percentile_aggtransfn(PG_FUNCTION_ARGS)
 {
     PercentileGroupAggState *pgastate;
 
@@ -4486,9 +4486,9 @@ Datum age_percentile_aggtransfn(PG_FUNCTION_ARGS)
 }
 
 /* Code borrowed and adjusted from PG's percentile_cont_final function */
-PG_FUNCTION_INFO_V1(age_percentile_cont_aggfinalfn);
+PG_FUNCTION_INFO_V1(gtype_percentile_cont_aggfinalfn);
 
-Datum age_percentile_cont_aggfinalfn(PG_FUNCTION_ARGS)
+Datum gtype_percentile_cont_aggfinalfn(PG_FUNCTION_ARGS)
 {
     PercentileGroupAggState *pgastate;
     float8 percentile;
@@ -4563,9 +4563,9 @@ Datum age_percentile_cont_aggfinalfn(PG_FUNCTION_ARGS)
 }
 
 /* Code borrowed and adjusted from PG's percentile_disc_final function */
-PG_FUNCTION_INFO_V1(age_percentile_disc_aggfinalfn);
+PG_FUNCTION_INFO_V1(gtype_percentile_disc_aggfinalfn);
 
-Datum age_percentile_disc_aggfinalfn(PG_FUNCTION_ARGS)
+Datum gtype_percentile_disc_aggfinalfn(PG_FUNCTION_ARGS)
 {
     PercentileGroupAggState *pgastate;
     double percentile;
@@ -4626,9 +4626,9 @@ Datum age_percentile_disc_aggfinalfn(PG_FUNCTION_ARGS)
 }
 
 /* functions to support the aggregate function COLLECT() */
-PG_FUNCTION_INFO_V1(age_collect_aggtransfn);
+PG_FUNCTION_INFO_V1(gtype_collect_aggtransfn);
 
-Datum age_collect_aggtransfn(PG_FUNCTION_ARGS)
+Datum gtype_collect_aggtransfn(PG_FUNCTION_ARGS)
 {
     gtype_in_state *castate;
     int nargs;
@@ -4696,9 +4696,9 @@ Datum age_collect_aggtransfn(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(castate);
 }
 
-PG_FUNCTION_INFO_V1(age_collect_aggfinalfn);
+PG_FUNCTION_INFO_V1(gtype_collect_aggfinalfn);
 
-Datum age_collect_aggfinalfn(PG_FUNCTION_ARGS) {
+Datum gtype_collect_aggfinalfn(PG_FUNCTION_ARGS) {
     gtype_in_state *castate;
     MemoryContext old_mcxt;
 
@@ -4769,11 +4769,11 @@ gtype_value *get_gtype_value(char *funcname, gtype *agt_arg,
     return agtv_value;
 }
 
-PG_FUNCTION_INFO_V1(age_eq_tilde);
+PG_FUNCTION_INFO_V1(gtype_eq_tilde);
 /*
  * function for =~ aka regular expression comparisons
  */
-Datum age_eq_tilde(PG_FUNCTION_ARGS)
+Datum gtype_eq_tilde(PG_FUNCTION_ARGS)
 {
     gtype *agt_string = AG_GET_ARG_GTYPE_P(0);
     gtype *agt_pattern = AG_GET_ARG_GTYPE_P(1);
@@ -4854,8 +4854,8 @@ static gtype_iterator *get_next_object_key(gtype_iterator *it, gtype_container *
     return it;
 }
 
-PG_FUNCTION_INFO_V1(age_vertex_keys);
-Datum age_vertex_keys(PG_FUNCTION_ARGS)
+PG_FUNCTION_INFO_V1(vertex_keys);
+Datum vertex_keys(PG_FUNCTION_ARGS)
 {
     gtype *agt_arg = NULL;
     gtype_value *agtv_result = NULL;
@@ -4880,8 +4880,8 @@ Datum age_vertex_keys(PG_FUNCTION_ARGS)
 }
 
 
-PG_FUNCTION_INFO_V1(age_edge_keys);
-Datum age_edge_keys(PG_FUNCTION_ARGS)
+PG_FUNCTION_INFO_V1(edge_keys);
+Datum edge_keys(PG_FUNCTION_ARGS)
 {   
     gtype *agt_arg = NULL;
     gtype_value *agtv_result = NULL;
@@ -4907,8 +4907,8 @@ Datum age_edge_keys(PG_FUNCTION_ARGS)
 
 
 
-PG_FUNCTION_INFO_V1(age_keys);
-Datum age_keys(PG_FUNCTION_ARGS)
+PG_FUNCTION_INFO_V1(gtype_keys);
+Datum gtype_keys(PG_FUNCTION_ARGS)
 {
     gtype *agt_arg = NULL;
     gtype_value *agtv_result = NULL;
@@ -4989,11 +4989,11 @@ static int64 get_int64_from_int_datums(Datum d, Oid type, char *funcname, bool *
     return result;
 }
 
-PG_FUNCTION_INFO_V1(age_range);
+PG_FUNCTION_INFO_V1(gtype_range);
 /*
  * Execution function to implement openCypher range() function
  */
-Datum age_range(PG_FUNCTION_ARGS)
+Datum gtype_range(PG_FUNCTION_ARGS)
 {
     Datum *args = NULL;
     bool *nulls = NULL;
@@ -5064,14 +5064,14 @@ Datum age_range(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(agis_result.res));
 }
 
-PG_FUNCTION_INFO_V1(age_unnest);
+PG_FUNCTION_INFO_V1(gtype_unnest);
 /*
  * Function to convert the Array type of Agtype into each row. It is used for
  * Cypher `UNWIND` clause, but considering the situation in which the user can
  * directly use this function in vanilla PGSQL, put a second parameter related
  * to this.
  */
-Datum age_unnest(PG_FUNCTION_ARGS)
+Datum gtype_unnest(PG_FUNCTION_ARGS)
 {
     gtype *gtype_arg = AG_GET_ARG_GTYPE_P(0);
     bool block_types = PG_GETARG_BOOL(1);

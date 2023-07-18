@@ -492,7 +492,7 @@ SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype
  */
 --test query
 SELECT * FROM cypher('cypher_merge', $$CREATE (n) MERGE (n)-[:e]->() $$) AS (a gtype);
-ERROR:  function postgraph.age_start_id(gtype) does not exist
+ERROR:  function postgraph.start_id(gtype) does not exist
 LINE 6: SELECT * FROM cypher('cypher_merge', $$CREATE (n) MERGE (n)-...
                                               ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.

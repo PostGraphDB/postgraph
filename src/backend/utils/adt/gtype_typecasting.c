@@ -110,9 +110,9 @@ gtype_tointeger(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
 }
 
-PG_FUNCTION_INFO_V1(age_tofloat);
+PG_FUNCTION_INFO_V1(gtype_tofloat);
 Datum
-age_tofloat(PG_FUNCTION_ARGS) {
+gtype_tofloat(PG_FUNCTION_ARGS) {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
 
     if (is_gtype_null(agt))
@@ -129,10 +129,10 @@ age_tofloat(PG_FUNCTION_ARGS) {
 }
 
 
-PG_FUNCTION_INFO_V1(age_tonumeric);
+PG_FUNCTION_INFO_V1(gtype_tonumeric);
 // gtype -> gtype numeric
 Datum
-age_tonumeric(PG_FUNCTION_ARGS) {
+gtype_tonumeric(PG_FUNCTION_ARGS) {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
 
     if (is_gtype_null(agt))
@@ -147,9 +147,9 @@ age_tonumeric(PG_FUNCTION_ARGS) {
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
 }
 
-PG_FUNCTION_INFO_V1(age_tostring);
+PG_FUNCTION_INFO_V1(gtype_tostring);
 Datum
-age_tostring(PG_FUNCTION_ARGS) {
+gtype_tostring(PG_FUNCTION_ARGS) {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
 
     if (is_gtype_null(agt))
@@ -167,9 +167,9 @@ age_tostring(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
 }
 
-PG_FUNCTION_INFO_V1(age_totimestamp);
+PG_FUNCTION_INFO_V1(gtype_totimestamp);
 Datum
-age_totimestamp(PG_FUNCTION_ARGS) {
+gtype_totimestamp(PG_FUNCTION_ARGS) {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
 
     if (is_gtype_null(agt))
