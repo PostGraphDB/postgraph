@@ -199,18 +199,16 @@ static int get_type_sort_priority(enum gtype_value_type type)
 {
     if (type == AGTV_OBJECT)
         return 0;
-    if (type == AGTV_VERTEX)
-        return 1;
     if (type == AGTV_ARRAY)
-        return 2;
+        return 1;
     if (type == AGTV_STRING)
-        return 3;
+        return 2;
     if (type == AGTV_BOOL)
-        return 4;
+        return 3;
     if (type == AGTV_NUMERIC || type == AGTV_INTEGER || type == AGTV_FLOAT)
-        return 5;
+        return 4;
     if (type == AGTV_NULL)
-        return 6;
+        return 5;
     return -1;
 }
 
@@ -278,7 +276,6 @@ int compare_gtype_containers_orderability(gtype_container *a,
                 case AGTV_INTEGER:
                 case AGTV_FLOAT:
                 case AGTV_EDGE:
-                case AGTV_VERTEX:
 	        case AGTV_PARTIAL_PATH:
                     res = compare_gtype_scalar_values(&va, &vb);
                     break;
@@ -1433,15 +1430,6 @@ void gtype_hash_scalar_value_extended(const gtype_value *scalar_val,
             hashfloat8extended, Float8GetDatum(scalar_val->val.float_value),
             UInt64GetDatum(seed)));
         break;
-    case AGTV_VERTEX:
-    {
-        graphid id;
-        gtype_value *id_agt = GET_GTYPE_VALUE_OBJECT_VALUE(scalar_val, "id");
-        id = id_agt->val.int_value;
-        tmp = DatumGetUInt64(DirectFunctionCall2(
-            hashint8extended, Float8GetDatum(id), UInt64GetDatum(seed)));
-        break;
-    }
     case AGTV_EDGE:
     {
         graphid id;
@@ -1529,15 +1517,6 @@ static bool equals_gtype_scalar_value(const gtype_value *a, const gtype_value *b
             return a->val.int_value == b->val.int_value;
         case AGTV_FLOAT:
             return a->val.float_value == b->val.float_value;
-        case AGTV_VERTEX:
-        {
-            graphid a_graphid, b_graphid;
-            a_graphid = a->val.object.pairs[0].value.val.int_value;
-            b_graphid = b->val.object.pairs[0].value.val.int_value;
-
-            return a_graphid == b_graphid;
-        }
-
         default:
             ereport(ERROR, (errmsg("invalid gtype scalar type %d for equals",
                                    a->type)));
@@ -1588,7 +1567,6 @@ int compare_gtype_scalar_values(gtype_value *a, gtype_value *b)
                 return -1;
         case AGTV_FLOAT:
             return compare_two_floats_orderability(a->val.float_value, b->val.float_value);
-        case AGTV_VERTEX:
         case AGTV_EDGE:
         {
             gtype_value *a_id, *b_id;
@@ -2200,8 +2178,6 @@ char *gtype_value_type_to_string(enum gtype_value_type type)
             return "float";
         case AGTV_BOOL:
             return "boolean";
-        case AGTV_VERTEX:
-            return "vertex";
         case AGTV_EDGE:
             return "edge";
         case AGTV_ARRAY:

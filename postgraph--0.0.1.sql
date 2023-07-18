@@ -346,7 +346,6 @@ CREATE CAST (gtype AS graphid) WITH FUNCTION gtype_to_graphid(gtype) AS IMPLICIT
 --
 -- gtype - entity creation
 --
-CREATE FUNCTION _gtype_build_vertex(graphid, cstring, gtype) RETURNS gtype LANGUAGE c IMMUTABLE CALLED ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION _gtype_build_edge(graphid, graphid, graphid, cstring, gtype) RETURNS gtype LANGUAGE c IMMUTABLE CALLED ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 
 --

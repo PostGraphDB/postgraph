@@ -296,15 +296,9 @@ typedef struct
 // values for the GTYPE header field to denote the stored data type
 #define AGT_HEADER_INTEGER 0x0000
 #define AGT_HEADER_FLOAT   0x0001
-#define AGT_HEADER_VERTEX  0x0002
 #define AGT_HEADER_EDGE    0x0003
 #define AGT_HEADER_PARTIAL_PATH    0x0005
 #define AGT_HEADER_TIMESTAMP 0x0006
-
-#define AGT_IS_VERTEX(agt) \
-    (AGT_ROOT_IS_SCALAR(agt) &&\
-     AGTE_IS_GTYPE((agt)->root.children[0]) &&\
-     (((agt)->root.children[1] & AGT_HEADER_VERTEX) == AGT_HEADER_VERTEX))
 
 #define AGT_IS_EDGE(agt) \
     (AGT_ROOT_IS_SCALAR(agt) &&\
@@ -333,7 +327,6 @@ enum gtype_value_type
     AGTV_FLOAT,
     AGTV_BOOL,
     AGTV_TIMESTAMP,
-    AGTV_VERTEX,
     AGTV_EDGE,
     AGTV_PARTIAL_PATH,
     /* Composite types */
@@ -476,10 +469,8 @@ bool is_decimal_needed(char *numstr);
 int compare_gtype_scalar_values(gtype_value *a, gtype_value *b);
 gtype_value *alter_property_value(gtype *properties, char *var_name, gtype *new_v, bool remove_property);
 gtype *get_one_gtype_from_variadic_args(FunctionCallInfo fcinfo, int variadic_offset, int expected_nargs);
-Datum make_vertex(Datum id, Datum label, Datum properties);
 Datum make_edge(Datum id, Datum startid, Datum endid, Datum label, Datum properties);
 Datum column_get_datum(TupleDesc tupdesc, HeapTuple tuple, int column, const char *attname, Oid typid, bool isnull);
-gtype_value *gtype_value_build_vertex(graphid id, char *label, Datum properties);
 gtype_value *gtype_value_build_edge(graphid id, char *label, graphid end_id, graphid start_id, Datum properties);
 gtype_value *get_gtype_value(char *funcname, gtype *agt_arg, enum gtype_value_type type, bool error);
 bool is_gtype_null(gtype *agt_arg);

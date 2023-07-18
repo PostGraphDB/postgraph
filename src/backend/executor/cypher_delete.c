@@ -52,9 +52,6 @@ static void process_delete_list(CustomScanState *node);
 static void find_connected_edges(CustomScanState *node, char *graph_name,
                                  List *labels, char *var_name, graphid id,
                                  bool detach_delete);
-static gtype_value *extract_entity(CustomScanState *node,
-                                    TupleTableSlot *scanTupleSlot,
-                                    int entity_position);
 static void delete_entity(EState *estate, ResultRelInfo *resultRelInfo,
                           HeapTuple tuple);
 
@@ -240,30 +237,6 @@ Node *create_cypher_delete_plan_state(CustomScan *cscan)
     cypher_css->css.methods = &cypher_delete_exec_methods;
 
     return (Node *)cypher_css;
-}
-
-/*
- * Extract the vertex or edge to be deleted, perform some type checking to
- * validate datum is an gtype vertex or edge.
- */
-static gtype_value *extract_entity(CustomScanState *node, TupleTableSlot *scanTupleSlot, int entity_position) {
-    gtype_value *original_entity_value;
-    gtype *original_entity;
-    TupleDesc tupleDescriptor = scanTupleSlot->tts_tupleDescriptor;
-
-    // type checking, make sure the entity is an gtype vertex or edge
-    if (tupleDescriptor->attrs[entity_position -1].atttypid != GTYPEOID)
-        ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                errmsg("DELETE clause can only delete gtype")));
-
-    original_entity = DATUM_GET_GTYPE_P(scanTupleSlot->tts_values[entity_position - 1]);
-    original_entity_value = get_ith_gtype_value_from_container(&original_entity->root, 0);
-
-    if (original_entity_value->type != AGTV_VERTEX && original_entity_value->type != AGTV_EDGE)
-        ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                errmsg("DELETE clause can only delete vertices and edges")));
-
-    return original_entity_value;
 }
 
 /*
