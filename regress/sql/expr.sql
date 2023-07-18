@@ -814,18 +814,18 @@ $$) AS (start_id gtype);
 -- end_id()
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]-() RETURN end_id(e)
-$$) AS (end_id gtype);
+$$) AS (end_id edge);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN end_id(null)
-$$) AS (end_id gtype);
+$$) AS (end_id edge);
 -- should error
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN end_id(v)
-$$) AS (end_id gtype);
+$$) AS (end_id vertex);
 SELECT * FROM cypher('expr', $$
     RETURN end_id()
-$$) AS (end_id gtype);
+$$) AS (end_id edge);
 -- startNode()
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]-() RETURN id(e), start_id(e), startNode(e)

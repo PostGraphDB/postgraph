@@ -277,7 +277,7 @@ SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype
 
 /*
  * test 17:
- * XXX: Incorrect Output. To FIX
+ * TODO
  */
 
 --test query

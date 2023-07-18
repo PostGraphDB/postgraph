@@ -1763,11 +1763,10 @@ $$) AS (id gtype);
 SELECT * FROM cypher('expr', $$
     RETURN id(null)
 $$) AS (id gtype);
- id 
-----
- 
-(1 row)
-
+ERROR:  function postgraph.age_id(gtype) does not exist
+LINE 2:     RETURN id(null)
+                   ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should error
 SELECT * FROM cypher('expr', $$
     RETURN id()
@@ -1792,11 +1791,10 @@ $$) AS (start_id gtype);
 SELECT * FROM cypher('expr', $$
     RETURN start_id(null)
 $$) AS (start_id gtype);
- start_id 
-----------
- 
-(1 row)
-
+ERROR:  function postgraph.age_start_id(gtype) does not exist
+LINE 2:     RETURN start_id(null)
+                   ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should error
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN start_id(v)
@@ -1828,11 +1826,10 @@ $$) AS (end_id gtype);
 SELECT * FROM cypher('expr', $$
     RETURN end_id(null)
 $$) AS (end_id gtype);
- end_id 
---------
- 
-(1 row)
-
+ERROR:  function postgraph.age_end_id(gtype) does not exist
+LINE 2:     RETURN end_id(null)
+                   ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should error
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN end_id(v)
@@ -2002,7 +1999,6 @@ ERROR:  function postgraph.age_label(gtype) does not exist
 LINE 2:     RETURN label({id: 0, label: 'failed', properties: {}})
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
--- timestamp() can't be done as it will always have a different value
 -- size() of a string
 SELECT * FROM cypher('expr', $$
     RETURN size('12345')
@@ -2179,16 +2175,18 @@ $$) AS (properties gtype);
 SELECT * FROM cypher('expr', $$
     RETURN properties(null)
 $$) AS (properties gtype);
- properties 
-------------
- 
-(1 row)
-
+ERROR:  function postgraph.age_properties(gtype) does not exist
+LINE 2:     RETURN properties(null)
+                   ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN properties(1234)
 $$) AS (properties gtype);
-ERROR:  properties() argument must be a vertex or edge
+ERROR:  function postgraph.age_properties(gtype) does not exist
+LINE 2:     RETURN properties(1234)
+                   ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN properties()
 $$) AS (properties gtype);
@@ -2241,11 +2239,10 @@ $$) AS (coalesce gtype);
 SELECT * FROM cypher('expr', $$
     RETURN coalesce(null, id(null), null)
 $$) AS (coalesce gtype);
- coalesce 
-----------
- 
-(1 row)
-
+ERROR:  function postgraph.age_id(gtype) does not exist
+LINE 2:     RETURN coalesce(null, id(null), null)
+                                  ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN coalesce(null)
 $$) AS (coalesce gtype);

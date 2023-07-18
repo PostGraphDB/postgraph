@@ -129,9 +129,6 @@ static bool gtype_extract_scalar(gtype_container *agtc, gtype_value *res);
 static gtype_value *execute_array_access_operator_internal(gtype *array, int64 array_index);
 /* typecast functions */
 static void gtype_typecast_object(gtype_in_state *state, char *annotation);
-/* validation functions */
-static bool is_object_vertex(gtype_value *agtv);
-static bool is_object_edge(gtype_value *agtv);
 /* graph entity retrieval */
 static char *get_label_name(const char *graph_name, int64 label_id);
 static float8 get_float_compatible_arg(Datum arg, Oid type, char *funcname, bool *is_null);
@@ -145,26 +142,7 @@ static Datum process_access_operator_result(FunctionCallInfo fcinfo, gtype_value
 static Datum process_access_operator_result(FunctionCallInfo fcinfo, gtype_value *agtv, bool as_text);
 Datum gtype_array_element_impl(FunctionCallInfo fcinfo, gtype *gtype_in, int element, bool as_text);
 
-// Used to extact properties field from vertices and edges quickly
-static const gtype_value id_key = {
-    .type = AGTV_STRING,
-    .val.string = {2, "id"}
-};
-static const gtype_value start_key = {
-    .type = AGTV_STRING,
-    .val.string = {8, "start_id"}
-};
-static const gtype_value end_key = {
-    .type = AGTV_STRING,
-    .val.string = {6, "end_id"}
-};
-static const gtype_value prop_key = {
-    .type = AGTV_STRING,
-    .val.string = {10, "properties"}
-};
-
 PG_FUNCTION_INFO_V1(gtype_build_map_noargs);
-
 /*              
  * degenerate case of gtype_build_map where it gets 0 arguments.
  */                 
@@ -374,13 +352,6 @@ static void gtype_in_gtype_annotation(void *pstate, char *annotation)
     case AGTV_OBJECT:
         gtype_typecast_object(_state, annotation);
         break;
-
-    /*
-     * Maybe we need to eventually move scalar annotations here. However,
-     * we need to think about how an actual scalar value may be incorporated
-     * into another object. Remember, the scalar is copied in on close, before
-     * we would apply the annotation.
-     */
     default:
         ereport(ERROR,
                 (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
@@ -413,99 +384,10 @@ static void gtype_typecast_object(gtype_in_state *state, char *annotation) {
         last_updated_value = state->parse_state->last_updated_value;
         Assert(last_updated_value != NULL);
         Assert(last_updated_value->type == AGTV_OBJECT);
-    }
-
-    /* otherwise this isn't a supported typecast */
-    else
-    {
+    } else {
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("invalid annotation value for object")));
     }
-}
-
-/* helper function to check if an object fits a vertex */
-static bool is_object_vertex(gtype_value *agtv) {
-    bool has_id = false;
-    bool has_label = false;
-    bool has_properties = false;
-    int i;
-
-    /* we require a valid object */
-    Assert(agtv != NULL);
-    Assert(agtv->type == AGTV_OBJECT);
-
-    /* we need 3 pairs for a vertex */
-    if (agtv->val.object.num_pairs != 3)
-        return false;
-
-    /* iterate through all pairs */
-    for (i = 0; i < agtv->val.object.num_pairs; i++) {
-        gtype_value *key = &agtv->val.object.pairs[i].key;
-        gtype_value *value = &agtv->val.object.pairs[i].value;
-
-        char *key_val = key->val.string.val;
-        int key_len = key->val.string.len;
-
-        Assert(key->type == AGTV_STRING);
-
-        /* check for an id of type integer */
-        if (key_len == 2 && pg_strncasecmp(key_val, "id", key_len) == 0 && value->type == AGTV_INTEGER) {
-            has_id = true;
-        } else if (key_len == 5 && pg_strncasecmp(key_val, "label", key_len) == 0 && value->type == AGTV_STRING) {
-            has_label = true;
-        } else if (key_len == 10 && pg_strncasecmp(key_val, "properties", key_len) == 0 && value->type == AGTV_OBJECT) {
-            has_properties = true;
-        } else {
-            return false;
-        }
-    }
-    return (has_id && has_label && has_properties);
-}
-
-/* helper function to check if an object fits an edge */
-static bool is_object_edge(gtype_value *agtv)
-{
-    bool has_id = false;
-    bool has_label = false;
-    bool has_properties = false;
-    bool has_start_id = false;
-    bool has_end_id = false;
-    int i;
-
-    /* we require a valid object */
-    Assert(agtv != NULL);
-    Assert(agtv->type == AGTV_OBJECT);
-
-    /* we need 5 pairs for an edge */
-    if (agtv->val.object.num_pairs != 5)
-        return false;
-
-    /* iterate through the pairs */
-    for (i = 0; i < agtv->val.object.num_pairs; i++)
-    {
-        gtype_value *key = &agtv->val.object.pairs[i].key;
-        gtype_value *value = &agtv->val.object.pairs[i].value;
-
-        char *key_val = key->val.string.val;
-        int key_len = key->val.string.len;
-
-        Assert(key->type == AGTV_STRING);
-
-        if (key_len == 2 && pg_strncasecmp(key_val, "id", key_len) == 0 && value->type == AGTV_INTEGER) {
-            has_id = true;
-        } else if (key_len == 5 && pg_strncasecmp(key_val, "label", key_len) == 0 && value->type == AGTV_STRING) {
-            has_label = true;
-        } else if (key_len == 10 && pg_strncasecmp(key_val, "properties", key_len) == 0 && value->type == AGTV_OBJECT) {
-            has_properties = true;
-        } else if (key_len == 8 && pg_strncasecmp(key_val, "start_id", key_len) == 0 && value->type == AGTV_INTEGER) {
-            has_start_id = true;
-        } else if (key_len == 6 && pg_strncasecmp(key_val, "end_id", key_len) == 0 && value->type == AGTV_INTEGER) {
-            has_end_id = true;
-        } else {
-            return false;
-        }
-    }
-    return (has_id && has_label && has_properties && has_start_id && has_end_id);
 }
 
 static void gtype_put_array(StringInfo out, gtype_value *scalar_val) {
@@ -603,10 +485,6 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
             appendBinaryStringInfo(out, "true", 4);
         else
             appendBinaryStringInfo(out, "false", 5);
-        break;
-    case AGTV_PARTIAL_PATH:
-        gtype_put_array(out, scalar_val);
-        appendBinaryStringInfo(out, "::partial_path", 6);
         break;
     default:
         elog(ERROR, "unknown gtype scalar type");
@@ -1768,93 +1646,6 @@ static gtype_value *execute_array_access_operator_internal(gtype *array, int64 a
     return get_ith_gtype_value_from_container(&array->root, array_index);
 }
 
-/*
- * Helper function to do a binary search through an object's key/value pairs,
- * looking for a specific key. It will return the key or NULL if not found.
- */
-gtype_value *get_gtype_value_object_value(const gtype_value *agtv_object,
-                                            char *search_key,
-                                            int search_key_length)
-{
-    gtype_value *agtv_key = NULL;
-    int current_key_length = 0;
-    int middle = 0;
-    int num_pairs = 0;
-    int left = 0;
-    int right = 0;
-    int result = 0;
-
-    if (agtv_object == NULL || search_key == NULL || search_key_length <= 0)
-    {
-        return NULL;
-    }
-
-    /* get the number of object pairs */
-    num_pairs = agtv_object->val.object.num_pairs;
-
-    /* do a binary search through the pairs */
-    right = num_pairs - 1;
-    middle = num_pairs / 2;
-
-    /* while middle is within the constraints */
-    while (middle >= left && middle <= right)
-    {
-        /* get the current key length */
-        agtv_key = &agtv_object->val.object.pairs[middle].key;
-        current_key_length = agtv_key->val.string.len;
-
-        /* if not the same length, divide the search space and continue */
-        if (current_key_length != search_key_length)
-        {
-            /* if we need to search in the lower half */
-            if (search_key_length < current_key_length)
-            {
-                middle -= 1;
-                right = middle;
-                middle = ((middle - left) / 2) + left;
-            }
-            /* else we need to search in the upper half */
-            else
-            {
-                middle += 1;
-                left = middle;
-                middle = ((right - middle) / 2) + left;
-            }
-            continue;
-        }
-
-        /* they are the same length so compare the keys */
-        result = strncmp(search_key, agtv_key->val.string.val,
-                         search_key_length);
-
-        /* if they don't match */
-        if (result != 0)
-        {
-            /* if smaller */
-            if (result < 0)
-            {
-                middle -= 1;
-                right = middle;
-                middle = ((middle - left) / 2) + left;
-            }
-            /* if larger */
-            else
-            {
-                middle += 1;
-                left = middle;
-                middle = ((right - middle) / 2) + left;
-            }
-            continue;
-        }
-
-        /* they match */
-        return (&agtv_object->val.object.pairs[middle].value);
-    }
-
-    /* they don't match */
-    return NULL;
-}
-                               
 PG_FUNCTION_INFO_V1(gtype_field_access);
 Datum gtype_field_access(PG_FUNCTION_ARGS)
 {
@@ -1920,21 +1711,10 @@ Datum gtype_object_field_impl(FunctionCallInfo fcinfo, gtype *gtype_in, char *ke
     gtype_container *agtc = &gtype_in->root;
     const gtype_value new_key_value = { .type = AGTV_STRING, .val.string = { key_len, key} };
 
-    if (AGT_IS_EDGE(gtype_in))
-    {
-        gtype_value *agtv =
-            find_gtype_value_from_container((gtype_container *)&gtype_in->root.children[2],
-                                             AGT_FOBJECT, &prop_key);
-
-        agtc = (gtype_container *)agtv->val.binary.data;
-    }
-    else if (!AGT_ROOT_IS_OBJECT(gtype_in))
-    {
+    if (!AGT_ROOT_IS_OBJECT(gtype_in))
         PG_RETURN_NULL();
-    }
 
-    v = find_gtype_value_from_container(agtc, AGT_FOBJECT,
-                                         &new_key_value);
+    v = find_gtype_value_from_container(agtc, AGT_FOBJECT, &new_key_value);
 
     return process_access_operator_result(fcinfo, v, as_text);
 }  
@@ -2346,63 +2126,6 @@ Datum gtype_btree_cmp(PG_FUNCTION_ARGS)
     PG_RETURN_INT16(compare_gtype_containers_orderability(&gtype_lhs->root, &gtype_rhs->root));
 }
 
-PG_FUNCTION_INFO_V1(age_id);
-Datum
-age_id(PG_FUNCTION_ARGS) {
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    
-    if (is_gtype_null(agt))
-        PG_RETURN_NULL();
-    
-    if (!AGT_IS_EDGE(agt)) 
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("properties() argument must be a vertex or edge")));
-    
-    gtype_value *agtv = 
-        find_gtype_value_from_container((gtype_container *)&agt->root.children[2],
-                                         AGT_FOBJECT, &id_key);
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(agtv));
-}
-
-PG_FUNCTION_INFO_V1(age_start_id);
-Datum
-age_start_id(PG_FUNCTION_ARGS) {
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-
-    if (is_gtype_null(agt))
-        PG_RETURN_NULL();
-
-    if (!AGT_IS_EDGE(agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("start_id() argument must be an edge")));
-
-    gtype_value *agtv =
-        find_gtype_value_from_container((gtype_container *)&agt->root.children[2],
-                                         AGT_FOBJECT, &start_key);
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(agtv));
-}
-
-PG_FUNCTION_INFO_V1(age_end_id);
-Datum 
-age_end_id(PG_FUNCTION_ARGS) {
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-
-    if (is_gtype_null(agt))
-        PG_RETURN_NULL();
-
-    if (!AGT_IS_EDGE(agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("end_id() argument must be an edge")));
-
-    gtype_value *agtv =
-        find_gtype_value_from_container((gtype_container *)&agt->root.children[2],
-                                         AGT_FOBJECT, &end_key);
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(agtv));
-}
-
 /*
  * Helper function to return the Datum value of a column (attribute) in a heap
  * tuple (row) given the column number (starting from 0), attribute name, typid,
@@ -2647,29 +2370,6 @@ Datum age_last(PG_FUNCTION_ARGS)
         PG_RETURN_NULL();
 
     PG_RETURN_POINTER(gtype_value_to_gtype(agtv_result));
-}
-
-PG_FUNCTION_INFO_V1(age_properties);
-
-Datum age_properties(PG_FUNCTION_ARGS)
-{
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-
-    if (is_gtype_null(agt))
-        PG_RETURN_NULL();
-
-    if (!AGT_IS_EDGE(agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("properties() argument must be a vertex or edge")));
-
-    gtype_value *agtv =
-        find_gtype_value_from_container((gtype_container *)&agt->root.children[2],
-                                         AGT_FOBJECT, &prop_key);
-
-    Assert(agtv != NULL);
-    Assert(agtv->type == AGTV_OBJECT || agtv->type == AGTV_BINARY);
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(agtv));
 }
 
 PG_FUNCTION_INFO_V1(age_toboolean);

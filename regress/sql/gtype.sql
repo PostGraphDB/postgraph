@@ -394,16 +394,6 @@ SELECT i, pg_typeof(i) FROM (SELECT '{"bool":false, "int":3, "float":3.14}'::gty
 SELECT i, pg_typeof(i) FROM (SELECT '{"bool":false, "int":3, "float":3.14}'::gtype->'"true"'::gtype->2 as i) a;
 
 
-SELECT age_id(gtype_in('1'));
-
-SELECT age_id(NULL);
-SELECT age_start_id(NULL);
-SELECT age_end_id(NULL);
-
-SELECT age_id(gtype_in('null'));
-SELECT age_start_id(gtype_in('null'));
-SELECT age_end_id(gtype_in('null'));
-
 SELECT gtype_contains('{"id": 1}','{"id": 1}');
 SELECT gtype_contains('{"id": 1}','{"id": 2}');
 
