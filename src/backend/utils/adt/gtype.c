@@ -632,11 +632,6 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
     case AGTV_EDGE:
         gtype_put_object(out, scalar_val);  
         appendBinaryStringInfo(out, "::edge", 6);
-        break;
-    case AGTV_PATH:
-        gtype_put_array(out, scalar_val);
-        appendBinaryStringInfo(out, "::path", 6);
-        break;
     case AGTV_PARTIAL_PATH:
         gtype_put_array(out, scalar_val);
         appendBinaryStringInfo(out, "::partial_path", 6);
@@ -1563,198 +1558,7 @@ gtype_value *integer_to_gtype_value(int64 int_value)
     return agtv;
 }
 
-PG_FUNCTION_INFO_V1(_gtype_build_path);
-Datum _gtype_build_path(PG_FUNCTION_ARGS)
-{
-    gtype_in_state result;
-    Datum *args = NULL;
-    bool *nulls = NULL;
-    Oid *types = NULL;
-    int nargs = 0;
-    int i = 0, j = 0;
-    bool is_zero_boundary_case = false;
-
-    /* build argument values to build the object */
-    nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
-
-    if (nargs < 1)
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("paths require at least 1 vertex")));
-
-    if (nargs % 2 == 0)
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("a path is of the form: [vertex, (edge, vertex)*i] where i >= 0")));
-
-    /* initialize the result */
-    memset(&result, 0, sizeof(gtype_in_state));
-
-    /* push in the begining of the gtype array */
-    result.res = push_gtype_value(&result.parse_state, WAGT_BEGIN_ARRAY, NULL);
-
-    /* loop through the path components */
-    for (i = 0; i < nargs; i++)
-    {
-        gtype *agt = NULL;
-
-        if (nulls[i])
-            ereport(ERROR,
-                    (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                     errmsg("argument %d must not be null", i + 1)));
-
-        else if (types[i] == VARIABLEEDGEOID) {
-           VariableEdge *ve = DATUM_GET_VARIABLE_EDGE(args[i]);
-
-           char *ptr = &ve->children[1];
-
-           for (j = 0; j < ve->children[0]; j++, ptr = ptr + VARSIZE(ptr)) {
-                if (j % 2 == 1) { //vertex
-		    vertex *v = (vertex *)ptr;
-                    graphid id = (int64)v->children[0];
-		    char *label = extract_vertex_label(v);
-		    gtype *prop = extract_vertex_properties(v);
-                    gtype *gt = make_vertex(Int64GetDatum(id), CStringGetDatum(label), DirectFunctionCall1(gtype_build_map_noargs, NULL));
-
-		    add_gtype(GTYPE_P_GET_DATUM(gt), false, &result, GTYPEOID, false);
-		} else { //edge
-	            edge *e = (edge *)ptr;
-                    graphid id = (int64)e->children[0];
-                    graphid startid = (int64)e->children[2];
-                    graphid endid = (int64)e->children[4];
-		    char *label = extract_edge_label(e);
-                    gtype *prop = extract_edge_properties(e);
-                    gtype *gt = make_edge(Int64GetDatum(id), Int64GetDatum(startid), Int64GetDatum(endid),
-		   	 	          CStringGetDatum(label), DirectFunctionCall1(gtype_build_map_noargs, NULL));
-
-		    add_gtype(GTYPE_P_GET_DATUM(gt), false, &result, GTYPEOID, false);
-		}
-	   }
-           continue; 
-	}
-	else if (types[i] == GTYPEOID)
-	{
-        agt = DATUM_GET_GTYPE_P(args[i]);
-
-        if (i % 2 == 1 && (AGT_IS_PARTIAL_PATH(agt))) {
-            gtype *agtv_path = agt;
-
-            gtype_iterator *it = NULL;
-            gtype_iterator_token tok;
-            gtype_parse_state *parse_state = NULL;
-            gtype_value *r = NULL;
-            //offset container by the extended type header
-            char *container_base = &agt->root.children[2];
-
-            r = palloc(sizeof(gtype_value));
-
-            it = gtype_iterator_init((gtype_container *)container_base);
-            tok = gtype_iterator_next(&it, r, true);
-            while ((tok = gtype_iterator_next(&it, r, true)) != WAGT_END_ARRAY) {
-                result.res = push_gtype_value(&result.parse_state, tok, tok < WAGT_BEGIN_ARRAY ? r : NULL);
-            }
-
-
-        }
-        else if (i % 2 == 1 && (!AGTE_IS_GTYPE(agt->root.children[0]) || agt->root.children[1] != AGT_HEADER_EDGE))
-        {
-            ereport(ERROR,
-                    (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                     errmsg("paths consist of alternating vertices and edges"),
-                     errhint("argument %d must be an edge", i + 1)));
-        }
-        else if (i % 2 == 0 && (!AGTE_IS_GTYPE(agt->root.children[0]) || agt->root.children[1] != AGT_HEADER_VERTEX))
-        {
-            ereport(ERROR,
-                    (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                     errmsg("paths consist of alternating vertices and edges"),
-                     errhint("argument %d must be an vertex", i + 1)));
-        }
-        else 
-        {
-            add_gtype(GTYPE_P_GET_DATUM(agt), false, &result, types[i], false);
-        }
-	}
-	else
-            ereport(ERROR,
-                    (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                     errmsg("argument %d must be an gtype", i + 1)));
-
-    }
-
-    /* push the end of the array */
-    result.res = push_gtype_value(&result.parse_state, WAGT_END_ARRAY, NULL);
-
-    /* set it to a path type */
-    result.res->type = AGTV_PATH;
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(result.res));
-}
-
-Datum make_path(List *path)
-{
-    ListCell *lc;
-    gtype_in_state result;
-    int i = 1;
-
-    memset(&result, 0, sizeof(gtype_in_state));
-
-    result.res = push_gtype_value(&result.parse_state, WAGT_BEGIN_ARRAY, NULL);
-
-    if (list_length(path) < 1)
-    {
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("paths require at least 1 vertex")));
-    }
-
-    if (list_length(path) % 2 != 1)
-    {
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("a path is of the form: [vertex, (edge, vertex)*i] where i >= 0")));
-    }
-
-
-    foreach (lc, path)
-    {
-        gtype *agt= DATUM_GET_GTYPE_P(PointerGetDatum(lfirst(lc)));
-        gtype_value *elem;
-        elem = get_ith_gtype_value_from_container(&agt->root, 0);
-
-        if (!agt)
-        {
-            ereport(ERROR,
-                    (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                     errmsg("argument must not be null")));
-        }
-        else if (i % 2 == 1 && elem->type != AGTV_VERTEX)
-        {
-            ereport(ERROR,
-                    (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                     errmsg("argument %i must be a vertex", i)));
-        }
-        else if (i % 2 == 0 && elem->type != AGTV_EDGE)
-        {
-            ereport(ERROR,
-                    (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                     errmsg("argument %i must be an edge", i)));
-        }
-
-        add_gtype((Datum)agt, false, &result, GTYPEOID, false);
-
-        i++;
-    }
-
-    result.res = push_gtype_value(&result.parse_state, WAGT_END_ARRAY, NULL);
-
-    result.res->type = AGTV_PATH;
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(result.res));
-}
-
 PG_FUNCTION_INFO_V1(_gtype_build_vertex);
-
 /*
  * SQL function gtype_build_vertex(graphid, cstring, gtype)
  */
@@ -2082,7 +1886,6 @@ static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqlt
         {AGTV_OBJECT, gettext_noop("cannot cast gtype object to type %s")},
         {AGTV_VERTEX, gettext_noop("cannot cast gtype vertex to type %s")},
         {AGTV_EDGE, gettext_noop("cannot cast gtype edge to type %s")},
-        {AGTV_PATH, gettext_noop("cannot cast gtype path to type %s")},
         {AGTV_BINARY,
          gettext_noop("cannot cast gtype array or object to type %s")}};
     int i;
@@ -3203,42 +3006,6 @@ Datum age_properties(PG_FUNCTION_ARGS)
     Assert(agtv->type == AGTV_OBJECT || agtv->type == AGTV_BINARY);
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(agtv));
-}
-
-PG_FUNCTION_INFO_V1(age_length);
-
-Datum age_length(PG_FUNCTION_ARGS)
-{
-    gtype *agt_arg = NULL;
-    gtype_value *agtv_path = NULL;
-    gtype_value agtv_result;
-
-    /* check for null */
-    if (PG_ARGISNULL(0))
-        PG_RETURN_NULL();
-
-    agt_arg = AG_GET_ARG_GTYPE_P(0);
-    /* check for a scalar */
-    if (!AGT_ROOT_IS_SCALAR(agt_arg))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("length() argument must resolve to a scalar")));
-
-    /* get the path array */
-    agtv_path = get_ith_gtype_value_from_container(&agt_arg->root, 0);
-
-    /* if it is AGTV_NULL, return null */
-    if (agtv_path->type == AGTV_NULL)
-        PG_RETURN_NULL();
-
-    /* check for a path */
-    if (agtv_path ->type != AGTV_PATH)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("length() argument must resolve to a path or null")));
-
-    agtv_result.type = AGTV_INTEGER;
-    agtv_result.val.int_value = (agtv_path->val.array.num_elems - 1) /2;
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
 }
 
 PG_FUNCTION_INFO_V1(age_toboolean);
@@ -6003,56 +5770,6 @@ Datum age_keys(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(agtv_result));
 }
 
-PG_FUNCTION_INFO_V1(age_nodes);
-/*
- * Execution function to implement openCypher nodes() function
- */
-Datum age_nodes(PG_FUNCTION_ARGS) {
-    gtype *agt_arg = NULL;
-    gtype_value *agtv_path = NULL;
-    gtype_in_state agis_result;
-    int i = 0;
-
-    /* check for null */
-    if (PG_ARGISNULL(0))
-        PG_RETURN_NULL();
-
-    agt_arg = AG_GET_ARG_GTYPE_P(0);
-    /* check for a scalar object */
-    if (!AGT_ROOT_IS_SCALAR(agt_arg))
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("nodes() argument must resolve to a scalar value")));
-
-    /* get the potential path out of the array */
-    agtv_path = get_ith_gtype_value_from_container(&agt_arg->root, 0);
-
-    /* is it an gtype null? */
-    if (agtv_path->type == AGTV_NULL)
-        PG_RETURN_NULL();
-
-    if (agtv_path->type != AGTV_PATH)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("nodes() argument must be a path")));
-
-    /* clear the result structure */
-    MemSet(&agis_result, 0, sizeof(gtype_in_state));
-
-    /* push the beginning of the array */
-    agis_result.res = push_gtype_value(&agis_result.parse_state,
-                                        WAGT_BEGIN_ARRAY, NULL);
-    /* push in each vertex (every other entry) from the path */
-    for (i = 0; i < agtv_path->val.array.num_elems; i += 2) {
-        agis_result.res = push_gtype_value(&agis_result.parse_state, WAGT_ELEM, &agtv_path->val.array.elems[i]);
-    }
-
-    /* push the end of the array */
-    agis_result.res = push_gtype_value(&agis_result.parse_state, WAGT_END_ARRAY, NULL);
-
-    /* convert the gtype_value to a datum to return to the caller */
-    PG_RETURN_POINTER(gtype_value_to_gtype(agis_result.res));
-}
-
 PG_FUNCTION_INFO_V1(age_labels);
 Datum age_labels(PG_FUNCTION_ARGS)
 {
@@ -6088,49 +5805,6 @@ Datum age_labels(PG_FUNCTION_ARGS)
     agis_result.res = push_gtype_value(&agis_result.parse_state, WAGT_BEGIN_ARRAY, NULL);
 
     agis_result.res = push_gtype_value(&agis_result.parse_state, WAGT_ELEM, agtv_label);
-
-    agis_result.res = push_gtype_value(&agis_result.parse_state, WAGT_END_ARRAY, NULL);
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(agis_result.res));
-}
-
-PG_FUNCTION_INFO_V1(age_relationships);
-/*
- * Execution function to implement openCypher relationships() function
- */
-Datum age_relationships(PG_FUNCTION_ARGS)
-{
-    gtype *agt_arg = NULL;
-    gtype_value *agtv_path = NULL;
-    gtype_in_state agis_result;
-    int i = 0;
-
-    /* check for null */
-    if (PG_ARGISNULL(0))
-        PG_RETURN_NULL();
-
-    agt_arg = AG_GET_ARG_GTYPE_P(0);
-    if (!AGT_ROOT_IS_SCALAR(agt_arg))
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("relationships() argument must resolve to a scalar value")));
-
-    agtv_path = get_ith_gtype_value_from_container(&agt_arg->root, 0);
-
-    if (agtv_path->type == AGTV_NULL)
-        PG_RETURN_NULL();
-
-    if (agtv_path->type != AGTV_PATH)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("relationships() argument must be a path")));
-
-    MemSet(&agis_result, 0, sizeof(gtype_in_state));
-
-    agis_result.res = push_gtype_value(&agis_result.parse_state, WAGT_BEGIN_ARRAY, NULL);
-
-    for (i = 1; i < agtv_path->val.array.num_elems; i += 2) {
-        agis_result.res = push_gtype_value(&agis_result.parse_state, WAGT_ELEM, &agtv_path->val.array.elems[i]);
-    }
 
     agis_result.res = push_gtype_value(&agis_result.parse_state, WAGT_END_ARRAY, NULL);
 
@@ -6317,7 +5991,7 @@ Datum age_unnest(PG_FUNCTION_ARGS)
             bool nulls[1] = {false};
             gtype *val = gtype_value_to_gtype(&v);
 
-            if (block_types && (v.type == AGTV_VERTEX || v.type == AGTV_EDGE || v.type == AGTV_PATH))
+            if (block_types && (v.type == AGTV_VERTEX || v.type == AGTV_EDGE))
                 ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                                 errmsg("UNWIND clause does not support gtype %s",
                                        gtype_value_type_to_string(v.type))));

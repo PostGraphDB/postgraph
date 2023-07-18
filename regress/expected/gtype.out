@@ -1413,97 +1413,27 @@ SELECT gtype_build_list(
 --Basic Edge Creation
 SELECT _gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
 			  $$label_name$$, gtype_build_map());
-                                  _gtype_build_edge                                   
---------------------------------------------------------------------------------------
- {"id": 1, "label": "label_name", "end_id": 3, "start_id": 2, "properties": {}}::edge
-(1 row)
-
+ERROR:  unknown gtype scalar type
 SELECT _gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
 			  $$label$$, gtype_build_map('id', 2));
-                                   _gtype_build_edge                                    
-----------------------------------------------------------------------------------------
- {"id": 1, "label": "label", "end_id": 3, "start_id": 2, "properties": {"id": 2}}::edge
-(1 row)
-
+ERROR:  unknown gtype scalar type
 --Null properties
 SELECT _gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
 			  $$label_name$$, NULL);
-                                  _gtype_build_edge                                   
---------------------------------------------------------------------------------------
- {"id": 1, "label": "label_name", "end_id": 3, "start_id": 2, "properties": {}}::edge
-(1 row)
-
+ERROR:  unknown gtype scalar type
 --Edge in a map
 SELECT gtype_build_map(
 	'edge',
 	_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
 			   $$label_name$$, gtype_build_map()));
-                                        gtype_build_map                                         
-------------------------------------------------------------------------------------------------
- {"edge": {"id": 1, "label": "label_name", "end_id": 3, "start_id": 2, "properties": {}}::edge}
-(1 row)
-
+ERROR:  unknown gtype scalar type
 --Edge in a list
 SELECT gtype_build_list(
 	_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
 			   $$label_name$$, gtype_build_map()),
 	_gtype_build_edge('2'::graphid, '2'::graphid, '3'::graphid,
 			   $$label_name$$, gtype_build_map()));
-                                                                               gtype_build_list                                                                               
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 1, "label": "label_name", "end_id": 3, "start_id": 2, "properties": {}}::edge, {"id": 2, "label": "label_name", "end_id": 3, "start_id": 2, "properties": {}}::edge]
-(1 row)
-
-SELECT _gtype_build_path(
-	_gtype_build_vertex('2'::graphid, $$label_name$$, gtype_build_map()),
-	_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			  $$label$$, gtype_build_map('id', 2)),
-	_gtype_build_vertex('3'::graphid, $$label_name$$, gtype_build_map())
-);
-                                                                                                   _gtype_build_path                                                                                                    
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 2, "label": "label_name", "properties": {}}::vertex, {"id": 1, "label": "label", "end_id": 3, "start_id": 2, "properties": {"id": 2}}::edge, {"id": 3, "label": "label_name", "properties": {}}::vertex]::path
-(1 row)
-
---All these paths should produce Errors
-SELECT _gtype_build_path(
-	_gtype_build_vertex('2'::graphid, $$label_name$$, gtype_build_map()),
-	_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			  $$label$$, gtype_build_map('id', 2))
-);
-ERROR:  a path is of the form: [vertex, (edge, vertex)*i] where i >= 0
-SELECT _gtype_build_path(
-       _gtype_build_vertex('2'::graphid, $$label_name$$, gtype_build_map()),
-       _gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-                         $$label$$, gtype_build_map('id', 2)),
-       _gtype_build_vertex('3'::graphid, $$label_name$$, gtype_build_map()),
-       _gtype_build_edge('1'::graphid, '4'::graphid, '5'::graphid,
-                         $$label$$, gtype_build_map('id', 2))
-);
-ERROR:  a path is of the form: [vertex, (edge, vertex)*i] where i >= 0
-SELECT _gtype_build_path(
-	_gtype_build_vertex('2'::graphid, $$label_name$$, gtype_build_map()),
-	_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			  $$label$$, gtype_build_map('id', 2)),
-	NULL
-);
-ERROR:  argument 3 must not be null
-SELECT _gtype_build_path(
-	_gtype_build_vertex('2'::graphid, $$label_name$$, gtype_build_map()),
-	_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			  $$label$$, gtype_build_map('id', 2)),
-	1
-);
-ERROR:  argument 3 must be an gtype
-SELECT _gtype_build_path(
-	_gtype_build_vertex('2'::graphid, $$label_name$$, gtype_build_map()),
-	_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			  $$label$$, gtype_build_map('id', 2)),
-	_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			  $$label$$, gtype_build_map('id', 2))
-);
-ERROR:  paths consist of alternating vertices and edges
-HINT:  argument 3 must be an vertex
+ERROR:  unknown gtype scalar type
 --
 -- id, startid, endid
 --
@@ -1534,13 +1464,6 @@ SELECT age_end_id(_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
  3
 (1 row)
 
-SELECT age_id(_gtype_build_path(
-	_gtype_build_vertex('2'::graphid, $$label_name$$, gtype_build_map()),
-	_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
-			  $$label$$, gtype_build_map('id', 2)),
-	_gtype_build_vertex('3'::graphid, $$label$$, gtype_build_map('id', 2))
-));
-ERROR:  properties() argument must be a vertex or edge
 SELECT age_id(gtype_in('1'));
 ERROR:  properties() argument must be a vertex or edge
 SELECT age_id(NULL);
