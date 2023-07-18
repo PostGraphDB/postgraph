@@ -32,10 +32,10 @@
 #include <math.h>
 
 #include "access/genam.h"
-#include "access/heapam.h"
-#include "access/skey.h"
-#include "access/table.h"
-#include "access/tableam.h"
+//#include "access/heapam.h"
+//#include "access/skey.h"
+//#include "access/table.h"
+//#include "access/tableam.h"
 #include "access/htup_details.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_collation.h"
@@ -127,7 +127,6 @@ static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqlt
 static bool gtype_extract_scalar(gtype_container *agtc, gtype_value *res);
 static gtype_value *execute_array_access_operator_internal(gtype *array, int64 array_index);
 /* graph entity retrieval */
-static char *get_label_name(const char *graph_name, int64 label_id);
 static float8 get_float_compatible_arg(Datum arg, Oid type, char *funcname, bool *is_null);
 static Numeric get_numeric_compatible_arg(Datum arg, Oid type, char *funcname, bool *is_null, enum gtype_value_type *ag_type);
 gtype *get_one_gtype_from_variadic_args(FunctionCallInfo fcinfo, int variadic_offset, int expected_nargs);
@@ -2095,151 +2094,6 @@ Datum column_get_datum(TupleDesc tupdesc, HeapTuple tuple, int column,
         ereport(ERROR,
                 (errcode(ERRCODE_UNDEFINED_TABLE),
                  errmsg("Attribute was found to be null when null is not allowed.")));
-
-    return result;
-}
-
-/*
- * Function to retrieve a label name, given the graph name and graphid. The
- * function returns a pointer to a duplicated string that needs to be freed
- * when you are finished using it.
- */
-static char *get_label_name(const char *graph_name, int64 label_id)
-{
-    ScanKeyData scan_keys[2];
-    Relation ag_label;
-    SysScanDesc scan_desc;
-    HeapTuple tuple;
-    TupleDesc tupdesc;
-    char *result = NULL;
-    bool column_is_null;
-
-    Oid graph_id = get_graph_oid(graph_name);
-
-    ScanKeyInit(&scan_keys[0], Anum_ag_label_graph, BTEqualStrategyNumber,
-                F_OIDEQ, ObjectIdGetDatum(graph_id));
-    ScanKeyInit(&scan_keys[1], Anum_ag_label_id, BTEqualStrategyNumber,
-                F_INT42EQ, Int32GetDatum(get_graphid_label_id(label_id)));
-
-    ag_label = table_open(ag_label_relation_id(), ShareLock);
-    scan_desc = systable_beginscan(ag_label, ag_label_graph_oid_index_id(), true,
-                                   NULL, 2, scan_keys);
-
-    tuple = systable_getnext(scan_desc);
-    if (!HeapTupleIsValid(tuple))
-    {
-        ereport(ERROR,
-                (errcode(ERRCODE_UNDEFINED_SCHEMA),
-                 errmsg("graphid abc %lu does not exist", label_id)));
-    }
-
-    tupdesc = RelationGetDescr(ag_label);
-
-    if (tupdesc->natts != Natts_ag_label)
-        ereport(ERROR,
-                (errcode(ERRCODE_UNDEFINED_TABLE),
-                 errmsg("Invalid number of attributes for postgraph.ag_label")));
-
-    result = NameStr(*DatumGetName(
-        heap_getattr(tuple, Anum_ag_label_name, tupdesc, &column_is_null)));
-    result = strdup(result);
-
-    systable_endscan(scan_desc);
-    table_close(ag_label, ShareLock);
-
-    return result;
-}
-
-static Datum get_vertex_1(const char *graph, const char *vertex_label, int64 graphid)
-{
-    ScanKeyData scan_keys[1];
-    Relation graph_vertex_label;
-    TableScanDesc scan_desc;
-    HeapTuple tuple;
-    TupleDesc tupdesc;
-    Datum id, properties, result;
-
-    Oid graph_namespace_oid = get_namespace_oid(graph, false);
-    Oid vertex_label_table_oid = get_relname_relid(vertex_label, graph_namespace_oid);
-    Snapshot snapshot = GetActiveSnapshot();
-
-    ScanKeyInit(&scan_keys[0], 1, BTEqualStrategyNumber, F_OIDEQ, Int64GetDatum(graphid));
-
-    graph_vertex_label = table_open(vertex_label_table_oid, ShareLock);
-    scan_desc = table_beginscan(graph_vertex_label, snapshot, 1, scan_keys);
-    tuple = heap_getnext(scan_desc, ForwardScanDirection);
-
-    if (!HeapTupleIsValid(tuple))
-        ereport(ERROR,
-                (errcode(ERRCODE_UNDEFINED_TABLE),
-                 errmsg("graphid cde %lu does not exist", graphid)));
-
-    tupdesc = RelationGetDescr(graph_vertex_label);
-    if (tupdesc->natts != 2)
-        ereport(ERROR,
-                (errcode(ERRCODE_UNDEFINED_TABLE),
-                 errmsg("Invalid number of attributes for %s.%s", graph,
-                        vertex_label )));
-
-    id = column_get_datum(tupdesc, tuple, 0, "id", GRAPHIDOID, true);
-    properties = column_get_datum(tupdesc, tuple, 1, "properties", GTYPEOID, true);
-    /* reconstruct the vertex */
-    result = VERTEX_GET_DATUM(create_vertex(DATUM_GET_GRAPHID(id), vertex_label, DATUM_GET_GTYPE_P(properties)));
-    /* end the scan and close the relation */
-    table_endscan(scan_desc);
-    table_close(graph_vertex_label, ShareLock);
-    /* return the vertex datum */
-    return result;
-}
-
-PG_FUNCTION_INFO_V1(edge_startnode);
-Datum edge_startnode(PG_FUNCTION_ARGS) {
-    gtype *agt_arg = NULL;
-    gtype_value *agtv_object = NULL;
-    gtype_value *agtv_value = NULL;
-    char *graph_name = NULL;
-    char *label_name = NULL;
-    graphid graph_oid;
-    Datum result;
-
-    agt_arg = AG_GET_ARG_GTYPE_P(0);
-    Assert(AGT_ROOT_IS_SCALAR(agt_arg));
-    agtv_object = get_ith_gtype_value_from_container(&agt_arg->root, 0);
-    Assert(agtv_object->type == AGTV_STRING);
-    graph_name = strndup(agtv_object->val.string.val, agtv_object->val.string.len);
-
-    edge *e = AG_GET_ARG_EDGE(1);
-    graph_oid = *((int64 *)(&e->children[2])); 
-
-    label_name = get_label_name(graph_name, graph_oid);
-    Assert(label_name != NULL);
-    result = get_vertex_1(graph_name, label_name, graph_oid);
-
-    return result;
-}
-
-PG_FUNCTION_INFO_V1(edge_endnode);
-Datum edge_endnode(PG_FUNCTION_ARGS) {
-    gtype *agt_arg = NULL;
-    gtype_value *agtv_object = NULL;
-    gtype_value *agtv_value = NULL;
-    char *graph_name = NULL;
-    char *label_name = NULL;
-    graphid graph_oid;
-    Datum result;
-
-    agt_arg = AG_GET_ARG_GTYPE_P(0);
-    Assert(AGT_ROOT_IS_SCALAR(agt_arg));
-    agtv_object = get_ith_gtype_value_from_container(&agt_arg->root, 0);
-    Assert(agtv_object->type == AGTV_STRING);
-    graph_name = strndup(agtv_object->val.string.val, agtv_object->val.string.len);
-
-    edge *e = AG_GET_ARG_EDGE(1);
-    graph_oid = *((int64 *)(&e->children[4]));
-
-    label_name = get_label_name(graph_name, graph_oid);
-    Assert(label_name != NULL);
-    result = get_vertex_1(graph_name, label_name, graph_oid);
 
     return result;
 }

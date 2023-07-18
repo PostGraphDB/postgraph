@@ -22,14 +22,24 @@
 
 #include "postgraph.h"
 
+#include "access/relscan.h"
+#include "access/sdir.h"
+#include "access/skey.h"
+#include "access/table.h"
+#include "access/tableam.h"
 #include "utils/fmgrprotos.h"
+#include "utils/rel.h"
+#include "utils/snapmgr.h"
 #include "utils/varlena.h"
 
+#include "catalog/ag_label.h"
 #include "utils/gtype.h"
 #include "utils/graphid.h"
 #include "utils/edge.h"
+#include "utils/vertex.h"
 
 static void append_to_buffer(StringInfo buffer, const char *data, int len);
+static Datum get_vertex(const char *graph, const char *vertex_label, int64 graphid);
 
 /*
  * I/O routines for vertex type
@@ -270,42 +280,108 @@ edge_label(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
-/*
-PG_FUNCTION_INFO_V1(edge_start_id);
-Datum
-edge_start_id(PG_FUNCTION_ARGS) {
-    edge *e = AG_GET_ARG_EDGE(0);
-
-    AG_RETURN_GRAPHID((graphid)e->children[2]);
-}
-
-
-PG_FUNCTION_INFO_V1(edge_end_id);
-Datum
-edge_end_id(PG_FUNCTION_ARGS) {
-    edge *e = AG_GET_ARG_EDGE(0);
-
-    AG_RETURN_GRAPHID((graphid)e->children[4]);
-}
-
-
-PG_FUNCTION_INFO_V1(edge_label);
-Datum
-edge_label(PG_FUNCTION_ARGS) {
-    edge *e = AG_GET_ARG_EDGE(0);
-    char *label = extract_edge_label(e);
-
-    Datum d = string_to_gtype(label);
-
-    PG_RETURN_DATUM(d);
-}
-*/
 PG_FUNCTION_INFO_V1(edge_properties);
 Datum
 edge_properties(PG_FUNCTION_ARGS) {
     edge *e = AG_GET_ARG_EDGE(0);
 
     AG_RETURN_GTYPE_P(extract_edge_properties(e));
+}
+
+PG_FUNCTION_INFO_V1(edge_startnode);
+Datum edge_startnode(PG_FUNCTION_ARGS) {
+    gtype *agt_arg = NULL;
+    gtype_value *agtv_object = NULL;
+    gtype_value *agtv_value = NULL;
+    char *graph_name = NULL;
+    char *label_name = NULL;
+    graphid graph_oid;
+    Datum result;
+
+    agt_arg = AG_GET_ARG_GTYPE_P(0);
+    Assert(AGT_ROOT_IS_SCALAR(agt_arg));
+    agtv_object = get_ith_gtype_value_from_container(&agt_arg->root, 0);
+    Assert(agtv_object->type == AGTV_STRING);
+    graph_name = strndup(agtv_object->val.string.val, agtv_object->val.string.len);
+
+    edge *e = AG_GET_ARG_EDGE(1);
+    graph_oid = *((int64 *)(&e->children[2]));
+
+    label_name = get_label_name(graph_name, graph_oid);
+    Assert(label_name != NULL);
+    result = get_vertex(graph_name, label_name, graph_oid);
+
+    return result;
+}
+
+
+PG_FUNCTION_INFO_V1(edge_endnode);
+Datum edge_endnode(PG_FUNCTION_ARGS) {
+    gtype *agt_arg = NULL;
+    gtype_value *agtv_object = NULL;
+    gtype_value *agtv_value = NULL;
+    char *graph_name = NULL;
+    char *label_name = NULL;
+    graphid graph_oid;
+    Datum result;
+
+    agt_arg = AG_GET_ARG_GTYPE_P(0);
+    Assert(AGT_ROOT_IS_SCALAR(agt_arg));
+    agtv_object = get_ith_gtype_value_from_container(&agt_arg->root, 0);
+    Assert(agtv_object->type == AGTV_STRING);
+    graph_name = strndup(agtv_object->val.string.val, agtv_object->val.string.len);
+
+    edge *e = AG_GET_ARG_EDGE(1);
+    graph_oid = *((int64 *)(&e->children[4]));
+
+    label_name = get_label_name(graph_name, graph_oid);
+    Assert(label_name != NULL);
+    result = get_vertex(graph_name, label_name, graph_oid);
+
+    return result;
+}
+
+
+static Datum get_vertex(const char *graph, const char *vertex_label, int64 graphid)
+{
+    ScanKeyData scan_keys[1];
+    Relation graph_vertex_label;
+    TableScanDesc scan_desc;
+    HeapTuple tuple;
+    TupleDesc tupdesc;
+    Datum id, properties, result;
+
+    Oid graph_namespace_oid = get_namespace_oid(graph, false);
+    Oid vertex_label_table_oid = get_relname_relid(vertex_label, graph_namespace_oid);
+    Snapshot snapshot = GetActiveSnapshot();
+
+    ScanKeyInit(&scan_keys[0], 1, BTEqualStrategyNumber, F_OIDEQ, Int64GetDatum(graphid));
+
+    graph_vertex_label = table_open(vertex_label_table_oid, ShareLock);
+    scan_desc = table_beginscan(graph_vertex_label, snapshot, 1, scan_keys);
+    tuple = heap_getnext(scan_desc, ForwardScanDirection);
+
+    if (!HeapTupleIsValid(tuple))
+        ereport(ERROR,
+                (errcode(ERRCODE_UNDEFINED_TABLE),
+                 errmsg("graphid cde %lu does not exist", graphid)));
+
+    tupdesc = RelationGetDescr(graph_vertex_label);
+    if (tupdesc->natts != 2)
+        ereport(ERROR,
+                (errcode(ERRCODE_UNDEFINED_TABLE),
+                 errmsg("Invalid number of attributes for %s.%s", graph,
+                        vertex_label )));
+
+    id = column_get_datum(tupdesc, tuple, 0, "id", GRAPHIDOID, true);
+    properties = column_get_datum(tupdesc, tuple, 1, "properties", GTYPEOID, true);
+    /* reconstruct the vertex */
+    result = VERTEX_GET_DATUM(create_vertex(DATUM_GET_GRAPHID(id), vertex_label, DATUM_GET_GTYPE_P(properties)));
+    /* end the scan and close the relation */
+    table_endscan(scan_desc);
+    table_close(graph_vertex_label, ShareLock);
+    /* return the vertex datum */
+    return result;
 }
 
 

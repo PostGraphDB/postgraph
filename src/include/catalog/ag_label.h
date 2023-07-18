@@ -78,7 +78,7 @@ RangeVar *get_label_range_var(char *graph_name, Oid graph_oid,
                               char *label_name);
 
 List *get_all_edge_labels_per_graph(EState *estate, Oid graph_oid);
-
+char *get_label_name(const char *graph_name, int64 label_id);
 #define label_exists(label_name, label_graph) \
     OidIsValid(get_label_id(label_name, label_graph))
 

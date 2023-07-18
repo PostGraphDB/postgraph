@@ -309,3 +309,50 @@ List *get_all_edge_labels_per_graph(EState *estate, Oid graph_oid)
 
     return labels;
 }
+
+char *get_label_name(const char *graph_name, int64 label_id)
+{
+    ScanKeyData scan_keys[2];
+    Relation ag_label;
+    SysScanDesc scan_desc;
+    HeapTuple tuple;
+    TupleDesc tupdesc;
+    char *result = NULL;
+    bool column_is_null;
+
+    Oid graph_id = get_graph_oid(graph_name);
+
+    ScanKeyInit(&scan_keys[0], Anum_ag_label_graph, BTEqualStrategyNumber,
+                F_OIDEQ, ObjectIdGetDatum(graph_id));
+    ScanKeyInit(&scan_keys[1], Anum_ag_label_id, BTEqualStrategyNumber,
+                F_INT42EQ, Int32GetDatum(get_graphid_label_id(label_id)));
+
+    ag_label = table_open(ag_label_relation_id(), ShareLock);
+    scan_desc = systable_beginscan(ag_label, ag_label_graph_oid_index_id(), true,
+                                   NULL, 2, scan_keys);
+
+    tuple = systable_getnext(scan_desc);
+    if (!HeapTupleIsValid(tuple))
+    {
+        ereport(ERROR,
+                (errcode(ERRCODE_UNDEFINED_SCHEMA),
+                 errmsg("graphid abc %lu does not exist", label_id)));
+    }
+
+    tupdesc = RelationGetDescr(ag_label);
+
+    if (tupdesc->natts != Natts_ag_label)
+        ereport(ERROR,
+                (errcode(ERRCODE_UNDEFINED_TABLE),
+                 errmsg("Invalid number of attributes for postgraph.ag_label")));
+
+    result = NameStr(*DatumGetName(
+        heap_getattr(tuple, Anum_ag_label_name, tupdesc, &column_is_null)));
+    result = strdup(result);
+
+    systable_endscan(scan_desc);
+    table_close(ag_label, ShareLock);
+
+    return result;
+}
+
