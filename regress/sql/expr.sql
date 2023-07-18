@@ -856,32 +856,32 @@ $$) AS (endNode vertex);
 SELECT * FROM cypher('expr', $$
     RETURN endNode()
 $$) AS (endNode vertex);
--- type()
+-- type() TODO: Move to other regression files
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]-() RETURN type(e)
-$$) AS (type gtype);
+$$) AS (type edge);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN type(null)
-$$) AS (type gtype);
+$$) AS (type edge);
 -- should error
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN type(v)
-$$) AS (type gtype);
+$$) AS (type vertex);
 SELECT * FROM cypher('expr', $$
     RETURN type()
-$$) AS (type gtype);
+$$) AS (type vertex);
 -- label ()
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN label(v)
-$$) AS (label gtype);
+$$) AS (label vertex);
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]->() RETURN label(e)
-$$) AS (label gtype);
+$$) AS (label edge);
 -- return NULL
 SELECT * FROM cypher('expr', $$
     RETURN label(NULL)
-$$) AS (label gtype);
+$$) AS (label edge);
 SELECT postgraph.age_label(NULL);
 -- should error
 SELECT * FROM cypher('expr', $$
@@ -896,7 +896,6 @@ $$) AS (label gtype);
 SELECT * FROM cypher('expr', $$
     RETURN label({id: 0, label: 'failed', properties: {}})
 $$) AS (label gtype);
--- timestamp() can't be done as it will always have a different value
 -- size() of a string
 SELECT * FROM cypher('expr', $$
     RETURN size('12345')

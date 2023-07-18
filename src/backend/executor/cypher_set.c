@@ -255,13 +255,8 @@ static gtype_value *replace_entity_in_path(gtype_value *path, graphid updated_id
 
         elem = &path->val.array.elems[i];
 
-        // something unexpected happended, throw an error.
-        if (elem->type != AGTV_EDGE)
-            ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                            errmsg("unsupported gtype found in a path")));
-
         // extract the id field
-        id = GET_GTYPE_VALUE_OBJECT_VALUE(elem, "id");
+        id = NULL;//GET_GTYPE_VALUE_OBJECT_VALUE(elem, "id");
 
         /*
          * Either replace or keep the entity in the new path, depending on the id
