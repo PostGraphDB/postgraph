@@ -902,8 +902,6 @@ static Query *transform_cypher_set(cypher_parsestate *cpstate, cypher_clause *cl
     FuncExpr *func_expr;
     char *clause_name;
     int rtindex;
-    ParseNamespaceItem *pnsi;
-
 
     query = makeNode(Query);
     query->commandType = CMD_SELECT;
@@ -925,10 +923,6 @@ static Query *transform_cypher_set(cypher_parsestate *cpstate, cypher_clause *cl
     else
         handle_prev_clause(cpstate, query, clause->prev, true);
 
-/*    Const *null_const = makeNullConst(GTYPEOID, -1, InvalidOid);
-    tle = makeTargetEntry((Expr *)null_const, pstate->p_next_resno++, AGE_VARNAME_CREATE_NULL_VALUE, false);
-    query->targetList = lappend(query->targetList, tle);
-*/
     if (self->is_remove == true)
         set_items_target_list = transform_cypher_remove_item_list(cpstate, self->items, query);
     else
@@ -1877,20 +1871,12 @@ static FuncCall *make_vle_func_call(cypher_parsestate *cpstate,
     A_Indices *ai = (A_Indices *)rel->varlen;
     List *args = NIL;
 
-    Assert(prev_node->name != NULL);
 
     // start node    
-    if (prev_node->name != NULL)
-    {
-        cref = makeNode(ColumnRef);
-        cref->location = -1;
-        cref->fields = list_make1(makeString(prev_node->name));
-        args = lappend(args, cref);
-    }
-    else
-    {
-        args = lappend(args, make_null_const(-1));
-    }
+    cref = makeNode(ColumnRef);
+    cref->location = -1;
+    cref->fields = list_make1(makeString(prev_node->name));
+    args = lappend(args, cref);
 
     //end node
     Assert(next_node->name != NULL);
@@ -2226,10 +2212,8 @@ static FuncCall *prevent_duplicate_edges(cypher_parsestate *cpstate, List *entit
         } else if (entity->type == ENT_VLE_EDGE) {
             ParseNamespaceItem *pnsi;
             pnsi = find_pnsi(cpstate, get_entity_name(entity));
-            Node *node = scanNSItemForColumn(cpstate, pnsi, 0, "edges", -1);
+            Node *node = scanNSItemForColumn((ParseState *)cpstate, pnsi, 0, "edges", -1);
             edges = lappend(edges, node);
-
-            //edges = lappend(edges, entity->expr);
         }
     }
 
@@ -2398,8 +2382,6 @@ static List *join_to_entity(cypher_parsestate *cpstate, transform_entity *entity
             expr = makeSimpleA_Expr(AEXPR_OP, "=", qual, linitial(edge_quals), -1);
 
         quals = lappend(quals, expr);
-    } else if (entity->type == ENT_VLE_EDGE) {;
-       quals = lappend(quals, makeSimpleA_Expr(AEXPR_OP, "!@=", entity->expr, qual, -1));
     } else {
         ereport(ERROR,
                 (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
@@ -3387,8 +3369,7 @@ static bool variable_exists(cypher_parsestate *cpstate, char *name) {
     if (name == NULL)
         return false;
 
-    ParseNamespaceItem *pnsi;
-    pnsi = find_pnsi(cpstate, PREV_CYPHER_CLAUSE_ALIAS);
+    ParseNamespaceItem *pnsi = find_pnsi(cpstate, PREV_CYPHER_CLAUSE_ALIAS);
     if (pnsi) {
         id = scanNSItemForColumn(pstate, pnsi, 0, name, -1);
 

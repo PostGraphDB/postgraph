@@ -1636,17 +1636,6 @@ Datum _gtype_build_path(PG_FUNCTION_ARGS)
 	{
         agt = DATUM_GET_GTYPE_P(args[i]);
 
-        if (i % 2 == 1 && (AGT_ROOT_IS_BINARY(agt) && AGT_ROOT_BINARY_FLAGS(agt) == AGT_FBINARY_TYPE_VLE_PATH)) {
-            gtype_value *agtv_path = agtv_materialize_vle_path(agt);
-            /*
-             * Add in the interior path - excluding the start and end vertices.
-             * The other iterations of the for loop has handled start and will
-             * handle end.
-             */
-            for (int j = 1; j <= agtv_path->val.array.num_elems - 2; j++) {
-                result.res = push_gtype_value(&result.parse_state, WAGT_ELEM, &agtv_path->val.array.elems[j]);
-            }
-        }
         if (i % 2 == 1 && (AGT_IS_PARTIAL_PATH(agt))) {
             gtype *agtv_path = agt;
 
