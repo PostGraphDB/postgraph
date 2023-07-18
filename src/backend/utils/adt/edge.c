@@ -227,6 +227,7 @@ edge_ne(PG_FUNCTION_ARGS) {
 /*
  * Functions
  */
+/*
 PG_FUNCTION_INFO_V1(edge_id);
 Datum
 edge_id(PG_FUNCTION_ARGS) {
@@ -234,10 +235,10 @@ edge_id(PG_FUNCTION_ARGS) {
 
     AG_RETURN_GRAPHID((graphid)e->children[0]);
 }
-
-PG_FUNCTION_INFO_V1(age_edge_id);
+i*/
+PG_FUNCTION_INFO_V1(edge_id);
 Datum
-age_edge_id(PG_FUNCTION_ARGS) {
+edge_id(PG_FUNCTION_ARGS) {
     edge *v = AG_GET_ARG_EDGE(0);
 
     gtype_value gtv = { .type = AGTV_INTEGER, .val = {.int_value = *((int64 *)(&v->children[0])) } };
@@ -245,9 +246,9 @@ age_edge_id(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
-PG_FUNCTION_INFO_V1(age_edge_start_id);
+PG_FUNCTION_INFO_V1(edge_start_id);
 Datum
-age_edge_start_id(PG_FUNCTION_ARGS) {
+edge_start_id(PG_FUNCTION_ARGS) {
     edge *v = AG_GET_ARG_EDGE(0);
 
     gtype_value gtv = { .type = AGTV_INTEGER, .val = {.int_value = *((int64 *)(&v->children[2])) } };
@@ -255,9 +256,9 @@ age_edge_start_id(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
-PG_FUNCTION_INFO_V1(age_edge_end_id);
+PG_FUNCTION_INFO_V1(edge_end_id);
 Datum
-age_edge_end_id(PG_FUNCTION_ARGS) {
+edge_end_id(PG_FUNCTION_ARGS) {
     edge *v = AG_GET_ARG_EDGE(0);
 
     gtype_value gtv = { .type = AGTV_INTEGER, .val = {.int_value = *((int64 *)(&v->children[4])) } };
@@ -265,9 +266,9 @@ age_edge_end_id(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
-PG_FUNCTION_INFO_V1(age_edge_label);
+PG_FUNCTION_INFO_V1(edge_label);
 Datum
-age_edge_label(PG_FUNCTION_ARGS) {
+edge_label(PG_FUNCTION_ARGS) {
     edge *v = AG_GET_ARG_EDGE(0);
 
     gtype_value gtv = {
@@ -278,7 +279,7 @@ age_edge_label(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
-
+/*
 PG_FUNCTION_INFO_V1(edge_start_id);
 Datum
 edge_start_id(PG_FUNCTION_ARGS) {
@@ -307,7 +308,7 @@ edge_label(PG_FUNCTION_ARGS) {
 
     PG_RETURN_DATUM(d);
 }
-
+*/
 PG_FUNCTION_INFO_V1(edge_properties);
 Datum
 edge_properties(PG_FUNCTION_ARGS) {

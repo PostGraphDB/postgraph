@@ -77,7 +77,7 @@ SELECT * FROM cypher('cypher_unwind', $$
     SET a.i = 1
     RETURN a
 $$) as (i gtype);
-ERROR:  function postgraph.age_collect(vertex) does not exist
+ERROR:  function postgraph.collect(vertex) does not exist
 LINE 3:     WITH collect(n_1) as n
                  ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.

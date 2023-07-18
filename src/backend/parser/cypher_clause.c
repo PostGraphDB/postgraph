@@ -808,7 +808,7 @@ static Query *transform_cypher_unwind(cypher_parsestate *cpstate, cypher_clause 
 
     expr = transform_cypher_expr(cpstate, self->target->val, EXPR_KIND_SELECT_TARGET);
 
-    unwind = makeFuncCall(list_make1(makeString("age_unnest")), NIL, COERCE_SQL_SYNTAX, -1);
+    unwind = makeFuncCall(list_make1(makeString("unnest")), NIL, COERCE_SQL_SYNTAX, -1);
 
 
     old_expr_kind = pstate->p_expr_kind;

@@ -683,8 +683,8 @@ SELECT * FROM cypher('expr', $$
 RETURN ([0, {one: 1, pie: 3.1415927, e: 2.718281::numeric}, 2::numeric, null])
 $$) AS r(result gtype);
 -- should return SQL null
-SELECT age_tonumeric('null'::gtype);
-SELECT age_tonumeric(null);
+SELECT tonumeric('null'::gtype);
+SELECT tonumeric(null);
 SELECT * FROM cypher('expr', $$
 RETURN null::numeric
 $$) AS r(result gtype);
@@ -882,7 +882,7 @@ $$) AS (label edge);
 SELECT * FROM cypher('expr', $$
     RETURN label(NULL)
 $$) AS (label edge);
-SELECT postgraph.age_label(NULL);
+SELECT postgraph.label(NULL);
 -- should error
 SELECT * FROM cypher('expr', $$
     MATCH p=()-[]->() RETURN label(p)
@@ -1099,19 +1099,19 @@ $$) AS (toInteger gtype);
 --
 -- toString()
 --
-SELECT * FROM age_toString(gtype_in('3'));
-SELECT * FROM age_toString(gtype_in('3.14'));
-SELECT * FROM age_toString(gtype_in('3.14::float'));
-SELECT * FROM age_toString(gtype_in('3.14::numeric'));
-SELECT * FROM age_toString(gtype_in('true'));
-SELECT * FROM age_toString(gtype_in('false'));
-SELECT * FROM age_toString(gtype_in('"a string"'));
+SELECT * FROM toString(gtype_in('3'));
+SELECT * FROM toString(gtype_in('3.14'));
+SELECT * FROM toString(gtype_in('3.14::float'));
+SELECT * FROM toString(gtype_in('3.14::numeric'));
+SELECT * FROM toString(gtype_in('true'));
+SELECT * FROM toString(gtype_in('false'));
+SELECT * FROM toString(gtype_in('"a string"'));
 SELECT * FROM cypher('expr', $$ RETURN toString(3.14::numeric) $$) AS (results gtype);
 -- should return null
-SELECT * FROM age_toString(NULL);
-SELECT * FROM age_toString(gtype_in(null));
+SELECT * FROM toString(NULL);
+SELECT * FROM toString(gtype_in(null));
 -- should fail
-SELECT * FROM age_toString();
+SELECT * FROM toString();
 SELECT * FROM cypher('expr', $$ RETURN toString() $$) AS (results gtype);
 
 --
@@ -1120,14 +1120,14 @@ SELECT * FROM cypher('expr', $$ RETURN toString() $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN reverse("gnirts a si siht")
 $$) AS (results gtype);
-SELECT * FROM age_reverse('"gnirts a si siht"'::gtype);
+SELECT * FROM reverse('"gnirts a si siht"'::gtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN reverse(null)
 $$) AS (results gtype);
-SELECT * FROM age_reverse(null);
+SELECT * FROM reverse(null);
 -- should return error
-SELECT * FROM age_reverse([4923, 'abc', 521, NULL, 487]);
+SELECT * FROM reverse([4923, 'abc', 521, NULL, 487]);
 -- Should return the reversed list
 SELECT * FROM cypher('expr', $$
     RETURN reverse([4923, 'abc', 521, NULL, 487])
@@ -1161,15 +1161,15 @@ $$) as (u gtype);
 SELECT * FROM cypher('expr', $$
     RETURN reverse(true)
 $$) AS (results gtype);
-SELECT * FROM age_reverse(true);
+SELECT * FROM reverse(true);
 SELECT * FROM cypher('expr', $$
     RETURN reverse(3.14)
 $$) AS (results gtype);
-SELECT * FROM age_reverse(3.14);
+SELECT * FROM reverse(3.14);
 SELECT * FROM cypher('expr', $$
     RETURN reverse()
 $$) AS (results gtype);
-SELECT * FROM age_reverse();
+SELECT * FROM reverse();
 
 --
 -- toUpper() and toLower()
@@ -1190,8 +1190,8 @@ $$) AS (toUpper gtype);
 SELECT * FROM cypher('expr', $$
     RETURN toLower(null)
 $$) AS (toLower gtype);
-SELECT * FROM age_toupper(null);
-SELECT * FROM age_tolower(null);
+SELECT * FROM toupper(null);
+SELECT * FROM tolower(null);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN toUpper(true)
@@ -1205,8 +1205,8 @@ $$) AS (toLower gtype);
 SELECT * FROM cypher('expr', $$
     RETURN toLower()
 $$) AS (toLower gtype);
-SELECT * FROM age_toupper();
-SELECT * FROM age_tolower();
+SELECT * FROM toupper();
+SELECT * FROM tolower();
 
 --
 -- lTrim(), rTrim(), trim()
@@ -1221,9 +1221,9 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN trim("  string   ")
 $$) AS (results gtype);
-SELECT * FROM age_ltrim('"  string   "'::gtype);
-SELECT * FROM age_rtrim('"  string   "'::gtype);
-SELECT * FROM age_trim('"  string   "'::gtype);
+SELECT * FROM ltrim('"  string   "'::gtype);
+SELECT * FROM rtrim('"  string   "'::gtype);
+SELECT * FROM trim('"  string   "'::gtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN lTrim(null)
@@ -1234,9 +1234,9 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN trim(null)
 $$) AS (results gtype);
-SELECT * FROM age_ltrim(null);
-SELECT * FROM age_rtrim(null);
-SELECT * FROM age_trim(null);
+SELECT * FROM ltrim(null);
+SELECT * FROM rtrim(null);
+SELECT * FROM trim(null);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN lTrim(true)
@@ -1257,9 +1257,9 @@ SELECT * FROM cypher('expr', $$
     RETURN trim()
 $$) AS (results gtype);
 
-SELECT * FROM age_ltrim();
-SELECT * FROM age_rtrim();
-SELECT * FROM age_trim();
+SELECT * FROM ltrim();
+SELECT * FROM rtrim();
+SELECT * FROM trim();
 
 --
 -- left(), right(), & substring()
@@ -1280,8 +1280,8 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN left(null, null)
 $$) AS (results gtype);
-SELECT * FROM age_left(null, '1'::gtype);
-SELECT * FROM age_left(null, null);
+SELECT * FROM left(null, '1'::gtype);
+SELECT * FROM left(null, null);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN left("123456789", null)
@@ -1292,9 +1292,9 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN left()
 $$) AS (results gtype);
-SELECT * FROM age_left('123456789', null);
-SELECT * FROM age_left('"123456789"'::gtype, '-1'::gtype);
-SELECT * FROM age_left();
+SELECT * FROM left('123456789', null);
+SELECT * FROM left('"123456789"'::gtype, '-1'::gtype);
+SELECT * FROM left();
 --right()
 SELECT * FROM cypher('expr', $$
     RETURN right("123456789", 1)
@@ -1312,8 +1312,8 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN right(null, null)
 $$) AS (results gtype);
-SELECT * FROM age_right(null, '1'::gtype);
-SELECT * FROM age_right(null, null);
+SELECT * FROM right(null, '1'::gtype);
+SELECT * FROM right(null, null);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN right("123456789", null)
@@ -1324,9 +1324,9 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN right()
 $$) AS (results gtype);
-SELECT * FROM age_right('123456789', null);
-SELECT * FROM age_right('"123456789"'::gtype, '-1'::gtype);
-SELECT * FROM age_right();
+SELECT * FROM right('123456789', null);
+SELECT * FROM right('"123456789"'::gtype, '-1'::gtype);
+SELECT * FROM right();
 -- substring()
 SELECT * FROM cypher('expr', $$
     RETURN substring("0123456789", 0, 1)
@@ -1395,9 +1395,9 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN split(null, ",")
 $$) AS (results gtype);
-SELECT * FROM age_split(null, null);
-SELECT * FROM age_split('"a,b,c,d,e,f"'::gtype, null);
-SELECT * FROM age_split(null, '","'::gtype);
+SELECT * FROM split(null, null);
+SELECT * FROM split('"a,b,c,d,e,f"'::gtype, null);
+SELECT * FROM split(null, '","'::gtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN split(123456789, ",")
@@ -1411,10 +1411,10 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN split()
 $$) AS (results gtype);
-SELECT * FROM age_split('123456789'::gtype, '","'::gtype);
-SELECT * FROM age_split('"a,b,c,d,e,f"'::gtype, '-1'::gtype);
-SELECT * FROM age_split('"a,b,c,d,e,f"'::gtype);
-SELECT * FROM age_split();
+SELECT * FROM split('123456789'::gtype, '","'::gtype);
+SELECT * FROM split('"a,b,c,d,e,f"'::gtype, '-1'::gtype);
+SELECT * FROM split('"a,b,c,d,e,f"'::gtype);
+SELECT * FROM split();
 
 --
 -- replace()
@@ -1498,10 +1498,10 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN cot(null)
 $$) AS (results gtype);
-SELECT * FROM age_sin(null);
-SELECT * FROM age_cos(null);
-SELECT * FROM age_tan(null);
-SELECT * FROM age_cot(null);
+SELECT * FROM sin(null);
+SELECT * FROM cos(null);
+SELECT * FROM tan(null);
+SELECT * FROM cot(null);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN sin("0")
@@ -1527,14 +1527,14 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN cot()
 $$) AS (results gtype);
-SELECT * FROM age_sin('0');
-SELECT * FROM age_cos('0');
-SELECT * FROM age_tan('0');
-SELECT * FROM age_cot('0');
-SELECT * FROM age_sin();
-SELECT * FROM age_cos();
-SELECT * FROM age_tan();
-SELECT * FROM age_cot();
+SELECT * FROM sin('0'::gtype);
+SELECT * FROM cos('0'::gtype);
+SELECT * FROM tan('0'::gtype);
+SELECT * FROM cot('0'::gtype);
+SELECT * FROM sin();
+SELECT * FROM cos();
+SELECT * FROM tan();
+SELECT * FROM cot();
 
 --
 -- Arc functions: asin, acos, atan, & atan2
@@ -1551,10 +1551,10 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN atan2(1, 1)*4
 $$) AS (results gtype);
-SELECT * FROM asin(1), age_asin('1'::gtype);
-SELECT * FROM acos(0), age_acos('0'::gtype);
-SELECT * FROM atan(1), age_atan('1'::gtype);
-SELECT * FROM atan2(1, 1), age_atan2('1'::gtype, '1'::gtype);
+SELECT * FROM asin(1), asin('1'::gtype);
+SELECT * FROM acos(0), acos('0'::gtype);
+SELECT * FROM atan(1), atan('1'::gtype);
+SELECT * FROM atan2(1, 1), atan2('1'::gtype, '1'::gtype);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN asin(1.1)
@@ -1586,12 +1586,12 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN atan2(1, null)
 $$) AS (results gtype);
-SELECT * FROM age_asin(null);
-SELECT * FROM age_acos(null);
-SELECT * FROM age_atan(null);
-SELECT * FROM age_atan2(null, null);
-SELECT * FROM age_atan2('1'::gtype, null);
-SELECT * FROM age_atan2(null, '1'::gtype);
+SELECT * FROM asin(null);
+SELECT * FROM acos(null);
+SELECT * FROM atan(null);
+SELECT * FROM atan2(null, null);
+SELECT * FROM atan2('1'::gtype, null);
+SELECT * FROM atan2(null, '1'::gtype);
 -- should fail
 SELECT * FROM cypher('expr', $$
     RETURN asin("0")
@@ -1623,16 +1623,16 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN atan2(null)
 $$) AS (results gtype);
-SELECT * FROM age_asin('0');
-SELECT * FROM age_acos('0');
-SELECT * FROM age_atan('0');
-SELECT * FROM age_atan2('"0"'::gtype, '1'::gtype);
-SELECT * FROM age_atan2('1'::gtype, '"0"'::gtype);
-SELECT * FROM age_asin();
-SELECT * FROM age_acos();
-SELECT * FROM age_atan();
-SELECT * FROM age_atan2();
-SELECT * FROM age_atan2('1'::gtype);
+SELECT * FROM asin('0'::gtype);
+SELECT * FROM acos('0'::gtype);
+SELECT * FROM atan('0'::gtype);
+SELECT * FROM atan2('"0"'::gtype, '1'::gtype);
+SELECT * FROM atan2('1'::gtype, '"0"'::gtype);
+SELECT * FROM asin();
+SELECT * FROM acos();
+SELECT * FROM atan();
+SELECT * FROM atan2();
+SELECT * FROM atan2('1'::gtype);
 
 --
 -- pi
@@ -2001,24 +2001,24 @@ AS (min gtype, max gtype, count gtype, count_star gtype);
 CREATE TABLE min_max_tbl (id gtype);
 insert into min_max_tbl VALUES ('16'::gtype), ('17188'::gtype), ('1000'::gtype), ('869'::gtype);
 
-SELECT age_min(id), age_max(id) FROM min_max_tbl;
-SELECT age_min(age_tofloat(id)), age_max(age_tofloat(id)) FROM min_max_tbl;
-SELECT age_min(age_tonumeric(id)), age_max(age_tonumeric(id)) FROM min_max_tbl;
-SELECT age_min(age_tostring(id)), age_max(age_tostring(id)) FROM min_max_tbl;
+SELECT min(id), max(id) FROM min_max_tbl;
+SELECT min(tofloat(id)), max(tofloat(id)) FROM min_max_tbl;
+SELECT min(tonumeric(id)), max(tonumeric(id)) FROM min_max_tbl;
+SELECT min(tostring(id)), max(tostring(id)) FROM min_max_tbl;
 
 DROP TABLE min_max_tbl;
 -- should return null
 SELECT * FROM cypher('UCSC', $$ RETURN min(NULL) $$) AS (min gtype);
 SELECT * FROM cypher('UCSC', $$ RETURN max(NULL) $$) AS (max gtype);
-SELECT age_min(NULL);
-SELECT age_min(gtype_in('null'));
-SELECT age_max(NULL);
-SELECT age_max(gtype_in('null'));
+SELECT min(NULL);
+SELECT min(gtype_in('null'));
+SELECT max(NULL);
+SELECT max(gtype_in('null'));
 -- should fail
 SELECT * FROM cypher('UCSC', $$ RETURN min() $$) AS (min gtype);
 SELECT * FROM cypher('UCSC', $$ RETURN max() $$) AS (max gtype);
-SELECT age_min();
-SELECT age_min();
+SELECT min();
+SELECT min();
 --
 -- aggregate functions stDev() & stDevP()
 --

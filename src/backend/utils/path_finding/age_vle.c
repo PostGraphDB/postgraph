@@ -669,8 +669,8 @@ static path_container *build_path_container(path_finding_context *path_ctx) {
  *     6 - gtype REQUIRED edge direction (enum) as an integer. REQUIRED
  
 */
-PG_FUNCTION_INFO_V1(age_vle);
-Datum age_vle(PG_FUNCTION_ARGS) {
+PG_FUNCTION_INFO_V1(gtype_vle);
+Datum gtype_vle(PG_FUNCTION_ARGS) {
     FuncCallContext *funcctx;
     bool found_a_path;
     MemoryContext oldctx;

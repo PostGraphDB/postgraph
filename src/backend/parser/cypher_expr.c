@@ -631,13 +631,13 @@ transform_cypher_typecast(cypher_parsestate *cpstate, cypher_typecast *ctypecast
 
     /* append the name of the requested typecast function */
     if (pg_strcasecmp(ctypecast->typecast, "numeric") == 0)
-        fname = lappend(fname, makeString("age_tonumeric"));
+        fname = lappend(fname, makeString("tonumeric"));
     else if (pg_strcasecmp(ctypecast->typecast, "float") == 0)
-        fname = lappend(fname, makeString("age_tofloat"));
+        fname = lappend(fname, makeString("tofloat"));
     else if (pg_strcasecmp(ctypecast->typecast, "int") == 0 || pg_strcasecmp(ctypecast->typecast, "integer") == 0)
-        fname = lappend(fname, makeString("age_tointeger"));
+        fname = lappend(fname, makeString("tointeger"));
     else if (pg_strcasecmp(ctypecast->typecast, "timestamp") == 0)
-        fname = lappend(fname, makeString("age_totimestamp"));
+        fname = lappend(fname, makeString("totimestamp"));
     else
         ereport(ERROR, (errmsg_internal("typecast \'%s\' not supported", ctypecast->typecast)));
 
@@ -651,11 +651,11 @@ static List *
 make_qualified_function_name(cypher_parsestate *cpstate, List *lst, List *targs) {
     char *name = ((Value*)linitial(lst))->val.str;
     int pnlen = strlen(name);
-    char *ag_name = palloc(pnlen + 5);
+    char *ag_name = palloc(pnlen + 1);
     int i;
         
-    // catalog functions are prefixed with age_
-    strncpy(ag_name, "age_", 4);
+//    // catalog functions are prefixed with age_
+  //  strncpy(ag_name, "age_", 4);
         
     /*
      * change all functions to lower case, this is mostly uncessary, but some
@@ -664,16 +664,16 @@ make_qualified_function_name(cypher_parsestate *cpstate, List *lst, List *targs)
      * easier.
      */ 
     for (i = 0; i < pnlen; i++)
-        ag_name[i + 4] = tolower(name[i]);
+        ag_name[i] = tolower(name[i]);
         
     // Add NULL at the end
-    ag_name[i + 4] = '\0';
+    ag_name[i] = '\0';
 
     // add the catalog schema and create list        
     List *fname = list_make2(makeString(CATALOG_SCHEMA), makeString(ag_name));
 
     // Some functions need the graph name passed to them in order to work
-    if (strcmp("startNode", name) == 0 || strcmp("endNode", name) == 0 || strcmp("vle", name) == 0 || strcmp("vertex_stats", name) == 0) {
+    if (strcmp("startnode", ag_name) == 0 || strcmp("endnode", ag_name) == 0 || strcmp("vle", ag_name) == 0 || strcmp("vertex_stats", ag_name) == 0) {
         char *graph_name = cpstate->graph_name;
         Datum d = string_to_gtype(graph_name);
         Const *c = makeConst(GTYPEOID, -1, InvalidOid, -1, d, false, false);
