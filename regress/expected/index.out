@@ -147,12 +147,9 @@ SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a gtype);
 
 --validate the data
 SELECT * FROM cypher('cypher_index', $$ MATCH(n) RETURN n $$) AS (a gtype);
-                                    a                                    
--------------------------------------------------------------------------
- {"id": 844424930131979, "label": "idx", "properties": {"i": 2}}::vertex
- {"id": 844424930131980, "label": "idx", "properties": {"i": 1}}::vertex
-(2 rows)
-
+ERROR:  cannot cast type vertex to gtype for column "a"
+LINE 1: SELECT * FROM cypher('cypher_index', $$ MATCH(n) RETURN n $$...
+                      ^
 --data cleanup
 SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a gtype);
  a 
@@ -184,20 +181,20 @@ SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a gtype);
 (0 rows)
 
 --validate the data
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) RETURN n $$) AS (a gtype);
-                                    a                                    
--------------------------------------------------------------------------
- {"id": 844424930131981, "label": "idx", "properties": {"i": 2}}::vertex
- {"id": 844424930131982, "label": "idx", "properties": {"i": 1}}::vertex
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) RETURN n $$) AS (a vertex);
+                                a                                
+-----------------------------------------------------------------
+ {"id": 844424930131981, "label": "idx", "properties": {"i": 2}}
+ {"id": 844424930131982, "label": "idx", "properties": {"i": 1}}
 (2 rows)
 
 COMMIT;
 --validate the data again out of the transaction, just in case
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) RETURN n $$) AS (a gtype);
-                                    a                                    
--------------------------------------------------------------------------
- {"id": 844424930131981, "label": "idx", "properties": {"i": 2}}::vertex
- {"id": 844424930131982, "label": "idx", "properties": {"i": 1}}::vertex
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) RETURN n $$) AS (a vertex);
+                                a                                
+-----------------------------------------------------------------
+ {"id": 844424930131981, "label": "idx", "properties": {"i": 2}}
+ {"id": 844424930131982, "label": "idx", "properties": {"i": 1}}
 (2 rows)
 
 --data cleanup
@@ -215,8 +212,8 @@ SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a gtype);
 
 -- Use Merge and force an index error
 SELECT * FROM cypher('cypher_index', $$ MATCH(n) MERGE (n)-[:e]->(:idx {i: n.i}) $$) AS (a gtype);
-ERROR:  duplicate key value violates unique constraint "cypher_index_idx_props_uq"
-DETAIL:  Key (properties)=({"i": 1}) already exists.
+ERROR:  attribute 1 of type record has wrong type
+DETAIL:  Table has type gtype, but query expects vertex.
 --data cleanup
 SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a gtype);
  a 
@@ -263,7 +260,7 @@ SET enable_nestloop = OFF;
 SELECT COUNT(*) FROM cypher('cypher_index', $$
     MATCH (a:Country)<-[e:has_city]-()
     RETURN e
-$$) as (n gtype);
+$$) as (n edge);
  count 
 -------
     10
@@ -275,7 +272,7 @@ SET enable_nestloop = OFF;
 SELECT COUNT(*) FROM cypher('cypher_index', $$
     MATCH (a:Country)<-[e:has_city]-()
     RETURN e
-$$) as (n gtype);
+$$) as (n edge);
  count 
 -------
     10
@@ -287,7 +284,7 @@ SET enable_nestloop = ON;
 SELECT COUNT(*) FROM cypher('cypher_index', $$
     MATCH (a:Country)<-[e:has_city]-()
     RETURN e
-$$) as (n gtype);
+$$) as (n edge);
  count 
 -------
     10
@@ -306,52 +303,52 @@ ON cypher_index."Country" USING gin (properties);
 SELECT * FROM cypher('cypher_index', $$
     MATCH (c:City {city_id: 1})
     RETURN c
-$$) as (n gtype);
-                                                                       n                                                                        
-------------------------------------------------------------------------------------------------------------------------------------------------
- {"id": 1970324836974593, "label": "City", "properties": {"name": "New York", "city_id": 1, "west_coast": false, "country_code": "US"}}::vertex
+$$) as (n vertex);
+                                                                   n                                                                    
+----------------------------------------------------------------------------------------------------------------------------------------
+ {"id": 1970324836974593, "label": "City", "properties": {"name": "New York", "city_id": 1, "west_coast": false, "country_code": "US"}}
 (1 row)
 
 SELECT * FROM cypher('cypher_index', $$
     MATCH (:Country {country_code: "US"})<-[]-(city:City)
     RETURN city
-$$) as (n gtype);
-                                                                         n                                                                          
-----------------------------------------------------------------------------------------------------------------------------------------------------
- {"id": 1970324836974593, "label": "City", "properties": {"name": "New York", "city_id": 1, "west_coast": false, "country_code": "US"}}::vertex
- {"id": 1970324836974594, "label": "City", "properties": {"name": "San Fransisco", "city_id": 2, "west_coast": true, "country_code": "US"}}::vertex
- {"id": 1970324836974595, "label": "City", "properties": {"name": "Los Angeles", "city_id": 3, "west_coast": true, "country_code": "US"}}::vertex
- {"id": 1970324836974596, "label": "City", "properties": {"name": "Seattle", "city_id": 4, "west_coast": true, "country_code": "US"}}::vertex
+$$) as (n vertex);
+                                                                     n                                                                      
+--------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": 1970324836974593, "label": "City", "properties": {"name": "New York", "city_id": 1, "west_coast": false, "country_code": "US"}}
+ {"id": 1970324836974594, "label": "City", "properties": {"name": "San Fransisco", "city_id": 2, "west_coast": true, "country_code": "US"}}
+ {"id": 1970324836974595, "label": "City", "properties": {"name": "Los Angeles", "city_id": 3, "west_coast": true, "country_code": "US"}}
+ {"id": 1970324836974596, "label": "City", "properties": {"name": "Seattle", "city_id": 4, "west_coast": true, "country_code": "US"}}
 (4 rows)
 
 SELECT * FROM cypher('cypher_index', $$
     MATCH (c:City {west_coast: true})
     RETURN c
-$$) as (n gtype);
-                                                                         n                                                                          
-----------------------------------------------------------------------------------------------------------------------------------------------------
- {"id": 1970324836974594, "label": "City", "properties": {"name": "San Fransisco", "city_id": 2, "west_coast": true, "country_code": "US"}}::vertex
- {"id": 1970324836974595, "label": "City", "properties": {"name": "Los Angeles", "city_id": 3, "west_coast": true, "country_code": "US"}}::vertex
- {"id": 1970324836974596, "label": "City", "properties": {"name": "Seattle", "city_id": 4, "west_coast": true, "country_code": "US"}}::vertex
- {"id": 1970324836974597, "label": "City", "properties": {"name": "Vancouver", "city_id": 5, "west_coast": true, "country_code": "CA"}}::vertex
+$$) as (n vertex);
+                                                                     n                                                                      
+--------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": 1970324836974594, "label": "City", "properties": {"name": "San Fransisco", "city_id": 2, "west_coast": true, "country_code": "US"}}
+ {"id": 1970324836974595, "label": "City", "properties": {"name": "Los Angeles", "city_id": 3, "west_coast": true, "country_code": "US"}}
+ {"id": 1970324836974596, "label": "City", "properties": {"name": "Seattle", "city_id": 4, "west_coast": true, "country_code": "US"}}
+ {"id": 1970324836974597, "label": "City", "properties": {"name": "Vancouver", "city_id": 5, "west_coast": true, "country_code": "CA"}}
 (4 rows)
 
 SELECT * FROM cypher('cypher_index', $$
     MATCH (c:Country {life_expectancy: 82.05})
     RETURN c
-$$) as (n gtype);
-                                                                               n                                                                               
----------------------------------------------------------------------------------------------------------------------------------------------------------------
- {"id": 1407374883553282, "label": "Country", "properties": {"gdp": 1.643::numeric, "name": "Canada", "country_code": "CA", "life_expectancy": 82.05}}::vertex
+$$) as (n vertex);
+                                                                           n                                                                           
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": 1407374883553282, "label": "Country", "properties": {"gdp": 1.643::numeric, "name": "Canada", "country_code": "CA", "life_expectancy": 82.05}}
 (1 row)
 
 SELECT * FROM cypher('cypher_index', $$
     MATCH (c:Country {gdp: 20.94::numeric})
     RETURN c
-$$) as (n gtype);
-                                                                                  n                                                                                   
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
- {"id": 1407374883553281, "label": "Country", "properties": {"gdp": 20.94::numeric, "name": "United States", "country_code": "US", "life_expectancy": 78.79}}::vertex
+$$) as (n vertex);
+                                                                              n                                                                               
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": 1407374883553281, "label": "Country", "properties": {"gdp": 20.94::numeric, "name": "United States", "country_code": "US", "life_expectancy": 78.79}}
 (1 row)
 
 DROP INDEX cypher_index.load_city_gin_idx;
@@ -363,7 +360,7 @@ SELECT COUNT(*) FROM cypher('cypher_index', $$
     MATCH (a:City)
     WHERE a.country_code = 'RS'
     RETURN a
-$$) as (n gtype);
+$$) as (n vertex);
  count 
 -------
      0
@@ -374,7 +371,7 @@ SELECT COUNT(*) FROM cypher('cypher_index', $$
     MATCH (a:City)
     WHERE a.country_code = 'RS'
     RETURN a
-$$) as (n gtype);
+$$) as (n vertex);
  count 
 -------
      0

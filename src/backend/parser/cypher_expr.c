@@ -294,12 +294,12 @@ transform_column_ref(cypher_parsestate *cpstate, ColumnRef *cref) {
 
                 /* coerce it to GTYPE if possible */
                 inputTypeId = exprType(node);
-                targetTypeId = GTYPEOID;
+                /*targetTypeId = GTYPEOID;
 
                 if (can_coerce_type(1, &inputTypeId, &targetTypeId, COERCION_EXPLICIT)) {
                     node = coerce_type(pstate, node, inputTypeId, targetTypeId,
                                        -1, COERCION_EXPLICIT, COERCE_EXPLICIT_CAST, -1);
-                }
+                }*/
                 break;
             }
         default:

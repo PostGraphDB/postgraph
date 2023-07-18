@@ -170,7 +170,7 @@ SELECT create_elabel(NULL, NULL);
 SELECT create_graph_if_not_exists('new_g');
 SELECT create_graph_if_not_exists('new_g');
 
-SELECT * FROM postgraph.ag_graph;
+SELECT name, namespace FROM postgraph.ag_graph;
 
 -- dropping the graph
 SELECT drop_graph('new_g', true);

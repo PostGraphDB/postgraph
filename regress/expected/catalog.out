@@ -405,11 +405,11 @@ SELECT create_graph_if_not_exists('new_g');
  
 (1 row)
 
-SELECT * FROM postgraph.ag_graph;
- graphid | name  | namespace 
----------+-------+-----------
-   17269 | g     | g
-   17309 | new_g | new_g
+SELECT name, namespace FROM postgraph.ag_graph;
+ name  | namespace 
+-------+-----------
+ g     | g
+ new_g | new_g
 (2 rows)
 
 -- dropping the graph

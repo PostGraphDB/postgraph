@@ -30,8 +30,6 @@
 #include "utils/vertex.h"
 
 static void append_to_buffer(StringInfo buffer, const char *data, int len);
-static gtype *extract_properties(vertex *v);
-static char *extract_label(vertex *v);
 
 /*
  * I/O routines for vertex type
@@ -50,15 +48,16 @@ Datum vertex_out(PG_FUNCTION_ARGS) {
 
     // id
     appendStringInfoString(str, "{\"id\": ");
-    appendStringInfoString(str, DatumGetCString(DirectFunctionCall1(int8out, Int64GetDatum((int64)v->children[0]))));
+    graphid id = *((int64 *)(&v->children[0]));
+    appendStringInfoString(str, DatumGetCString(DirectFunctionCall1(int8out, Int64GetDatum(id))));
 
     // label
     appendStringInfoString(str, ", \"label\": \"");
-    appendStringInfoString(str, extract_label(v));
+    appendStringInfoString(str, extract_vertex_label(v));
 
     // properties
     appendStringInfoString(str, "\", \"properties\": ");
-    gtype *agt = extract_properties(v);
+    gtype *agt = extract_vertex_properties(v);
     gtype_to_cstring(str, &agt->root, 0);
 
 
@@ -71,17 +70,17 @@ void append_vertex_to_string(StringInfoData *buffer, vertex *v){
 
     // id
     appendStringInfoString(buffer, "{\"id\": ");
-    appendStringInfoString(buffer, DatumGetCString(DirectFunctionCall1(int8out, Int64GetDatum((int64)v->children[0]))));
+    graphid id = *((int64 *)(&v->children[0]));
+    appendStringInfoString(buffer, DatumGetCString(DirectFunctionCall1(int8out, Int64GetDatum(id))));
 
     // label
     appendStringInfoString(buffer, ", \"label\": \"");
-    appendStringInfoString(buffer, extract_label(v));
+    appendStringInfoString(buffer, extract_vertex_label(v));
 
     // properties
     appendStringInfoString(buffer, "\", \"properties\": ");
-    gtype *agt = extract_properties(v);
+    gtype *agt = extract_vertex_properties(v);
     gtype_to_cstring(buffer, &agt->root, 0);
-
 
     appendStringInfoString(buffer, "}");
 
@@ -120,7 +119,56 @@ build_vertex(PG_FUNCTION_ARGS) {
 
     AG_RETURN_VERTEX(v);
 }
-       
+  
+vertex *
+create_vertex(graphid id, char *label, gtype *properties) {
+    StringInfoData buffer;
+    initStringInfo(&buffer);
+
+    // header
+    reserve_from_buffer(&buffer, VARHDRSZ);
+
+    // id
+    append_to_buffer(&buffer, (char *)&id, sizeof(graphid));
+
+    // label
+    int len = strlen(label);
+    append_to_buffer(&buffer, (char *)&len, sizeof(agtentry));
+    append_to_buffer(&buffer, label, len);
+
+    // properties
+    append_to_buffer(&buffer, properties, VARSIZE(properties));
+
+    vertex *v = (vertex *)buffer.data;
+
+    SET_VARSIZE(v, buffer.len);
+
+    return v;
+}
+
+
+/*
+ * Equality Operators (=, <>)
+ */
+PG_FUNCTION_INFO_V1(vertex_eq);
+Datum
+vertex_eq(PG_FUNCTION_ARGS) {
+    vertex *lhs = AG_GET_ARG_VERTEX(0);
+    vertex *rhs = AG_GET_ARG_VERTEX(1);
+
+    PG_RETURN_BOOL((int64)lhs->children[0] == (int64)rhs->children[0]);
+}
+
+PG_FUNCTION_INFO_V1(vertex_ne);
+Datum
+vertex_ne(PG_FUNCTION_ARGS) {
+    vertex *lhs = AG_GET_ARG_VERTEX(0);
+    vertex *rhs = AG_GET_ARG_VERTEX(1);
+
+    PG_RETURN_BOOL((int64)lhs->children[0] != (int64)rhs->children[0]);
+}
+
+
 /*
  * Operators
  *
@@ -132,18 +180,42 @@ PG_FUNCTION_INFO_V1(vertex_property_access);
 Datum
 vertex_property_access(PG_FUNCTION_ARGS) {
     vertex *v = AG_GET_ARG_VERTEX(0);
-    gtype *agt = extract_properties(v);
+    gtype *agt = extract_vertex_properties(v);
     text *key = PG_GETARG_TEXT_PP(1);
                                              
     AG_RETURN_GTYPE_P(gtype_object_field_impl(fcinfo, agt, VARDATA_ANY(key), VARSIZE_ANY_EXHDR(key), false));
 }
+
+// -> operator
+PG_FUNCTION_INFO_V1(vertex_property_access_gtype);
+Datum
+vertex_property_access_gtype(PG_FUNCTION_ARGS) {
+    vertex *v = AG_GET_ARG_VERTEX(0);
+    gtype *agt = extract_vertex_properties(v);
+    gtype *key = AG_GET_ARG_GTYPE_P(1);
+    gtype_value *key_value;
+
+    if (!AGT_ROOT_IS_SCALAR(key))
+        PG_RETURN_NULL();
+    
+    key_value = get_ith_gtype_value_from_container(&key->root, 0);
+    
+    if (key_value->type == AGTV_INTEGER)
+        AG_RETURN_GTYPE_P(gtype_array_element_impl(fcinfo, agt, key_value->val.int_value, false));
+    else if (key_value->type == AGTV_STRING)
+        AG_RETURN_GTYPE_P(gtype_object_field_impl(fcinfo, agt, key_value->val.string.val, 
+                                                    key_value->val.string.len, false));
+    else
+        PG_RETURN_NULL();
+}
+
 
 // ->> operator
 PG_FUNCTION_INFO_V1(vertex_property_access_text);
 Datum
 vertex_property_access_text(PG_FUNCTION_ARGS) {
     vertex *v = AG_GET_ARG_VERTEX(0);
-    gtype *agt = extract_properties(v);
+    gtype *agt = extract_vertex_properties(v);
     text *key = PG_GETARG_TEXT_PP(1);
                                              
     AG_RETURN_GTYPE_P(gtype_object_field_impl(fcinfo, agt, VARDATA_ANY(key), VARSIZE_ANY_EXHDR(key), true));
@@ -154,7 +226,7 @@ PG_FUNCTION_INFO_V1(vertex_contains);
 Datum 
 vertex_contains(PG_FUNCTION_ARGS) {                                    
     vertex *v = AG_GET_ARG_VERTEX(0);                                 
-    gtype *properties = extract_properties(v);
+    gtype *properties = extract_vertex_properties(v);
     gtype *constraints = AG_GET_ARG_GTYPE_P(1);
 
     gtype_iterator *constraint_it = gtype_iterator_init(&constraints->root);
@@ -169,7 +241,7 @@ PG_FUNCTION_INFO_V1(vertex_contained_by);
 Datum 
 vertex_contained_by(PG_FUNCTION_ARGS) {
     vertex *v = AG_GET_ARG_VERTEX(1);
-    gtype *properties = extract_properties(v);
+    gtype *properties = extract_vertex_properties(v);
     gtype *constraints = AG_GET_ARG_GTYPE_P(0);
 
     gtype_iterator *constraint_it = gtype_iterator_init(&constraints->root);
@@ -183,7 +255,7 @@ PG_FUNCTION_INFO_V1(vertex_exists);
 Datum
 vertex_exists(PG_FUNCTION_ARGS) {
     vertex *v = AG_GET_ARG_VERTEX(0);
-    gtype *agt = extract_properties(v);
+    gtype *agt = extract_vertex_properties(v);
     text *key = PG_GETARG_TEXT_PP(1);
 
     /*
@@ -204,7 +276,7 @@ PG_FUNCTION_INFO_V1(vertex_exists_any);
 Datum
 vertex_exists_any(PG_FUNCTION_ARGS) {
     vertex *v = AG_GET_ARG_VERTEX(0);
-    gtype *agt = extract_properties(v);
+    gtype *agt = extract_vertex_properties(v);
     ArrayType *keys = PG_GETARG_ARRAYTYPE_P(1);
     Datum *key_datums;
     bool *key_nulls;
@@ -230,7 +302,7 @@ PG_FUNCTION_INFO_V1(vertex_exists_all);
 Datum
 vertex_exists_all(PG_FUNCTION_ARGS) {
     vertex *v = AG_GET_ARG_VERTEX(0);
-    gtype *agt = extract_properties(v);
+    gtype *agt = extract_vertex_properties(v);
     ArrayType *keys = PG_GETARG_ARRAYTYPE_P(1);
     Datum *key_datums;
     bool *key_nulls;
@@ -263,11 +335,22 @@ vertex_id(PG_FUNCTION_ARGS) {
     AG_RETURN_GRAPHID((graphid)v->children[0]);
 }
 
+PG_FUNCTION_INFO_V1(age_vertex_id);
+Datum
+age_vertex_id(PG_FUNCTION_ARGS) {
+    vertex *v = AG_GET_ARG_VERTEX(0);
+
+    gtype_value gtv = { .type = AGTV_INTEGER, .val = {.int_value = *((int64 *)(&v->children[0])) } };    
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+
 PG_FUNCTION_INFO_V1(vertex_label);
 Datum
 vertex_label(PG_FUNCTION_ARGS) {
     vertex *v = AG_GET_ARG_VERTEX(0);
-    char *label = extract_label(v);
+    char *label = extract_vertex_label(v);
 
     Datum d = string_to_gtype(label);
 
@@ -279,9 +362,21 @@ Datum
 vertex_properties(PG_FUNCTION_ARGS) {
     vertex *v = AG_GET_ARG_VERTEX(0);
 
-    AG_RETURN_GTYPE_P(extract_properties(v));
+    AG_RETURN_GTYPE_P(extract_vertex_properties(v));
 }
 
+PG_FUNCTION_INFO_V1(age_vertex_label);
+Datum
+age_vertex_label(PG_FUNCTION_ARGS) {
+    vertex *v = AG_GET_ARG_VERTEX(0);
+
+    gtype_value gtv = {
+            .type = AGTV_STRING,
+            .val.string = { extract_vertex_label_length(v), extract_vertex_label(v) }
+            };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
 
 
 static void
@@ -290,8 +385,8 @@ append_to_buffer(StringInfo buffer, const char *data, int len) {
     memcpy(buffer->data + offset, data, len);
 }
 
-static char *
-extract_label(vertex *v) {
+char *
+extract_vertex_label(vertex *v) {
     char *bytes = (char *)v;
     char *label_addr = &bytes[VARHDRSZ + sizeof(graphid) + sizeof(agtentry)];
     int *label_length = (int *)&bytes[VARHDRSZ + sizeof(graphid)];
@@ -299,8 +394,16 @@ extract_label(vertex *v) {
     return pnstrdup(label_addr, *label_length);
 }
 
-static gtype *
-extract_properties(vertex *v) {
+int
+extract_vertex_label_length(vertex *v) {
+    char *bytes = (char *)v;
+    int *label_length = (int *)&bytes[VARHDRSZ + ( sizeof(graphid))];
+
+    return *label_length;
+}
+
+gtype *
+extract_vertex_properties(vertex *v) {
     char *bytes = (char *)v;
     int *label_length = (int *)&bytes[VARHDRSZ + sizeof(graphid)];
 

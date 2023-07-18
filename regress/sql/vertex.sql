@@ -34,7 +34,17 @@ SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2));
 SELECT build_vertex('1'::graphid, $$label_name$$, NULL);
 SELECT build_vertex('1'::graphid, $$label$$, gtype_build_list());
 
+SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map()) =
+       build_vertex('1'::graphid, $$label$$, gtype_build_map());
 
+SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map()) =
+       build_vertex('2'::graphid, $$label$$, gtype_build_map());
+
+SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map()) <>
+       build_vertex('1'::graphid, $$label$$, gtype_build_map());
+
+SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map()) <>
+       build_vertex('2'::graphid, $$label$$, gtype_build_map());
 --
 -- id function
 --

@@ -32,18 +32,12 @@ transform_entity *make_transform_entity(cypher_parsestate *cpstate,
 
     entity->type = type;
     if (type == ENT_VERTEX)
-    {
         entity->entity.node = (cypher_node *)node;
-    }
     else if (entity->type == ENT_EDGE || entity->type == ENT_VLE_EDGE)
-    {
         entity->entity.rel = (cypher_relationship *)node;
-    }
     else
-    {
         ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
                         errmsg("unknown entity type")));
-    }
 
     entity->declared_in_current_clause = true;
     entity->expr = expr;
@@ -51,6 +45,27 @@ transform_entity *make_transform_entity(cypher_parsestate *cpstate,
 
     return entity;
 }
+
+enum transform_entity_type find_transform_entity_type(cypher_parsestate *cpstate, char *name)
+{
+    ListCell *lc;
+
+    foreach(lc, cpstate->entities)
+    {
+        transform_entity *entity = lfirst(lc);
+
+        if (entity->type == ENT_VERTEX && entity->entity.node->name != NULL && !strcmp(entity->entity.node->name, name))
+                return ENT_VERTEX;
+        else if (entity->type == ENT_EDGE && entity->entity.node->name != NULL && !strcmp(entity->entity.rel->name, name))
+                return ENT_EDGE;
+        else if (entity->type == ENT_VLE_EDGE && entity->entity.node->name != NULL && !strcmp(entity->entity.rel->name, name))
+                return ENT_VLE_EDGE;
+
+    }
+
+    return -1;
+}
+
 
 /*
  * Finds the transform_entity in the cypher_parstate for a the given name and
@@ -66,24 +81,16 @@ transform_entity *find_transform_entity(cypher_parsestate *cpstate,
     {
         transform_entity *entity = lfirst(lc);
 
-        if (entity->type != type)
-        {
-            continue;
-        }
 
-        if (type == ENT_VERTEX)
+        if (type == ENT_VERTEX  && entity->entity.node->name)
         {
             if (!strcmp(entity->entity.node->name, name))
-            {
                 return entity;
-            }
         }
         else if (type == ENT_EDGE || type == ENT_VLE_EDGE)
         {
-            if (!strcmp(entity->entity.rel->name, name))
-            {
+            if (entity->entity.node->name && !strcmp(entity->entity.rel->name, name))
                 return entity;
-            }
         }
     }
 

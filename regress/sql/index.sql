@@ -105,12 +105,12 @@ SELECT * FROM cypher('cypher_index', $$ MATCH(n) SET n.i = 2 $$) AS (a gtype);
 SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a gtype);
 
 --validate the data
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) RETURN n $$) AS (a gtype);
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) RETURN n $$) AS (a vertex);
 
 COMMIT;
 
 --validate the data again out of the transaction, just in case
-SELECT * FROM cypher('cypher_index', $$ MATCH(n) RETURN n $$) AS (a gtype);
+SELECT * FROM cypher('cypher_index', $$ MATCH(n) RETURN n $$) AS (a vertex);
 
 --data cleanup
 SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a gtype);
@@ -173,7 +173,7 @@ SET enable_nestloop = OFF;
 SELECT COUNT(*) FROM cypher('cypher_index', $$
     MATCH (a:Country)<-[e:has_city]-()
     RETURN e
-$$) as (n gtype);
+$$) as (n edge);
 
 SET enable_mergejoin = OFF;
 SET enable_hashjoin = ON;
@@ -182,7 +182,7 @@ SET enable_nestloop = OFF;
 SELECT COUNT(*) FROM cypher('cypher_index', $$
     MATCH (a:Country)<-[e:has_city]-()
     RETURN e
-$$) as (n gtype);
+$$) as (n edge);
 
 SET enable_mergejoin = OFF;
 SET enable_hashjoin = OFF;
@@ -191,7 +191,7 @@ SET enable_nestloop = ON;
 SELECT COUNT(*) FROM cypher('cypher_index', $$
     MATCH (a:Country)<-[e:has_city]-()
     RETURN e
-$$) as (n gtype);
+$$) as (n edge);
 
 SET enable_mergejoin = ON;
 SET enable_hashjoin = ON;
@@ -210,27 +210,27 @@ ON cypher_index."Country" USING gin (properties);
 SELECT * FROM cypher('cypher_index', $$
     MATCH (c:City {city_id: 1})
     RETURN c
-$$) as (n gtype);
+$$) as (n vertex);
 
 SELECT * FROM cypher('cypher_index', $$
     MATCH (:Country {country_code: "US"})<-[]-(city:City)
     RETURN city
-$$) as (n gtype);
+$$) as (n vertex);
 
 SELECT * FROM cypher('cypher_index', $$
     MATCH (c:City {west_coast: true})
     RETURN c
-$$) as (n gtype);
+$$) as (n vertex);
 
 SELECT * FROM cypher('cypher_index', $$
     MATCH (c:Country {life_expectancy: 82.05})
     RETURN c
-$$) as (n gtype);
+$$) as (n vertex);
 
 SELECT * FROM cypher('cypher_index', $$
     MATCH (c:Country {gdp: 20.94::numeric})
     RETURN c
-$$) as (n gtype);
+$$) as (n vertex);
 
 DROP INDEX cypher_index.load_city_gin_idx;
 DROP INDEX cypher_index.load_country_gin_idx;
@@ -241,7 +241,7 @@ SELECT COUNT(*) FROM cypher('cypher_index', $$
     MATCH (a:City)
     WHERE a.country_code = 'RS'
     RETURN a
-$$) as (n gtype);
+$$) as (n vertex);
 
 CREATE INDEX CONCURRENTLY cntry_ode_idx ON cypher_index."City" ((properties->'"country_code"'::gtype));
 
@@ -249,7 +249,7 @@ SELECT COUNT(*) FROM cypher('cypher_index', $$
     MATCH (a:City)
     WHERE a.country_code = 'RS'
     RETURN a
-$$) as (n gtype);
+$$) as (n vertex);
 
 
 --

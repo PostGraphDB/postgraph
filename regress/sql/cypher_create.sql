@@ -31,7 +31,7 @@ SELECT * FROM cypher('cypher_create', $$CREATE (:v {})$$) AS (a gtype);
 
 SELECT * FROM cypher('cypher_create', $$CREATE (:v {key: 'value'})$$) AS (a gtype);
 
-SELECT * FROM cypher('cypher_create', $$MATCH (n:v) RETURN n$$) AS (n gtype);
+SELECT * FROM cypher('cypher_create', $$MATCH (n:v) RETURN n$$) AS (n vertex);
 
 -- Left relationship
 SELECT * FROM cypher('cypher_create', $$
@@ -114,67 +114,67 @@ $$) as (a gtype);
 SELECT * FROM cypher('cypher_create', $$
 	CREATE (a)-[:b_var]->()
 	RETURN a, id(a)
-$$) as (a gtype, b gtype);
+$$) as (a vertex, b gtype);
 
 SELECT * FROM cypher('cypher_create', $$
 	CREATE ()-[b:e_var]->()
 	RETURN b, id(b)
-$$) as (a gtype, b gtype);
+$$) as (a edge, b gtype);
 
 SELECT * FROM cypher('cypher_create', $$
 	CREATE (a)-[b:e_var {id: 0}]->()
 	RETURN a, b, b.id, b.id + 1
-$$) as (a gtype, b gtype, c gtype, d gtype);
+$$) as (a vertex, b edge, c gtype, d gtype);
 
 SELECT * FROM cypher('cypher_create', $$
 	MATCH (a:n_var)
 	CREATE (a)-[b:e_var]->(a)
 	RETURN a, b
-$$) as (a gtype, b gtype);
+$$) as (a vertex, b edge);
 
 SELECT * FROM cypher('cypher_create', $$
 	MATCH (a:n_var)
 	CREATE (a)-[b:e_var]->(c)
 	RETURN a, b, c
-$$) as (a gtype, b gtype, c gtype);
+$$) as (a vertex, b edge, c vertex);
 
 SELECT * FROM cypher('cypher_create', $$
 	CREATE (a)-[:e_var]->()
 	RETURN a
-$$) as (b gtype);
+$$) as (b vertex);
 
 SELECT * FROM cypher('cypher_create', $$
 	CREATE ()-[b:e_var]->()
 	RETURN b
-$$) as (b gtype);
+$$) as (b edge);
 
 SELECT * FROM cypher('cypher_create', $$
 	CREATE p=()-[:e_var]->()
 	RETURN p
-$$) as (b gtype);
+$$) as (b traversal);
 
 SELECT * FROM cypher('cypher_create', $$
 	CREATE p=(a {id:0})-[:e_var]->(a)
 	RETURN p
-$$) as (b gtype);
+$$) as (b traversal);
 
 SELECT * FROM cypher('cypher_create', $$
 	MATCH (a:n_var)
 	CREATE p=(a)-[:e_var]->(a)
 	RETURN p
-$$) as (b gtype);
+$$) as (b traversal);
 
 SELECT * FROM cypher('cypher_create', $$
 	CREATE p=(a)-[:e_var]->(), (a)-[b:e_var]->(a)
 	RETURN p, b
-$$) as (a gtype, b gtype);
+$$) as (a traversal, b edge);
 
 SELECT * FROM cypher('cypher_create', $$
 	MATCH (a:n_var)
 	WHERE a.name = 'Node Z'
 	CREATE (a)-[:e_var {name: a.name + ' -> doesnt exist'}]->(:n_other_node)
 	RETURN a
-$$) as (a gtype);
+$$) as (a vertex);
 
 SELECT * FROM cypher_create.n_var;
 SELECT * FROM cypher_create.e_var;
@@ -183,25 +183,25 @@ SELECT * FROM cypher_create.e_var;
 SELECT name, kind FROM ag_label ORDER BY name;
 
 --Validate every vertex has the correct label
-SELECT * FROM cypher('cypher_create', $$MATCH (n) RETURN n$$) AS (n gtype);
+SELECT * FROM cypher('cypher_create', $$MATCH (n) RETURN n$$) AS (n vertex);
 
 -- prepared statements
-PREPARE p_1 AS SELECT * FROM cypher('cypher_create', $$CREATE (v:new_vertex {key: 'value'}) RETURN v$$) AS (a gtype);
+PREPARE p_1 AS SELECT * FROM cypher('cypher_create', $$CREATE (v:new_vertex {key: 'value'}) RETURN v$$) AS (a vertex);
 EXECUTE p_1;
 EXECUTE p_1;
 
-PREPARE p_2 AS SELECT * FROM cypher('cypher_create', $$CREATE (v:new_vertex {key: $var_name}) RETURN v$$, $1) AS (a gtype);
+PREPARE p_2 AS SELECT * FROM cypher('cypher_create', $$CREATE (v:new_vertex {key: $var_name}) RETURN v$$, $1) AS (a vertex);
 EXECUTE p_2('{"var_name": "Hello Prepared Statements"}');
 EXECUTE p_2('{"var_name": "Hello Prepared Statements 2"}');
 
 -- pl/pgsql
 CREATE FUNCTION create_test()
-RETURNS TABLE(vertex gtype)
+RETURNS TABLE(v vertex)
 LANGUAGE plpgsql
 VOLATILE
 AS $BODY$
 BEGIN
-	RETURN QUERY SELECT * FROM cypher('cypher_create', $$CREATE (v:new_vertex {key: 'value'}) RETURN v$$) AS (a gtype);
+	RETURN QUERY SELECT * FROM cypher('cypher_create', $$CREATE (v:new_vertex {key: 'value'}) RETURN v$$) AS (a vertex);
 END
 $BODY$;
 
@@ -235,18 +235,18 @@ $$) as (a gtype);
 SELECT * FROM cypher('cypher_create', $$
 	CREATE p=(a)
 	RETURN p
-$$) as (a gtype);
+$$) as (a traversal);
 
 --CREATE with joins
 SELECT *
 FROM cypher('cypher_create', $$
 	CREATE (a)
 	RETURN a
-$$) as q(a gtype),
+$$) as q(a vertex),
 cypher('cypher_create', $$
 	CREATE (b)
 	RETURN b
-$$) as t(b gtype);
+$$) as t(b vertex);
 
 -- column definition list for CREATE clause must contain a single gtype
 -- attribute
@@ -276,11 +276,11 @@ $$) as (a gtype);
 --
 -- check the cypher CREATE clause inside an INSERT INTO
 --
-CREATE TABLE simple_path (u gtype, e gtype, v gtype);
+CREATE TABLE simple_path (u vertex, e edge, v vertex);
 
 INSERT INTO simple_path(SELECT * FROM cypher('cypher_create',
     $$CREATE (u)-[e:knows]->(v) return u, e, v
-    $$) AS (u gtype, e gtype, v gtype));
+    $$) AS (u vertex, e edge, v vertex));
 
 SELECT count(*) FROM simple_path;
 
@@ -289,14 +289,14 @@ SELECT count(*) FROM simple_path;
 --
 BEGIN;
 SELECT * FROM cypher('cypher_create', $$ CREATE (a:Part {part_num: '670'}) $$) as (a gtype);
-SELECT * FROM cypher('cypher_create', $$ MATCH (a:Part) RETURN a $$) as (a gtype);
+SELECT * FROM cypher('cypher_create', $$ MATCH (a:Part) RETURN a $$) as (a vertex);
 
 SELECT * FROM cypher('cypher_create', $$ CREATE (a:Part {part_num: '671'}) $$) as (a gtype);
 SELECT * FROM cypher('cypher_create', $$ CREATE (a:Part {part_num: '672'}) $$) as (a gtype);
-SELECT * FROM cypher('cypher_create', $$ MATCH (a:Part) RETURN a $$) as (a gtype);
+SELECT * FROM cypher('cypher_create', $$ MATCH (a:Part) RETURN a $$) as (a vertex);
 
 SELECT * FROM cypher('cypher_create', $$ CREATE (a:Part {part_num: '673'}) $$) as (a gtype);
-SELECT * FROM cypher('cypher_create', $$ MATCH (a:Part) RETURN a $$) as (a gtype);
+SELECT * FROM cypher('cypher_create', $$ MATCH (a:Part) RETURN a $$) as (a vertex);
 END;
 
 --

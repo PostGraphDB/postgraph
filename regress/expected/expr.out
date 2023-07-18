@@ -732,68 +732,68 @@ SELECT * FROM cypher('chained', $$ CREATE (:people {name: "David", age:15}) $$) 
 (0 rows)
 
 -- should return 1
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 < u.age <= 49  RETURN u $$) AS (result gtype);
-                                            result                                             
------------------------------------------------------------------------------------------------
- {"id": 844424930131972, "label": "people", "properties": {"age": 40, "name": "Mark"}}::vertex
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 < u.age <= 49  RETURN u $$) AS (result vertex);
+                                        result                                         
+---------------------------------------------------------------------------------------
+ {"id": 844424930131972, "label": "people", "properties": {"age": 40, "name": "Mark"}}
 (1 row)
 
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 25 <= u.age <= 25  RETURN u $$) AS (result gtype);
-                                            result                                            
-----------------------------------------------------------------------------------------------
- {"id": 844424930131970, "label": "people", "properties": {"age": 25, "name": "Amy"}}::vertex
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 25 <= u.age <= 25  RETURN u $$) AS (result vertex);
+                                        result                                        
+--------------------------------------------------------------------------------------
+ {"id": 844424930131970, "label": "people", "properties": {"age": 25, "name": "Amy"}}
 (1 row)
 
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 = u.age = 35  RETURN u $$) AS (result gtype);
-                                              result                                               
----------------------------------------------------------------------------------------------------
- {"id": 844424930131971, "label": "people", "properties": {"age": 35, "name": "Samantha"}}::vertex
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 = u.age = 35  RETURN u $$) AS (result vertex);
+                                          result                                           
+-------------------------------------------------------------------------------------------
+ {"id": 844424930131971, "label": "people", "properties": {"age": 35, "name": "Samantha"}}
 (1 row)
 
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 50 > u.age > 35  RETURN u $$) AS (result gtype);
-                                            result                                             
------------------------------------------------------------------------------------------------
- {"id": 844424930131972, "label": "people", "properties": {"age": 40, "name": "Mark"}}::vertex
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 50 > u.age > 35  RETURN u $$) AS (result vertex);
+                                        result                                         
+---------------------------------------------------------------------------------------
+ {"id": 844424930131972, "label": "people", "properties": {"age": 40, "name": "Mark"}}
 (1 row)
 
 -- should return 3
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 40 <> u.age <> 35 RETURN u $$) AS (result gtype);
-                                             result                                             
-------------------------------------------------------------------------------------------------
- {"id": 844424930131969, "label": "people", "properties": {"age": 50, "name": "Jason"}}::vertex
- {"id": 844424930131970, "label": "people", "properties": {"age": 25, "name": "Amy"}}::vertex
- {"id": 844424930131973, "label": "people", "properties": {"age": 15, "name": "David"}}::vertex
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 40 <> u.age <> 35 RETURN u $$) AS (result vertex);
+                                         result                                         
+----------------------------------------------------------------------------------------
+ {"id": 844424930131969, "label": "people", "properties": {"age": 50, "name": "Jason"}}
+ {"id": 844424930131970, "label": "people", "properties": {"age": 25, "name": "Amy"}}
+ {"id": 844424930131973, "label": "people", "properties": {"age": 15, "name": "David"}}
 (3 rows)
 
 -- should return 2
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 30 <= u.age <= 49 > u.age RETURN u $$) AS (result gtype);
-                                              result                                               
----------------------------------------------------------------------------------------------------
- {"id": 844424930131971, "label": "people", "properties": {"age": 35, "name": "Samantha"}}::vertex
- {"id": 844424930131972, "label": "people", "properties": {"age": 40, "name": "Mark"}}::vertex
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 30 <= u.age <= 49 > u.age RETURN u $$) AS (result vertex);
+                                          result                                           
+-------------------------------------------------------------------------------------------
+ {"id": 844424930131971, "label": "people", "properties": {"age": 35, "name": "Samantha"}}
+ {"id": 844424930131972, "label": "people", "properties": {"age": 40, "name": "Mark"}}
 (2 rows)
 
 -- should return 0
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 30 <= u.age <= 49 = u.age RETURN u $$) AS (result gtype);
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 30 <= u.age <= 49 = u.age RETURN u $$) AS (result vertex);
  result 
 --------
 (0 rows)
 
 -- should return 2
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 < u.age + 1 <= 50 RETURN u $$) AS (result gtype);
-                                              result                                               
----------------------------------------------------------------------------------------------------
- {"id": 844424930131971, "label": "people", "properties": {"age": 35, "name": "Samantha"}}::vertex
- {"id": 844424930131972, "label": "people", "properties": {"age": 40, "name": "Mark"}}::vertex
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 < u.age + 1 <= 50 RETURN u $$) AS (result vertex);
+                                          result                                           
+-------------------------------------------------------------------------------------------
+ {"id": 844424930131971, "label": "people", "properties": {"age": 35, "name": "Samantha"}}
+ {"id": 844424930131972, "label": "people", "properties": {"age": 40, "name": "Mark"}}
 (2 rows)
 
 -- should return 3
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE NOT 35 < u.age + 1 <= 50 RETURN u $$) AS (result gtype);
-                                             result                                             
-------------------------------------------------------------------------------------------------
- {"id": 844424930131969, "label": "people", "properties": {"age": 50, "name": "Jason"}}::vertex
- {"id": 844424930131970, "label": "people", "properties": {"age": 25, "name": "Amy"}}::vertex
- {"id": 844424930131973, "label": "people", "properties": {"age": 15, "name": "David"}}::vertex
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE NOT 35 < u.age + 1 <= 50 RETURN u $$) AS (result vertex);
+                                         result                                         
+----------------------------------------------------------------------------------------
+ {"id": 844424930131969, "label": "people", "properties": {"age": 50, "name": "Jason"}}
+ {"id": 844424930131970, "label": "people", "properties": {"age": 25, "name": "Amy"}}
+ {"id": 844424930131973, "label": "people", "properties": {"age": 15, "name": "David"}}
 (3 rows)
 
 --
@@ -1073,60 +1073,60 @@ NOTICE:  graph "regex" has been created
 
 SELECT * FROM cypher('regex', $$
 CREATE (n:Person {name: 'John'}) RETURN n
-$$) AS r(result gtype);
-                                       result                                       
-------------------------------------------------------------------------------------
- {"id": 844424930131969, "label": "Person", "properties": {"name": "John"}}::vertex
+$$) AS r(result vertex);
+                                   result                                   
+----------------------------------------------------------------------------
+ {"id": 844424930131969, "label": "Person", "properties": {"name": "John"}}
 (1 row)
 
 SELECT * FROM cypher('regex', $$
 CREATE (n:Person {name: 'Jeff'}) RETURN n
-$$) AS r(result gtype);
-                                       result                                       
-------------------------------------------------------------------------------------
- {"id": 844424930131970, "label": "Person", "properties": {"name": "Jeff"}}::vertex
+$$) AS r(result vertex);
+                                   result                                   
+----------------------------------------------------------------------------
+ {"id": 844424930131970, "label": "Person", "properties": {"name": "Jeff"}}
 (1 row)
 
 SELECT * FROM cypher('regex', $$
 CREATE (n:Person {name: 'Joan'}) RETURN n
-$$) AS r(result gtype);
-                                       result                                       
-------------------------------------------------------------------------------------
- {"id": 844424930131971, "label": "Person", "properties": {"name": "Joan"}}::vertex
+$$) AS r(result vertex);
+                                   result                                   
+----------------------------------------------------------------------------
+ {"id": 844424930131971, "label": "Person", "properties": {"name": "Joan"}}
 (1 row)
 
 SELECT * FROM cypher('regex', $$
 MATCH (n:Person) WHERE n.name =~ 'JoHn' RETURN n
-$$) AS r(result gtype);
+$$) AS r(result vertex);
  result 
 --------
 (0 rows)
 
 SELECT * FROM cypher('regex', $$
 MATCH (n:Person) WHERE n.name =~ '(?i)JoHn' RETURN n
-$$) AS r(result gtype);
-                                       result                                       
-------------------------------------------------------------------------------------
- {"id": 844424930131969, "label": "Person", "properties": {"name": "John"}}::vertex
+$$) AS r(result vertex);
+                                   result                                   
+----------------------------------------------------------------------------
+ {"id": 844424930131969, "label": "Person", "properties": {"name": "John"}}
 (1 row)
 
 SELECT * FROM cypher('regex', $$
 MATCH (n:Person) WHERE n.name =~ 'Jo.n' RETURN n
-$$) AS r(result gtype);
-                                       result                                       
-------------------------------------------------------------------------------------
- {"id": 844424930131969, "label": "Person", "properties": {"name": "John"}}::vertex
- {"id": 844424930131971, "label": "Person", "properties": {"name": "Joan"}}::vertex
+$$) AS r(result vertex);
+                                   result                                   
+----------------------------------------------------------------------------
+ {"id": 844424930131969, "label": "Person", "properties": {"name": "John"}}
+ {"id": 844424930131971, "label": "Person", "properties": {"name": "Joan"}}
 (2 rows)
 
 SELECT * FROM cypher('regex', $$
 MATCH (n:Person) WHERE n.name =~ 'J.*' RETURN n
-$$) AS r(result gtype);
-                                       result                                       
-------------------------------------------------------------------------------------
- {"id": 844424930131969, "label": "Person", "properties": {"name": "John"}}::vertex
- {"id": 844424930131970, "label": "Person", "properties": {"name": "Jeff"}}::vertex
- {"id": 844424930131971, "label": "Person", "properties": {"name": "Joan"}}::vertex
+$$) AS r(result vertex);
+                                   result                                   
+----------------------------------------------------------------------------
+ {"id": 844424930131969, "label": "Person", "properties": {"name": "John"}}
+ {"id": 844424930131970, "label": "Person", "properties": {"name": "Jeff"}}
+ {"id": 844424930131971, "label": "Person", "properties": {"name": "Joan"}}
 (3 rows)
 
 --
@@ -1231,17 +1231,23 @@ SELECT * FROM cypher('type_coercion', $$
 	MATCH (v)
 	RETURN v
 $$) AS (i bigint);
-ERROR:  cannot cast gtype vertex to type int8
+ERROR:  cannot cast type vertex to bigint for column "i"
+LINE 1: SELECT * FROM cypher('type_coercion', $$
+                      ^
 SELECT * FROM cypher('type_coercion', $$
 	MATCH ()-[e]-()
 	RETURN e
 $$) AS (i bigint);
-ERROR:  cannot cast gtype edge to type int8
+ERROR:  cannot cast type edge to bigint for column "i"
+LINE 1: SELECT * FROM cypher('type_coercion', $$
+                      ^
 SELECT * FROM cypher('type_coercion', $$
 	MATCH p=()-[]-()
 	RETURN p
 $$) AS (i bigint);
-ERROR:  cannot cast gtype path to type int8
+ERROR:  cannot cast type traversal to bigint for column "i"
+LINE 1: SELECT * FROM cypher('type_coercion', $$
+                      ^
 --
 -- Test typecasting '::' transform and execution logic
 --
@@ -1724,6 +1730,7 @@ SELECT gtype_in('{"name": "path 1", "path": [{"id": 0, "label": "vertex 0", "pro
 
 -- test functions
 -- create some vertices and edges
+-- XXX: Move after the CREATE regression tests...
 SELECT * FROM cypher('expr', $$CREATE (:v)$$) AS (a gtype);
  a 
 ---
@@ -1745,27 +1752,6 @@ $$) AS (a gtype);
  a 
 ---
 (0 rows)
-
--- show them
-SELECT * FROM cypher('expr', $$ MATCH (v) RETURN v $$) AS (expression gtype);
-                                    expression                                    
-----------------------------------------------------------------------------------
- {"id": 844424930131969, "label": "v", "properties": {}}::vertex
- {"id": 844424930131970, "label": "v", "properties": {"i": 0}}::vertex
- {"id": 844424930131971, "label": "v", "properties": {"i": 1}}::vertex
- {"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}::vertex
- {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}::vertex
- {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}::vertex
-(6 rows)
-
-SELECT * FROM cypher('expr', $$ MATCH ()-[e]-() RETURN e $$) AS (expression gtype);
-                                                        expression                                                         
----------------------------------------------------------------------------------------------------------------------------
- {"id": 1407374883553282, "label": "e1", "end_id": 1125899906842626, "start_id": 1125899906842625, "properties": {}}::edge
- {"id": 1407374883553281, "label": "e1", "end_id": 1125899906842627, "start_id": 1125899906842626, "properties": {}}::edge
- {"id": 1407374883553282, "label": "e1", "end_id": 1125899906842626, "start_id": 1125899906842625, "properties": {}}::edge
- {"id": 1407374883553281, "label": "e1", "end_id": 1125899906842627, "start_id": 1125899906842626, "properties": {}}::edge
-(4 rows)
 
 -- id()
 SELECT * FROM cypher('expr', $$
@@ -1834,7 +1820,10 @@ $$) AS (start_id gtype);
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN start_id(v)
 $$) AS (start_id gtype);
-ERROR:  start_id() argument must be an edge
+ERROR:  function postgraph.age_start_id(vertex) does not exist
+LINE 2:     MATCH (v) RETURN start_id(v)
+                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN start_id()
 $$) AS (start_id gtype);
@@ -1867,7 +1856,10 @@ $$) AS (end_id gtype);
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN end_id(v)
 $$) AS (end_id gtype);
-ERROR:  end_id() argument must be an edge
+ERROR:  function postgraph.age_end_id(vertex) does not exist
+LINE 2:     MATCH (v) RETURN end_id(v)
+                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN end_id()
 $$) AS (end_id gtype);
@@ -1878,32 +1870,34 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- startNode()
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]-() RETURN id(e), start_id(e), startNode(e)
-$$) AS (id gtype, start_id gtype, startNode gtype);
-        id        |     start_id     |                                    startnode                                     
-------------------+------------------+----------------------------------------------------------------------------------
- 1407374883553281 | 1125899906842626 | {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}::vertex
- 1407374883553281 | 1125899906842626 | {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}::vertex
- 1407374883553282 | 1125899906842625 | {"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}::vertex
- 1407374883553282 | 1125899906842625 | {"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}::vertex
+$$) AS (id gtype, start_id gtype, startNode vertex);
+        id        |     start_id     |                                startnode                                 
+------------------+------------------+--------------------------------------------------------------------------
+ 1407374883553281 | 1125899906842626 | {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}
+ 1407374883553281 | 1125899906842626 | {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}
+ 1407374883553282 | 1125899906842625 | {"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}
+ 1407374883553282 | 1125899906842625 | {"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}
 (4 rows)
 
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN startNode(null)
-$$) AS (startNode gtype);
- startnode 
------------
- 
-(1 row)
-
+$$) AS (startNode vertex);
+ERROR:  function postgraph.age_startnode(gtype, gtype) does not exist
+LINE 2:     RETURN startNode(null)
+                   ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should error
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN startNode(v)
-$$) AS (startNode gtype);
-ERROR:  startNode() argument must be an edge or null
+$$) AS (startNode vertex);
+ERROR:  function postgraph.age_startnode(gtype, vertex) does not exist
+LINE 2:     MATCH (v) RETURN startNode(v)
+                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN startNode()
-$$) AS (startNode gtype);
+$$) AS (startNode vertex);
 ERROR:  function postgraph.age_startnode() does not exist
 LINE 2:     RETURN startNode()
                    ^
@@ -1911,32 +1905,34 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- endNode()
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]-() RETURN id(e), end_id(e), endNode(e)
-$$) AS (id gtype, end_id gtype, endNode gtype);
-        id        |      end_id      |                                     endnode                                     
-------------------+------------------+---------------------------------------------------------------------------------
- 1407374883553281 | 1125899906842627 | {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}::vertex
- 1407374883553281 | 1125899906842627 | {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}::vertex
- 1407374883553282 | 1125899906842626 | {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}::vertex
- 1407374883553282 | 1125899906842626 | {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}::vertex
+$$) AS (id gtype, end_id gtype, endNode vertex);
+        id        |      end_id      |                                 endnode                                 
+------------------+------------------+-------------------------------------------------------------------------
+ 1407374883553281 | 1125899906842627 | {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}
+ 1407374883553281 | 1125899906842627 | {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}
+ 1407374883553282 | 1125899906842626 | {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}
+ 1407374883553282 | 1125899906842626 | {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}
 (4 rows)
 
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN endNode(null)
-$$) AS (endNode gtype);
- endnode 
----------
- 
-(1 row)
-
+$$) AS (endNode vertex);
+ERROR:  function postgraph.age_endnode(gtype, gtype) does not exist
+LINE 2:     RETURN endNode(null)
+                   ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should error
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN endNode(v)
-$$) AS (endNode gtype);
-ERROR:  endNode() argument must be an edge
+$$) AS (endNode vertex);
+ERROR:  function postgraph.age_endnode(gtype, vertex) does not exist
+LINE 2:     MATCH (v) RETURN endNode(v)
+                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN endNode()
-$$) AS (endNode gtype);
+$$) AS (endNode vertex);
 ERROR:  function postgraph.age_endnode() does not exist
 LINE 2:     RETURN endNode()
                    ^
@@ -2016,16 +2012,18 @@ $$) AS (label gtype);
 (1 row)
 
 SELECT postgraph.age_label(NULL);
- age_label 
------------
- 
-(1 row)
-
+ERROR:  function postgraph.age_label(unknown) is not unique
+LINE 1: SELECT postgraph.age_label(NULL);
+               ^
+HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
 -- should error
 SELECT * FROM cypher('expr', $$
     MATCH p=()-[]->() RETURN label(p)
 $$) AS (label gtype);
-ERROR:  label() argument must resolve to an edge or vertex
+ERROR:  function postgraph.age_label(traversal) does not exist
+LINE 2:     MATCH p=()-[]->() RETURN label(p)
+                                     ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN label(1)
 $$) AS (label gtype);
@@ -4660,16 +4658,16 @@ SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Jessica", gpa: 3.9::num
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex gtype);
-                                                           vertex                                                            
------------------------------------------------------------------------------------------------------------------------------
- {"id": 844424930131969, "label": "students", "properties": {"age": 21, "gpa": 3.0, "zip": 94110, "name": "Jack"}}::vertex
- {"id": 844424930131970, "label": "students", "properties": {"age": 27, "gpa": 3.5, "zip": 95060, "name": "Jill"}}::vertex
- {"id": 844424930131971, "label": "students", "properties": {"age": 32, "gpa": 3.75, "zip": 96062, "name": "Jim"}}::vertex
- {"id": 844424930131972, "label": "students", "properties": {"age": 24, "gpa": 2.5, "zip": "95060", "name": "Rick"}}::vertex
- {"id": 844424930131973, "label": "students", "properties": {"age": 23, "gpa": 3.8::numeric, "name": "Ann"}}::vertex
- {"id": 844424930131974, "label": "students", "properties": {"age": 19, "gpa": 4.0, "zip": 90210, "name": "Derek"}}::vertex
- {"id": 844424930131975, "label": "students", "properties": {"age": 20, "gpa": 3.9::numeric, "name": "Jessica"}}::vertex
+SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex vertex);
+                                                       vertex                                                        
+---------------------------------------------------------------------------------------------------------------------
+ {"id": 844424930131969, "label": "students", "properties": {"age": 21, "gpa": 3.0, "zip": 94110, "name": "Jack"}}
+ {"id": 844424930131970, "label": "students", "properties": {"age": 27, "gpa": 3.5, "zip": 95060, "name": "Jill"}}
+ {"id": 844424930131971, "label": "students", "properties": {"age": 32, "gpa": 3.75, "zip": 96062, "name": "Jim"}}
+ {"id": 844424930131972, "label": "students", "properties": {"age": 24, "gpa": 2.5, "zip": "95060", "name": "Rick"}}
+ {"id": 844424930131973, "label": "students", "properties": {"age": 23, "gpa": 3.8::numeric, "name": "Ann"}}
+ {"id": 844424930131974, "label": "students", "properties": {"age": 19, "gpa": 4.0, "zip": 90210, "name": "Derek"}}
+ {"id": 844424930131975, "label": "students", "properties": {"age": 20, "gpa": 3.9::numeric, "name": "Jessica"}}
 (7 rows)
 
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN avg(u.gpa), sum(u.gpa), sum(u.gpa)/count(u.gpa), count(u.gpa), count(*) $$) 
@@ -4689,18 +4687,18 @@ SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Mike", age: 18})$$) AS 
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex gtype);
-                                                           vertex                                                            
------------------------------------------------------------------------------------------------------------------------------
- {"id": 844424930131969, "label": "students", "properties": {"age": 21, "gpa": 3.0, "zip": 94110, "name": "Jack"}}::vertex
- {"id": 844424930131970, "label": "students", "properties": {"age": 27, "gpa": 3.5, "zip": 95060, "name": "Jill"}}::vertex
- {"id": 844424930131971, "label": "students", "properties": {"age": 32, "gpa": 3.75, "zip": 96062, "name": "Jim"}}::vertex
- {"id": 844424930131972, "label": "students", "properties": {"age": 24, "gpa": 2.5, "zip": "95060", "name": "Rick"}}::vertex
- {"id": 844424930131973, "label": "students", "properties": {"age": 23, "gpa": 3.8::numeric, "name": "Ann"}}::vertex
- {"id": 844424930131974, "label": "students", "properties": {"age": 19, "gpa": 4.0, "zip": 90210, "name": "Derek"}}::vertex
- {"id": 844424930131975, "label": "students", "properties": {"age": 20, "gpa": 3.9::numeric, "name": "Jessica"}}::vertex
- {"id": 844424930131976, "label": "students", "properties": {"age": 24, "name": "Dave"}}::vertex
- {"id": 844424930131977, "label": "students", "properties": {"age": 18, "name": "Mike"}}::vertex
+SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex vertex);
+                                                       vertex                                                        
+---------------------------------------------------------------------------------------------------------------------
+ {"id": 844424930131969, "label": "students", "properties": {"age": 21, "gpa": 3.0, "zip": 94110, "name": "Jack"}}
+ {"id": 844424930131970, "label": "students", "properties": {"age": 27, "gpa": 3.5, "zip": 95060, "name": "Jill"}}
+ {"id": 844424930131971, "label": "students", "properties": {"age": 32, "gpa": 3.75, "zip": 96062, "name": "Jim"}}
+ {"id": 844424930131972, "label": "students", "properties": {"age": 24, "gpa": 2.5, "zip": "95060", "name": "Rick"}}
+ {"id": 844424930131973, "label": "students", "properties": {"age": 23, "gpa": 3.8::numeric, "name": "Ann"}}
+ {"id": 844424930131974, "label": "students", "properties": {"age": 19, "gpa": 4.0, "zip": 90210, "name": "Derek"}}
+ {"id": 844424930131975, "label": "students", "properties": {"age": 20, "gpa": 3.9::numeric, "name": "Jessica"}}
+ {"id": 844424930131976, "label": "students", "properties": {"age": 24, "name": "Dave"}}
+ {"id": 844424930131977, "label": "students", "properties": {"age": 18, "name": "Mike"}}
 (9 rows)
 
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN avg(u.gpa), sum(u.gpa), sum(u.gpa)/count(u.gpa), count(u.gpa), count(*) $$) 
@@ -4994,19 +4992,19 @@ AS (a gtype);
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex gtype);
-                                                           vertex                                                            
------------------------------------------------------------------------------------------------------------------------------
- {"id": 844424930131969, "label": "students", "properties": {"age": 21, "gpa": 3.0, "zip": 94110, "name": "Jack"}}::vertex
- {"id": 844424930131970, "label": "students", "properties": {"age": 27, "gpa": 3.5, "zip": 95060, "name": "Jill"}}::vertex
- {"id": 844424930131971, "label": "students", "properties": {"age": 32, "gpa": 3.75, "zip": 96062, "name": "Jim"}}::vertex
- {"id": 844424930131972, "label": "students", "properties": {"age": 24, "gpa": 2.5, "zip": "95060", "name": "Rick"}}::vertex
- {"id": 844424930131973, "label": "students", "properties": {"age": 23, "gpa": 3.8::numeric, "name": "Ann"}}::vertex
- {"id": 844424930131974, "label": "students", "properties": {"age": 19, "gpa": 4.0, "zip": 90210, "name": "Derek"}}::vertex
- {"id": 844424930131975, "label": "students", "properties": {"age": 20, "gpa": 3.9::numeric, "name": "Jessica"}}::vertex
- {"id": 844424930131976, "label": "students", "properties": {"age": 24, "name": "Dave"}}::vertex
- {"id": 844424930131977, "label": "students", "properties": {"age": 18, "name": "Mike"}}::vertex
- {"id": 844424930131978, "label": "students", "properties": {"age": 27, "gpa": 3.2, "zip": 94110, "name": "Sven"}}::vertex
+SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex vertex);
+                                                       vertex                                                        
+---------------------------------------------------------------------------------------------------------------------
+ {"id": 844424930131969, "label": "students", "properties": {"age": 21, "gpa": 3.0, "zip": 94110, "name": "Jack"}}
+ {"id": 844424930131970, "label": "students", "properties": {"age": 27, "gpa": 3.5, "zip": 95060, "name": "Jill"}}
+ {"id": 844424930131971, "label": "students", "properties": {"age": 32, "gpa": 3.75, "zip": 96062, "name": "Jim"}}
+ {"id": 844424930131972, "label": "students", "properties": {"age": 24, "gpa": 2.5, "zip": "95060", "name": "Rick"}}
+ {"id": 844424930131973, "label": "students", "properties": {"age": 23, "gpa": 3.8::numeric, "name": "Ann"}}
+ {"id": 844424930131974, "label": "students", "properties": {"age": 19, "gpa": 4.0, "zip": 90210, "name": "Derek"}}
+ {"id": 844424930131975, "label": "students", "properties": {"age": 20, "gpa": 3.9::numeric, "name": "Jessica"}}
+ {"id": 844424930131976, "label": "students", "properties": {"age": 24, "name": "Dave"}}
+ {"id": 844424930131977, "label": "students", "properties": {"age": 18, "name": "Mike"}}
+ {"id": 844424930131978, "label": "students", "properties": {"age": 27, "gpa": 3.2, "zip": 94110, "name": "Sven"}}
 (10 rows)
 
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN count(u.zip), count(DISTINCT u.zip) $$)
@@ -5102,22 +5100,14 @@ AS (a_b_c gtype,  result gtype);
 -- with WITH clause
 SELECT * FROM cypher('group_by', $$MATCH(x:L) WITH x, count(x) AS c RETURN x.a + x.b + x.c + c$$)
 AS (result gtype);
- result 
---------
- 7
- 7
- 7
-(3 rows)
-
+ERROR:  could not identify an equality operator for type vertex
+LINE 1: ...ELECT * FROM cypher('group_by', $$MATCH(x:L) WITH x, count(x...
+                                                             ^
 SELECT * FROM cypher('group_by', $$MATCH(x:L) WITH x, count(x) AS c RETURN x.a + x.b + x.c + c + c$$)
 AS (result gtype);
- result 
---------
- 8
- 8
- 8
-(3 rows)
-
+ERROR:  could not identify an equality operator for type vertex
+LINE 1: ...ELECT * FROM cypher('group_by', $$MATCH(x:L) WITH x, count(x...
+                                                             ^
 SELECT * FROM cypher('group_by', $$MATCH(x:L) WITH x.a + x.b + x.c AS v, count(x) as c RETURN v + c + c $$)
 AS (result gtype);
  result 
@@ -5321,20 +5311,20 @@ SELECT * FROM cypher('opt_forms', $$CREATE ({i:1})-[:KNOWS]->({i:2})<-[:KNOWS]-(
 --------
 (0 rows)
 
-SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN u$$) AS (result gtype);
-                                result                                
-----------------------------------------------------------------------
- {"id": 281474976710657, "label": "", "properties": {"i": 1}}::vertex
- {"id": 281474976710658, "label": "", "properties": {"i": 2}}::vertex
- {"id": 281474976710659, "label": "", "properties": {"i": 3}}::vertex
+SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN u$$) AS (result vertex);
+                            result                            
+--------------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {"i": 1}}
+ {"id": 281474976710658, "label": "", "properties": {"i": 2}}
+ {"id": 281474976710659, "label": "", "properties": {"i": 3}}
 (3 rows)
 
-SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN *$$) AS (result gtype);
-                                result                                
-----------------------------------------------------------------------
- {"id": 281474976710657, "label": "", "properties": {"i": 1}}::vertex
- {"id": 281474976710658, "label": "", "properties": {"i": 2}}::vertex
- {"id": 281474976710659, "label": "", "properties": {"i": 3}}::vertex
+SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN *$$) AS (result vertex);
+                            result                            
+--------------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {"i": 1}}
+ {"id": 281474976710658, "label": "", "properties": {"i": 2}}
+ {"id": 281474976710659, "label": "", "properties": {"i": 3}}
 (3 rows)
 
 SELECT * FROM cypher('opt_forms', $$MATCH (u)--(v) RETURN u.i, v.i$$) AS (u gtype, v gtype);
@@ -5367,19 +5357,19 @@ SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN u.i, v.i$$) AS (
  1 | 3
 (2 rows)
 
-SELECT * FROM cypher('opt_forms', $$MATCH (u) CREATE (u)-[:edge]->() RETURN *$$) AS (results gtype);
-                               results                                
-----------------------------------------------------------------------
- {"id": 281474976710657, "label": "", "properties": {"i": 1}}::vertex
- {"id": 281474976710658, "label": "", "properties": {"i": 2}}::vertex
- {"id": 281474976710659, "label": "", "properties": {"i": 3}}::vertex
+SELECT * FROM cypher('opt_forms', $$MATCH (u) CREATE (u)-[:edge]->() RETURN *$$) AS (results vertex);
+                           results                            
+--------------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {"i": 1}}
+ {"id": 281474976710658, "label": "", "properties": {"i": 2}}
+ {"id": 281474976710659, "label": "", "properties": {"i": 3}}
 (3 rows)
 
-SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN *$$) AS (col1 gtype, col2 gtype);
-                                 col1                                 |                                 col2                                 
-----------------------------------------------------------------------+----------------------------------------------------------------------
- {"id": 281474976710659, "label": "", "properties": {"i": 3}}::vertex | {"id": 281474976710657, "label": "", "properties": {"i": 1}}::vertex
- {"id": 281474976710657, "label": "", "properties": {"i": 1}}::vertex | {"id": 281474976710659, "label": "", "properties": {"i": 3}}::vertex
+SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN *$$) AS (col1 vertex, col2 vertex);
+                             col1                             |                             col2                             
+--------------------------------------------------------------+--------------------------------------------------------------
+ {"id": 281474976710659, "label": "", "properties": {"i": 3}} | {"id": 281474976710657, "label": "", "properties": {"i": 1}}
+ {"id": 281474976710657, "label": "", "properties": {"i": 1}} | {"id": 281474976710659, "label": "", "properties": {"i": 3}}
 (2 rows)
 
 -- list functions relationships(), range(), keys()
@@ -5462,7 +5452,10 @@ ERROR:  keys() argument must be a vertex, edge, object or null
 SELECT * from cypher('keys', $$RETURN keys("string")$$) as (keys gtype);
 ERROR:  keys() argument must be a vertex, edge, object or null
 SELECT * from cypher('keys', $$MATCH u=()-[]-() RETURN keys(u)$$) as (keys gtype);
-ERROR:  keys() argument must be a vertex, edge, object or null
+ERROR:  function postgraph.age_keys(traversal) does not exist
+LINE 1: ...T * from cypher('keys', $$MATCH u=()-[]-() RETURN keys(u)$$)...
+                                                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT create_graph('list');
 NOTICE:  graph "list" has been created
  create_graph 
@@ -5470,92 +5463,108 @@ NOTICE:  graph "list" has been created
  
 (1 row)
 
-SELECT * from cypher('list', $$CREATE p=({name:"rick"})-[:knows]->({name:"morty"}) RETURN p$$) as (path gtype);
-                                                                                                                                              path                                                                                                                                              
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 281474976710657, "label": "", "properties": {"name": "rick"}}::vertex, {"id": 844424930131969, "label": "knows", "end_id": 281474976710658, "start_id": 281474976710657, "properties": {}}::edge, {"id": 281474976710658, "label": "", "properties": {"name": "morty"}}::vertex]::path
+SELECT * from cypher('list', $$CREATE p=({name:"rick"})-[:knows]->({name:"morty"}) RETURN p$$) as (path traversal);
+                                                                                                                                path                                                                                                                                
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 281474976710657, "label": "", "properties": {"name": "rick"}}, {"id": 844424930131969, "start_id": 281474976710657, "end_id": 281474976710658, "label": "knows", "properties": {}}, {"id": 281474976710658, "label": "", "properties": {"name": "morty"}}]
 (1 row)
 
-SELECT * from cypher('list', $$CREATE p=({name:'rachael'})-[:knows]->({name:'monica'})-[:knows]->({name:'phoebe'}) RETURN p$$) as (path gtype);
-                                                                                                                                                                                                                                                     path                                                                                                                                                                                                                                                      
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 281474976710659, "label": "", "properties": {"name": "rachael"}}::vertex, {"id": 844424930131971, "label": "knows", "end_id": 281474976710660, "start_id": 281474976710659, "properties": {}}::edge, {"id": 281474976710660, "label": "", "properties": {"name": "monica"}}::vertex, {"id": 844424930131970, "label": "knows", "end_id": 281474976710661, "start_id": 281474976710660, "properties": {}}::edge, {"id": 281474976710661, "label": "", "properties": {"name": "phoebe"}}::vertex]::path
+SELECT * from cypher('list', $$CREATE p=({name:'rachael'})-[:knows]->({name:'monica'})-[:knows]->({name:'phoebe'}) RETURN p$$) as (path traversal);
+                                                                                                                                                                                                                                path                                                                                                                                                                                                                                 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 281474976710659, "label": "", "properties": {"name": "rachael"}}, {"id": 844424930131971, "start_id": 281474976710659, "end_id": 281474976710660, "label": "knows", "properties": {}}, {"id": 281474976710660, "label": "", "properties": {"name": "monica"}}, {"id": 844424930131970, "start_id": 281474976710660, "end_id": 281474976710661, "label": "knows", "properties": {}}, {"id": 281474976710661, "label": "", "properties": {"name": "phoebe"}}]
 (1 row)
 
 -- nodes()
+-- XXX: Not Working
 SELECT * from cypher('list', $$MATCH p=()-[]->() RETURN nodes(p)$$) as (nodes gtype);
-                                                                               nodes                                                                               
--------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 281474976710657, "label": "", "properties": {"name": "rick"}}::vertex, {"id": 281474976710658, "label": "", "properties": {"name": "morty"}}::vertex]
- [{"id": 281474976710660, "label": "", "properties": {"name": "monica"}}::vertex, {"id": 281474976710661, "label": "", "properties": {"name": "phoebe"}}::vertex]
- [{"id": 281474976710659, "label": "", "properties": {"name": "rachael"}}::vertex, {"id": 281474976710660, "label": "", "properties": {"name": "monica"}}::vertex]
-(3 rows)
-
+ERROR:  function postgraph.age_nodes(traversal) does not exist
+LINE 1: ... * from cypher('list', $$MATCH p=()-[]->() RETURN nodes(p)$$...
+                                                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->() RETURN nodes(p)$$) as (nodes gtype);
-                                                                                                                       nodes                                                                                                                       
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 281474976710659, "label": "", "properties": {"name": "rachael"}}::vertex, {"id": 281474976710660, "label": "", "properties": {"name": "monica"}}::vertex, {"id": 281474976710661, "label": "", "properties": {"name": "phoebe"}}::vertex]
-(1 row)
-
+ERROR:  function postgraph.age_nodes(traversal) does not exist
+LINE 1: ... cypher('list', $$MATCH p=()-[]->()-[]->() RETURN nodes(p)$$...
+                                                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should return nothing
 SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->()-[]->() RETURN nodes(p)$$) as (nodes gtype);
- nodes 
--------
-(0 rows)
-
+ERROR:  function postgraph.age_nodes(traversal) does not exist
+LINE 1: ...('list', $$MATCH p=()-[]->()-[]->()-[]->() RETURN nodes(p)$$...
+                                                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should return SQL NULL
 SELECT * from cypher('list', $$RETURN nodes(NULL)$$) as (nodes gtype);
- nodes 
--------
- 
-(1 row)
-
+ERROR:  function postgraph.age_nodes(gtype) does not exist
+LINE 1: SELECT * from cypher('list', $$RETURN nodes(NULL)$$) as (nod...
+                                              ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should return an error
 SELECT * from cypher('list', $$MATCH (u) RETURN nodes([1,2,3])$$) as (nodes gtype);
-ERROR:  nodes() argument must resolve to a scalar value
+ERROR:  function postgraph.age_nodes(gtype) does not exist
+LINE 1: SELECT * from cypher('list', $$MATCH (u) RETURN nodes([1,2,3...
+                                                        ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * from cypher('list', $$MATCH (u) RETURN nodes("string")$$) as (nodes gtype);
-ERROR:  nodes() argument must be a path
+ERROR:  function postgraph.age_nodes(gtype) does not exist
+LINE 1: SELECT * from cypher('list', $$MATCH (u) RETURN nodes("strin...
+                                                        ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * from cypher('list', $$MATCH (u) RETURN nodes(u)$$) as (nodes gtype);
-ERROR:  nodes() argument must be a path
+ERROR:  function postgraph.age_nodes(vertex) does not exist
+LINE 1: SELECT * from cypher('list', $$MATCH (u) RETURN nodes(u)$$) ...
+                                                        ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * from cypher('list', $$MATCH (u)-[]->() RETURN nodes(u)$$) as (nodes gtype);
-ERROR:  nodes() argument must be a path
+ERROR:  function postgraph.age_nodes(vertex) does not exist
+LINE 1: ...T * from cypher('list', $$MATCH (u)-[]->() RETURN nodes(u)$$...
+                                                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- relationships()
+-- XXX: Not Working
 SELECT * from cypher('list', $$MATCH p=()-[]->() RETURN relationships(p)$$) as (relationships gtype);
-                                                        relationships                                                        
------------------------------------------------------------------------------------------------------------------------------
- [{"id": 844424930131969, "label": "knows", "end_id": 281474976710658, "start_id": 281474976710657, "properties": {}}::edge]
- [{"id": 844424930131970, "label": "knows", "end_id": 281474976710661, "start_id": 281474976710660, "properties": {}}::edge]
- [{"id": 844424930131971, "label": "knows", "end_id": 281474976710660, "start_id": 281474976710659, "properties": {}}::edge]
-(3 rows)
-
+ERROR:  function postgraph.age_relationships(traversal) does not exist
+LINE 1: ... * from cypher('list', $$MATCH p=()-[]->() RETURN relationsh...
+                                                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->() RETURN relationships(p)$$) as (relationships gtype);
-                                                                                                                     relationships                                                                                                                      
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 844424930131971, "label": "knows", "end_id": 281474976710660, "start_id": 281474976710659, "properties": {}}::edge, {"id": 844424930131970, "label": "knows", "end_id": 281474976710661, "start_id": 281474976710660, "properties": {}}::edge]
-(1 row)
-
+ERROR:  function postgraph.age_relationships(traversal) does not exist
+LINE 1: ... cypher('list', $$MATCH p=()-[]->()-[]->() RETURN relationsh...
+                                                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should return nothing
 SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->()-[]->() RETURN relationships(p)$$) as (relationships gtype);
- relationships 
----------------
-(0 rows)
-
+ERROR:  function postgraph.age_relationships(traversal) does not exist
+LINE 1: ...('list', $$MATCH p=()-[]->()-[]->()-[]->() RETURN relationsh...
+                                                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should return SQL NULL
 SELECT * from cypher('list', $$RETURN relationships(NULL)$$) as (relationships gtype);
- relationships 
----------------
- 
-(1 row)
-
+ERROR:  function postgraph.age_relationships(gtype) does not exist
+LINE 1: SELECT * from cypher('list', $$RETURN relationships(NULL)$$)...
+                                              ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should return an error
 SELECT * from cypher('list', $$MATCH (u) RETURN relationships([1,2,3])$$) as (relationships gtype);
-ERROR:  relationships() argument must resolve to a scalar value
+ERROR:  function postgraph.age_relationships(gtype) does not exist
+LINE 1: SELECT * from cypher('list', $$MATCH (u) RETURN relationship...
+                                                        ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * from cypher('list', $$MATCH (u) RETURN relationships("string")$$) as (relationships gtype);
-ERROR:  relationships() argument must be a path
+ERROR:  function postgraph.age_relationships(gtype) does not exist
+LINE 1: SELECT * from cypher('list', $$MATCH (u) RETURN relationship...
+                                                        ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * from cypher('list', $$MATCH (u) RETURN relationships(u)$$) as (relationships gtype);
-ERROR:  relationships() argument must be a path
+ERROR:  function postgraph.age_relationships(vertex) does not exist
+LINE 1: SELECT * from cypher('list', $$MATCH (u) RETURN relationship...
+                                                        ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * from cypher('list', $$MATCH ()-[e]->() RETURN relationships(e)$$) as (relationships gtype);
-ERROR:  relationships() argument must be a path
+ERROR:  function postgraph.age_relationships(edge) does not exist
+LINE 1: ...T * from cypher('list', $$MATCH ()-[e]->() RETURN relationsh...
+                                                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- range()
 SELECT * from cypher('list', $$RETURN range(0, 10)$$) as (range gtype);
                range                
@@ -5632,54 +5641,47 @@ ERROR:  range(): neither start or end can be NULL
 SELECT * from cypher('list', $$RETURN range(0, -10.0, -3.0)$$) as (range gtype);
 ERROR:  range() unsupported argument type
 -- labels()
-SELECT * from cypher('list', $$CREATE (u:People {name: "John"}) RETURN u$$) as (Vertices gtype);
-                                      vertices                                       
--------------------------------------------------------------------------------------
- {"id": 1125899906842625, "label": "People", "properties": {"name": "John"}}::vertex
+SELECT * from cypher('list', $$CREATE (u:People {name: "John"}) RETURN u$$) as (Vertices vertex);
+                                  vertices                                   
+-----------------------------------------------------------------------------
+ {"id": 1125899906842625, "label": "People", "properties": {"name": "John"}}
 (1 row)
 
-SELECT * from cypher('list', $$CREATE (u:People {name: "Larry"}) RETURN u$$) as (Vertices gtype);
-                                       vertices                                       
---------------------------------------------------------------------------------------
- {"id": 1125899906842626, "label": "People", "properties": {"name": "Larry"}}::vertex
+SELECT * from cypher('list', $$CREATE (u:People {name: "Larry"}) RETURN u$$) as (Vertices vertex);
+                                   vertices                                   
+------------------------------------------------------------------------------
+ {"id": 1125899906842626, "label": "People", "properties": {"name": "Larry"}}
 (1 row)
 
-SELECT * from cypher('list', $$CREATE (u:Cars {name: "G35"}) RETURN u$$) as (Vertices gtype);
-                                     vertices                                     
-----------------------------------------------------------------------------------
- {"id": 1407374883553281, "label": "Cars", "properties": {"name": "G35"}}::vertex
+SELECT * from cypher('list', $$CREATE (u:Cars {name: "G35"}) RETURN u$$) as (Vertices vertex);
+                                 vertices                                 
+--------------------------------------------------------------------------
+ {"id": 1407374883553281, "label": "Cars", "properties": {"name": "G35"}}
 (1 row)
 
-SELECT * from cypher('list', $$CREATE (u:Cars {name: "MR2"}) RETURN u$$) as (Vertices gtype);
-                                     vertices                                     
-----------------------------------------------------------------------------------
- {"id": 1407374883553282, "label": "Cars", "properties": {"name": "MR2"}}::vertex
+SELECT * from cypher('list', $$CREATE (u:Cars {name: "MR2"}) RETURN u$$) as (Vertices vertex);
+                                 vertices                                 
+--------------------------------------------------------------------------
+ {"id": 1407374883553282, "label": "Cars", "properties": {"name": "MR2"}}
 (1 row)
 
-SELECT * from cypher('list', $$MATCH (u) RETURN labels(u), u$$) as (Labels gtype, Vertices gtype);
-   labels   |                                       vertices                                       
-------------+--------------------------------------------------------------------------------------
- [""]       | {"id": 281474976710657, "label": "", "properties": {"name": "rick"}}::vertex
- [""]       | {"id": 281474976710658, "label": "", "properties": {"name": "morty"}}::vertex
- [""]       | {"id": 281474976710659, "label": "", "properties": {"name": "rachael"}}::vertex
- [""]       | {"id": 281474976710660, "label": "", "properties": {"name": "monica"}}::vertex
- [""]       | {"id": 281474976710661, "label": "", "properties": {"name": "phoebe"}}::vertex
- ["People"] | {"id": 1125899906842625, "label": "People", "properties": {"name": "John"}}::vertex
- ["People"] | {"id": 1125899906842626, "label": "People", "properties": {"name": "Larry"}}::vertex
- ["Cars"]   | {"id": 1407374883553281, "label": "Cars", "properties": {"name": "G35"}}::vertex
- ["Cars"]   | {"id": 1407374883553282, "label": "Cars", "properties": {"name": "MR2"}}::vertex
-(9 rows)
-
+SELECT * from cypher('list', $$MATCH (u) RETURN labels(u), u$$) as (Labels gtype, Vertices vertex);
+ERROR:  function postgraph.age_labels(vertex) does not exist
+LINE 1: SELECT * from cypher('list', $$MATCH (u) RETURN labels(u), u...
+                                                        ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should return SQL NULL
 SELECT * from cypher('list', $$RETURN labels(NULL)$$) as (Labels gtype);
- labels 
---------
- 
-(1 row)
-
+ERROR:  function postgraph.age_labels(gtype) does not exist
+LINE 1: SELECT * from cypher('list', $$RETURN labels(NULL)$$) as (La...
+                                              ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- should return an error
 SELECT * from cypher('list', $$RETURN labels("string")$$) as (Labels gtype);
-ERROR:  labels() argument must be a vertex
+ERROR:  function postgraph.age_labels(gtype) does not exist
+LINE 1: SELECT * from cypher('list', $$RETURN labels("string")$$) as...
+                                              ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
 -- Cleanup
 --

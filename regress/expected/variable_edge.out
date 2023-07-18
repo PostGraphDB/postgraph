@@ -28,6 +28,16 @@ SELECT build_variable_edge(
 
 SELECT build_variable_edge(
         build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map()),
+        build_vertex('3'::graphid, $$vertex_label$$, gtype_build_map('id', '2')),
+        build_edge('4'::graphid, '3'::graphid, '5'::graphid, $$edge_label$$, gtype_build_map('id', 3))
+);
+                                                                                                          build_variable_edge                                                                                                           
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 1, "start_id": 2, "end_id": 3, "label": "edge_label", "properties": {}}, {"id": 3, "label": "vertex_label", "properties": {"id": "2"}}, {"id": 4, "start_id": 3, "end_id": 5, "label": "edge_label", "properties": {"id": 3}}]
+(1 row)
+
+SELECT build_variable_edge(
+        build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map()),
         build_vertex('3'::graphid, $$vertex_label$$, gtype_build_map()),
 	build_edge('4'::graphid, '3'::graphid, '5'::graphid, $$edge_label$$, gtype_build_map())
 );

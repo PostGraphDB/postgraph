@@ -33,7 +33,7 @@ SELECT create_graph('cypher_merge');
 SELECT * FROM cypher('cypher_merge', $$MERGE (n {i: "Hello Merge"})$$) AS (a gtype);
 
 --validate
-SELECT * FROM cypher('cypher_merge', $$MATCH (n) RETURN n$$) AS (n gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (n) RETURN n$$) AS (n vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -48,7 +48,7 @@ SELECT * FROM cypher('cypher_merge', $$CREATE ({i: "Hello Merge"}) $$) AS (a gty
 SELECT * FROM cypher('cypher_merge', $$MERGE ({i: "Hello Merge"})$$) AS (a gtype);
 
 --validate
-SELECT * FROM cypher('cypher_merge', $$MATCH (n) RETURN n$$) AS (n gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (n) RETURN n$$) AS (n vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -60,7 +60,7 @@ SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) MERGE ({i: n.i})$$) AS (a gtype);
 
 --validate
-SELECT * FROM cypher('cypher_merge', $$MATCH (n) RETURN n$$) AS (n gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (n) RETURN n$$) AS (n vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -73,7 +73,7 @@ SELECT * FROM cypher('cypher_merge', $$CREATE ({i: "Hello Merge"}) $$) AS (a gty
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) MERGE ({i: n.i})$$) AS (a gtype);
 
 --validate
-SELECT * FROM cypher('cypher_merge', $$MATCH (n) RETURN n$$) AS (n gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (n) RETURN n$$) AS (n vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -88,7 +88,7 @@ SELECT * FROM cypher('cypher_merge', $$CREATE ({i: "Hello Merge"}) $$) AS (a gty
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) MERGE ({j: n.i})$$) AS (a gtype);
 
 --validate
-SELECT * FROM cypher('cypher_merge', $$MATCH (n) RETURN n$$) AS (n gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (n) RETURN n$$) AS (n vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -100,10 +100,10 @@ SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype
 SELECT * FROM cypher('cypher_merge', $$CREATE ({i: 2}) $$) AS (a gtype);
 
 --test query
-SELECT * FROM cypher('cypher_merge', $$MERGE (n {i: 1}) RETURN n$$) AS (a gtype);
+SELECT * FROM cypher('cypher_merge', $$MERGE (n {i: 1}) RETURN n$$) AS (a vertex);
 
 --validate
-SELECT * FROM cypher('cypher_merge', $$MATCH (n) RETURN n$$) AS (n gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (n) RETURN n$$) AS (n vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -118,10 +118,10 @@ SELECT * FROM cypher('cypher_merge', $$CREATE ({i: 2}) $$) AS (a gtype);
 SELECT * FROM cypher('cypher_merge', $$CREATE () $$) AS (a gtype);
 
 --test query
-SELECT * FROM cypher('cypher_merge', $$MERGE (n {i: 1}) RETURN n$$) AS (a gtype);
+SELECT * FROM cypher('cypher_merge', $$MERGE (n {i: 1}) RETURN n$$) AS (a vertex);
 
 --validate
-SELECT * FROM cypher('cypher_merge', $$MATCH (n) RETURN n$$) AS (n gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (n) RETURN n$$) AS (n vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -141,7 +141,7 @@ SELECT * FROM cypher('cypher_merge', $$CREATE () $$) AS (a gtype);
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) MERGE (n)-[:e]->(:v)$$) AS (a gtype);
 
 --validate
-SELECT * FROM cypher('cypher_merge', $$MATCH (n)-[e:e]->(m:v) RETURN n, e, m$$) AS (n gtype, e gtype, m gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (n)-[e:e]->(m:v) RETURN n, e, m$$) AS (n vertex, e edge, m vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -157,7 +157,7 @@ SELECT * FROM cypher('cypher_merge', $$CREATE ()-[:e]->() $$) AS (a gtype);
 SELECT * FROM cypher('cypher_merge', $$MERGE (n)-[:e]->(:v)$$) AS (a gtype);
 
 --validate
-SELECT * FROM cypher('cypher_merge', $$MATCH (n)-[e:e]->(m:v) RETURN n, e, m$$) AS (n gtype, e gtype, m gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (n)-[e:e]->(m:v) RETURN n, e, m$$) AS (n vertex, e edge, m vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -172,7 +172,7 @@ SELECT * FROM cypher('cypher_merge', $$CREATE () $$) AS (a gtype);
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) MERGE (n)-[:e]->(:v)$$) AS (a gtype);
 
 --validate created correctly
-SELECT * FROM cypher('cypher_merge', $$MATCH (n)-[e:e]->(m:v) RETURN n, e, m$$) AS (n gtype, e gtype, m gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (n)-[e:e]->(m:v) RETURN n, e, m$$) AS (n vertex, e edge, m vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -187,7 +187,7 @@ SELECT * FROM cypher('cypher_merge', $$CREATE ()-[:e]->() $$) AS (a gtype);
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) MERGE (n)-[:e]->(:v)$$) AS (a gtype);
 
 --validate created correctly
-SELECT * FROM cypher('cypher_merge', $$MATCH (n)-[e:e]->(m:v) RETURN n, e, m$$) AS (n gtype, e gtype, m gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (n)-[e:e]->(m:v) RETURN n, e, m$$) AS (n vertex, e edge, m vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -203,13 +203,13 @@ SELECT * FROM cypher('cypher_merge', $$MERGE ()-[:e]->()-[:e]->()$$) AS (a gtype
 
 --validate created correctly
 --Returns 3. One for the data setup and 2 for the longer path in MERGE
-SELECT count(*) FROM cypher('cypher_merge', $$MATCH p=()-[e:e]->() RETURN p$$) AS (p gtype)
+SELECT count(*) FROM cypher('cypher_merge', $$MATCH p=()-[e:e]->() RETURN p$$) AS (p traversal)
 
 -- Returns 1, the path created in MERGE
-SELECT count(*) FROM cypher('cypher_merge', $$MATCH p=()-[:e]->()-[]->() RETURN p$$) AS (p gtype);
+SELECT count(*) FROM cypher('cypher_merge', $$MATCH p=()-[:e]->()-[]->() RETURN p$$) AS (p traversal);
 
 -- 5 vertices total should have been created
-SELECT count(*) FROM cypher('cypher_merge', $$MATCH (n) RETURN n$$) AS (n gtype);
+SELECT count(*) FROM cypher('cypher_merge', $$MATCH (n) RETURN n$$) AS (n vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -224,7 +224,7 @@ SELECT * FROM cypher('cypher_merge', $$CREATE ()-[:e]->() $$) AS (a gtype);
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) MERGE (n)-[:e_new]->(:v)$$) AS (a gtype);
 
 --validate created correctly
-SELECT * FROM cypher('cypher_merge', $$MATCH (n)-[e]->(m:v) RETURN n, e, m$$) AS (n gtype, e gtype, m gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (n)-[e]->(m:v) RETURN n, e, m$$) AS (n vertex, e edge, m vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -239,7 +239,7 @@ SELECT * FROM cypher('cypher_merge', $$CREATE ()-[:e]->() $$) AS (a gtype);
 SELECT * FROM cypher('cypher_merge', $$MERGE (n)-[:e_new]->(:v)$$) AS (a gtype);
 
 --validate created correctly
-SELECT * FROM cypher('cypher_merge', $$MATCH (n)-[e]->(m:v) RETURN n, e, m$$) AS (n gtype, e gtype, m gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (n)-[e]->(m:v) RETURN n, e, m$$) AS (n vertex, e edge, m vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -256,7 +256,7 @@ SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype
 SELECT * FROM cypher('cypher_merge', $$CREATE () MERGE (n)$$) AS (a gtype);
 
 --validate created correctly
-SELECT * FROM cypher('cypher_merge', $$MATCH (n) RETURN n$$) AS (n gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (n) RETURN n$$) AS (n vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -269,7 +269,7 @@ SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype
 SELECT * FROM cypher('cypher_merge', $$CREATE (n) WITH n as a MERGE (a)-[:e]->() $$) AS (a gtype);
 
 --validate created correctly
-SELECT * FROM cypher('cypher_merge', $$MATCH p=()-[:e]->() RETURN p$$) AS (p gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH p=()-[:e]->() RETURN p$$) AS (p traversal);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -284,7 +284,7 @@ SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype
 SELECT * FROM cypher('cypher_merge', $$CREATE (n) MERGE (n)-[:e]->() $$) AS (a gtype);
 
 --validate created correctly
-SELECT * FROM cypher('cypher_merge', $$MATCH p=()-[:e]->() RETURN p$$) AS (p gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH p=()-[:e]->() RETURN p$$) AS (p traversal);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -298,7 +298,7 @@ SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype
 SELECT * FROM cypher('cypher_merge', $$CREATE (n {i : 1}) SET n.i = 2 MERGE ({i: 2}) $$) AS (a gtype);
 
 --validate created correctly
-SELECT * FROM cypher('cypher_merge', $$MATCH (a) RETURN a$$) AS (a gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (a) RETURN a$$) AS (a vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -310,7 +310,7 @@ SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype
 SELECT * FROM cypher('cypher_merge', $$CREATE (n {i : 1}) SET n.i = 2 WITH n as a MERGE ({i: 2}) $$) AS (a gtype);
 
 --validate created correctly
-SELECT * FROM cypher('cypher_merge', $$MATCH (a) RETURN a$$) AS (a gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (a) RETURN a$$) AS (a vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -326,7 +326,7 @@ SELECT * FROM cypher('cypher_merge', $$CREATE (n {i : 1})$$) AS (a gtype);
 SELECT * FROM cypher('cypher_merge', $$MATCH (n {i : 1}) SET n.i = 2 WITH n as a MERGE ({i: 2}) $$) AS (a gtype);
 
 --validate created correctly
-SELECT * FROM cypher('cypher_merge', $$MATCH (a) RETURN a$$) AS (a gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (a) RETURN a$$) AS (a vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -342,7 +342,7 @@ SELECT * FROM cypher('cypher_merge', $$CREATE (n {i : 1})$$) AS (a gtype);
 SELECT * FROM cypher('cypher_merge', $$MATCH (n {i : 1}) DELETE n  MERGE (n)-[:e]->() $$) AS (a gtype);
 
 --validate, transaction was rolled back because of the error message
-SELECT * FROM cypher('cypher_merge', $$MATCH (a) RETURN a$$) AS (a gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (a) RETURN a$$) AS (a vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -369,10 +369,10 @@ SELECT * FROM cypher('cypher_merge', $$
     MERGE (city:City {name: person.bornIn})
     MERGE (person)-[r:BORN_IN]->(city)
     RETURN person.name, person.bornIn, city
-$$) AS (name gtype, bornIn gtype, city gtype);
+$$) AS (name gtype, bornIn gtype, city vertex);
 
 --validate
-SELECT * FROM cypher('cypher_merge', $$MATCH (a) RETURN a$$) AS (a gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (a) RETURN a$$) AS (a vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -383,7 +383,7 @@ SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype
 SELECT * FROM cypher('cypher_merge', $$MERGE ()-[:e]-()$$) AS (a gtype);
 
 --validate
-SELECT * FROM cypher('cypher_merge', $$MATCH p=()-[]->() RETURN p$$) AS (a gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH p=()-[]->() RETURN p$$) AS (a traversal);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -391,10 +391,10 @@ SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype
 /*
  * test 24:
  */
-SELECT * FROM cypher('cypher_merge', $$MERGE (a) RETURN a$$) AS (a gtype);
+SELECT * FROM cypher('cypher_merge', $$MERGE (a) RETURN a$$) AS (a vertex);
 
 --validate
-SELECT * FROM cypher('cypher_merge', $$MATCH (a) RETURN a$$) AS (a gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (a) RETURN a$$) AS (a vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -402,10 +402,10 @@ SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype
 /*
  * test 25:
  */
-SELECT * FROM cypher('cypher_merge', $$MERGE p=()-[:e]-() RETURN p$$) AS (a gtype);
+SELECT * FROM cypher('cypher_merge', $$MERGE p=()-[:e]-() RETURN p$$) AS (a traversal);
 
 --validate
-SELECT * FROM cypher('cypher_merge', $$MATCH p=()-[]->() RETURN p$$) AS (a gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH p=()-[]->() RETURN p$$) AS (a traversal);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -413,10 +413,10 @@ SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype
 /*
  * test 26:
  */
-SELECT * FROM cypher('cypher_merge', $$MERGE (a)-[:e]-(b) RETURN a$$) AS (a gtype);
+SELECT * FROM cypher('cypher_merge', $$MERGE (a)-[:e]-(b) RETURN a$$) AS (a vertex);
 
 --validate
-SELECT * FROM cypher('cypher_merge', $$MATCH p=()-[]->() RETURN p$$) AS (a gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH p=()-[]->() RETURN p$$) AS (a traversal);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);
@@ -424,9 +424,9 @@ SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype
 /*
  * test 27:
  */
-SELECT  * FROM cypher('cypher_merge', $$CREATE p=()-[:e]->() RETURN p$$) AS (a gtype);
+SELECT  * FROM cypher('cypher_merge', $$CREATE p=()-[:e]->() RETURN p$$) AS (a traversal);
 
-SELECT * FROM cypher('cypher_merge', $$MERGE p=()-[:e]-() RETURN p$$) AS (a gtype);
+SELECT * FROM cypher('cypher_merge', $$MERGE p=()-[:e]-() RETURN p$$) AS (a traversal);
 
 
 --clean up
@@ -439,7 +439,7 @@ SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype
  * test 28:
  * Only single paths allowed
  */
-SELECT * FROM cypher('cypher_merge', $$MERGE (n), (m) RETURN n, m$$) AS (a gtype, b gtype);
+SELECT * FROM cypher('cypher_merge', $$MERGE (n), (m) RETURN n, m$$) AS (a vertex, b vertex);
 
 /*
  * test 29:
@@ -458,26 +458,25 @@ SELECT * FROM cypher('cypher_merge', $$CREATE (n)$$) AS (a gtype);
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) OPTIONAL MATCH (n)-[:e]->(m) MERGE (m)$$) AS (a gtype);
 
 -- validate only 1 vertex exits
-SELECT * FROM cypher('cypher_merge', $$MATCH (n) RETURN n$$) AS (a gtype);
+SELECT * FROM cypher('cypher_merge', $$MATCH (n) RETURN n$$) AS (a vertex);
 
 --
 -- MERGE/SET test
--- Node does exist, then set (github issue #235)
-SELECT * FROM cypher('cypher_merge', $$ CREATE (n:node {name: 'Jason'}) RETURN n $$) AS (n gtype);
-SELECT * FROM cypher('cypher_merge', $$ MATCH (n:node) RETURN n $$) AS (n gtype);
-SELECT * FROM cypher('cypher_merge', $$ MERGE (n:node {name: 'Jason'}) SET n.name = 'Lisa' RETURN n $$) AS (n gtype);
-SELECT * FROM cypher('cypher_merge', $$ MATCH (n:node) RETURN n $$) AS (n gtype);
+SELECT * FROM cypher('cypher_merge', $$ CREATE (n:node {name: 'Jason'}) RETURN n $$) AS (n vertex);
+SELECT * FROM cypher('cypher_merge', $$ MATCH (n:node) RETURN n $$) AS (n vertex);
+SELECT * FROM cypher('cypher_merge', $$ MERGE (n:node {name: 'Jason'}) SET n.name = 'Lisa' RETURN n $$) AS (n vertex);
+SELECT * FROM cypher('cypher_merge', $$ MATCH (n:node) RETURN n $$) AS (n vertex);
 
 -- Node doesn't exist, is created, then set
 SELECT * FROM cypher('cypher_merge', $$ MATCH (n:node) DELETE n $$) AS (n gtype);
-SELECT * FROM cypher('cypher_merge', $$ MATCH (n:node) RETURN n $$) AS (n gtype);
-SELECT * FROM cypher('cypher_merge', $$ MERGE (n:node {name: 'Jason'}) SET n.name = 'Lisa' RETURN n $$) AS (n gtype);
-SELECT * FROM cypher('cypher_merge', $$ MATCH (n:node) RETURN n $$) AS (n gtype);
+SELECT * FROM cypher('cypher_merge', $$ MATCH (n:node) RETURN n $$) AS (n vertex);
+SELECT * FROM cypher('cypher_merge', $$ MERGE (n:node {name: 'Jason'}) SET n.name = 'Lisa' RETURN n $$) AS (n vertex);
+SELECT * FROM cypher('cypher_merge', $$ MATCH (n:node) RETURN n $$) AS (n vertex);
 -- Multiple SETs
-SELECT * FROM cypher('cypher_merge', $$ MERGE (n:node {name: 'Lisa'}) SET n.age = 23, n.gender = "Female" RETURN n $$) AS (n gtype);
-SELECT * FROM cypher('cypher_merge', $$ MATCH (n:node) RETURN n $$) AS (n gtype);
-SELECT * FROM cypher('cypher_merge', $$ MERGE (n:node {name: 'Jason'}) SET n.name = 'Lisa', n.age = 23, n.gender = 'Female' RETURN n $$) AS (n gtype);
-SELECT * FROM cypher('cypher_merge', $$ MATCH (n:node) RETURN n $$) AS (n gtype);
+SELECT * FROM cypher('cypher_merge', $$ MERGE (n:node {name: 'Lisa'}) SET n.age = 23, n.gender = "Female" RETURN n $$) AS (n vertex);
+SELECT * FROM cypher('cypher_merge', $$ MATCH (n:node) RETURN n $$) AS (n vertex);
+SELECT * FROM cypher('cypher_merge', $$ MERGE (n:node {name: 'Jason'}) SET n.name = 'Lisa', n.age = 23, n.gender = 'Female' RETURN n $$) AS (n vertex);
+SELECT * FROM cypher('cypher_merge', $$ MATCH (n:node) RETURN n $$) AS (n vertex);
 
 --clean up
 SELECT * FROM cypher('cypher_merge', $$MATCH (n) DETACH DELETE n $$) AS (a gtype);

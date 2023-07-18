@@ -26,7 +26,7 @@ SELECT * FROM cypher('cypher_match', $$CREATE (:v)$$) AS (a gtype);
 SELECT * FROM cypher('cypher_match', $$CREATE (:v {i: 0})$$) AS (a gtype);
 SELECT * FROM cypher('cypher_match', $$CREATE (:v {i: 1})$$) AS (a gtype);
 
-SELECT * FROM cypher('cypher_match', $$MATCH (n:v) RETURN n$$) AS (n gtype);
+SELECT * FROM cypher('cypher_match', $$MATCH (n:v) RETURN n$$) AS (n vertex);
 SELECT * FROM cypher('cypher_match', $$MATCH (n:v) RETURN n.i$$) AS (i gtype);
 
 SELECT * FROM cypher('cypher_match', $$
@@ -42,81 +42,81 @@ $$) AS (a gtype);
 --Undirected Path Tests
 SELECT * FROM cypher('cypher_match', $$
 	MATCH p=(:v1)-[:e1]-(:v1)-[:e1]-(:v1) RETURN p
-$$) AS (a gtype);
+$$) AS (a traversal);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH p=(a:v1)-[]-()-[]-() RETURN a
-$$) AS (a gtype);
+$$) AS (a vertex);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH ()-[]-()-[]-(a:v1) RETURN a
-$$) AS (a gtype);
+$$) AS (a vertex);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH ()-[]-(a:v1)-[]-() RETURN a
-$$) AS (a gtype);
+$$) AS (a vertex);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH ()-[b:e1]-()-[]-() RETURN b
-$$) AS (a gtype);
+$$) AS (a edge);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH (a:v1)-[]->(), ()-[]->(a) RETURN a
-$$) AS (a gtype);
+$$) AS (a vertex);
 
 SELECT * FROM cypher('cypher_match', $$
     MATCH p=()-[e]-() RETURN e
-$$) AS (a gtype);
+$$) AS (a edge);
 
 -- Right Path Test
 SELECT * FROM cypher('cypher_match', $$
 	MATCH (a:v1)-[:e1]->(b:v1)-[:e1]->(c:v1) RETURN a, b, c
-$$) AS (a gtype, b gtype, c gtype);
+$$) AS (a vertex, b vertex, c vertex);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH p=(a:v1)-[]-()-[]->() RETURN a
-$$) AS (a gtype);
+$$) AS (a vertex);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH p=(a:v1)-[]->()-[]-() RETURN a
-$$) AS (a gtype);
+$$) AS (a vertex);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH ()-[]-()-[]->(a:v1) RETURN a
-$$) AS (a gtype);
+$$) AS (a vertex);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH ()-[]-(a:v1)-[]->() RETURN a
-$$) AS (a gtype);
+$$) AS (a vertex);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH ()-[b:e1]-()-[]->() RETURN b
-$$) AS (a gtype);
+$$) AS (a edge);
 
 --Left Path Test
 SELECT * FROM cypher('cypher_match', $$
 	MATCH (a:v1)<-[:e1]-(b:v1)<-[:e1]-(c:v1) RETURN a, b, c
-$$) AS (a gtype, b gtype, c gtype);
+$$) AS (a vertex, b vertex, c vertex);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH p=(a:v1)<-[]-()-[]-() RETURN a
-$$) AS (a gtype);
+$$) AS (a vertex);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH p=(a:v1)-[]-()<-[]-() RETURN a
-$$) AS (a gtype);
+$$) AS (a vertex);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH ()<-[]-()-[]-(a:v1) RETURN a
-$$) AS (a gtype);
+$$) AS (a vertex);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH ()<-[]-(a:v1)-[]-() RETURN a
-$$) AS (a gtype);
+$$) AS (a vertex);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH ()<-[b:e1]-()-[]-() RETURN b
-$$) AS (a gtype);
+$$) AS (a edge);
 
 --Divergent Path Tests
 SELECT * FROM cypher('cypher_match', $$
@@ -127,18 +127,18 @@ SELECT * FROM cypher('cypher_match', $$
 	MATCH ()<-[]-(n:v2)-[]->()
 	MATCH p=()-[]->(n)
 	RETURN p
-$$) AS (i gtype);
+$$) AS (i traversal);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH ()<-[]-(n:v2)-[]->()
 	MATCH p=(n)-[]->()
 	RETURN p
-$$) AS (i gtype);
+$$) AS (i traversal);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH ()-[]-(n:v2)
 	RETURN n
-$$) AS (i gtype);
+$$) AS (i vertex);
 
 --Convergent Path Tests
 SELECT * FROM cypher('cypher_match', $$
@@ -148,57 +148,57 @@ $$) AS (a gtype);
 SELECT * FROM cypher('cypher_match', $$
 	MATCH ()-[b:e1]->()
 	RETURN b
-$$) AS (i gtype);
+$$) AS (i edge);
 
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH ()-[]->(n:v1)<-[]-()
 	MATCH p=(n)<-[]-()
 	RETURN p
-$$) AS (i gtype);
+$$) AS (i traversal);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH ()-[]->(n:v1)<-[]-()
 	MATCH p=()-[]->(n)
 	RETURN p
-$$) AS (i gtype);
+$$) AS (i traversal);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH ()-[]->(n:v1)<-[]-()
 	MATCH p=(n)-[]->()
 	RETURN p
-$$) AS (i gtype);
+$$) AS (i traversal);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH con_path=(a)-[]->()<-[]-()
 	where a.id = 'initial'
 	RETURN con_path
-$$) AS (con_path gtype);
+$$) AS (con_path traversal);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH div_path=(b)<-[]-()-[]->()
 	where b.id = 'initial'
 	RETURN div_path
-$$) AS (div_path gtype);
+$$) AS (div_path traversal);
 
 --Patterns
 SELECT * FROM cypher('cypher_match', $$
 	MATCH (a:v1), p=(a)-[]-()-[]-()
 	where a.id = 'initial'
 	RETURN p
-$$) AS (p gtype);
+$$) AS (p traversal);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH con_path=(a)-[]->()<-[]-(), div_path=(b)<-[]-()-[]->()
 	where a.id = 'initial'
 	and b.id = 'initial'
 	RETURN con_path, div_path
-$$) AS (con_path gtype, div_path gtype);
+$$) AS (con_path traversal, div_path traversal);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH (a:v), p=()-[]->()-[]->()
 	RETURN a.i, p
-$$) AS (i gtype, p gtype);
+$$) AS (i gtype, p traversal);
 
 --Multiple Match Clauses
 SELECT * FROM cypher('cypher_match', $$
@@ -206,13 +206,13 @@ SELECT * FROM cypher('cypher_match', $$
 	where a.id = 'initial'
 	MATCH p=(a)-[]-()-[]-()
 	RETURN p
-$$) AS (p gtype);
+$$) AS (p traversal);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH (a:v)
 	MATCH p=()-[]->()-[]->()
 	RETURN a.i, p
-$$) AS (i gtype, p gtype);
+$$) AS (i gtype, p traversal);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH (a:v)
@@ -233,29 +233,29 @@ AS (p gtype);
 
 SELECT * FROM cypher('cypher_match',
  $$MATCH (n  {string_key: NULL}) RETURN n $$)
-AS (n gtype);
+AS (n vertex);
 
 SELECT * FROM cypher('cypher_match',
  $$MATCH (n  {string_key: "wrong value"}) RETURN n $$)
-AS (n gtype);
+AS (n vertex);
 
 
 SELECT * FROM cypher('cypher_match', $$
     MATCH (n {string_key: "test", int_key: 1, float_key: 3.14, map_key: {key: "value"}, list_key: [1, 2, 3]})
     RETURN n $$)
-AS (p gtype);
+AS (p vertex);
 
 SELECT * FROM cypher('cypher_match',
  $$MATCH (n {string_key: "test"}) RETURN n $$)
-AS (p gtype);
+AS (p vertex);
 
 SELECT * FROM cypher('cypher_match',
  $$MATCH (n {lst: [1, NULL, 3.14, "string", {key: "value"}, []]})  RETURN n $$)
-AS (p gtype);
+AS (p vertex);
 
 SELECT * FROM cypher('cypher_match',
  $$MATCH (n {lst: [1, NULL, 3.14, "string", {key: "value"}, [], "extra value"]})  RETURN n $$)
-AS (p gtype);
+AS (p vertex);
 
 
 --
@@ -263,7 +263,7 @@ AS (p gtype);
 --
 PREPARE property_ps(gtype) AS SELECT * FROM cypher('cypher_match',
  $$MATCH (n $props) RETURN n $$, $1)
-AS (p gtype);
+AS (p vertex);
 
 EXECUTE property_ps(gtype_build_map('props',
                                      gtype_build_map('string_key', 'test')));
@@ -274,60 +274,60 @@ SELECT * FROM cypher('cypher_match', $$MATCH (n:v)$$) AS (a gtype);
 --Invalid Variables
 SELECT * FROM cypher('cypher_match', $$
 	MATCH (a)-[]-()-[]-(a:v1) RETURN a
-$$) AS (a gtype);
+$$) AS (a vertex);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH (a:v1)-[]-()-[a]-() RETURN a
-$$) AS (a gtype);
+$$) AS (a vertex);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH (a:v1)-[]-()-[]-(a {id:'will_fail'}) RETURN a
-$$) AS (a gtype);
+$$) AS (a vertex);
 
 --Incorrect Labels
-SELECT * FROM cypher('cypher_match', $$MATCH (n)-[:v]-() RETURN n$$) AS (n gtype);
+SELECT * FROM cypher('cypher_match', $$MATCH (n)-[:v]-() RETURN n$$) AS (n vertex);
 
-SELECT * FROM cypher('cypher_match', $$MATCH (n)-[:emissing]-() RETURN n$$) AS (n gtype);
+SELECT * FROM cypher('cypher_match', $$MATCH (n)-[:emissing]-() RETURN n$$) AS (n vertex);
 
-SELECT * FROM cypher('cypher_match', $$MATCH (n:e1)-[]-() RETURN n$$) AS (n gtype);
+SELECT * FROM cypher('cypher_match', $$MATCH (n:e1)-[]-() RETURN n$$) AS (n vertex);
 
-SELECT * FROM cypher('cypher_match', $$MATCH (n:vmissing)-[]-() RETURN n$$) AS (n gtype);
+SELECT * FROM cypher('cypher_match', $$MATCH (n:vmissing)-[]-() RETURN n$$) AS (n vertex);
 
 --
 -- Path of one vertex. This should select 14
 --
 SELECT * FROM cypher('cypher_match', $$
        MATCH p=() RETURN p
-$$) AS (p gtype);
+$$) AS (p traversal);
 
 --
 -- MATCH with WHERE EXISTS(pattern)
 --
 SELECT * FROM cypher('cypher_match',
- $$MATCH (u)-[e]->(v) RETURN u, e, v $$) AS (u gtype, e gtype, v gtype);
+ $$MATCH (u)-[e]->(v) RETURN u, e, v $$) AS (u vertex, e edge, v vertex);
 
 SELECT * FROM cypher('cypher_match',
  $$MATCH (u)-[e]->(v) WHERE EXISTS ((u)-[e]->(v)) RETURN u, e, v $$)
-AS (u gtype, e gtype, v gtype);
+AS (u vertex, e edge, v vertex);
 
 
 -- Property Constraint in EXISTS
 SELECT * FROM cypher('cypher_match',
  $$MATCH (u) WHERE EXISTS((u)-[]->({id: "middle"})) RETURN u $$)
-AS (u gtype);
+AS (u vertex);
 
 SELECT * FROM cypher('cypher_match',
  $$MATCH (u) WHERE EXISTS((u)-[]->({id: "not a valid id"})) RETURN u $$)
-AS (u gtype);
+AS (u vertex);
 
 SELECT * FROM cypher('cypher_match',
  $$MATCH (u) WHERE EXISTS((u)-[]->({id: NULL})) RETURN u $$)
-AS (u gtype);
+AS (u vertex);
 
 -- Exists checks for a loop. There shouldn't be any.
 SELECT * FROM cypher('cypher_match',
  $$MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) RETURN u, e, v $$)
-AS (u gtype, e gtype, v gtype);
+AS (u vertex, e edge, v vertex);
 
 -- Create a loop
 SELECT * FROM cypher('cypher_match', $$
@@ -337,32 +337,32 @@ $$) AS (a gtype);
 -- dump paths
 SELECT * FROM cypher('cypher_match',
  $$MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(v)) RETURN u, e, v $$)
-AS (u gtype, e gtype, v gtype);
+AS (u vertex, e edge, v vertex);
 
 -- Exists checks for a loop. There should be one.
 SELECT * FROM cypher('cypher_match',
  $$MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) RETURN u, e, v $$)
-AS (u gtype, e gtype, v gtype);
+AS (u vertex, e edge, v vertex);
 
 -- Exists checks for a loop. There should be one.
 SELECT * FROM cypher('cypher_match',
  $$MATCH (u)-[e]->(v) WHERE EXISTS((v)-[e]->(v)) RETURN u, e, v $$)
-AS (u gtype, e gtype, v gtype);
+AS (u vertex, e edge, v vertex);
 
 -- Exists checks for a loop. There should be none because of edge uniqueness
 -- requirement.
 SELECT * FROM cypher('cypher_match',
  $$MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)-[e]->(u)) RETURN u, e, v $$)
-AS (u gtype, e gtype, v gtype);
+AS (u vertex, e edge, v vertex);
 
 SELECT * FROM cypher('cypher_match',
  $$MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) AND EXISTS((v)-[e]->(v)) RETURN u, e, v $$)
-AS (u gtype, e gtype, v gtype);
+AS (u vertex, e edge, v vertex);
 
 -- variable creation error
 SELECT * FROM cypher('cypher_match',
  $$MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(x)) RETURN u, e, v $$)
-AS (u gtype, e gtype, v gtype);
+AS (u vertex, e edge, v vertex);
 
 --
 --Distinct
@@ -384,12 +384,12 @@ $$) AS (a gtype);
 SELECT * FROM cypher('cypher_match', $$
 	MATCH (u:duplicate)-[]-(:other_v)
 	RETURN DISTINCT u
-$$) AS (i gtype);
+$$) AS (i vertex);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH p=(:duplicate)-[]-(:other_v)
 	RETURN DISTINCT p
-$$) AS (i gtype);
+$$) AS (i traversal);
 
 --
 -- Limit
@@ -397,12 +397,12 @@ $$) AS (i gtype);
 SELECT * FROM cypher('cypher_match', $$
 	MATCH (u)
 	RETURN u
-$$) AS (i gtype);
+$$) AS (i vertex);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH (u)
 	RETURN u LIMIT 3
-$$) AS (i gtype);
+$$) AS (i vertex);
 
 --
 -- Skip
@@ -410,12 +410,12 @@ $$) AS (i gtype);
 SELECT * FROM cypher('cypher_match', $$
 	MATCH (u)
 	RETURN u SKIP 7
-$$) AS (i gtype);
+$$) AS (i vertex);
 
 SELECT * FROM cypher('cypher_match', $$
 	MATCH (u)
 	RETURN u SKIP 7 LIMIT 3
-$$) AS (i gtype);
+$$) AS (i vertex);
 
 
 --
@@ -450,10 +450,6 @@ SELECT * FROM cypher('cypher_match', $$
     ORDER BY n, p, m, q
  $$) AS (n gtype, r gtype, p gtype, m gtype, s gtype, q gtype);
 
---
--- JIRA: AGE2-544
---
-
 -- Clean up
 SELECT DISTINCT * FROM cypher('cypher_match', $$
     MATCH (u) DETACH DELETE (u)
@@ -464,7 +460,7 @@ SELECT * FROM cypher('cypher_match', $$
     CREATE (u {name: "orphan"})
     CREATE (u1 {name: "F"})-[u2:e1]->(u3 {name: "T"})
     RETURN u1, u2, u3
-$$) as (u1 gtype, u2 gtype, u3 gtype);
+$$) as (u1 vertex, u2 edge, u3 vertex);
 
 -- Querying NOT EXISTS syntax
 SELECT * FROM cypher('cypher_match', $$
@@ -504,7 +500,7 @@ SELECT * FROM cypher('cypher_match', $$
     MATCH (n {j: 2})
     WHERE n.i = 1
     RETURN n
-$$) as (n gtype);
+$$) as (n vertex);
 
 --
 -- Clean up

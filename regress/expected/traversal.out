@@ -92,3 +92,35 @@ SELECT build_traversal(
  [{"id": 2, "label": "vertex_label", "properties": {}}, {"id": 1, "start_id": 2, "end_id": 3, "label": "edge_label", "properties": {}}, {"id": 3, "label": "vertex_label", "properties": {}}, {"id": 4, "start_id": 3, "end_id": 5, "label": "edge_label", "properties": {}}, {"id": 3, "label": "vertex_label", "properties": {}}]
 (1 row)
 
+SELECT _gtype_build_path(
+       _gtype_build_vertex('2'::graphid, $$label_name$$, gtype_build_map()),
+        build_variable_edge(
+            build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map())
+        ),
+       _gtype_build_vertex('3'::graphid, $$label_name$$, gtype_build_map()),
+       _gtype_build_edge('1'::graphid, '4'::graphid, '5'::graphid,
+                         $$label$$, gtype_build_map('id', 2)),
+                _gtype_build_vertex('5'::graphid, $$label_name$$, gtype_build_map())
+);
+                                                                                                                                                                            _gtype_build_path                                                                                                                                                                             
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 2, "label": "label_name", "properties": {}}::vertex, {"id": 1, "label": "edge_label", "end_id": 3, "start_id": 2, "properties": {}}::edge, {"id": 3, "label": "label_name", "properties": {}}::vertex, {"id": 1, "label": "label", "end_id": 5, "start_id": 4, "properties": {"id": 2}}::edge, {"id": 5, "label": "label_name", "properties": {}}::vertex]::path
+(1 row)
+
+SELECT _gtype_build_path(
+       _gtype_build_vertex('2'::graphid, $$label_name$$, gtype_build_map()),
+        build_variable_edge(
+            build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map()),
+            build_vertex('3'::graphid, $$vertex_label$$, gtype_build_map()),
+            build_edge('4'::graphid, '3'::graphid, '5'::graphid, $$edge_label$$, gtype_build_map())
+        ),
+       _gtype_build_vertex('3'::graphid, $$label_name$$, gtype_build_map()),
+       _gtype_build_edge('1'::graphid, '4'::graphid, '5'::graphid,
+                         $$label$$, gtype_build_map('id', 2)),
+		_gtype_build_vertex('5'::graphid, $$label_name$$, gtype_build_map())
+);
+                                                                                                                                                                                                                                                      _gtype_build_path                                                                                                                                                                                                                                                       
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 2, "label": "label_name", "properties": {}}::vertex, {"id": 1, "label": "edge_label", "end_id": 3, "start_id": 2, "properties": {}}::edge, {"id": 3, "label": "vertex_label", "properties": {}}::vertex, {"id": 4, "label": "edge_label", "end_id": 5, "start_id": 3, "properties": {}}::edge, {"id": 3, "label": "label_name", "properties": {}}::vertex, {"id": 1, "label": "label", "end_id": 5, "start_id": 4, "properties": {"id": 2}}::edge, {"id": 5, "label": "label_name", "properties": {}}::vertex]::path
+(1 row)
+

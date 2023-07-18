@@ -77,7 +77,10 @@ SELECT * FROM cypher('cypher_unwind', $$
     SET a.i = 1
     RETURN a
 $$) as (i gtype);
-ERROR:  UNWIND clause does not support gtype vertex
+ERROR:  function postgraph.age_collect(vertex) does not exist
+LINE 3:     WITH collect(n_1) as n
+                 ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT drop_graph('cypher_unwind', true);
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table cypher_unwind._ag_label_vertex

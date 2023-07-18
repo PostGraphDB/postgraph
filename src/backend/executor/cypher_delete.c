@@ -39,9 +39,10 @@
 #include "nodes/cypher_nodes.h"
 #include "utils/gtype.h"
 #include "utils/graphid.h"
+#include "utils/vertex.h"
+#include "utils/edge.h"
 
-static void begin_cypher_delete(CustomScanState *node, EState *estate,
-                                int eflags);
+static void begin_cypher_delete(CustomScanState *node, EState *estate, int eflags);
 static TupleTableSlot *exec_cypher_delete(CustomScanState *node);
 static void end_cypher_delete(CustomScanState *node);
 static void rescan_cypher_delete(CustomScanState *node);
@@ -94,9 +95,7 @@ static void begin_cypher_delete(CustomScanState *node, EState *estate,
     ExecAssignExprContext(estate, &node->ss.ps);
 
     // setup scan tuple slot and projection info
-    ExecInitScanTupleSlot(estate, &node->ss,
-                          ExecGetResultType(node->ss.ps.lefttree),
-                          &TTSOpsHeapTuple);
+    ExecInitScanTupleSlot(estate, &node->ss, ExecGetResultType(node->ss.ps.lefttree), &TTSOpsHeapTuple);
 
     if (!CYPHER_CLAUSE_IS_TERMINAL(css->flags))
     {
@@ -247,15 +246,10 @@ Node *create_cypher_delete_plan_state(CustomScan *cscan)
  * Extract the vertex or edge to be deleted, perform some type checking to
  * validate datum is an gtype vertex or edge.
  */
-static gtype_value *extract_entity(CustomScanState *node,
-                                    TupleTableSlot *scanTupleSlot,
-                                    int entity_position)
-{
+static gtype_value *extract_entity(CustomScanState *node, TupleTableSlot *scanTupleSlot, int entity_position) {
     gtype_value *original_entity_value;
     gtype *original_entity;
-    TupleDesc tupleDescriptor;
-
-    tupleDescriptor = scanTupleSlot->tts_tupleDescriptor;
+    TupleDesc tupleDescriptor = scanTupleSlot->tts_tupleDescriptor;
 
     // type checking, make sure the entity is an gtype vertex or edge
     if (tupleDescriptor->attrs[entity_position -1].atttypid != GTYPEOID)
@@ -379,6 +373,7 @@ static void process_delete_list(CustomScanState *node)
         char *label_name;
         Value *pos;
         int entity_position;
+        graphid gid = 0;
 
         item = lfirst(lc);
 
@@ -388,7 +383,7 @@ static void process_delete_list(CustomScanState *node)
         /* skip if the entity is null */
         if (scanTupleSlot->tts_isnull[entity_position - 1])
             continue;
-
+/*
         original_entity_value = extract_entity(node, scanTupleSlot,
                                                entity_position);
 
@@ -397,11 +392,39 @@ static void process_delete_list(CustomScanState *node)
         label_name = pnstrdup(label->val.string.val, label->val.string.len);
 
         resultRelInfo = create_entity_result_rel_info(estate, css->delete_data->graph_name, label_name);
+*/
+	TupleDesc tupleDescriptor = scanTupleSlot->tts_tupleDescriptor;
+    if (tupleDescriptor->attrs[entity_position -1].atttypid == EDGEOID) {
+            edge *e = DATUM_GET_EDGE(scanTupleSlot->tts_values[entity_position - 1]);    
+gid = *((int64 *)(&e->children[0]));
+           resultRelInfo = create_entity_result_rel_info(estate, css->delete_data->graph_name,
+			                                 extract_edge_label(e));
+	    ScanKeyInit(&scan_keys[0], Anum_ag_label_edge_table_id,
+                        BTEqualStrategyNumber, F_GRAPHIDEQ,
+                        GRAPHID_GET_DATUM(gid));
 
-        /*
-         * Setup the scan key to require the id field on-disc to match the
-         * entity's graphid.
-         */
+    }
+    else if (tupleDescriptor->attrs[entity_position -1].atttypid == VERTEXOID) {
+            vertex *v = DATUM_GET_VERTEX(scanTupleSlot->tts_values[entity_position - 1]);
+ 
+           resultRelInfo = create_entity_result_rel_info(estate, css->delete_data->graph_name,
+                                                         extract_vertex_label(v));
+gid = *((int64 *)(&v->children[0]));
+	   ScanKeyInit(&scan_keys[0], Anum_ag_label_vertex_table_id,
+                        BTEqualStrategyNumber, F_GRAPHIDEQ,
+                        GRAPHID_GET_DATUM(gid));
+
+    }
+    else if (tupleDescriptor->attrs[entity_position -1].atttypid == GTYPEOID) {
+        original_entity_value = extract_entity(node, scanTupleSlot, entity_position);
+
+        id = GET_GTYPE_VALUE_OBJECT_VALUE(original_entity_value, "id");
+        label = GET_GTYPE_VALUE_OBJECT_VALUE(original_entity_value, "label");
+        label_name = pnstrdup(label->val.string.val, label->val.string.len);
+
+        resultRelInfo = create_entity_result_rel_info(estate, css->delete_data->graph_name, label_name);
+
+
         if (original_entity_value->type == AGTV_VERTEX)
         {
             ScanKeyInit(&scan_keys[0], Anum_ag_label_vertex_table_id,
@@ -414,6 +437,13 @@ static void process_delete_list(CustomScanState *node)
                         BTEqualStrategyNumber, F_GRAPHIDEQ,
                         GRAPHID_GET_DATUM(id->val.int_value));
         }
+        else
+        {
+            ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+                    errmsg("DELETE clause can only delete vertices and edges")));
+        }
+
+    }
         else
         {
             ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
@@ -447,11 +477,12 @@ static void process_delete_list(CustomScanState *node)
          * edges, * if there are, we need to delete them or throw an error,
          * depending on if the query specified the DETACH option.
          */
-        if (original_entity_value->type == AGTV_VERTEX)
+	if (tupleDescriptor->attrs[entity_position -1].atttypid == VERTEXOID)
+        //if (original_entity_value->type == AGTV_VERTEX)
         {
             find_connected_edges(node, css->delete_data->graph_name,
                                  css->edge_labels, item->var_name,
-                                 id->val.int_value, css->delete_data->detach);
+                                 gid, css->delete_data->detach);
         }
 
         /* At this point, we are ready to delete the node/vertex. */

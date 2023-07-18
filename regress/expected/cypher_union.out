@@ -30,33 +30,25 @@ SELECT * FROM cypher('cypher_union', $$CREATE ()$$) as (a gtype);
 ---
 (0 rows)
 
-SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION MATCH (n) RETURN n$$) as (a gtype);
-                               a                                
-----------------------------------------------------------------
- {"id": 281474976710657, "label": "", "properties": {}}::vertex
-(1 row)
-
-SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION ALL MATCH (n) RETURN n$$) as (a gtype);
-                               a                                
-----------------------------------------------------------------
- {"id": 281474976710657, "label": "", "properties": {}}::vertex
- {"id": 281474976710657, "label": "", "properties": {}}::vertex
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION MATCH (n) RETURN n$$) as (a vertex);
+ERROR:  could not identify an equality operator for type vertex
+LINE 1: ... * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION MA...
+                                                             ^
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION ALL MATCH (n) RETURN n$$) as (a vertex);
+                           a                            
+--------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {}}
+ {"id": 281474976710657, "label": "", "properties": {}}
 (2 rows)
 
-SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION RETURN 1$$) as (a gtype);
-                               a                                
-----------------------------------------------------------------
- {"id": 281474976710657, "label": "", "properties": {}}::vertex
- 1
-(2 rows)
-
-SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION RETURN NULL$$) as (a gtype);
-                               a                                
-----------------------------------------------------------------
- {"id": 281474976710657, "label": "", "properties": {}}::vertex
- 
-(2 rows)
-
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION RETURN 1$$) as (a vertex);
+ERROR:  UNION could not convert type gtype to vertex
+LINE 1: ...'cypher_union', $$MATCH (n) RETURN n UNION RETURN 1$$) as (a...
+                                                             ^
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION RETURN NULL$$) as (a vertex);
+ERROR:  UNION could not convert type gtype to vertex
+LINE 1: ...'cypher_union', $$MATCH (n) RETURN n UNION RETURN NULL$$) as...
+                                                             ^
 SELECT * FROM cypher('cypher_union', $$RETURN [1,2,3] UNION RETURN 1$$) as (a gtype);
      a     
 -----------
@@ -82,36 +74,29 @@ SELECT * FROM cypher('cypher_union', $$RETURN NULL UNION ALL RETURN NULL$$) AS (
 /*
  *multiple unions, precedence
  */
-SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION MATCH (n) RETURN n UNION MATCH (n) RETURN n$$) AS (result gtype);
-                             result                             
-----------------------------------------------------------------
- {"id": 281474976710657, "label": "", "properties": {}}::vertex
-(1 row)
-
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION MATCH (n) RETURN n UNION MATCH (n) RETURN n$$) AS (result vertex);
+ERROR:  could not identify an equality operator for type vertex
+LINE 4: ... * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION MA...
+                                                             ^
 /*should return triple*/
-SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION ALL MATCH (n) RETURN n UNION ALL MATCH(n) RETURN n$$) AS (result gtype);
-                             result                             
-----------------------------------------------------------------
- {"id": 281474976710657, "label": "", "properties": {}}::vertex
- {"id": 281474976710657, "label": "", "properties": {}}::vertex
- {"id": 281474976710657, "label": "", "properties": {}}::vertex
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION ALL MATCH (n) RETURN n UNION ALL MATCH(n) RETURN n$$) AS (result vertex);
+                         result                         
+--------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {}}
+ {"id": 281474976710657, "label": "", "properties": {}}
+ {"id": 281474976710657, "label": "", "properties": {}}
 (3 rows)
 
 /*should return single*/
-SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION ALL MATCH (n) RETURN n UNION MATCH(n) RETURN n$$) AS (result gtype);
-                             result                             
-----------------------------------------------------------------
- {"id": 281474976710657, "label": "", "properties": {}}::vertex
-(1 row)
-
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION ALL MATCH (n) RETURN n UNION MATCH(n) RETURN n$$) AS (result vertex);
+ERROR:  could not identify an equality operator for type vertex
+LINE 2: ... * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION AL...
+                                                             ^
 /*should return just a pair*/
-SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION MATCH (n) RETURN n UNION ALL MATCH(n) RETURN n$$) AS (result gtype);
-                             result                             
-----------------------------------------------------------------
- {"id": 281474976710657, "label": "", "properties": {}}::vertex
- {"id": 281474976710657, "label": "", "properties": {}}::vertex
-(2 rows)
-
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION MATCH (n) RETURN n UNION ALL MATCH(n) RETURN n$$) AS (result vertex);
+ERROR:  could not identify an equality operator for type vertex
+LINE 2: ... * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION MA...
+                                                             ^
 /*should return 3 null rows*/
 SELECT * FROM cypher('cypher_union', $$RETURN NULL UNION ALL RETURN NULL UNION ALL RETURN NULL$$) AS (result gtype);
  result 
@@ -137,7 +122,7 @@ SELECT * FROM cypher('cypher_union', $$RETURN NULL UNION RETURN NULL UNION ALL R
 (2 rows)
 
 /* scoping */
-SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION ALL MATCH (m) RETURN n$$) AS (result gtype);
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n UNION ALL MATCH (m) RETURN n$$) AS (result vertex);
 ERROR:  could not find rte for n
 LINE 2: ..., $$MATCH (n) RETURN n UNION ALL MATCH (m) RETURN n$$) AS (r...
                                                              ^

@@ -28,13 +28,13 @@ SET search_path TO postgraph;
 SELECT build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label$$, gtype_build_map());
                                 build_edge                                 
 ---------------------------------------------------------------------------
- {"id": 1, "start_id": 2, "end_id": 3, "label": "label", "properties": {}}
+ {"id": 1, "start_id": 3, "end_id": 3, "label": "label", "properties": {}}
 (1 row)
 
 SELECT build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, gtype_build_map('id', 2));
                                     build_edge                                    
 ----------------------------------------------------------------------------------
- {"id": 1, "start_id": 2, "end_id": 3, "label": "label", "properties": {"id": 2}}
+ {"id": 1, "start_id": 3, "end_id": 3, "label": "label", "properties": {"id": 2}}
 (1 row)
 
 --Null properties
@@ -48,6 +48,34 @@ SELECT build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, gtype_bu
  build_edge 
 ------------
  
+(1 row)
+
+SELECT build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label$$, gtype_build_map()) =
+       build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, gtype_build_map());
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label$$, gtype_build_map()) =
+       build_edge('4'::graphid,  '2'::graphid, '3'::graphid, $$label$$, gtype_build_map());
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label$$, gtype_build_map()) <>
+       build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, gtype_build_map());
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label$$, gtype_build_map()) <>
+       build_edge('4'::graphid,  '2'::graphid, '3'::graphid, $$label$$, gtype_build_map());
+ ?column? 
+----------
+ t
 (1 row)
 
 -- id

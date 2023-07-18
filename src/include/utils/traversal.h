@@ -55,4 +55,11 @@ typedef struct
     pentry children[FLEXIBLE_ARRAY_MEMBER];
 } traversal;
 
+#define TRAVERSALOID \
+    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("traversal"), ObjectIdGetDatum(postgraph_namespace_id())))
+
+#define TRAVERSALARRAYOID \
+    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("_traversal"), ObjectIdGetDatum(postgraph_namespace_id())))
+
+
 #endif

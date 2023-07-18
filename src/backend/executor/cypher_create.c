@@ -36,18 +36,20 @@
 #include "nodes/cypher_nodes.h"
 #include "utils/gtype.h"
 #include "utils/graphid.h"
+#include "utils/vertex.h"
+#include "utils/edge.h"
+#include "utils/traversal.h"
 
-static void begin_cypher_create(CustomScanState *node, EState *estate,
-                                int eflags);
+static void begin_cypher_create(CustomScanState *node, EState *estate, int eflags);
 static TupleTableSlot *exec_cypher_create(CustomScanState *node);
 static void end_cypher_create(CustomScanState *node);
 static void rescan_cypher_create(CustomScanState *node);
 
-static void create_edge(cypher_create_custom_scan_state *css,
+static void create_edge_1(cypher_create_custom_scan_state *css,
                         cypher_target_node *node, Datum prev_vertex_id,
                         ListCell *next, List *list);
 
-static Datum create_vertex(cypher_create_custom_scan_state *css,
+static Datum create_vertex_1(cypher_create_custom_scan_state *css,
                            cypher_target_node *node, ListCell *next, List *list);
 
 static void process_pattern(cypher_create_custom_scan_state *css);
@@ -67,11 +69,39 @@ const CustomExecMethods cypher_create_exec_methods = {CREATE_SCAN_STATE_NAME,
                                                       NULL,
                                                       NULL};
 
-static void begin_cypher_create(CustomScanState *node, EState *estate,
-                                int eflags)
-{
-    cypher_create_custom_scan_state *css =
-        (cypher_create_custom_scan_state *)node;
+static void
+append_to_buffer(StringInfo buffer, const char *data, int len) {
+    int offset = reserve_from_buffer(buffer, len);
+    memcpy(buffer->data + offset, data, len);
+}
+
+
+static Datum create_traversal(List *entities) {
+    ListCell *lc;
+    StringInfoData buffer;
+    initStringInfo(&buffer);
+
+    // header
+    reserve_from_buffer(&buffer, VARHDRSZ);
+
+    // length
+    reserve_from_buffer(&buffer, sizeof(pentry));
+
+    foreach(lc, entities) {
+	Datum d = lfirst(lc);
+        append_to_buffer(&buffer, d, VARSIZE_ANY(d));
+    }
+
+    traversal *p = (traversal *)buffer.data;
+
+    p->children[0] = list_length(entities);
+    SET_VARSIZE(p, buffer.len);
+
+    return TRAVERSAL_GET_DATUM(p);
+}
+
+static void begin_cypher_create(CustomScanState *node, EState *estate, int eflags) {
+    cypher_create_custom_scan_state *css = (cypher_create_custom_scan_state *)node;
     ListCell *lc;
     Plan *subplan;
 
@@ -86,21 +116,17 @@ static void begin_cypher_create(CustomScanState *node, EState *estate,
                           ExecGetResultType(node->ss.ps.lefttree),
                           &TTSOpsHeapTuple);
 
-    if (!CYPHER_CLAUSE_IS_TERMINAL(css->flags))
-    {
+    if (!CYPHER_CLAUSE_IS_TERMINAL(css->flags)) {
         TupleDesc tupdesc = node->ss.ss_ScanTupleSlot->tts_tupleDescriptor;
 
         ExecAssignProjectionInfo(&node->ss.ps, tupdesc);
     }
 
-    foreach (lc, css->pattern)
-    {
+    foreach (lc, css->pattern) {
         cypher_create_path *path = lfirst(lc);
         ListCell *lc2;
-        foreach (lc2, path->target_nodes)
-        {
-            cypher_target_node *cypher_node =
-                (cypher_target_node *)lfirst(lc2);
+        foreach (lc2, path->target_nodes) {
+            cypher_target_node *cypher_node = (cypher_target_node *)lfirst(lc2);
             Relation rel;
 
             if (!CYPHER_TARGET_NODE_INSERT_ENTITY(cypher_node->flags))
@@ -119,21 +145,16 @@ static void begin_cypher_create(CustomScanState *node, EState *estate,
             ExecOpenIndices(cypher_node->resultRelInfo, false);
 
             // Setup the relation's tuple slot
-            cypher_node->elemTupleSlot = table_slot_create(
-                rel, &estate->es_tupleTable);
+            cypher_node->elemTupleSlot = table_slot_create(rel, &estate->es_tupleTable);
 
             if (cypher_node->id_expr != NULL)
-            {
-                cypher_node->id_expr_state =
-                    ExecInitExpr(cypher_node->id_expr, (PlanState *)node);
-            }
-        }
-    }
-
-    /*
-     * Postgres does not assign the es_output_cid in queries that do
-     * not write to disk, ie: SELECT commands. We need the command id
-     * for our clauses, and we may need to initialize it. We cannot use
+                cypher_node->id_expr_state = ExecInitExpr(cypher_node->id_expr, (PlanState *)node); 
+	}
+    } 
+    /* 
+     * Postgres does not assign the es_output_cid in queries that do 
+     * not write to disk, ie: SELECT commands. We need the command id 
+     * for our clauses, and we may need to initialize it. We cannot use 
      * GetCurrentCommandId because there may be other cypher clauses
      * that have modified the command id.
      */
@@ -160,7 +181,7 @@ static void process_pattern(cypher_create_custom_scan_state *css)
          * Create the first vertex. The create_vertex function will
          * create the rest of the path, if necessary.
          */
-        create_vertex(css, lfirst(lc), lnext(path->target_nodes, lc), path->target_nodes);
+        create_vertex_1(css, lfirst(lc), lnext(path->target_nodes, lc), path->target_nodes);
 
         /*
          * If this path is a variable, take the list that was accumulated
@@ -176,8 +197,8 @@ static void process_pattern(cypher_create_custom_scan_state *css)
             ps = css->css.ss.ps.lefttree;
             scantuple = ps->ps_ExprContext->ecxt_scantuple;
 
-            result = make_path(css->path_values);
-
+            //result = make_path(css->path_values);
+            result = create_traversal(css->path_values);
             scantuple->tts_values[path->path_attr_num - 1] = result;
             scantuple->tts_isnull[path->path_attr_num - 1] = false;
         }
@@ -210,10 +231,9 @@ static TupleTableSlot *exec_cypher_create(CustomScanState *node)
         Increment_Estate_CommandId(estate)
         /* break when there are no tuples */
         if (TupIsNull(slot))
-        {
             break;
-        }
-        /* setup the scantuple that the process_pattern needs */
+
+	/* setup the scantuple that the process_pattern needs */
         econtext->ecxt_scantuple =
             node->ss.ps.lefttree->ps_ProjInfo->pi_exprContext->ecxt_scantuple;
         process_pattern(css);
@@ -228,21 +248,13 @@ static TupleTableSlot *exec_cypher_create(CustomScanState *node)
             used = true;
         }
     } while (terminal);
-    /*
-     * If the current command Id wasn't used, nothing was inserted and we're
-     * done.
-     */
+
     if (!used)
-    {
         return NULL;
-    }
-    /* update the current command Id */
-    CommandCounterIncrement();
+
     /* if this was a terminal CREATE just return NULL */
     if (terminal)
-    {
         return NULL;
-    }
 
     econtext->ecxt_scantuple = ExecProject(node->ss.ps.lefttree->ps_ProjInfo);
     return ExecProject(node->ss.ps.ps_ProjInfo);
@@ -253,6 +265,7 @@ static void end_cypher_create(CustomScanState *node)
     cypher_create_custom_scan_state *css =
         (cypher_create_custom_scan_state *)node;
     ListCell *lc;
+    CommandCounterIncrement();
 
     ExecEndNode(node->ss.ps.lefttree);
 
@@ -316,7 +329,7 @@ Node *create_cypher_create_plan_state(CustomScan *cscan)
 /*
  * Create the edge entity.
  */
-static void create_edge(cypher_create_custom_scan_state *css,
+static void create_edge_1(cypher_create_custom_scan_state *css,
                         cypher_target_node *node, Datum prev_vertex_id,
                         ListCell *next, List *list)
 {
@@ -339,25 +352,18 @@ static void create_edge(cypher_create_custom_scan_state *css,
      * next vertex's id.
      */
     css->path_values = NIL;
-    next_vertex_id = create_vertex(css, lfirst(next), lnext(list, next), list);
+    next_vertex_id = create_vertex_1(css, lfirst(next), lnext(list, next), list);
 
     /*
      * Set the start and end vertex ids
      */
-    if (node->dir == CYPHER_REL_DIR_RIGHT)
-    {
-        // create pattern (prev_vertex)-[edge]->(next_vertex)
+    if (node->dir == CYPHER_REL_DIR_RIGHT) {
         start_id = prev_vertex_id;
         end_id = next_vertex_id;
-    }
-    else if (node->dir == CYPHER_REL_DIR_LEFT)
-    {
-        // create pattern (prev_vertex)<-[edge]-(next_vertex)
+    } else if (node->dir == CYPHER_REL_DIR_LEFT) {
         start_id = next_vertex_id;
         end_id = prev_vertex_id;
-    }
-    else
-    {
+    } else {
         ereport(ERROR,
                 (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
                  errmsg("edge direction must be specified in a CREATE clause")));
@@ -412,21 +418,22 @@ static void create_edge(cypher_create_custom_scan_state *css,
     {
         PlanState *ps = css->css.ss.ps.lefttree;
         TupleTableSlot *scantuple = ps->ps_ExprContext->ecxt_scantuple;
-        Datum result;
+        /*Datum result;
 
         result = make_edge(
             id, start_id, end_id, CStringGetDatum(node->label_name),
-            PointerGetDatum(scanTupleSlot->tts_values[node->prop_attr_num]));
+            PointerGetDatum(scanTupleSlot->tts_values[node->prop_attr_num]));*/
+       edge *e = create_edge(id, start_id, end_id, node->label_name, DATUM_GET_GTYPE_P(scanTupleSlot->tts_values[node->prop_attr_num]));
 
         if (CYPHER_TARGET_NODE_IN_PATH(node->flags))
         {
-            prev_path = lappend(prev_path, DatumGetPointer(result));
+            prev_path = lappend(prev_path, e);
             css->path_values = list_concat(prev_path, css->path_values);
         }
 
         if (CYPHER_TARGET_NODE_IS_VARIABLE(node->flags))
         {
-            scantuple->tts_values[node->tuple_position - 1] = result;
+            scantuple->tts_values[node->tuple_position - 1] = EDGE_GET_DATUM(e);
             scantuple->tts_isnull[node->tuple_position - 1] = false;
         }
     }
@@ -436,7 +443,7 @@ static void create_edge(cypher_create_custom_scan_state *css,
  * Creates the vertex entity, returns the vertex's id in case the caller is
  * the create_edge function.
  */
-static Datum create_vertex(cypher_create_custom_scan_state *css,
+static Datum create_vertex_1(cypher_create_custom_scan_state *css,
                            cypher_target_node *node, ListCell *next, List *list)
 {
     bool isNull;
@@ -450,7 +457,7 @@ static Datum create_vertex(cypher_create_custom_scan_state *css,
     Assert(node->type == LABEL_KIND_VERTEX);
 
     /*
-     * Vertices in a path might already exists. If they do get the id
+     * Vertices in a patEDGE_GET_DATUMh might already exists. If they do get the id
      * to pass to the edges before and after it. Otherwise, insert the
      * new vertex into it's table and then pass the id along.
      */
@@ -505,16 +512,11 @@ static Datum create_vertex(cypher_create_custom_scan_state *css,
             scantuple = ps->ps_ExprContext->ecxt_scantuple;
 
             // make the vertex gtype
-            result = make_vertex(
-                id, CStringGetDatum(node->label_name),
-                PointerGetDatum(scanTupleSlot->tts_values[node->prop_attr_num]));
-
+            vertex *v = create_vertex(id, node->label_name,
+			    DATUM_GET_GTYPE_P(scanTupleSlot->tts_values[node->prop_attr_num]));
             // append to the path list
             if (CYPHER_TARGET_NODE_IN_PATH(node->flags))
-            {
-                css->path_values = lappend(css->path_values,
-                                           DatumGetPointer(result));
-            }
+                css->path_values = lappend(css->path_values, v);
 
             /*
              * Put the vertex in the correct spot in the scantuple, so parent
@@ -522,14 +524,14 @@ static Datum create_vertex(cypher_create_custom_scan_state *css,
              */
             if (CYPHER_TARGET_NODE_IS_VARIABLE(node->flags))
             {
-                scantuple->tts_values[node->tuple_position - 1] = result;
+                scantuple->tts_values[node->tuple_position - 1] = VERTEX_GET_DATUM(v);
                 scantuple->tts_isnull[node->tuple_position - 1] = false;
             }
         }
     }
     else
     {
-        gtype *a;
+        /*gtype *a;
         gtype_value *v;
         gtype_value *id_value;
         TupleTableSlot *scantuple;
@@ -554,6 +556,15 @@ static Datum create_vertex(cypher_create_custom_scan_state *css,
 
         // extract the graphid and cast to a Datum
         id = GRAPHID_GET_DATUM(id_value->val.int_value);
+*/
+        TupleTableSlot *scantuple;
+        PlanState *ps;
+
+        ps = css->css.ss.ps.lefttree;
+        scantuple = ps->ps_ExprContext->ecxt_scantuple;
+
+	vertex *v = DATUM_GET_VERTEX(scantuple->tts_values[node->tuple_position - 1]);
+        id = GRAPHID_GET_DATUM(*((int64 *)(&v->children[0])));
 
         /*
          * Its possible the variable has already been deleted. There are two
@@ -578,16 +589,13 @@ static Datum create_vertex(cypher_create_custom_scan_state *css,
         if (CYPHER_TARGET_NODE_IN_PATH(node->flags))
         {
             Datum vertex = scanTupleSlot->tts_values[node->tuple_position - 1];
-            css->path_values = lappend(css->path_values,
-                                       DatumGetPointer(vertex));
+            css->path_values = lappend(css->path_values, vertex);
         }
     }
 
     // If the path continues, create the next edge, passing the vertex's id.
     if (next != NULL)
-    {
-        create_edge(css, lfirst(next), id, lnext(list, next), list);
-    }
+        create_edge_1(css, lfirst(next), id, lnext(list, next), list);
 
     return id;
 }

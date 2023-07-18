@@ -93,5 +93,6 @@ transform_entity *make_transform_entity(cypher_parsestate *cpstate,
                                         enum transform_entity_type type,
                                         Node *node, Expr *expr);
 char *get_entity_name(transform_entity *entity);
+enum transform_entity_type find_transform_entity_type(cypher_parsestate *cpstate, char *name);
 
 #endif

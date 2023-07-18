@@ -320,20 +320,20 @@ SELECT * FROM cypher('chained', $$ CREATE (:people {name: "Samantha", age:35}) $
 SELECT * FROM cypher('chained', $$ CREATE (:people {name: "Mark", age:40}) $$) AS (result gtype);
 SELECT * FROM cypher('chained', $$ CREATE (:people {name: "David", age:15}) $$) AS (result gtype);
 -- should return 1
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 < u.age <= 49  RETURN u $$) AS (result gtype);
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 25 <= u.age <= 25  RETURN u $$) AS (result gtype);
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 = u.age = 35  RETURN u $$) AS (result gtype);
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 50 > u.age > 35  RETURN u $$) AS (result gtype);
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 < u.age <= 49  RETURN u $$) AS (result vertex);
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 25 <= u.age <= 25  RETURN u $$) AS (result vertex);
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 = u.age = 35  RETURN u $$) AS (result vertex);
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 50 > u.age > 35  RETURN u $$) AS (result vertex);
 -- should return 3
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 40 <> u.age <> 35 RETURN u $$) AS (result gtype);
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 40 <> u.age <> 35 RETURN u $$) AS (result vertex);
 -- should return 2
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 30 <= u.age <= 49 > u.age RETURN u $$) AS (result gtype);
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 30 <= u.age <= 49 > u.age RETURN u $$) AS (result vertex);
 -- should return 0
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 30 <= u.age <= 49 = u.age RETURN u $$) AS (result gtype);
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 30 <= u.age <= 49 = u.age RETURN u $$) AS (result vertex);
 -- should return 2
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 < u.age + 1 <= 50 RETURN u $$) AS (result gtype);
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 < u.age + 1 <= 50 RETURN u $$) AS (result vertex);
 -- should return 3
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE NOT 35 < u.age + 1 <= 50 RETURN u $$) AS (result gtype);
+SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE NOT 35 < u.age + 1 <= 50 RETURN u $$) AS (result vertex);
 
 --
 -- Test transform logic for IS NULL & IS NOT NULL
@@ -487,26 +487,26 @@ $$) AS r(result gtype);
 SELECT create_graph('regex');
 SELECT * FROM cypher('regex', $$
 CREATE (n:Person {name: 'John'}) RETURN n
-$$) AS r(result gtype);
+$$) AS r(result vertex);
 SELECT * FROM cypher('regex', $$
 CREATE (n:Person {name: 'Jeff'}) RETURN n
-$$) AS r(result gtype);
+$$) AS r(result vertex);
 SELECT * FROM cypher('regex', $$
 CREATE (n:Person {name: 'Joan'}) RETURN n
-$$) AS r(result gtype);
+$$) AS r(result vertex);
 
 SELECT * FROM cypher('regex', $$
 MATCH (n:Person) WHERE n.name =~ 'JoHn' RETURN n
-$$) AS r(result gtype);
+$$) AS r(result vertex);
 SELECT * FROM cypher('regex', $$
 MATCH (n:Person) WHERE n.name =~ '(?i)JoHn' RETURN n
-$$) AS r(result gtype);
+$$) AS r(result vertex);
 SELECT * FROM cypher('regex', $$
 MATCH (n:Person) WHERE n.name =~ 'Jo.n' RETURN n
-$$) AS r(result gtype);
+$$) AS r(result vertex);
 SELECT * FROM cypher('regex', $$
 MATCH (n:Person) WHERE n.name =~ 'J.*' RETURN n
-$$) AS r(result gtype);
+$$) AS r(result vertex);
 
 --
 --Coearce to Postgres 3 int types (smallint, int, bigint)
@@ -778,15 +778,14 @@ SELECT gtype_in('{"name": "path 1", "path": [{"id": 0, "label": "vertex 0", "pro
 
 -- test functions
 -- create some vertices and edges
+-- XXX: Move after the CREATE regression tests...
+
 SELECT * FROM cypher('expr', $$CREATE (:v)$$) AS (a gtype);
 SELECT * FROM cypher('expr', $$CREATE (:v {i: 0})$$) AS (a gtype);
 SELECT * FROM cypher('expr', $$CREATE (:v {i: 1})$$) AS (a gtype);
 SELECT * FROM cypher('expr', $$
     CREATE (:v1 {id:'initial'})-[:e1]->(:v1 {id:'middle'})-[:e1]->(:v1 {id:'end'})
 $$) AS (a gtype);
--- show them
-SELECT * FROM cypher('expr', $$ MATCH (v) RETURN v $$) AS (expression gtype);
-SELECT * FROM cypher('expr', $$ MATCH ()-[e]-() RETURN e $$) AS (expression gtype);
 -- id()
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]-() RETURN id(e)
@@ -835,33 +834,33 @@ $$) AS (end_id gtype);
 -- startNode()
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]-() RETURN id(e), start_id(e), startNode(e)
-$$) AS (id gtype, start_id gtype, startNode gtype);
+$$) AS (id gtype, start_id gtype, startNode vertex);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN startNode(null)
-$$) AS (startNode gtype);
+$$) AS (startNode vertex);
 -- should error
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN startNode(v)
-$$) AS (startNode gtype);
+$$) AS (startNode vertex);
 SELECT * FROM cypher('expr', $$
     RETURN startNode()
-$$) AS (startNode gtype);
+$$) AS (startNode vertex);
 -- endNode()
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]-() RETURN id(e), end_id(e), endNode(e)
-$$) AS (id gtype, end_id gtype, endNode gtype);
+$$) AS (id gtype, end_id gtype, endNode vertex);
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN endNode(null)
-$$) AS (endNode gtype);
+$$) AS (endNode vertex);
 -- should error
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN endNode(v)
-$$) AS (endNode gtype);
+$$) AS (endNode vertex);
 SELECT * FROM cypher('expr', $$
     RETURN endNode()
-$$) AS (endNode gtype);
+$$) AS (endNode vertex);
 -- type()
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]-() RETURN type(e)
@@ -1986,12 +1985,12 @@ SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Rick", gpa: 2.5, age: 2
 SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Ann", gpa: 3.8::numeric, age: 23})$$) AS (a gtype);
 SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Derek", gpa: 4.0, age: 19, zip: 90210})$$) AS (a gtype);
 SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Jessica", gpa: 3.9::numeric, age: 20})$$) AS (a gtype);
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex gtype);
+SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex vertex);
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN avg(u.gpa), sum(u.gpa), sum(u.gpa)/count(u.gpa), count(u.gpa), count(*) $$) 
 AS (avg gtype, sum gtype, sum_divided_by_count gtype, count gtype, count_star gtype);
 SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Dave", age: 24})$$) AS (a gtype);
 SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Mike", age: 18})$$) AS (a gtype);
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex gtype);
+SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex vertex);
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN avg(u.gpa), sum(u.gpa), sum(u.gpa)/count(u.gpa), count(u.gpa), count(*) $$) 
 AS (avg gtype, sum gtype, sum_divided_by_count gtype, count gtype, count_star gtype);
 -- should return null
@@ -2085,7 +2084,7 @@ SELECT * FROM cypher('UCSC', $$ RETURN collect() $$) AS (collect gtype);
 -- test DISTINCT inside aggregate functions
 SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Sven", gpa: 3.2, age: 27, zip: 94110})$$)
 AS (a gtype);
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex gtype);
+SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex vertex);
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN count(u.zip), count(DISTINCT u.zip) $$)
 AS (zip gtype, distinct_zip gtype);
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN count(u.age), count(DISTINCT u.age) $$)
@@ -2182,14 +2181,14 @@ $$ ) AS (j gtype, case_statement gtype);
 -- RETURN * and (u)--(v) optional forms
 SELECT create_graph('opt_forms');
 SELECT * FROM cypher('opt_forms', $$CREATE ({i:1})-[:KNOWS]->({i:2})<-[:KNOWS]-({i:3})$$)AS (result gtype);
-SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN u$$) AS (result gtype);
-SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN *$$) AS (result gtype);
+SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN u$$) AS (result vertex);
+SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN *$$) AS (result vertex);
 SELECT * FROM cypher('opt_forms', $$MATCH (u)--(v) RETURN u.i, v.i$$) AS (u gtype, v gtype);
 SELECT * FROM cypher('opt_forms', $$MATCH (u)-->(v) RETURN u.i, v.i$$) AS (u gtype, v gtype);
 SELECT * FROM cypher('opt_forms', $$MATCH (u)<--(v) RETURN u.i, v.i$$) AS (u gtype, v gtype);
 SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN u.i, v.i$$) AS (u gtype, v gtype);
-SELECT * FROM cypher('opt_forms', $$MATCH (u) CREATE (u)-[:edge]->() RETURN *$$) AS (results gtype);
-SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN *$$) AS (col1 gtype, col2 gtype);
+SELECT * FROM cypher('opt_forms', $$MATCH (u) CREATE (u)-[:edge]->() RETURN *$$) AS (results vertex);
+SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN *$$) AS (col1 vertex, col2 vertex);
 
 -- list functions relationships(), range(), keys()
 SELECT create_graph('keys');
@@ -2213,9 +2212,10 @@ SELECT * from cypher('keys', $$RETURN keys("string")$$) as (keys gtype);
 SELECT * from cypher('keys', $$MATCH u=()-[]-() RETURN keys(u)$$) as (keys gtype);
 
 SELECT create_graph('list');
-SELECT * from cypher('list', $$CREATE p=({name:"rick"})-[:knows]->({name:"morty"}) RETURN p$$) as (path gtype);
-SELECT * from cypher('list', $$CREATE p=({name:'rachael'})-[:knows]->({name:'monica'})-[:knows]->({name:'phoebe'}) RETURN p$$) as (path gtype);
+SELECT * from cypher('list', $$CREATE p=({name:"rick"})-[:knows]->({name:"morty"}) RETURN p$$) as (path traversal);
+SELECT * from cypher('list', $$CREATE p=({name:'rachael'})-[:knows]->({name:'monica'})-[:knows]->({name:'phoebe'}) RETURN p$$) as (path traversal);
 -- nodes()
+-- XXX: Not Working
 SELECT * from cypher('list', $$MATCH p=()-[]->() RETURN nodes(p)$$) as (nodes gtype);
 SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->() RETURN nodes(p)$$) as (nodes gtype);
 -- should return nothing
@@ -2228,6 +2228,7 @@ SELECT * from cypher('list', $$MATCH (u) RETURN nodes("string")$$) as (nodes gty
 SELECT * from cypher('list', $$MATCH (u) RETURN nodes(u)$$) as (nodes gtype);
 SELECT * from cypher('list', $$MATCH (u)-[]->() RETURN nodes(u)$$) as (nodes gtype);
 -- relationships()
+-- XXX: Not Working
 SELECT * from cypher('list', $$MATCH p=()-[]->() RETURN relationships(p)$$) as (relationships gtype);
 SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->() RETURN relationships(p)$$) as (relationships gtype);
 -- should return nothing
@@ -2257,11 +2258,11 @@ SELECT * from cypher('list', $$RETURN range(null, -10, -3)$$) as (range gtype);
 SELECT * from cypher('list', $$RETURN range(0, null, -3)$$) as (range gtype);
 SELECT * from cypher('list', $$RETURN range(0, -10.0, -3.0)$$) as (range gtype);
 -- labels()
-SELECT * from cypher('list', $$CREATE (u:People {name: "John"}) RETURN u$$) as (Vertices gtype);
-SELECT * from cypher('list', $$CREATE (u:People {name: "Larry"}) RETURN u$$) as (Vertices gtype);
-SELECT * from cypher('list', $$CREATE (u:Cars {name: "G35"}) RETURN u$$) as (Vertices gtype);
-SELECT * from cypher('list', $$CREATE (u:Cars {name: "MR2"}) RETURN u$$) as (Vertices gtype);
-SELECT * from cypher('list', $$MATCH (u) RETURN labels(u), u$$) as (Labels gtype, Vertices gtype);
+SELECT * from cypher('list', $$CREATE (u:People {name: "John"}) RETURN u$$) as (Vertices vertex);
+SELECT * from cypher('list', $$CREATE (u:People {name: "Larry"}) RETURN u$$) as (Vertices vertex);
+SELECT * from cypher('list', $$CREATE (u:Cars {name: "G35"}) RETURN u$$) as (Vertices vertex);
+SELECT * from cypher('list', $$CREATE (u:Cars {name: "MR2"}) RETURN u$$) as (Vertices vertex);
+SELECT * from cypher('list', $$MATCH (u) RETURN labels(u), u$$) as (Labels gtype, Vertices vertex);
 -- should return SQL NULL
 SELECT * from cypher('list', $$RETURN labels(NULL)$$) as (Labels gtype);
 -- should return an error

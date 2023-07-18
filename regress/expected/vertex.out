@@ -50,6 +50,34 @@ SELECT build_vertex('1'::graphid, $$label$$, gtype_build_list());
  
 (1 row)
 
+SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map()) =
+       build_vertex('1'::graphid, $$label$$, gtype_build_map());
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map()) =
+       build_vertex('2'::graphid, $$label$$, gtype_build_map());
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map()) <>
+       build_vertex('1'::graphid, $$label$$, gtype_build_map());
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map()) <>
+       build_vertex('2'::graphid, $$label$$, gtype_build_map());
+ ?column? 
+----------
+ t
+(1 row)
+
 --
 -- id function
 --

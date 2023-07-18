@@ -146,6 +146,26 @@ bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
         break;
     }
 
+    case AGTV_PARTIAL_PATH:
+    {
+        uint32 object_ae = 0;
+
+        padlen = ag_serialize_header(buffer, AGT_HEADER_PARTIAL_PATH);
+        convert_extended_array(buffer, &object_ae, scalar_val);
+
+        /*
+         * Make sure that the end of the buffer is padded to the next offset and
+         * add this padding to the length of the buffer used. This ensures that
+         * everything stays aligned and eliminates errors caused by compounded
+         * offsets in the deserialization routines.
+         */
+        object_ae += pad_buffer_to_int(buffer);
+
+        *agtentry = AGTENTRY_IS_GTYPE |
+                    ((AGTENTRY_OFFLENMASK & (int)object_ae) + AGT_HEADER_SIZE);
+        break;
+    }
+
     default:
         return false;
     }
@@ -157,9 +177,7 @@ bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
  * NOTE: This function writes to the error log and exits for any UNKNOWN
  * AGT_HEADER type.
  */
-void ag_deserialize_extended_type(char *base_addr, uint32 offset,
-                                  gtype_value *result)
-{
+void ag_deserialize_extended_type(char *base_addr, uint32 offset, gtype_value *result) {
     char *base = base_addr + INTALIGN(offset);
     AGT_HEADER_TYPE agt_header = *((AGT_HEADER_TYPE *)base);
 
@@ -192,6 +210,11 @@ void ag_deserialize_extended_type(char *base_addr, uint32 offset,
         ag_deserialize_composite(base, AGTV_PATH, result);
         break;
 
+    case AGT_HEADER_PARTIAL_PATH:
+        ag_deserialize_composite(base, AGTV_PARTIAL_PATH, result);
+        break;
+
+
     default:
         elog(ERROR, "Invalid AGT header value.");
     }
@@ -200,9 +223,7 @@ void ag_deserialize_extended_type(char *base_addr, uint32 offset,
 /*
  * Deserializes a composite type.
  */
-static void ag_deserialize_composite(char *base, enum gtype_value_type type,
-                                     gtype_value *result)
-{
+static void ag_deserialize_composite(char *base, enum gtype_value_type type, gtype_value *result) {
     gtype_iterator *it = NULL;
     gtype_iterator_token tok;
     gtype_parse_state *parse_state = NULL;

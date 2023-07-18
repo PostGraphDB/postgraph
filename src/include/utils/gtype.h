@@ -291,7 +291,7 @@ typedef struct
     gtype_container root;
 } gtype;
 
-// convenience macros for accessing the root container in an gtype datum */
+// convenience macros for accessing the root container in an gtype datum
 #define AGT_ROOT_COUNT(agtp_) (*(uint32 *)VARDATA(agtp_) & AGT_CMASK)
 #define AGT_ROOT_IS_SCALAR(agtp_) \
     ((*(uint32 *)VARDATA(agtp_) & AGT_FSCALAR) != 0)
@@ -310,7 +310,8 @@ typedef struct
 #define AGT_HEADER_VERTEX  0x0002
 #define AGT_HEADER_EDGE    0x0003
 #define AGT_HEADER_PATH    0x0004
-#define AGT_HEADER_TIMESTAMP 0x0005
+#define AGT_HEADER_PARTIAL_PATH    0x0005
+#define AGT_HEADER_TIMESTAMP 0x0006
 
 #define AGT_IS_VERTEX(agt) \
     (AGT_ROOT_IS_SCALAR(agt) &&\
@@ -333,6 +334,10 @@ typedef struct
 
 #define AGT_IS_PATH(agt) \
     (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_PATH)
+
+#define AGT_IS_PARTIAL_PATH(agt) \
+    (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_PARTIAL_PATH)
+
 enum gtype_value_type
 {
     /* Scalar types */
@@ -346,6 +351,7 @@ enum gtype_value_type
     AGTV_VERTEX,
     AGTV_EDGE,
     AGTV_PATH,
+    AGTV_PARTIAL_PATH,
     /* Composite types */
     AGTV_ARRAY = 0x20,
     AGTV_OBJECT,
@@ -484,7 +490,7 @@ void uniqueify_gtype_object(gtype_value *object);
 char *gtype_value_type_to_string(enum gtype_value_type type);
 bool is_decimal_needed(char *numstr);
 int compare_gtype_scalar_values(gtype_value *a, gtype_value *b);
-gtype_value *alter_property_value(gtype_value *properties, char *var_name, gtype *new_v, bool remove_property);
+gtype_value *alter_property_value(gtype *properties, char *var_name, gtype *new_v, bool remove_property);
 gtype *get_one_gtype_from_variadic_args(FunctionCallInfo fcinfo, int variadic_offset, int expected_nargs);
 Datum make_vertex(Datum id, Datum label, Datum properties);
 Datum make_edge(Datum id, Datum startid, Datum endid, Datum label, Datum properties);
