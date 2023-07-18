@@ -225,6 +225,10 @@ CREATE FUNCTION build_traversal(variadic "any") RETURNS traversal LANGUAGE c IMM
 
 CREATE TYPE traversal (INPUT = traversal_in, OUTPUT = traversal_out, LIKE = jsonb);
 
+--
+-- traversal functions
+--
+CREATE FUNCTION age_relationships(traversal) RETURNS edge[] LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'traversal_edges';
 
 
 --

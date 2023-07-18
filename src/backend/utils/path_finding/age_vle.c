@@ -48,17 +48,8 @@
 typedef struct edge_state_entry
 {
     graphid edge_id;               // edge id, it is also the hash key 
-    bool used_in_path;             // like visited but more descriptive 
-    bool has_been_matched;         // have we checked for a  match 
-    bool matched;                  // is it a match 
+    bool visited;             // like visited but more descriptive 
 } edge_state_entry;
-
-// path function to use.
-typedef enum
-{                                  // Given a path (u)-[e]-(v)                
-    VLE_FUNCTION_PATHS_BETWEEN,    // Paths between a (u) and a provided (v)  
-    VLE_FUNCTION_NONE
-} VLE_path_function;
 
 typedef struct path_finding_context
 {
@@ -78,7 +69,6 @@ typedef struct path_finding_context
     Queue *dfs_vertex_queue; // dfs queue for vertices 
     Queue *dfs_edge_queue;   // dfs queue for edges 
     Queue *dfs_path_queue;   // dfs queue containing the path 
-    VLE_path_function path_function; // which path function to use 
     QueueNode *next_vertex;      // for VLE_FUNCTION_PATHS_TO 
     struct path_finding_context *next;  // the next chained path_finding_context 
 } path_finding_context;
@@ -91,7 +81,7 @@ typedef struct path_finding_context
  */
 typedef struct path_container
 {
-    char vl_len_[4]; // Do not touch this field! 
+    char vl_len_[4];
     uint32 header;
     uint32 graph_oid;
     int64 graphid_array_size;
@@ -100,7 +90,7 @@ typedef struct path_container
 } path_container;
 
 // gtype functions 
-static bool is_an_edge_match(path_finding_context *path_ctx, edge_entry *ee);
+static bool check_edge_constraints(path_finding_context *path_ctx, edge_entry *ee);
 // VLE local context functions 
 static path_finding_context *build_vle_context(FunctionCallInfo fcinfo, FuncCallContext *funcctx);
 static void create_hashtable(path_finding_context *path_ctx);
@@ -110,7 +100,7 @@ static edge_state_entry *get_edge_state(path_finding_context *path_ctx, graphid 
 static void load_initial_dfs_queues(path_finding_context *path_ctx);
 static bool dfs_find_a_path_between(path_finding_context *path_ctx);
 static bool do_vsid_and_veid_exist(path_finding_context *path_ctx);
-static void add_valid_vertex_edges(path_finding_context *path_ctx, graphid vertex_id);
+static void add_edges(path_finding_context *path_ctx, graphid vertex_id);
 static graphid get_next_vertex(path_finding_context *path_ctx, edge_entry *ee);
 // VLE path and edge building functions 
 static path_container *create_path_container(int64 path_size);
@@ -162,7 +152,7 @@ static void create_hashtable(path_finding_context *path_ctx) {
  * Helper function to compare the edge constraint (properties we are looking
  * for in a matching edge) against an edge entry's property.
  */
-static bool is_an_edge_match(path_finding_context *path_ctx, edge_entry *ee)
+static bool check_edge_constraints(path_finding_context *path_ctx, edge_entry *ee)
 {
     gtype *edge_property = NULL;
     gtype_container *agtc_edge_property = NULL;
@@ -181,17 +171,6 @@ static bool is_an_edge_match(path_finding_context *path_ctx, edge_entry *ee)
     if (path_ctx->properties == NULL)
 	    return true;
 
-    // get the number of conditions from the prototype edge 
-    num_propertiess = AGT_ROOT_COUNT(path_ctx->properties);
-
-    /*
-     * We only care about verifying that we have all of the property conditions.
-     * We don't care about extra unmatched properties. If there aren't any edge
-     * constraints, then the edge passes by default.
-     */
-    if (num_propertiess == 0)
-        return true;
-
     label_name = get_rel_name(get_edge_entry_label_table_oid(ee));
     edge_property = DATUM_GET_GTYPE_P(get_edge_entry_properties(ee));
     agtc_properties = &path_ctx->properties->root;
@@ -204,7 +183,7 @@ static bool is_an_edge_match(path_finding_context *path_ctx, edge_entry *ee)
      * to compare as the properties object has pairs. If not, it
      * can't possibly match.
      */
-    if (num_propertiess > num_edge_properties)
+    if (AGT_ROOT_COUNT(path_ctx->properties) > num_edge_properties)
         return false;
 
     // get the iterators 
@@ -229,7 +208,7 @@ static void load_initial_dfs_queues(path_finding_context *path_ctx)
         return;
 
     // add in the edges for the start vertex 
-    add_valid_vertex_edges(path_ctx, path_ctx->vsid);
+    add_edges(path_ctx, path_ctx->vsid);
 }
 
 /*
@@ -270,7 +249,6 @@ static path_finding_context *build_vle_context(FunctionCallInfo fcinfo, FuncCall
     // end id - determines which path function is used.
     v = AG_GET_ARG_VERTEX(2);
     path_ctx->veid = *((int64 *)(&v->children[0]));
-    path_ctx->path_function = VLE_FUNCTION_PATHS_BETWEEN;
     
     // get the left range index 
     if (PG_ARGISNULL(3) || is_gtype_null(AG_GET_ARG_GTYPE_P(3))) {
@@ -340,9 +318,7 @@ static edge_state_entry *get_edge_state(path_finding_context *path_ctx, graphid 
     if (!found) {
         // the edge id is also the hash key for resolving collisions 
         ese->edge_id = edge_id;
-        ese->used_in_path = false;
-        ese->has_been_matched = false;
-        ese->matched = false;
+        ese->visited = false;
     }
     return ese;
 }
@@ -353,16 +329,16 @@ static edge_state_entry *get_edge_state(path_finding_context *path_ctx, graphid 
  */
 static graphid get_next_vertex(path_finding_context *path_ctx, edge_entry *ee)
 {
-    graphid terminal_vertex_id;
+    graphid id;
 
     // get the result based on the specified VLE edge direction 
     switch (path_ctx->edge_direction) {
         case CYPHER_REL_DIR_RIGHT:
-            terminal_vertex_id = get_end_id(ee);
+            id = get_end_id(ee);
             break;
 
         case CYPHER_REL_DIR_LEFT:
-            terminal_vertex_id = get_start_id(ee);
+            id = get_start_id(ee);
             break;
 
         case CYPHER_REL_DIR_NONE:
@@ -379,9 +355,9 @@ static graphid get_next_vertex(path_finding_context *path_ctx, edge_entry *ee)
             parent_vertex_id = PEEK_GRAPHID_STACK(vertex_queue);
             // find the terminal vertex 
             if (get_start_id(ee) == parent_vertex_id)
-                terminal_vertex_id = get_end_id(ee);
+                id = get_end_id(ee);
             else if (get_end_id(ee) == parent_vertex_id)
-                terminal_vertex_id = get_start_id(ee);
+                id = get_start_id(ee);
             else
                 elog(ERROR, "get_next_vertex: no parent match");
 
@@ -392,7 +368,7 @@ static graphid get_next_vertex(path_finding_context *path_ctx, edge_entry *ee)
             elog(ERROR, "get_next_vertex: unknown edge direction");
     }
 
-    return terminal_vertex_id;
+    return id;
 }
 
 /*
@@ -417,7 +393,7 @@ static bool dfs_find_a_path_between(path_finding_context *path_ctx)
     graphid end_vertex_id = path_ctx->veid;
 
     // while we have edges to process 
-    while (!(IS_GRAPHID_STACK_EMPTY(edge_queue))) {
+    while (!IS_GRAPHID_STACK_EMPTY(edge_queue)) {
         graphid edge_id;
         graphid next_vertex_id;
         edge_state_entry *ese = NULL;
@@ -436,22 +412,21 @@ static bool dfs_find_a_path_between(path_finding_context *path_ctx)
          * in the path (loop - we need to remove the edge from the edge queue
          * and start with the next edge).
          */
-        if (ese->used_in_path) {
+        if (ese->visited) {
             graphid path_edge_id;
 
             // get the edge id on the top of the path queue (last edge) 
             path_edge_id = PEEK_GRAPHID_STACK(path_queue);
-            /*
-             * If the ids are the same, we're backing up. So, remove it from the
-             * path queue and reset used_in_path.
-             */
+            
+            // If the ids are the same, we're backing up. So, remove it from the path queue and reset visited.
             if (edge_id == path_edge_id) {
                 pop_graphid_queue(path_queue);
-                ese->used_in_path = false;
+                ese->visited = false;
             }
             // now remove it from the edge queue 
             pop_graphid_queue(edge_queue);
-            /*
+
+	    /*
              * Remove its source vertex, if we are looking at edges as
              * bi-directional. We only maintain the vertex queue when the
              * edge_direction is CYPHER_REL_DIR_NONE. This is to save space
@@ -459,7 +434,8 @@ static bool dfs_find_a_path_between(path_finding_context *path_ctx)
              */
             if (path_ctx->edge_direction == CYPHER_REL_DIR_NONE)
                 pop_graphid_queue(vertex_queue);
-            // move to the next edge 
+
+	    // move to the next edge 
             continue;
         }
 
@@ -467,7 +443,7 @@ static bool dfs_find_a_path_between(path_finding_context *path_ctx)
          * Mark it and push it on the path queue. There is no need to push it on
          * the edge queue as it is already there.
          */
-        ese->used_in_path = true;
+        ese->visited = true;
         push_graphid_queue(path_queue, edge_id);
 
         // now get the edge entry so we can get the next vertex to move to 
@@ -492,7 +468,7 @@ static bool dfs_find_a_path_between(path_finding_context *path_ctx)
 
         // add in the edges for the next vertex if we won't exceed the bounds 
         if (path_ctx->uidx_infinite || queue_size(path_queue) < path_ctx->uidx)
-            add_valid_vertex_edges(path_ctx, next_vertex_id);
+            add_edges(path_ctx, next_vertex_id);
 
         if (found)
             return true;
@@ -503,7 +479,7 @@ static bool dfs_find_a_path_between(path_finding_context *path_ctx)
 
 
 // add in valid vertex edges as part of the dfs path algorithm.
-static void add_valid_vertex_edges(path_finding_context *path_ctx, graphid vertex_id) {
+static void add_edges(path_finding_context *path_ctx, graphid vertex_id) {
     Queue *edges = NULL;
 
     // get the vertex entry 
@@ -548,33 +524,20 @@ static void add_valid_vertex_edges(path_finding_context *path_ctx, graphid verte
             
         // get its state 
         edge_state_entry *ese = get_edge_state(path_ctx, edge_id);
-        /*
-         * Don't add any edges that we have already seen because they will
-         * cause a loop to form.
-         */
-        if (!ese->used_in_path) {
-            // validate the edge if it hasn't been already 
-            if (!ese->has_been_matched && is_an_edge_match(path_ctx, ee)) {
-                ese->has_been_matched = true;
-                ese->matched = true;
-            } else if (!ese->has_been_matched) {
-                ese->has_been_matched = true;
-                ese->matched = false;
-            }
 
-            if (ese->has_been_matched && ese->matched) {
-                /*
-                 * We need to maintain our source vertex for each edge added
-                 * if the edge_direction is CYPHER_REL_DIR_NONE. This is due
-                 * to the edges having a fixed direction and the dfs
-                 * algorithm working strictly through edges. With an
-                 * un-directional edge, you don't know the vertex that
-                 * you just came from. So, we need to store it.
-                 */
-                 if (path_ctx->edge_direction == CYPHER_REL_DIR_NONE)
-                     push_graphid_queue(vertex_queue, get_vertex_entry_id(ve));
-                 push_graphid_queue(edge_queue, edge_id);
-            }
+        // Don't add any edges that we have already seen because they will cause a loop to form.
+        if (!ese->visited && check_edge_constraints(path_ctx, ee)) {
+            /*
+             * We need to maintain our source vertex for each edge added
+             * if the edge_direction is CYPHER_REL_DIR_NONE. This is due
+             * to the edges having a fixed direction and the dfs
+             * algorithm working strictly through edges. With an
+             * un-directional edge, you don't know the vertex that
+             * you just came from. So, we need to store it.
+             */
+            if (path_ctx->edge_direction == CYPHER_REL_DIR_NONE)
+                push_graphid_queue(vertex_queue, get_vertex_entry_id(ve));
+            push_graphid_queue(edge_queue, edge_id);
         }
 
         // get the next edge
@@ -697,11 +660,6 @@ static path_container *build_path_container(path_finding_context *path_ctx) {
 }
 
 /*
- * function that takes the following input and returns a row called edges
- * of type gtype BINARY path_container (this is an internal structure for
- * returning a graphid array of the path. You need to use internal routines to
- * properly use this data) -
- *
  *     0 - gtype REQUIRED (graph name as string)
  *     1 - gtype REQUIRED (start vertex as a vertex or the integer id)
  *     2 - gtype OPTIONAL (end vertex as a vertex or the integer id)
@@ -709,7 +667,8 @@ static path_container *build_path_container(path_finding_context *path_ctx) {
  *     4 - gtype OPTIONAL lidx (lower range index)
  *     5 - gtype OPTIONAL uidx (upper range index)
  *     6 - gtype REQUIRED edge direction (enum) as an integer. REQUIRED
- */
+ 
+*/
 PG_FUNCTION_INFO_V1(age_vle);
 Datum age_vle(PG_FUNCTION_ARGS) {
     FuncCallContext *funcctx;
@@ -821,11 +780,7 @@ VariableEdge *create_variable_edge(path_container *vpc) {
     return p;
 }
 
-/*
- * This function checks the edges in a MATCH clause to see if they are unique or
- * not. Filters out all the paths where the edge uniques rules are not met.
- * Arguements can be a combination of gtype ints and path_containers.
- */
+// function checks the edges in a MATCH clause to see if they are unique or not.
 PG_FUNCTION_INFO_V1(_ag_enforce_edge_uniqueness);
 Datum _ag_enforce_edge_uniqueness(PG_FUNCTION_ARGS) {
     Datum *args;
@@ -864,23 +819,6 @@ Datum _ag_enforce_edge_uniqueness(PG_FUNCTION_ARGS) {
 
             continue;
         }
-        else if (types[i] == GTYPEOID) {
-            gtype *agt_i = DATUM_GET_GTYPE_P(args[i]);
-            gtype_container *array = &agt_i->root.children[2];
-
-            for (int j = 0; i <= GTYPE_CONTAINER_SIZE(array); i +=2) {
-                gtype_value *agt = get_ith_gtype_value_from_container(array, j);
-
-                bool found;
-                int64 *value = (int64 *)hash_search(exists_hash,
-				                    (void *)&agt->val.object.pairs[0].value.val.int_value,
-						    HASH_ENTER, &found);
-
-                    if (found)
-                        PG_RETURN_BOOL(false);
-		
-	    }
-        }
 	else if (types[i] == VARIABLEEDGEOID) {
             VariableEdge *ve = DATUM_GET_VARIABLE_EDGE(args[i]);
             char *ptr = &ve->children[1];
@@ -892,10 +830,9 @@ Datum _ag_enforce_edge_uniqueness(PG_FUNCTION_ARGS) {
 
                     graphid i =  *((int64 *)(&e->children[0]));
 	            bool found;
-                    int64 *value = (int64 *)hash_search(exists_hash, (void *)&i, HASH_ENTER, &found);
-                     if (found)
+                    (int64 *)hash_search(exists_hash, (void *)&i, HASH_ENTER, &found);
+                    if (found)
                         PG_RETURN_BOOL(false);
-
 	        }
             }
 

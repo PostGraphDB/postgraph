@@ -2173,7 +2173,7 @@ SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN u.i, v.i$$) AS (
 SELECT * FROM cypher('opt_forms', $$MATCH (u) CREATE (u)-[:edge]->() RETURN *$$) AS (results vertex);
 SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN *$$) AS (col1 vertex, col2 vertex);
 
--- list functions relationships(), range(), keys()
+-- list functions range(), keys()
 SELECT create_graph('keys');
 -- keys()
 SELECT * FROM cypher('keys', $$CREATE ({name: 'hikaru utada', age: 38, job: 'singer'})-[:collaborated_with {song:"face my fears"}]->( {name: 'sonny moore', age: 33, stage_name: 'skrillex', job: 'producer'})$$) AS (result gtype);
@@ -2210,19 +2210,6 @@ SELECT * from cypher('list', $$MATCH (u) RETURN nodes([1,2,3])$$) as (nodes gtyp
 SELECT * from cypher('list', $$MATCH (u) RETURN nodes("string")$$) as (nodes gtype);
 SELECT * from cypher('list', $$MATCH (u) RETURN nodes(u)$$) as (nodes gtype);
 SELECT * from cypher('list', $$MATCH (u)-[]->() RETURN nodes(u)$$) as (nodes gtype);
--- relationships()
--- XXX: Not Working
-SELECT * from cypher('list', $$MATCH p=()-[]->() RETURN relationships(p)$$) as (relationships gtype);
-SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->() RETURN relationships(p)$$) as (relationships gtype);
--- should return nothing
-SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->()-[]->() RETURN relationships(p)$$) as (relationships gtype);
--- should return SQL NULL
-SELECT * from cypher('list', $$RETURN relationships(NULL)$$) as (relationships gtype);
--- should return an error
-SELECT * from cypher('list', $$MATCH (u) RETURN relationships([1,2,3])$$) as (relationships gtype);
-SELECT * from cypher('list', $$MATCH (u) RETURN relationships("string")$$) as (relationships gtype);
-SELECT * from cypher('list', $$MATCH (u) RETURN relationships(u)$$) as (relationships gtype);
-SELECT * from cypher('list', $$MATCH ()-[e]->() RETURN relationships(e)$$) as (relationships gtype);
 -- range()
 SELECT * from cypher('list', $$RETURN range(0, 10)$$) as (range gtype);
 SELECT * from cypher('list', $$RETURN range(0, 10, null)$$) as (range gtype);

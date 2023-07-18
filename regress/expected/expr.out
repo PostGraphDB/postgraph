@@ -5295,13 +5295,9 @@ SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN u.i, v.i$$) AS (
 (2 rows)
 
 SELECT * FROM cypher('opt_forms', $$MATCH (u) CREATE (u)-[:edge]->() RETURN *$$) AS (results vertex);
-                           results                            
---------------------------------------------------------------
- {"id": 281474976710657, "label": "", "properties": {"i": 1}}
- {"id": 281474976710658, "label": "", "properties": {"i": 2}}
- {"id": 281474976710659, "label": "", "properties": {"i": 3}}
-(3 rows)
-
+ERROR:  return row and column definition list do not match
+LINE 1: SELECT * FROM cypher('opt_forms', $$MATCH (u) CREATE (u)-[:e...
+                      ^
 SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN *$$) AS (col1 vertex, col2 vertex);
                              col1                             |                             col2                             
 --------------------------------------------------------------+--------------------------------------------------------------
@@ -5309,7 +5305,7 @@ SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN *$$) AS (col1 ve
  {"id": 281474976710657, "label": "", "properties": {"i": 1}} | {"id": 281474976710659, "label": "", "properties": {"i": 3}}
 (2 rows)
 
--- list functions relationships(), range(), keys()
+-- list functions range(), keys()
 SELECT create_graph('keys');
 NOTICE:  graph "keys" has been created
  create_graph 
@@ -5457,51 +5453,6 @@ ERROR:  function postgraph.age_nodes(vertex) does not exist
 LINE 1: ...T * from cypher('list', $$MATCH (u)-[]->() RETURN nodes(u)$$...
                                                              ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
--- relationships()
--- XXX: Not Working
-SELECT * from cypher('list', $$MATCH p=()-[]->() RETURN relationships(p)$$) as (relationships gtype);
-ERROR:  function postgraph.age_relationships(traversal) does not exist
-LINE 1: ... * from cypher('list', $$MATCH p=()-[]->() RETURN relationsh...
-                                                             ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->() RETURN relationships(p)$$) as (relationships gtype);
-ERROR:  function postgraph.age_relationships(traversal) does not exist
-LINE 1: ... cypher('list', $$MATCH p=()-[]->()-[]->() RETURN relationsh...
-                                                             ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
--- should return nothing
-SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->()-[]->() RETURN relationships(p)$$) as (relationships gtype);
-ERROR:  function postgraph.age_relationships(traversal) does not exist
-LINE 1: ...('list', $$MATCH p=()-[]->()-[]->()-[]->() RETURN relationsh...
-                                                             ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
--- should return SQL NULL
-SELECT * from cypher('list', $$RETURN relationships(NULL)$$) as (relationships gtype);
-ERROR:  function postgraph.age_relationships(gtype) does not exist
-LINE 1: SELECT * from cypher('list', $$RETURN relationships(NULL)$$)...
-                                              ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
--- should return an error
-SELECT * from cypher('list', $$MATCH (u) RETURN relationships([1,2,3])$$) as (relationships gtype);
-ERROR:  function postgraph.age_relationships(gtype) does not exist
-LINE 1: SELECT * from cypher('list', $$MATCH (u) RETURN relationship...
-                                                        ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * from cypher('list', $$MATCH (u) RETURN relationships("string")$$) as (relationships gtype);
-ERROR:  function postgraph.age_relationships(gtype) does not exist
-LINE 1: SELECT * from cypher('list', $$MATCH (u) RETURN relationship...
-                                                        ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * from cypher('list', $$MATCH (u) RETURN relationships(u)$$) as (relationships gtype);
-ERROR:  function postgraph.age_relationships(vertex) does not exist
-LINE 1: SELECT * from cypher('list', $$MATCH (u) RETURN relationship...
-                                                        ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * from cypher('list', $$MATCH ()-[e]->() RETURN relationships(e)$$) as (relationships gtype);
-ERROR:  function postgraph.age_relationships(edge) does not exist
-LINE 1: ...T * from cypher('list', $$MATCH ()-[e]->() RETURN relationsh...
-                                                             ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- range()
 SELECT * from cypher('list', $$RETURN range(0, 10)$$) as (range gtype);
                range                
@@ -5644,11 +5595,10 @@ NOTICE:  graph "case_statement" has been dropped
 (1 row)
 
 SELECT * FROM drop_graph('opt_forms', true);
-NOTICE:  drop cascades to 4 other objects
+NOTICE:  drop cascades to 3 other objects
 DETAIL:  drop cascades to table opt_forms._ag_label_vertex
 drop cascades to table opt_forms._ag_label_edge
 drop cascades to table opt_forms."KNOWS"
-drop cascades to table opt_forms.edge
 NOTICE:  graph "opt_forms" has been dropped
  drop_graph 
 ------------

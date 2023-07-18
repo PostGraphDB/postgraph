@@ -456,11 +456,9 @@ int compare_gtype_scalar_values(gtype_value *a, gtype_value *b);
 gtype_value *alter_property_value(gtype *properties, char *var_name, gtype *new_v, bool remove_property);
 gtype *get_one_gtype_from_variadic_args(FunctionCallInfo fcinfo, int variadic_offset, int expected_nargs);
 Datum column_get_datum(TupleDesc tupdesc, HeapTuple tuple, int column, const char *attname, Oid typid, bool isnull);
-gtype_value *gtype_value_build_edge(graphid id, char *label, graphid end_id, graphid start_id, Datum properties);
 gtype_value *get_gtype_value(char *funcname, gtype *agt_arg, enum gtype_value_type type, bool error);
 bool is_gtype_null(gtype *agt_arg);
 gtype_value *string_to_gtype_value(char *s);
-gtype_value *integer_to_gtype_value(int64 int_value);
 void add_gtype(Datum val, bool is_null, gtype_in_state *result, Oid val_type, bool key_scalar);
 
 Datum gtype_to_float8(PG_FUNCTION_ARGS);

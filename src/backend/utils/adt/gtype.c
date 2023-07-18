@@ -1310,18 +1310,13 @@ void add_gtype(Datum val, bool is_null, gtype_in_state *result,
     Oid outfuncoid;
 
     if (val_type == InvalidOid)
-    {
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("could not determine input data type")));
-    }
 
-    if (is_null)
-    {
+    if (is_null) {
         tcategory = AGT_TYPE_NULL;
         outfuncoid = InvalidOid;
-    }
-    else
-    {
+    } else {
         gtype_categorize_type(val_type, &tcategory, &outfuncoid);
     }
 
@@ -1339,19 +1334,8 @@ gtype_value *string_to_gtype_value(char *s)
     return agtv;
 }
 
-/* helper function to create an gtype_value integer from an integer */
-gtype_value *integer_to_gtype_value(int64 int_value)
-{
-    gtype_value *agtv = palloc0(sizeof(gtype_value));
-
-    agtv->type = AGTV_INTEGER;
-    agtv->val.int_value = int_value;
-
-    return agtv;
-}
 
 PG_FUNCTION_INFO_V1(gtype_build_map);
-
 /*
  * SQL function gtype_build_map(variadic "any")
  */
@@ -4018,8 +4002,7 @@ gtype_value *alter_property_value(gtype *properties, char *var_name,
         gtype_value *key = string_to_gtype_value(var_name);
 
         // push the new key
-        parsed_gtype_value = push_gtype_value(
-            &parse_state, WAGT_KEY, key);
+        parsed_gtype_value = push_gtype_value(&parse_state, WAGT_KEY, key);
 
         /*
          * If the the new gtype is scalar, push the gtype_value to the

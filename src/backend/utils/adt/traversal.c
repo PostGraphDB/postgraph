@@ -117,6 +117,31 @@ build_traversal(PG_FUNCTION_ARGS) {
     AG_RETURN_TRAVERSAL(p);
 }
 
+PG_FUNCTION_INFO_V1(traversal_edges);
+Datum traversal_edges(PG_FUNCTION_ARGS) {
+    traversal *v = AG_GET_ARG_TRAVERSAL(0);
+    Datum *array_value;
+
+    int size = (v->children[0] - 1) / 2;
+    array_value = (Datum *) palloc(sizeof(Datum) * size);
+
+
+    char *ptr = &v->children[1];
+    for (int i = 0; i < v->children[0]; i++, ptr = ptr + VARSIZE(ptr)) {
+
+        if (i % 2 == 0) {
+            continue;
+        } else {
+	    array_value[(i - 1) / 2] = EDGE_GET_DATUM((edge *)ptr);
+        }
+    }
+
+    ArrayType *result = construct_array(array_value, size, EDGEOID, -1, false, TYPALIGN_INT);
+
+    PG_RETURN_ARRAYTYPE_P(result);
+}
+
+
 static void
 append_to_buffer(StringInfo buffer, const char *data, int len) {
     int offset = reserve_from_buffer(buffer, len);
