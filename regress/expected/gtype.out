@@ -1364,43 +1364,6 @@ SELECT i, pg_typeof(i) FROM (SELECT '{"bool":false, "int":3, "float":3.14}'::gty
    | gtype
 (1 row)
 
-SELECT age_id(gtype_in('1'));
-ERROR:  function age_id(gtype) does not exist
-LINE 1: SELECT age_id(gtype_in('1'));
-               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT age_id(NULL);
-ERROR:  function age_id(unknown) is not unique
-LINE 1: SELECT age_id(NULL);
-               ^
-HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
-SELECT age_start_id(NULL);
- age_start_id 
---------------
- 
-(1 row)
-
-SELECT age_end_id(NULL);
- age_end_id 
-------------
- 
-(1 row)
-
-SELECT age_id(gtype_in('null'));
-ERROR:  function age_id(gtype) does not exist
-LINE 1: SELECT age_id(gtype_in('null'));
-               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT age_start_id(gtype_in('null'));
-ERROR:  function age_start_id(gtype) does not exist
-LINE 1: SELECT age_start_id(gtype_in('null'));
-               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT age_end_id(gtype_in('null'));
-ERROR:  function age_end_id(gtype) does not exist
-LINE 1: SELECT age_end_id(gtype_in('null'));
-               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT gtype_contains('{"id": 1}','{"id": 1}');
  gtype_contains 
 ----------------

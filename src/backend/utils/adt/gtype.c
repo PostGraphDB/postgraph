@@ -105,7 +105,6 @@ typedef enum /* type categories for datum_to_gtype */
 } agt_type_category;
 
 size_t check_string_length(size_t len);
-static void gtype_in_gtype_annotation(void *pstate, char *annotation);
 static void gtype_in_object_start(void *pstate);
 static void gtype_in_object_end(void *pstate);
 static void gtype_in_array_start(void *pstate);
@@ -127,8 +126,6 @@ static void add_indent(StringInfo out, bool indent, int level);
 static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqltype);
 static bool gtype_extract_scalar(gtype_container *agtc, gtype_value *res);
 static gtype_value *execute_array_access_operator_internal(gtype *array, int64 array_index);
-/* typecast functions */
-static void gtype_typecast_object(gtype_in_state *state, char *annotation);
 /* graph entity retrieval */
 static char *get_label_name(const char *graph_name, int64 label_id);
 static float8 get_float_compatible_arg(Datum arg, Oid type, char *funcname, bool *is_null);
@@ -284,8 +281,6 @@ Datum gtype_from_cstring(char *str, int len)
     sem.array_end = gtype_in_array_end;
     sem.scalar = gtype_in_scalar;
     sem.object_field_start = gtype_in_object_field_start;
-    /* callback for annotation (typecasts) */
-    sem.gtype_annotation = gtype_in_gtype_annotation;
 
     parse_gtype(lex, &sem);
 
@@ -335,59 +330,6 @@ static void gtype_in_object_field_start(void *pstate, char *fname, bool isnull) 
     v.val.string.val = fname;
 
     _state->res = push_gtype_value(&_state->parse_state, WAGT_KEY, &v);
-}
-
-/* main in function to process annotations */
-static void gtype_in_gtype_annotation(void *pstate, char *annotation)
-{
-    gtype_in_state *_state = (gtype_in_state *)pstate;
-
-    /* verify that our required params are not null */
-    Assert(pstate != NULL);
-    Assert(annotation != NULL);
-
-    /* pass to the appropriate typecast routine */
-    switch (_state->res->type)
-    {
-    case AGTV_OBJECT:
-        gtype_typecast_object(_state, annotation);
-        break;
-    default:
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("unsupported type to annotate")));
-        break;
-    }
-}
-
-/* function to handle object typecasts */
-static void gtype_typecast_object(gtype_in_state *state, char *annotation) {
-    gtype_value *agtv = NULL;
-    gtype_value *last_updated_value = NULL;
-    int len;
-    bool top = true;
-
-    /* verify that our required params are not null */
-    Assert(annotation != NULL);
-    Assert(state != NULL);
-
-    len = strlen(annotation);
-    agtv = state->res;
-
-    /*
-     * If the parse_state is not NULL, then we are not at the top level
-     * and the following must be valid for a nested object with a typecast
-     * at the end.
-     */
-    if (state->parse_state != NULL) {
-        top = false;
-        last_updated_value = state->parse_state->last_updated_value;
-        Assert(last_updated_value != NULL);
-        Assert(last_updated_value->type == AGTV_OBJECT);
-    } else {
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("invalid annotation value for object")));
-    }
 }
 
 static void gtype_put_array(StringInfo out, gtype_value *scalar_val) {

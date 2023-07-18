@@ -92,7 +92,6 @@ typedef void (*gtype_aelem_action)(void *state, bool isnull);
 typedef void (*gtype_scalar_action)(void *state, char *token,
                                      gtype_token_type tokentype,
                                      char *annotation);
-typedef void (*gtype_annotation_action)(void *state, char *annotation);
 
 /*
  * Semantic Action structure for use in parsing gtype.
@@ -117,8 +116,6 @@ typedef struct gtype_sem_action
     gtype_aelem_action array_element_start;
     gtype_aelem_action array_element_end;
     gtype_scalar_action scalar;
-    /* annotations (typecast) */
-    gtype_annotation_action gtype_annotation;
 } gtype_sem_action;
 
 /*

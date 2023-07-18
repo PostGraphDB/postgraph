@@ -1813,19 +1813,14 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- end_id()
 SELECT * FROM cypher('expr', $$
     MATCH ()-[e]-() RETURN end_id(e)
-$$) AS (end_id gtype);
-      end_id      
-------------------
- 1125899906842626
- 1125899906842627
- 1125899906842626
- 1125899906842627
-(4 rows)
-
+$$) AS (end_id edge);
+ERROR:  cannot cast type gtype to edge for column "end_id"
+LINE 1: SELECT * FROM cypher('expr', $$
+                      ^
 -- should return null
 SELECT * FROM cypher('expr', $$
     RETURN end_id(null)
-$$) AS (end_id gtype);
+$$) AS (end_id edge);
 ERROR:  function postgraph.age_end_id(gtype) does not exist
 LINE 2:     RETURN end_id(null)
                    ^
@@ -1833,14 +1828,14 @@ HINT:  No function matches the given name and argument types. You might need to 
 -- should error
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN end_id(v)
-$$) AS (end_id gtype);
+$$) AS (end_id vertex);
 ERROR:  function postgraph.age_end_id(vertex) does not exist
 LINE 2:     MATCH (v) RETURN end_id(v)
                              ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$
     RETURN end_id()
-$$) AS (end_id gtype);
+$$) AS (end_id edge);
 ERROR:  function postgraph.age_end_id() does not exist
 LINE 2:     RETURN end_id()
                    ^

@@ -61,7 +61,6 @@ static inline void gtype_lex(gtype_lex_context *lex);
 static inline void gtype_lex_string(gtype_lex_context *lex);
 static inline void gtype_lex_number(gtype_lex_context *lex, char *s, bool *num_err, int *total_len);
 static void parse_scalar_annotation(gtype_lex_context *lex, void *func, char **annotation);
-static void parse_annotation(gtype_lex_context *lex, gtype_sem_action *sem);
 static inline void parse_scalar(gtype_lex_context *lex, gtype_sem_action *sem);
 static void parse_object_field(gtype_lex_context *lex, gtype_sem_action *sem);
 static void parse_object(gtype_lex_context *lex, gtype_sem_action *sem);
@@ -241,32 +240,6 @@ static void parse_scalar_annotation(gtype_lex_context *lex, void *func, char **a
     }
 }
 
-static void parse_annotation(gtype_lex_context *lex, gtype_sem_action *sem)
-{
-    char *annotation = NULL;
-    gtype_annotation_action afunc = sem->gtype_annotation;
-
-    /* check next token for annotations (typecasts, etc.) */
-    if (lex_peek(lex) == GTYPE_TOKEN_ANNOTATION)
-    {
-        /* eat the annotation token */
-        lex_accept(lex, GTYPE_TOKEN_ANNOTATION, NULL);
-        if (lex_peek(lex) == GTYPE_TOKEN_IDENTIFIER)
-        {
-            /* eat the identifier token and get the annotation value */
-            lex_accept(lex, GTYPE_TOKEN_IDENTIFIER, &annotation);
-        }
-        else
-            ereport(ERROR,
-                    (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                     errmsg("invalid value for annotation")));
-
-        /* pass to annotation callback */
-        if (afunc != NULL)
-            (*afunc)(sem->semstate, annotation);
-    }
-}
-
 /*
  *  Recursive Descent parse routines. There is one for each structural
  *  element in an gtype document:
@@ -407,8 +380,6 @@ static void parse_object(gtype_lex_context *lex, gtype_sem_action *sem) {
     if (oend != NULL)
         (*oend)(sem->semstate);
 
-    /* parse annotations (typecasts) */
-    parse_annotation(lex, sem);
 }
 
 static void parse_array_element(gtype_lex_context *lex, gtype_sem_action *sem) {
@@ -476,8 +447,6 @@ static void parse_array(gtype_lex_context *lex, gtype_sem_action *sem) {
     if (aend != NULL)
         (*aend)(sem->semstate);
 
-    /* parse annotations (typecasts) */
-    parse_annotation(lex, sem);
 }
 
 /*
