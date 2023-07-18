@@ -756,34 +756,6 @@ static Datum merge_vertex(cypher_merge_custom_scan_state *css,
     }
     else
     {
-    /*    gtype *a;
-        Datum d;
-        gtype_value *v;
-        gtype_value *id_value;
-        TupleTableSlot *scantuple;
-        PlanState *ps;
-
-        ps = css->css.ss.ps.lefttree;
-        scantuple = ps->ps_ExprContext->ecxt_scantuple;
-
-        if (scantuple->tts_isnull[node->tuple_position - 1])
-            ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                 errmsg("Existing variable %s cannot be NULL in MERGE clause", node->variable_name)));
-
-        d = scantuple->tts_values[node->tuple_position - 1];
-        a = DATUM_GET_GTYPE_P(d);
-
-        v = get_ith_gtype_value_from_container(&a->root, 0);
-
-        if (v->type != AGTV_VERTEX)
-            ereport(ERROR,
-                    (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                     errmsg("gtype must resolve to a vertex")));
-
-        id_value = GET_GTYPE_VALUE_OBJECT_VALUE(v, "id");
-
-        id = GRAPHID_GET_DATUM(id_value->val.int_value);
-        */
 	TupleTableSlot *scantuple;
         PlanState *ps;
 

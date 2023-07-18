@@ -395,27 +395,6 @@ SELECT i, pg_typeof(i) FROM (SELECT '{"bool":false, "int":3, "float":3.14}'::gty
 
 
 --
--- Vertex
---
---Basic Vertex Creation
-SELECT _gtype_build_vertex('1'::graphid, $$label_name$$, gtype_build_map());
-SELECT _gtype_build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2));
-
---Null properties
-SELECT _gtype_build_vertex('1'::graphid, $$label_name$$, NULL);
-SELECT _gtype_build_vertex('1'::graphid, $$label$$, gtype_build_list());
-
---Vertex in a map
-SELECT gtype_build_map(
-	'vertex',
-	_gtype_build_vertex('1'::graphid, $$label_name$$, gtype_build_map()));
-
---Vertex in a list
-SELECT gtype_build_list(
-	_gtype_build_vertex('1'::graphid, $$label_name$$, gtype_build_map()),
-	_gtype_build_vertex('2'::graphid, $$label_name$$, gtype_build_map()));
-
---
 -- Edge
 --
 --Basic Edge Creation
@@ -445,7 +424,6 @@ SELECT gtype_build_list(
 --
 -- id, startid, endid
 --
-SELECT age_id(_gtype_build_vertex('1'::graphid, $$label_name$$, gtype_build_map()));
 SELECT age_id(_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
 			  $$label_name$$, gtype_build_map('id', 2)));
 
@@ -525,15 +503,9 @@ SELECT gtype_hash_cmp(gtype_in('[null, null, null]'));
 SELECT gtype_hash_cmp(gtype_in('[null, null, null, null]'));
 SELECT gtype_hash_cmp(gtype_in('[null, null, null, null, null]'));
 SELECT gtype_hash_cmp('{"id":1, "label":"test", "properties":{"id":100}}'::gtype);
-SELECT gtype_hash_cmp('{"id":1, "label":"test", "properties":{"id":100}}::vertex'::gtype);
 
 SELECT gtype_hash_cmp('{"id":2, "start_id":1, "end_id": 3, "label":"elabel", "properties":{}}'::gtype);
 SELECT gtype_hash_cmp('{"id":2, "start_id":1, "end_id": 3, "label":"elabel", "properties":{}}::edge'::gtype);
-
-SELECT gtype_hash_cmp('
-	[{"id":1, "label":"test", "properties":{"id":100}}::vertex,
-	 {"id":2, "start_id":1, "end_id": 3, "label":"elabel", "properties":{}}::edge,
-	 {"id":5, "label":"vlabel", "properties":{}}::vertex]'::gtype);
 
 --Agtype BTree Comparison Function
 SELECT gtype_btree_cmp('1'::gtype, '1'::gtype);
@@ -549,20 +521,11 @@ SELECT gtype_btree_cmp('1'::gtype, NULL);
 SELECT gtype_btree_cmp(gtype_in('null'), NULL);
 
 SELECT gtype_btree_cmp(
-	'1'::gtype,
-	'{"id":1, "label":"test", "properties":{"id":100}}::vertex'::gtype);
-SELECT gtype_btree_cmp(
 	'{"id":1, "label":"test", "properties":{"id":100}}'::gtype,
 	'{"id":1, "label":"test", "properties":{"id":100}}'::gtype);
 SELECT gtype_btree_cmp(
 	'{"id":1, "label":"test", "properties":{"id":100}}'::gtype,
 	'{"id":1, "label":"test", "properties":{"id":200}}'::gtype);
-SELECT gtype_btree_cmp(
-	'{"id":1, "label":"test", "properties":{"id":100}}::vertex'::gtype,
-	'{"id":1, "label":"test", "properties":{"id":100}}::vertex'::gtype);
-SELECT gtype_btree_cmp(
-	'{"id":1, "label":"test", "properties":{"id":100}}::vertex'::gtype,
-	'{"id":1, "label":"test", "properties":{"id":200}}::vertex'::gtype);
 SELECT gtype_btree_cmp(
 	'{"id":2, "start_id":1, "end_id": 3, "label":"elabel", "properties":{}}::edge'::gtype,
 	'{"id":2, "start_id":1, "end_id": 3, "label":"elabel", "properties":{}}::edge'::gtype);

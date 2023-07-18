@@ -256,7 +256,7 @@ static gtype_value *replace_entity_in_path(gtype_value *path, graphid updated_id
         elem = &path->val.array.elems[i];
 
         // something unexpected happended, throw an error.
-        if (elem->type != AGTV_VERTEX && elem->type != AGTV_EDGE)
+        if (elem->type != AGTV_EDGE)
             ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
                             errmsg("unsupported gtype found in a path")));
 

@@ -1365,49 +1365,6 @@ SELECT i, pg_typeof(i) FROM (SELECT '{"bool":false, "int":3, "float":3.14}'::gty
 (1 row)
 
 --
--- Vertex
---
---Basic Vertex Creation
-SELECT _gtype_build_vertex('1'::graphid, $$label_name$$, gtype_build_map());
-                    _gtype_build_vertex                     
-------------------------------------------------------------
- {"id": 1, "label": "label_name", "properties": {}}::vertex
-(1 row)
-
-SELECT _gtype_build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2));
-                     _gtype_build_vertex                      
---------------------------------------------------------------
- {"id": 1, "label": "label", "properties": {"id": 2}}::vertex
-(1 row)
-
---Null properties
-SELECT _gtype_build_vertex('1'::graphid, $$label_name$$, NULL);
-                    _gtype_build_vertex                     
-------------------------------------------------------------
- {"id": 1, "label": "label_name", "properties": {}}::vertex
-(1 row)
-
-SELECT _gtype_build_vertex('1'::graphid, $$label$$, gtype_build_list());
-ERROR:  _gtype_build_vertex() properties argument must be an object
---Vertex in a map
-SELECT gtype_build_map(
-	'vertex',
-	_gtype_build_vertex('1'::graphid, $$label_name$$, gtype_build_map()));
-                            gtype_build_map                             
-------------------------------------------------------------------------
- {"vertex": {"id": 1, "label": "label_name", "properties": {}}::vertex}
-(1 row)
-
---Vertex in a list
-SELECT gtype_build_list(
-	_gtype_build_vertex('1'::graphid, $$label_name$$, gtype_build_map()),
-	_gtype_build_vertex('2'::graphid, $$label_name$$, gtype_build_map()));
-                                                     gtype_build_list                                                     
---------------------------------------------------------------------------------------------------------------------------
- [{"id": 1, "label": "label_name", "properties": {}}::vertex, {"id": 2, "label": "label_name", "properties": {}}::vertex]
-(1 row)
-
---
 -- Edge
 --
 --Basic Edge Creation
@@ -1437,12 +1394,6 @@ ERROR:  unknown gtype scalar type
 --
 -- id, startid, endid
 --
-SELECT age_id(_gtype_build_vertex('1'::graphid, $$label_name$$, gtype_build_map()));
- age_id 
---------
- 1
-(1 row)
-
 SELECT age_id(_gtype_build_edge('1'::graphid, '2'::graphid, '3'::graphid,
 			  $$label_name$$, gtype_build_map('id', 2)));
  age_id 
@@ -1774,12 +1725,6 @@ SELECT gtype_hash_cmp('{"id":1, "label":"test", "properties":{"id":100}}'::gtype
      1116453668
 (1 row)
 
-SELECT gtype_hash_cmp('{"id":1, "label":"test", "properties":{"id":100}}::vertex'::gtype);
- gtype_hash_cmp 
-----------------
-     1848106598
-(1 row)
-
 SELECT gtype_hash_cmp('{"id":2, "start_id":1, "end_id": 3, "label":"elabel", "properties":{}}'::gtype);
  gtype_hash_cmp 
 ----------------
@@ -1790,15 +1735,6 @@ SELECT gtype_hash_cmp('{"id":2, "start_id":1, "end_id": 3, "label":"elabel", "pr
  gtype_hash_cmp 
 ----------------
     -1790838958
-(1 row)
-
-SELECT gtype_hash_cmp('
-	[{"id":1, "label":"test", "properties":{"id":100}}::vertex,
-	 {"id":2, "start_id":1, "end_id": 3, "label":"elabel", "properties":{}}::edge,
-	 {"id":5, "label":"vlabel", "properties":{}}::vertex]'::gtype);
- gtype_hash_cmp 
-----------------
-     -231467898
 (1 row)
 
 --Agtype BTree Comparison Function
@@ -1857,14 +1793,6 @@ SELECT gtype_btree_cmp(gtype_in('null'), NULL);
 (1 row)
 
 SELECT gtype_btree_cmp(
-	'1'::gtype,
-	'{"id":1, "label":"test", "properties":{"id":100}}::vertex'::gtype);
- gtype_btree_cmp 
------------------
-               1
-(1 row)
-
-SELECT gtype_btree_cmp(
 	'{"id":1, "label":"test", "properties":{"id":100}}'::gtype,
 	'{"id":1, "label":"test", "properties":{"id":100}}'::gtype);
  gtype_btree_cmp 
@@ -1878,22 +1806,6 @@ SELECT gtype_btree_cmp(
  gtype_btree_cmp 
 -----------------
               -1
-(1 row)
-
-SELECT gtype_btree_cmp(
-	'{"id":1, "label":"test", "properties":{"id":100}}::vertex'::gtype,
-	'{"id":1, "label":"test", "properties":{"id":100}}::vertex'::gtype);
- gtype_btree_cmp 
------------------
-               0
-(1 row)
-
-SELECT gtype_btree_cmp(
-	'{"id":1, "label":"test", "properties":{"id":100}}::vertex'::gtype,
-	'{"id":1, "label":"test", "properties":{"id":200}}::vertex'::gtype);
- gtype_btree_cmp 
------------------
-               0
 (1 row)
 
 SELECT gtype_btree_cmp(
