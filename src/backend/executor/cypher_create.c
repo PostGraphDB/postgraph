@@ -418,11 +418,7 @@ static void create_edge_1(cypher_create_custom_scan_state *css,
     {
         PlanState *ps = css->css.ss.ps.lefttree;
         TupleTableSlot *scantuple = ps->ps_ExprContext->ecxt_scantuple;
-        /*Datum result;
-
-        result = make_edge(
-            id, start_id, end_id, CStringGetDatum(node->label_name),
-            PointerGetDatum(scanTupleSlot->tts_values[node->prop_attr_num]));*/
+            
        edge *e = create_edge(id, start_id, end_id, node->label_name, DATUM_GET_GTYPE_P(scanTupleSlot->tts_values[node->prop_attr_num]));
 
         if (CYPHER_TARGET_NODE_IN_PATH(node->flags))
@@ -531,32 +527,6 @@ static Datum create_vertex_1(cypher_create_custom_scan_state *css,
     }
     else
     {
-        /*gtype *a;
-        gtype_value *v;
-        gtype_value *id_value;
-        TupleTableSlot *scantuple;
-        PlanState *ps;
-
-        ps = css->css.ss.ps.lefttree;
-        scantuple = ps->ps_ExprContext->ecxt_scantuple;
-
-        // get the vertex gtype in the scanTupleSlot
-        a = DATUM_GET_GTYPE_P(scantuple->tts_values[node->tuple_position - 1]);
-
-        // Convert to an gtype value
-        v = get_ith_gtype_value_from_container(&a->root, 0);
-
-        if (v->type != AGTV_VERTEX)
-            ereport(ERROR,
-                    (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                     errmsg("gtype must resolve to a vertex")));
-
-        // extract the id gtype field
-        id_value = GET_GTYPE_VALUE_OBJECT_VALUE(v, "id");
-
-        // extract the graphid and cast to a Datum
-        id = GRAPHID_GET_DATUM(id_value->val.int_value);
-*/
         TupleTableSlot *scantuple;
         PlanState *ps;
 

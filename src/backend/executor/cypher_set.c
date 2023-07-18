@@ -211,7 +211,7 @@ static bool check_path(gtype_value *path, graphid updated_id)
 {
     int i;
 
-    for (i = 0; i < path->val.array.num_elems; i++)
+/*    for (i = 0; i < path->val.array.num_elems; i++)
     {
         gtype_value *elem = &path->val.array.elems[i];
 
@@ -222,7 +222,7 @@ static bool check_path(gtype_value *path, graphid updated_id)
             return true;
         }
     }
-
+*/
     return false;
 }
 

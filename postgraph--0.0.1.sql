@@ -622,12 +622,7 @@ CREATE FUNCTION age_collect_aggtransfn(internal, gtype) RETURNS internal LANGUAG
 CREATE FUNCTION age_collect_aggfinalfn(internal) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE AGGREGATE age_collect(gtype) (stype = internal, sfunc = age_collect_aggtransfn, finalfunc = age_collect_aggfinalfn, parallel = safe);
 
---
--- John's crap
---
-CREATE FUNCTION age_vle(IN gtype, IN vertex, IN vertex, IN gtype, IN gtype, IN gtype, IN gtype, OUT edges variable_edge) RETURNS SETOF variable_edge LANGUAGE C STABLE CALLED ON NULL INPUT PARALLEL UNSAFE AS 'MODULE_PATHNAME';
--- TODO: remove
-CREATE FUNCTION age_build_vle_match_edge(gtype, gtype) RETURNS gtype LANGUAGE C IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE FUNCTION age_vle(IN gtype, IN vertex, IN vertex, IN gtype, IN gtype, IN gtype, IN gtype, IN gtype, OUT edges variable_edge) RETURNS SETOF variable_edge LANGUAGE C STABLE CALLED ON NULL INPUT PARALLEL UNSAFE AS 'MODULE_PATHNAME';
 
 CREATE FUNCTION match_vles(variable_edge, variable_edge) RETURNS boolean LANGUAGE C IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE OPERATOR !!= (FUNCTION = match_vles, LEFTARG = variable_edge, RIGHTARG = variable_edge);

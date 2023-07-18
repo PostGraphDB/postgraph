@@ -383,20 +383,11 @@ static void process_delete_list(CustomScanState *node)
         /* skip if the entity is null */
         if (scanTupleSlot->tts_isnull[entity_position - 1])
             continue;
-/*
-        original_entity_value = extract_entity(node, scanTupleSlot,
-                                               entity_position);
 
-        id = GET_GTYPE_VALUE_OBJECT_VALUE(original_entity_value, "id");
-        label = GET_GTYPE_VALUE_OBJECT_VALUE(original_entity_value, "label");
-        label_name = pnstrdup(label->val.string.val, label->val.string.len);
-
-        resultRelInfo = create_entity_result_rel_info(estate, css->delete_data->graph_name, label_name);
-*/
 	TupleDesc tupleDescriptor = scanTupleSlot->tts_tupleDescriptor;
     if (tupleDescriptor->attrs[entity_position -1].atttypid == EDGEOID) {
             edge *e = DATUM_GET_EDGE(scanTupleSlot->tts_values[entity_position - 1]);    
-gid = *((int64 *)(&e->children[0]));
+           gid = *((int64 *)(&e->children[0]));
            resultRelInfo = create_entity_result_rel_info(estate, css->delete_data->graph_name,
 			                                 extract_edge_label(e));
 	    ScanKeyInit(&scan_keys[0], Anum_ag_label_edge_table_id,
@@ -414,47 +405,15 @@ gid = *((int64 *)(&v->children[0]));
                         BTEqualStrategyNumber, F_GRAPHIDEQ,
                         GRAPHID_GET_DATUM(gid));
 
-    }
-    else if (tupleDescriptor->attrs[entity_position -1].atttypid == GTYPEOID) {
-        original_entity_value = extract_entity(node, scanTupleSlot, entity_position);
-
-        id = GET_GTYPE_VALUE_OBJECT_VALUE(original_entity_value, "id");
-        label = GET_GTYPE_VALUE_OBJECT_VALUE(original_entity_value, "label");
-        label_name = pnstrdup(label->val.string.val, label->val.string.len);
-
-        resultRelInfo = create_entity_result_rel_info(estate, css->delete_data->graph_name, label_name);
-
-
-        if (original_entity_value->type == AGTV_VERTEX)
-        {
-            ScanKeyInit(&scan_keys[0], Anum_ag_label_vertex_table_id,
-                        BTEqualStrategyNumber, F_GRAPHIDEQ,
-                        GRAPHID_GET_DATUM(id->val.int_value));
-        }
-        else if (original_entity_value->type == AGTV_EDGE)
-        {
-            ScanKeyInit(&scan_keys[0], Anum_ag_label_edge_table_id,
-                        BTEqualStrategyNumber, F_GRAPHIDEQ,
-                        GRAPHID_GET_DATUM(id->val.int_value));
-        }
-        else
-        {
-            ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+    } else {
+        ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
                     errmsg("DELETE clause can only delete vertices and edges")));
-        }
-
     }
-        else
-        {
-            ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                    errmsg("DELETE clause can only delete vertices and edges")));
-        }
 
         /*
          * Setup the scan description, with the correct snapshot and scan keys.
          */
-        scan_desc = table_beginscan(resultRelInfo->ri_RelationDesc,
-                                    estate->es_snapshot, 1, scan_keys);
+        scan_desc = table_beginscan(resultRelInfo->ri_RelationDesc, estate->es_snapshot, 1, scan_keys);
 
         /* Retrieve the tuple. */
         heap_tuple = heap_getnext(scan_desc, ForwardScanDirection);
@@ -478,7 +437,6 @@ gid = *((int64 *)(&v->children[0]));
          * depending on if the query specified the DETACH option.
          */
 	if (tupleDescriptor->attrs[entity_position -1].atttypid == VERTEXOID)
-        //if (original_entity_value->type == AGTV_VERTEX)
         {
             find_connected_edges(node, css->delete_data->graph_name,
                                  css->edge_labels, item->var_name,
