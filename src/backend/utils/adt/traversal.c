@@ -141,6 +141,30 @@ Datum traversal_edges(PG_FUNCTION_ARGS) {
     PG_RETURN_ARRAYTYPE_P(result);
 }
 
+PG_FUNCTION_INFO_V1(traversal_nodes);
+Datum traversal_nodes(PG_FUNCTION_ARGS) {
+    traversal *v = AG_GET_ARG_TRAVERSAL(0);
+    Datum *array_value;
+
+    int size = (v->children[0] + 1) / 2;
+    array_value = (Datum *) palloc(sizeof(Datum) * size);
+
+
+    char *ptr = &v->children[1];
+    for (int i = 0; i < v->children[0]; i++, ptr = ptr + VARSIZE(ptr)) {
+
+        if (i % 2 == 0) {
+	    array_value[i/2] = VERTEX_GET_DATUM((vertex *)ptr);
+        } else {
+	    continue;
+        }
+    }
+
+    ArrayType *result = construct_array(array_value, size, VERTEXOID, -1, false, TYPALIGN_INT);
+
+    PG_RETURN_ARRAYTYPE_P(result);
+}
+
 
 static void
 append_to_buffer(StringInfo buffer, const char *data, int len) {

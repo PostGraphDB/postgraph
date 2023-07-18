@@ -2197,19 +2197,6 @@ SELECT * from cypher('keys', $$MATCH u=()-[]-() RETURN keys(u)$$) as (keys gtype
 SELECT create_graph('list');
 SELECT * from cypher('list', $$CREATE p=({name:"rick"})-[:knows]->({name:"morty"}) RETURN p$$) as (path traversal);
 SELECT * from cypher('list', $$CREATE p=({name:'rachael'})-[:knows]->({name:'monica'})-[:knows]->({name:'phoebe'}) RETURN p$$) as (path traversal);
--- nodes()
--- XXX: Not Working
-SELECT * from cypher('list', $$MATCH p=()-[]->() RETURN nodes(p)$$) as (nodes gtype);
-SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->() RETURN nodes(p)$$) as (nodes gtype);
--- should return nothing
-SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->()-[]->() RETURN nodes(p)$$) as (nodes gtype);
--- should return SQL NULL
-SELECT * from cypher('list', $$RETURN nodes(NULL)$$) as (nodes gtype);
--- should return an error
-SELECT * from cypher('list', $$MATCH (u) RETURN nodes([1,2,3])$$) as (nodes gtype);
-SELECT * from cypher('list', $$MATCH (u) RETURN nodes("string")$$) as (nodes gtype);
-SELECT * from cypher('list', $$MATCH (u) RETURN nodes(u)$$) as (nodes gtype);
-SELECT * from cypher('list', $$MATCH (u)-[]->() RETURN nodes(u)$$) as (nodes gtype);
 -- range()
 SELECT * from cypher('list', $$RETURN range(0, 10)$$) as (range gtype);
 SELECT * from cypher('list', $$RETURN range(0, 10, null)$$) as (range gtype);

@@ -228,7 +228,20 @@ CREATE TYPE traversal (INPUT = traversal_in, OUTPUT = traversal_out, LIKE = json
 --
 -- traversal functions
 --
-CREATE FUNCTION relationships(traversal) RETURNS edge[] LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'traversal_edges';
+CREATE FUNCTION relationships(traversal) RETURNS edge[]
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'traversal_edges';
+
+CREATE FUNCTION nodes(traversal) RETURNS vertex[]
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'traversal_nodes';
+
 
 
 --

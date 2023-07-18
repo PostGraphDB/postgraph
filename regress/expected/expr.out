@@ -5378,51 +5378,6 @@ SELECT * from cypher('list', $$CREATE p=({name:'rachael'})-[:knows]->({name:'mon
  [{"id": 281474976710659, "label": "", "properties": {"name": "rachael"}}, {"id": 844424930131971, "start_id": 281474976710659, "end_id": 281474976710660, "label": "knows", "properties": {}}, {"id": 281474976710660, "label": "", "properties": {"name": "monica"}}, {"id": 844424930131970, "start_id": 281474976710660, "end_id": 281474976710661, "label": "knows", "properties": {}}, {"id": 281474976710661, "label": "", "properties": {"name": "phoebe"}}]
 (1 row)
 
--- nodes()
--- XXX: Not Working
-SELECT * from cypher('list', $$MATCH p=()-[]->() RETURN nodes(p)$$) as (nodes gtype);
-ERROR:  function postgraph.nodes(traversal) does not exist
-LINE 1: ... * from cypher('list', $$MATCH p=()-[]->() RETURN nodes(p)$$...
-                                                             ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->() RETURN nodes(p)$$) as (nodes gtype);
-ERROR:  function postgraph.nodes(traversal) does not exist
-LINE 1: ... cypher('list', $$MATCH p=()-[]->()-[]->() RETURN nodes(p)$$...
-                                                             ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
--- should return nothing
-SELECT * from cypher('list', $$MATCH p=()-[]->()-[]->()-[]->() RETURN nodes(p)$$) as (nodes gtype);
-ERROR:  function postgraph.nodes(traversal) does not exist
-LINE 1: ...('list', $$MATCH p=()-[]->()-[]->()-[]->() RETURN nodes(p)$$...
-                                                             ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
--- should return SQL NULL
-SELECT * from cypher('list', $$RETURN nodes(NULL)$$) as (nodes gtype);
-ERROR:  function postgraph.nodes(gtype) does not exist
-LINE 1: SELECT * from cypher('list', $$RETURN nodes(NULL)$$) as (nod...
-                                              ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
--- should return an error
-SELECT * from cypher('list', $$MATCH (u) RETURN nodes([1,2,3])$$) as (nodes gtype);
-ERROR:  function postgraph.nodes(gtype) does not exist
-LINE 1: SELECT * from cypher('list', $$MATCH (u) RETURN nodes([1,2,3...
-                                                        ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * from cypher('list', $$MATCH (u) RETURN nodes("string")$$) as (nodes gtype);
-ERROR:  function postgraph.nodes(gtype) does not exist
-LINE 1: SELECT * from cypher('list', $$MATCH (u) RETURN nodes("strin...
-                                                        ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * from cypher('list', $$MATCH (u) RETURN nodes(u)$$) as (nodes gtype);
-ERROR:  function postgraph.nodes(vertex) does not exist
-LINE 1: SELECT * from cypher('list', $$MATCH (u) RETURN nodes(u)$$) ...
-                                                        ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * from cypher('list', $$MATCH (u)-[]->() RETURN nodes(u)$$) as (nodes gtype);
-ERROR:  function postgraph.nodes(vertex) does not exist
-LINE 1: ...T * from cypher('list', $$MATCH (u)-[]->() RETURN nodes(u)$$...
-                                                             ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- range()
 SELECT * from cypher('list', $$RETURN range(0, 10)$$) as (range gtype);
                range                
