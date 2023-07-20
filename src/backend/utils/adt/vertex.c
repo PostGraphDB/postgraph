@@ -25,9 +25,11 @@
 #include "utils/fmgrprotos.h"
 #include "utils/varlena.h"
 
+#include "commands/label_commands.h"
 #include "utils/gtype.h"
 #include "utils/graphid.h"
 #include "utils/vertex.h"
+#include "utils/ag_cache.h"
 
 static void append_to_buffer(StringInfo buffer, const char *data, int len);
 
@@ -48,12 +50,13 @@ Datum vertex_out(PG_FUNCTION_ARGS) {
 
     // id
     appendStringInfoString(str, "{\"id\": ");
-    graphid id = *((int64 *)(&v->children[0]));
+    graphid id = EXTRACT_VERTEX_ID(v);
     appendStringInfoString(str, DatumGetCString(DirectFunctionCall1(int8out, Int64GetDatum(id))));
 
     // label
     appendStringInfoString(str, ", \"label\": \"");
-    appendStringInfoString(str, extract_vertex_label(v));
+    char *label = extract_vertex_label(v);
+    appendStringInfoString(str, label);
 
     // properties
     appendStringInfoString(str, "\", \"properties\": ");
@@ -90,38 +93,17 @@ PG_FUNCTION_INFO_V1(build_vertex);
 Datum
 build_vertex(PG_FUNCTION_ARGS) {
     graphid id = AG_GETARG_GRAPHID(0);
-    char *label = PG_GETARG_CSTRING(1);
+    Oid graph_oid = PG_GETARG_OID(1);
     gtype *properties = AG_GET_ARG_GTYPE_P(2);
 
     if (!AGT_ROOT_IS_OBJECT(properties))
         PG_RETURN_NULL();
 
-    StringInfoData buffer;
-    initStringInfo(&buffer);
-
-    // header
-    reserve_from_buffer(&buffer, VARHDRSZ);
-
-    // id
-    append_to_buffer(&buffer, (char *)&id, sizeof(graphid));
-
-    // label
-    int len = strlen(label);
-    append_to_buffer(&buffer, (char *)&len, sizeof(agtentry));
-    append_to_buffer(&buffer, label, len);
-
-    // properties
-    append_to_buffer(&buffer, properties, VARSIZE(properties));
-
-    vertex *v = (vertex *)buffer.data;
-
-    SET_VARSIZE(v, buffer.len);
-
-    AG_RETURN_VERTEX(v);
+    AG_RETURN_VERTEX(create_vertex(id, graph_oid, properties));
 }
   
 vertex *
-create_vertex(graphid id, char *label, gtype *properties) {
+create_vertex(graphid id, Oid graph_oid, gtype *properties) {
     StringInfoData buffer;
     initStringInfo(&buffer);
 
@@ -132,9 +114,7 @@ create_vertex(graphid id, char *label, gtype *properties) {
     append_to_buffer(&buffer, (char *)&id, sizeof(graphid));
 
     // label
-    int len = strlen(label);
-    append_to_buffer(&buffer, (char *)&len, sizeof(agtentry));
-    append_to_buffer(&buffer, label, len);
+    append_to_buffer(&buffer, (char *)&graph_oid, sizeof(Oid));
 
     // properties
     append_to_buffer(&buffer, properties, VARSIZE(properties));
@@ -350,9 +330,11 @@ Datum
 vertex_label(PG_FUNCTION_ARGS) {
     vertex *v = AG_GET_ARG_VERTEX(0);
 
+    char *label = extract_vertex_label(v);
+
     gtype_value gtv = {
             .type = AGTV_STRING,
-            .val.string = { extract_vertex_label_length(v), extract_vertex_label(v) }
+            .val.string = { strlen(label), label }
             };
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
@@ -367,25 +349,23 @@ append_to_buffer(StringInfo buffer, const char *data, int len) {
 
 char *
 extract_vertex_label(vertex *v) {
-    char *bytes = (char *)v;
-    char *label_addr = &bytes[VARHDRSZ + sizeof(graphid) + sizeof(agtentry)];
-    int *label_length = (int *)&bytes[VARHDRSZ + sizeof(graphid)];
+    graphid id = EXTRACT_VERTEX_ID(v);
+    int32 label_id = get_graphid_label_id(id);
 
-    return pnstrdup(label_addr, *label_length);
-}
+    Oid graph_oid = EXTRACT_VERTEX_GRAPH_OID(v);
 
-int
-extract_vertex_label_length(vertex *v) {
-    char *bytes = (char *)v;
-    int *label_length = (int *)&bytes[VARHDRSZ + ( sizeof(graphid))];
+    label_cache_data *cache_data = search_label_graph_oid_cache(graph_oid, label_id);
+    char *label = NameStr(cache_data->name);
 
-    return *label_length;
+    if (IS_AG_DEFAULT_LABEL(label))
+	    return "";
+
+    return label;
 }
 
 gtype *
 extract_vertex_properties(vertex *v) {
     char *bytes = (char *)v;
-    int *label_length = (int *)&bytes[VARHDRSZ + sizeof(graphid)];
 
-    return (gtype *)&bytes[VARHDRSZ + sizeof(graphid) + sizeof(agtentry) + ((*label_length) * sizeof(char))];
+    return (gtype *)&bytes[VARHDRSZ + sizeof(graphid) + sizeof(Oid)];
 }

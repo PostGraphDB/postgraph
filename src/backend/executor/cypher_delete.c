@@ -232,7 +232,7 @@ Node *create_cypher_delete_plan_state(CustomScan *cscan)
 
     cypher_css->delete_data = delete_data;
     cypher_css->flags = delete_data->flags;
-
+    cypher_css->graph_oid = delete_data->graph_oid;
     cypher_css->css.ss.ps.type = T_CustomScanState;
     cypher_css->css.methods = &cypher_delete_exec_methods;
 
@@ -243,9 +243,7 @@ Node *create_cypher_delete_plan_state(CustomScan *cscan)
  * Try and delete the entity that is describe by the HeapTuple in the table
  * described by the resultRelInfo.
  */
-static void delete_entity(EState *estate, ResultRelInfo *resultRelInfo,
-                          HeapTuple tuple)
-{
+static void delete_entity(EState *estate, ResultRelInfo *resultRelInfo, HeapTuple tuple) {
     ResultRelInfo **saved_resultRelsInfo;
     LockTupleMode lockmode;
     TM_FailureData hufd;
@@ -259,8 +257,7 @@ static void delete_entity(EState *estate, ResultRelInfo *resultRelInfo,
 
     lockmode = ExecUpdateLockMode(estate, resultRelInfo);
 
-    lock_result = heap_lock_tuple(resultRelInfo->ri_RelationDesc, tuple,
-                                  GetCurrentCommandId(false), lockmode,
+    lock_result = heap_lock_tuple(resultRelInfo->ri_RelationDesc, tuple, GetCurrentCommandId(false), lockmode,
                                   LockWaitBlock, false, &buffer, &hufd);
 
     /*
@@ -273,10 +270,8 @@ static void delete_entity(EState *estate, ResultRelInfo *resultRelInfo,
      */
     if (lock_result == TM_Ok)
     {
-        delete_result = heap_delete(resultRelInfo->ri_RelationDesc,
-                                    &tuple->t_self, GetCurrentCommandId(true),
-                                    estate->es_crosscheck_snapshot, true, &hufd,
-                                    false);
+        delete_result = heap_delete(resultRelInfo->ri_RelationDesc, &tuple->t_self, GetCurrentCommandId(true),
+                                    estate->es_crosscheck_snapshot, true, &hufd, false);
 
         /*
          * Unlike locking, the heap_delete either succeeded
@@ -290,8 +285,7 @@ static void delete_entity(EState *estate, ResultRelInfo *resultRelInfo,
             ereport(
                 ERROR,
                 (errcode(ERRCODE_INTERNAL_ERROR),
-                 errmsg(
-                     "deleting the same entity more than once cannot happen")));
+                 errmsg("deleting the same entity more than once cannot happen")));
             /* ereport never gets here */
             break;
         case TM_Updated:
@@ -326,14 +320,13 @@ static void delete_entity(EState *estate, ResultRelInfo *resultRelInfo,
  * After the delete's subtress has been processed, we then go through the list
  * of variables to be deleted.
  */
-static void process_delete_list(CustomScanState *node)
-{
-    cypher_delete_custom_scan_state *css =
-        (cypher_delete_custom_scan_state *)node;
+static void process_delete_list(CustomScanState *node) {
+    cypher_delete_custom_scan_state *css = (cypher_delete_custom_scan_state *)node;
     ListCell *lc;
     ExprContext *econtext = css->css.ss.ps.ps_ExprContext;
     TupleTableSlot *scanTupleSlot = econtext->ecxt_scantuple;
     EState *estate = node->ss.ps.state;
+    char *graph_name = css->delete_data->graph_name;
 
     foreach(lc, css->delete_data->delete_items)
     {
@@ -343,7 +336,6 @@ static void process_delete_list(CustomScanState *node)
         TableScanDesc scan_desc;
         ResultRelInfo *resultRelInfo;
         HeapTuple heap_tuple;
-        char *label_name;
         Value *pos;
         int entity_position;
         graphid gid = 0;
@@ -353,49 +345,41 @@ static void process_delete_list(CustomScanState *node)
         pos = item->entity_position;
         entity_position = pos->val.ival;
 
-        /* skip if the entity is null */
         if (scanTupleSlot->tts_isnull[entity_position - 1])
             continue;
 
 	TupleDesc tupleDescriptor = scanTupleSlot->tts_tupleDescriptor;
-    if (tupleDescriptor->attrs[entity_position -1].atttypid == EDGEOID) {
-            edge *e = DATUM_GET_EDGE(scanTupleSlot->tts_values[entity_position - 1]);    
-           gid = *((int64 *)(&e->children[0]));
-           resultRelInfo = create_entity_result_rel_info(estate, css->delete_data->graph_name,
-			                                 extract_edge_label(e));
-	    ScanKeyInit(&scan_keys[0], Anum_ag_label_edge_table_id,
-                        BTEqualStrategyNumber, F_GRAPHIDEQ,
-                        GRAPHID_GET_DATUM(gid));
+        if (tupleDescriptor->attrs[entity_position -1].atttypid == EDGEOID) {
+             edge *e = DATUM_GET_EDGE(scanTupleSlot->tts_values[entity_position - 1]);    
+             
+	     gid = *((int64 *)(&e->children[0]));
+             char *label = extract_edge_label(e);
 
-    }
-    else if (tupleDescriptor->attrs[entity_position -1].atttypid == VERTEXOID) {
+             resultRelInfo = create_entity_result_rel_info(estate, css->delete_data->graph_name, label); 
+
+	     ScanKeyInit(&scan_keys[0], Anum_ag_label_edge_table_id,
+                         BTEqualStrategyNumber, F_GRAPHIDEQ, GRAPHID_GET_DATUM(gid));
+
+        } else if (tupleDescriptor->attrs[entity_position -1].atttypid == VERTEXOID) {
             vertex *v = DATUM_GET_VERTEX(scanTupleSlot->tts_values[entity_position - 1]);
  
-           resultRelInfo = create_entity_result_rel_info(estate, css->delete_data->graph_name,
-                                                         extract_vertex_label(v));
-gid = *((int64 *)(&v->children[0]));
-	   ScanKeyInit(&scan_keys[0], Anum_ag_label_vertex_table_id,
-                        BTEqualStrategyNumber, F_GRAPHIDEQ,
-                        GRAPHID_GET_DATUM(gid));
+	    gid = EXTRACT_VERTEX_ID(v);
+            char *label = extract_vertex_label(v);
 
-    } else {
-        ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+            resultRelInfo = create_entity_result_rel_info(estate, css->delete_data->graph_name, label);
+            
+
+	    ScanKeyInit(&scan_keys[0], Anum_ag_label_vertex_table_id,
+                        BTEqualStrategyNumber, F_GRAPHIDEQ, GRAPHID_GET_DATUM(gid));
+        } else {
+            ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
                     errmsg("DELETE clause can only delete vertices and edges")));
-    }
+        }
 
-        /*
-         * Setup the scan description, with the correct snapshot and scan keys.
-         */
         scan_desc = table_beginscan(resultRelInfo->ri_RelationDesc, estate->es_snapshot, 1, scan_keys);
 
-        /* Retrieve the tuple. */
         heap_tuple = heap_getnext(scan_desc, ForwardScanDirection);
 
-        /*
-         * If the heap tuple still exists (It wasn't deleted after this variable
-         * was created) we can delete it. Otherwise, its safe to skip this
-         * delete.
-         */
         if (!HeapTupleIsValid(heap_tuple))
         {
             table_endscan(scan_desc);
@@ -404,22 +388,11 @@ gid = *((int64 *)(&v->children[0]));
             continue;
         }
 
-        /*
-         * For vertices, we need to check if the vertex is connected to any
-         * edges, * if there are, we need to delete them or throw an error,
-         * depending on if the query specified the DETACH option.
-         */
 	if (tupleDescriptor->attrs[entity_position -1].atttypid == VERTEXOID)
-        {
-            find_connected_edges(node, css->delete_data->graph_name,
-                                 css->edge_labels, item->var_name,
-                                 gid, css->delete_data->detach);
-        }
+            find_connected_edges(node, graph_name, css->edge_labels, item->var_name, gid, css->delete_data->detach);
 
-        /* At this point, we are ready to delete the node/vertex. */
         delete_entity(estate, resultRelInfo, heap_tuple);
 
-        /* Close the scan and the relation. */
         table_endscan(scan_desc);
         destroy_entity_result_rel_info(resultRelInfo);
     }

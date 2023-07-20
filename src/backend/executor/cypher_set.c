@@ -480,7 +480,7 @@ static void process_update_list(CustomScanState *node)
 
             slot = ExecInitExtraTupleSlot(estate, RelationGetDescr(resultRelInfo->ri_RelationDesc), &TTSOpsHeapTuple);
 
-	    new_entity = VERTEX_GET_DATUM(create_vertex(id, label_name, gtype_value_to_gtype(altered_properties)));
+	    new_entity = VERTEX_GET_DATUM(create_vertex(id, css->graph_oid, gtype_value_to_gtype(altered_properties)));
 
             slot = populate_vertex_tts_1(slot, id, altered_properties);
 	} 
@@ -631,6 +631,7 @@ Node *create_cypher_set_plan_state(CustomScan *cscan)
 
     cypher_css->set_list = set_list;
     cypher_css->flags = set_list->flags;
+    cypher_css->graph_oid = set_list->graph_oid;
 
     cypher_css->css.ss.ps.type = T_CustomScanState;
     cypher_css->css.methods = &cypher_set_exec_methods;

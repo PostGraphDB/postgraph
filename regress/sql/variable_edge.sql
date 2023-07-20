@@ -19,6 +19,9 @@
 LOAD 'postgraph';
 SET search_path TO postgraph;
 
+SELECT create_graph('variable_edge');
+SELECT create_vlabel('variable_edge', 'vlabel');
+
 --Basic Route Creation
 SELECT build_variable_edge(
 	build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map())
@@ -26,30 +29,36 @@ SELECT build_variable_edge(
 
 SELECT build_variable_edge(
         build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map()),
-        build_vertex('3'::graphid, $$vertex_label$$, gtype_build_map('id', '2')),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
         build_edge('4'::graphid, '3'::graphid, '5'::graphid, $$edge_label$$, gtype_build_map('id', 3))
-);
+)
+FROM ag_graph;
 
 
 SELECT build_variable_edge(
         build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map()),
-        build_vertex('3'::graphid, $$vertex_label$$, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map()),
 	build_edge('4'::graphid, '3'::graphid, '5'::graphid, $$edge_label$$, gtype_build_map())
-);
+)
+FROM ag_graph;
 
 SELECT build_variable_edge(
         build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map()),
-        build_vertex('5'::graphid, $$vertex_label$$, gtype_build_map())
-);
+        build_vertex(_graphid(3, 5), $$vertex_label$$, gtype_build_map())
+)
+FROM ag_graph;
 
 SELECT build_variable_edge(
         build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map()),
         build_edge('4'::graphid, '3'::graphid, '5'::graphid, $$edge_label$$, gtype_build_map())
-);
+)
+FROM ag_graph;
 
 SELECT build_traversal(
         build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map()),
-        build_vertex('3'::graphid, $$vertex_label$$, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map()),
         NULL
-);
+)
+FROM ag_graph;
 
+SELECT drop_graph('variable_edge', true);

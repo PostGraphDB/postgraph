@@ -508,7 +508,7 @@ static Datum create_vertex_1(cypher_create_custom_scan_state *css,
             scantuple = ps->ps_ExprContext->ecxt_scantuple;
 
             // make the vertex gtype
-            vertex *v = create_vertex(id, node->label_name,
+            vertex *v = create_vertex(id, css->graph_oid,
 			    DATUM_GET_GTYPE_P(scanTupleSlot->tts_values[node->prop_attr_num]));
             // append to the path list
             if (CYPHER_TARGET_NODE_IN_PATH(node->flags))

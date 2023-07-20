@@ -240,6 +240,7 @@ void read_cypher_update_information(struct ExtensibleNode *node)
     READ_INT_FIELD(tuple_position);
     READ_STRING_FIELD(graph_name);
     READ_STRING_FIELD(clause_name);
+    READ_INT_FIELD(graph_oid);
 }
 
 /*

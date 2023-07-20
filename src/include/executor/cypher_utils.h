@@ -67,6 +67,7 @@ typedef struct cypher_set_custom_scan_state
     CustomScan *cs;
     cypher_update_information *set_list;
     int flags;
+    Oid graph_oid;
 } cypher_set_custom_scan_state;
 
 typedef struct cypher_delete_custom_scan_state
@@ -76,6 +77,7 @@ typedef struct cypher_delete_custom_scan_state
     cypher_delete_information *delete_data;
     int flags;
     List *edge_labels;
+    Oid graph_oid;
 } cypher_delete_custom_scan_state;
 
 typedef struct cypher_merge_custom_scan_state

@@ -748,10 +748,10 @@ VariableEdge *create_variable_edge(path_container *vpc) {
         if (index != 0 && index + 1 != graphid_array_size) {
             vertex_entry *ve = get_vertex_entry(ggctx, graphid_array[index]);
 
-	    char *label_name = get_rel_name(get_vertex_entry_label_table_oid(ve));
+	    //char *label_name = get_rel_name(get_vertex_entry_label_table_oid(ve));
 	    graphid id = get_vertex_entry_id(ve);
 	    gtype *prop = DATUM_GET_GTYPE_P(get_vertex_entry_properties(ve));
-            Datum d = VERTEX_GET_DATUM(create_vertex(id, label_name, prop));
+            Datum d = VERTEX_GET_DATUM(create_vertex(id, vpc->graph_oid, prop));
 
             append_to_buffer(&buffer, DATUM_GET_VERTEX(d), VARSIZE(d));
             cnt++;

@@ -915,6 +915,7 @@ static Query *transform_cypher_set(cypher_parsestate *cpstate, cypher_clause *cl
 
     set_items_target_list->clause_name = clause_name;
     set_items_target_list->graph_name = cpstate->graph_name;
+    set_items_target_list->graph_oid = cpstate->graph_oid;
 
     if (!clause->next)
         set_items_target_list->flags |= CYPHER_CLAUSE_FLAG_TERMINAL;
@@ -3045,25 +3046,17 @@ static Node *make_vertex_expr(cypher_parsestate *cpstate, ParseNamespaceItem *pn
 
     Assert(pnsi != NULL);
 
-    func_oid = get_ag_func_oid("build_vertex", 3, GRAPHIDOID, CSTRINGOID, GTYPEOID);
+    func_oid = get_ag_func_oid("build_vertex", 3, GRAPHIDOID, OIDOID, GTYPEOID);
 
     id = scanNSItemForColumn(pstate, pnsi, 0, AG_VERTEX_COLNAME_ID, -1);
-
-    label_name_func_oid = get_ag_func_oid("_label_name", 2, OIDOID, GRAPHIDOID);
 
     graph_oid_const = makeConst(OIDOID, -1, InvalidOid, sizeof(Oid),
                                 ObjectIdGetDatum(cpstate->graph_oid), false, true);
 
-    label_name_args = list_make2(graph_oid_const, id);
-
-    label_name_func_expr = makeFuncExpr(label_name_func_oid, CSTRINGOID,
-                                        label_name_args, InvalidOid, InvalidOid, COERCE_EXPLICIT_CALL);
-    label_name_func_expr->location = -1;
-
     props = scanNSItemForColumn(pstate, pnsi, 0, AG_VERTEX_COLNAME_PROPERTIES, -1);
 
-    args = list_make3(id, label_name_func_expr, props);
-
+    args = list_make3(id, graph_oid_const, props);
+    
     func_expr = makeFuncExpr(func_oid, VERTEXOID, args, InvalidOid, InvalidOid, COERCE_EXPLICIT_CALL);
     func_expr->location = -1;
 

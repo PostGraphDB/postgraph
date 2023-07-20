@@ -25,54 +25,72 @@ SET search_path TO postgraph;
 -- Vertex
 --
 --Basic Vertex Creation
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map());
-                 build_vertex                  
------------------------------------------------
- {"id": 1, "label": "label", "properties": {}}
+SELECT create_graph('vertex');
+NOTICE:  graph "vertex" has been created
+ create_graph 
+--------------
+ 
 (1 row)
 
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2));
-                     build_vertex                     
-------------------------------------------------------
- {"id": 1, "label": "label", "properties": {"id": 2}}
+SELECT create_vlabel('vertex', 'vlabel');
+NOTICE:  VLabel "vlabel" has been created
+ create_vlabel 
+---------------
+ 
+(1 row)
+
+SELECT build_vertex(_graphid(3, 1), graphid, gtype_build_map()) FROM ag_graph;
+                         build_vertex                         
+--------------------------------------------------------------
+ {"id": 844424930131969, "label": "vlabel", "properties": {}}
+(1 row)
+
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map()) FROM ag_graph;
+                      build_vertex                      
+--------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {}}
+(1 row)
+
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map('id', 2)) FROM ag_graph;
+                         build_vertex                          
+---------------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {"id": 2}}
 (1 row)
 
 --Null properties
-SELECT build_vertex('1'::graphid, $$label_name$$, NULL);
+SELECT build_vertex(_graphid(1, 1), $$label_name$$, NULL);
+ERROR:  invalid input syntax for type oid: "label_name"
+LINE 1: SELECT build_vertex(_graphid(1, 1), $$label_name$$, NULL);
+                                            ^
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_list()) FROM ag_graph;
  build_vertex 
 --------------
  
 (1 row)
 
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_list());
- build_vertex 
---------------
- 
-(1 row)
-
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map()) =
-       build_vertex('1'::graphid, $$label$$, gtype_build_map());
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map()) =
+       build_vertex(_graphid(1, 1), graphid, gtype_build_map()) FROM ag_graph;
  ?column? 
 ----------
  t
 (1 row)
 
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map()) =
-       build_vertex('2'::graphid, $$label$$, gtype_build_map());
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map()) =
+       build_vertex(_graphid(1, 2), graphid, gtype_build_map()) FROM ag_graph;
  ?column? 
 ----------
  f
 (1 row)
 
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map()) <>
-       build_vertex('1'::graphid, $$label$$, gtype_build_map());
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map()) <>
+       build_vertex(_graphid(1, 1), graphid, gtype_build_map()) FROM ag_graph;
  ?column? 
 ----------
  f
 (1 row)
 
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map()) <>
-       build_vertex('2'::graphid, $$label$$, gtype_build_map());
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map()) <>
+       build_vertex(_graphid(1, 2), graphid, gtype_build_map()) FROM ag_graph;
  ?column? 
 ----------
  t
@@ -81,41 +99,41 @@ SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map()) <>
 --
 -- id function
 --
-SELECT id(build_vertex('1'::graphid, $$label$$, gtype_build_map()));
- id 
-----
- 1
+SELECT id(build_vertex(_graphid(1, 1), graphid, gtype_build_map())) FROM ag_graph;
+       id        
+-----------------
+ 281474976710657
 (1 row)
 
-SELECT id(NULL);
+SELECT id(NULL) FROM ag_graph;
 ERROR:  function id(unknown) is not unique
-LINE 1: SELECT id(NULL);
+LINE 1: SELECT id(NULL) FROM ag_graph;
                ^
 HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
 --
 -- label function
 --
-SELECT label(build_vertex('1'::graphid, $$label$$, gtype_build_map()));
-  label  
----------
- "label"
+SELECT label(build_vertex(_graphid(1, 1), graphid, gtype_build_map())) FROM ag_graph;
+ label 
+-------
+ ""
 (1 row)
 
-SELECT label(NULL);
+SELECT label(NULL) FROM ag_graph;
 ERROR:  function label(unknown) is not unique
-LINE 1: SELECT label(NULL);
+LINE 1: SELECT label(NULL) FROM ag_graph;
                ^
 HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
 --
 -- properties function
 --
-SELECT properties(build_vertex('1'::graphid, $$label$$, gtype_build_map()));
+SELECT properties(build_vertex(_graphid(1, 1), graphid, gtype_build_map())) FROM ag_graph;
  properties 
 ------------
  {}
 (1 row)
 
-SELECT properties(build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2)));
+SELECT properties(build_vertex(_graphid(1, 1), graphid, gtype_build_map('id', 2))) FROM ag_graph;
  properties 
 ------------
  {"id": 2}
@@ -124,19 +142,19 @@ SELECT properties(build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2)
 --
 -- -> operator
 --
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map())->'id';
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map())->'id' FROM ag_graph;
  ?column? 
 ----------
  
 (1 row)
 
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2))->'id';
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map('id', 2))->'id' FROM ag_graph;
  ?column? 
 ----------
  2
 (1 row)
 
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2))->'idd';
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map('id', 2))->'idd' FROM ag_graph;
  ?column? 
 ----------
  
@@ -145,19 +163,19 @@ SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2))->'idd';
 --
 -- ->> operator
 --
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map())->>'id';
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map())->>'id' FROM ag_graph;
  ?column? 
 ----------
  
 (1 row)
 
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2))->>'id';
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map('id', 2))->>'id' FROM ag_graph;
  ?column? 
 ----------
  2
 (1 row)
 
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2))->>'idd';
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map('id', 2))->>'idd' FROM ag_graph;
  ?column? 
 ----------
  
@@ -166,25 +184,25 @@ SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2))->>'idd';
 --
 -- @> operator
 --
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map()) @> gtype_build_map();
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map()) @> gtype_build_map() FROM ag_graph;
  ?column? 
 ----------
  t
 (1 row)
 
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2)) @> gtype_build_map();
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map('id', 2)) @> gtype_build_map() FROM ag_graph;
  ?column? 
 ----------
  t
 (1 row)
 
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2)) @> gtype_build_map('id', 2);
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map('id', 2)) @> gtype_build_map('id', 2) FROM ag_graph;
  ?column? 
 ----------
  t
 (1 row)
 
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2)) @> gtype_build_map('id', 1);
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map('id', 2)) @> gtype_build_map('id', 1) FROM ag_graph;
  ?column? 
 ----------
  f
@@ -193,25 +211,25 @@ SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2)) @> gtype_
 --
 -- <@ operator
 --
-SELECT gtype_build_map() <@ build_vertex('1'::graphid, $$label$$, gtype_build_map());
+SELECT gtype_build_map() <@ build_vertex(_graphid(1, 1), graphid, gtype_build_map()) FROM ag_graph;
  ?column? 
 ----------
  t
 (1 row)
 
-SELECT gtype_build_map() <@ build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2));
+SELECT gtype_build_map() <@ build_vertex(_graphid(1, 1), graphid, gtype_build_map('id', 2)) FROM ag_graph;
  ?column? 
 ----------
  f
 (1 row)
 
-SELECT gtype_build_map('id', 2) <@ build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2));
+SELECT gtype_build_map('id', 2) <@ build_vertex(_graphid(1, 1), graphid, gtype_build_map('id', 2)) FROM ag_graph;
  ?column? 
 ----------
  t
 (1 row)
 
-SELECT gtype_build_map('id', 1) <@ build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2));
+SELECT gtype_build_map('id', 1) <@ build_vertex(_graphid(1, 1), graphid, gtype_build_map('id', 2)) FROM ag_graph;
  ?column? 
 ----------
  f
@@ -220,19 +238,19 @@ SELECT gtype_build_map('id', 1) <@ build_vertex('1'::graphid, $$label$$, gtype_b
 --
 -- ? operator
 --
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map()) ? 'id';
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map()) ? 'id' FROM ag_graph;
  ?column? 
 ----------
  f
 (1 row)
 
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2)) ? 'id';
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map('id', 2)) ? 'id' FROM ag_graph;
  ?column? 
 ----------
  t
 (1 row)
 
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2)) ? 'idd';
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map('id', 2)) ? 'idd' FROM ag_graph;
  ?column? 
 ----------
  f
@@ -241,19 +259,19 @@ SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2)) ? 'idd';
 --
 -- ?| operator
 --
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map()) ?| array['id'];
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map()) ?| array['id'] FROM ag_graph;
  ?column? 
 ----------
  f
 (1 row)
 
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2)) ?| array['id'];
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map('id', 2)) ?| array['id'] FROM ag_graph;
  ?column? 
 ----------
  t
 (1 row)
 
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2)) ?| array['idd'];
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map('id', 2)) ?| array['idd'] FROM ag_graph;
  ?column? 
 ----------
  f
@@ -262,21 +280,32 @@ SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2)) ?| array[
 --
 -- ?& operator
 --
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map()) ?& array['id'];
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map()) ?& array['id'] FROM ag_graph;
  ?column? 
 ----------
  f
 (1 row)
 
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2)) ?& array['id'];
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map('id', 2)) ?& array['id'] FROM ag_graph;
  ?column? 
 ----------
  t
 (1 row)
 
-SELECT build_vertex('1'::graphid, $$label$$, gtype_build_map('id', 2)) ?& array['idd'];
+SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map('id', 2)) ?& array['idd'] FROM ag_graph;
  ?column? 
 ----------
  f
+(1 row)
+
+SELECT drop_graph('vertex', true);
+NOTICE:  drop cascades to 3 other objects
+DETAIL:  drop cascades to table vertex._ag_label_vertex
+drop cascades to table vertex._ag_label_edge
+drop cascades to table vertex.vlabel
+NOTICE:  graph "vertex" has been dropped
+ drop_graph 
+------------
+ 
 (1 row)
 

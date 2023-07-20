@@ -125,6 +125,7 @@ void copy_cypher_update_information(ExtensibleNode *newnode, const ExtensibleNod
     COPY_SCALAR_FIELD(tuple_position);
     COPY_STRING_FIELD(graph_name);
     COPY_STRING_FIELD(clause_name);
+    COPY_SCALAR_FIELD(graph_oid);
 }
 
 // copy function for cypher_update_item

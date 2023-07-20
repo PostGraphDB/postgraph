@@ -57,6 +57,12 @@
 
 typedef uint32 ventry;
 
+#define EXTRACT_VERTEX_ID(v) \
+    (*((int64 *)(&((vertex *)v)->children[0])))
+
+#define EXTRACT_VERTEX_GRAPH_OID(v) \
+    (*((Oid *)(&((vertex *)v)->children[2])))
+
 /*
  * An vertex, within an gtype Datum.
  *
@@ -72,7 +78,7 @@ void append_vertex_to_string(StringInfoData *buffer, vertex *v);
 char *extract_vertex_label(vertex *v);
 gtype *extract_vertex_properties(vertex *v);
 Datum build_vertex(PG_FUNCTION_ARGS);
-vertex *create_vertex(graphid id, char *label, gtype *properties);	
+vertex *create_vertex(graphid id, Oid graph_oid, gtype *properties);	
 int extract_vertex_label_length(vertex *v);
 
 #define VERTEXOID \

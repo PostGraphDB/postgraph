@@ -738,7 +738,7 @@ static Datum merge_vertex(cypher_merge_custom_scan_state *css,
             Datum result;
 
             /* make the vertex gtype */
-            result = VERTEX_GET_DATUM(create_vertex(id, node->label_name, DATUM_GET_GTYPE_P(prop)));
+            result = VERTEX_GET_DATUM(create_vertex(id, css->graph_oid, DATUM_GET_GTYPE_P(prop)));
 
             /* append to the path list */
             if (CYPHER_TARGET_NODE_IN_PATH(node->flags))

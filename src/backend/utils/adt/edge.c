@@ -33,6 +33,7 @@
 #include "utils/varlena.h"
 
 #include "catalog/ag_label.h"
+#include "utils/ag_cache.h"
 #include "utils/gtype.h"
 #include "utils/graphid.h"
 #include "utils/edge.h"
@@ -375,8 +376,9 @@ static Datum get_vertex(const char *graph, const char *vertex_label, int64 graph
 
     id = column_get_datum(tupdesc, tuple, 0, "id", GRAPHIDOID, true);
     properties = column_get_datum(tupdesc, tuple, 1, "properties", GTYPEOID, true);
-    /* reconstruct the vertex */
-    result = VERTEX_GET_DATUM(create_vertex(DATUM_GET_GRAPHID(id), vertex_label, DATUM_GET_GTYPE_P(properties)));
+
+    graph_cache_data *cache_data = search_graph_name_cache(graph);
+    result = VERTEX_GET_DATUM(create_vertex(DATUM_GET_GRAPHID(id), cache_data->oid, DATUM_GET_GTYPE_P(properties)));
     /* end the scan and close the relation */
     table_endscan(scan_desc);
     table_close(graph_vertex_label, ShareLock);

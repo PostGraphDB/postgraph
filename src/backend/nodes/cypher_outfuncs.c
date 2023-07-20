@@ -347,6 +347,7 @@ void out_cypher_update_information(StringInfo str, const ExtensibleNode *node)
     WRITE_INT32_FIELD(tuple_position);
     WRITE_STRING_FIELD(graph_name);
     WRITE_STRING_FIELD(clause_name);
+    WRITE_INT32_FIELD(graph_oid);
 }
 
 // serialization function for the cypher_update_item ExtensibleNode.
