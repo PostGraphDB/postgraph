@@ -21,28 +21,28 @@ SET search_path TO postgraph;
 
 SELECT create_graph('variable_edge');
 SELECT create_vlabel('variable_edge', 'vlabel');
-
+SELECT create_vlabel('variable_edge', 'elabel');
 
 --Basic Route Creation
 SELECT build_traversal(
 	build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
-	build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map()),
+	build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
 	build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
 )
 FROM ag_graph;
 
 SELECT build_traversal(
         build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
-        build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
         build_vertex(_graphid(3, 3), graphid, gtype_build_map()),
-	build_edge('4'::graphid, '3'::graphid, '5'::graphid, $$edge_label$$, gtype_build_map()),
+	build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid,  graphid, gtype_build_map()),
         build_vertex(_graphid(3, 5),  graphid, gtype_build_map())
 )
 FROM ag_graph;
 
 SELECT build_traversal(
         build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
-        build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
         build_vertex(_graphid(3, 3), graphid, gtype_build_map()),
         build_vertex(_graphid(3, 5),  graphid, gtype_build_map())
 )
@@ -50,15 +50,15 @@ FROM ag_graph;
 
 SELECT build_traversal(
         build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
-        build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map()),
-        build_edge('4'::graphid, '3'::graphid, '5'::graphid, $$edge_label$$, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid,  graphid, gtype_build_map()),
         build_vertex(_graphid(3, 5),  graphid, gtype_build_map())
 )
 FROM ag_graph;
 
 SELECT build_traversal(
         build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
-        build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
         build_vertex(_graphid(3, 3), graphid, gtype_build_map()),
         NULL,
         build_vertex(_graphid(3, 5),  graphid, gtype_build_map())
@@ -69,7 +69,7 @@ FROM ag_graph;
 SELECT build_traversal(
         build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
         build_variable_edge(
-		build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map())
+		build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map())
 	),
         build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
 )
@@ -78,9 +78,9 @@ FROM ag_graph;
 SELECT build_traversal(
         build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
         build_variable_edge(
-            build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map()),
+            build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
             build_vertex(_graphid(3, 3), graphid, gtype_build_map()),
-            build_edge('4'::graphid, '3'::graphid, '5'::graphid, $$edge_label$$, gtype_build_map())
+            build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid,  graphid, gtype_build_map())
         ),
         build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
 )

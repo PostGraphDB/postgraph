@@ -115,8 +115,8 @@ SELECT * FROM cypher('cypher_match', $$
 $$) AS (a edge);
                                                           a                                                          
 ---------------------------------------------------------------------------------------------------------------------
- {"id": 1407374883553282, "start_id": 1125899906842626, "end_id": 1125899906842626, "label": "e1", "properties": {}}
- {"id": 1407374883553281, "start_id": 1125899906842627, "end_id": 1125899906842627, "label": "e1", "properties": {}}
+ {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}}
+ {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}}
 (2 rows)
 
 SELECT * FROM cypher('cypher_match', $$
@@ -132,10 +132,10 @@ SELECT * FROM cypher('cypher_match', $$
 $$) AS (a edge);
                                                           a                                                          
 ---------------------------------------------------------------------------------------------------------------------
- {"id": 1407374883553281, "start_id": 1125899906842627, "end_id": 1125899906842627, "label": "e1", "properties": {}}
- {"id": 1407374883553281, "start_id": 1125899906842627, "end_id": 1125899906842627, "label": "e1", "properties": {}}
- {"id": 1407374883553282, "start_id": 1125899906842626, "end_id": 1125899906842626, "label": "e1", "properties": {}}
- {"id": 1407374883553282, "start_id": 1125899906842626, "end_id": 1125899906842626, "label": "e1", "properties": {}}
+ {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}}
+ {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}}
+ {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}}
+ {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}}
 (4 rows)
 
 -- Right Path Test
@@ -184,7 +184,7 @@ SELECT * FROM cypher('cypher_match', $$
 $$) AS (a edge);
                                                           a                                                          
 ---------------------------------------------------------------------------------------------------------------------
- {"id": 1407374883553282, "start_id": 1125899906842626, "end_id": 1125899906842626, "label": "e1", "properties": {}}
+ {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}}
 (1 row)
 
 --Left Path Test
@@ -233,7 +233,7 @@ SELECT * FROM cypher('cypher_match', $$
 $$) AS (a edge);
                                                           a                                                          
 ---------------------------------------------------------------------------------------------------------------------
- {"id": 1407374883553281, "start_id": 1125899906842627, "end_id": 1125899906842627, "label": "e1", "properties": {}}
+ {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}}
 (1 row)
 
 --Divergent Path Tests
@@ -292,8 +292,8 @@ SELECT * FROM cypher('cypher_match', $$
 $$) AS (i edge);
                                                           i                                                          
 ---------------------------------------------------------------------------------------------------------------------
- {"id": 1407374883553281, "start_id": 1125899906842627, "end_id": 1125899906842627, "label": "e1", "properties": {}}
- {"id": 1407374883553282, "start_id": 1125899906842626, "end_id": 1125899906842626, "label": "e1", "properties": {}}
+ {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}}
+ {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}}
 (2 rows)
 
 SELECT * FROM cypher('cypher_match', $$
@@ -569,12 +569,12 @@ SELECT * FROM cypher('cypher_match',
  $$MATCH (u)-[e]->(v) RETURN u, e, v $$) AS (u vertex, e edge, v vertex);
                                     u                                     |                                                          e                                                          |                                    v                                     
 --------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------
- {"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}} | {"id": 1407374883553282, "start_id": 1125899906842626, "end_id": 1125899906842626, "label": "e1", "properties": {}} | {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}
- {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}  | {"id": 1407374883553281, "start_id": 1125899906842627, "end_id": 1125899906842627, "label": "e1", "properties": {}} | {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}
- {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}  | {"id": 1970324836974594, "start_id": 1688849860263937, "end_id": 1688849860263937, "label": "e2", "properties": {}} | {"id": 1688849860263937, "label": "v2", "properties": {"id": "initial"}}
- {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}  | {"id": 1970324836974593, "start_id": 1688849860263939, "end_id": 1688849860263939, "label": "e2", "properties": {}} | {"id": 1688849860263939, "label": "v2", "properties": {"id": "end"}}
- {"id": 2251799813685249, "label": "v3", "properties": {"id": "initial"}} | {"id": 2533274790395906, "start_id": 2251799813685250, "end_id": 2251799813685250, "label": "e3", "properties": {}} | {"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}
- {"id": 2251799813685251, "label": "v3", "properties": {"id": "end"}}     | {"id": 2533274790395905, "start_id": 2251799813685250, "end_id": 2251799813685250, "label": "e3", "properties": {}} | {"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}
+ {"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}} | {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}} | {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}
+ {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}  | {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}} | {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}
+ {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}  | {"id": 1970324836974594, "start_id": 1688849860263938, "end_id": 1688849860263937, "label": "e2", "properties": {}} | {"id": 1688849860263937, "label": "v2", "properties": {"id": "initial"}}
+ {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}  | {"id": 1970324836974593, "start_id": 1688849860263938, "end_id": 1688849860263939, "label": "e2", "properties": {}} | {"id": 1688849860263939, "label": "v2", "properties": {"id": "end"}}
+ {"id": 2251799813685249, "label": "v3", "properties": {"id": "initial"}} | {"id": 2533274790395906, "start_id": 2251799813685249, "end_id": 2251799813685250, "label": "e3", "properties": {}} | {"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}
+ {"id": 2251799813685251, "label": "v3", "properties": {"id": "end"}}     | {"id": 2533274790395905, "start_id": 2251799813685251, "end_id": 2251799813685250, "label": "e3", "properties": {}} | {"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}
 (6 rows)
 
 SELECT * FROM cypher('cypher_match',
@@ -582,12 +582,12 @@ SELECT * FROM cypher('cypher_match',
 AS (u vertex, e edge, v vertex);
                                     u                                     |                                                          e                                                          |                                    v                                     
 --------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------
- {"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}} | {"id": 1407374883553282, "start_id": 1125899906842626, "end_id": 1125899906842626, "label": "e1", "properties": {}} | {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}
- {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}  | {"id": 1407374883553281, "start_id": 1125899906842627, "end_id": 1125899906842627, "label": "e1", "properties": {}} | {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}
- {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}  | {"id": 1970324836974594, "start_id": 1688849860263937, "end_id": 1688849860263937, "label": "e2", "properties": {}} | {"id": 1688849860263937, "label": "v2", "properties": {"id": "initial"}}
- {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}  | {"id": 1970324836974593, "start_id": 1688849860263939, "end_id": 1688849860263939, "label": "e2", "properties": {}} | {"id": 1688849860263939, "label": "v2", "properties": {"id": "end"}}
- {"id": 2251799813685249, "label": "v3", "properties": {"id": "initial"}} | {"id": 2533274790395906, "start_id": 2251799813685250, "end_id": 2251799813685250, "label": "e3", "properties": {}} | {"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}
- {"id": 2251799813685251, "label": "v3", "properties": {"id": "end"}}     | {"id": 2533274790395905, "start_id": 2251799813685250, "end_id": 2251799813685250, "label": "e3", "properties": {}} | {"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}
+ {"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}} | {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}} | {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}
+ {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}  | {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}} | {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}
+ {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}  | {"id": 1970324836974594, "start_id": 1688849860263938, "end_id": 1688849860263937, "label": "e2", "properties": {}} | {"id": 1688849860263937, "label": "v2", "properties": {"id": "initial"}}
+ {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}  | {"id": 1970324836974593, "start_id": 1688849860263938, "end_id": 1688849860263939, "label": "e2", "properties": {}} | {"id": 1688849860263939, "label": "v2", "properties": {"id": "end"}}
+ {"id": 2251799813685249, "label": "v3", "properties": {"id": "initial"}} | {"id": 2533274790395906, "start_id": 2251799813685249, "end_id": 2251799813685250, "label": "e3", "properties": {}} | {"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}
+ {"id": 2251799813685251, "label": "v3", "properties": {"id": "end"}}     | {"id": 2533274790395905, "start_id": 2251799813685251, "end_id": 2251799813685250, "label": "e3", "properties": {}} | {"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}
 (6 rows)
 
 -- Property Constraint in EXISTS
@@ -637,12 +637,12 @@ SELECT * FROM cypher('cypher_match',
 AS (u vertex, e edge, v vertex);
                                      u                                      |                                                           e                                                           |                                     v                                      
 ----------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------
- {"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}   | {"id": 1407374883553282, "start_id": 1125899906842626, "end_id": 1125899906842626, "label": "e1", "properties": {}}   | {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}
- {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}    | {"id": 1407374883553281, "start_id": 1125899906842627, "end_id": 1125899906842627, "label": "e1", "properties": {}}   | {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}
- {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}    | {"id": 1970324836974594, "start_id": 1688849860263937, "end_id": 1688849860263937, "label": "e2", "properties": {}}   | {"id": 1688849860263937, "label": "v2", "properties": {"id": "initial"}}
- {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}    | {"id": 1970324836974593, "start_id": 1688849860263939, "end_id": 1688849860263939, "label": "e2", "properties": {}}   | {"id": 1688849860263939, "label": "v2", "properties": {"id": "end"}}
- {"id": 2251799813685249, "label": "v3", "properties": {"id": "initial"}}   | {"id": 2533274790395906, "start_id": 2251799813685250, "end_id": 2251799813685250, "label": "e3", "properties": {}}   | {"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}
- {"id": 2251799813685251, "label": "v3", "properties": {"id": "end"}}       | {"id": 2533274790395905, "start_id": 2251799813685250, "end_id": 2251799813685250, "label": "e3", "properties": {}}   | {"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}
+ {"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}   | {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}}   | {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}
+ {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}    | {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}}   | {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}
+ {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}    | {"id": 1970324836974594, "start_id": 1688849860263938, "end_id": 1688849860263937, "label": "e2", "properties": {}}   | {"id": 1688849860263937, "label": "v2", "properties": {"id": "initial"}}
+ {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}    | {"id": 1970324836974593, "start_id": 1688849860263938, "end_id": 1688849860263939, "label": "e2", "properties": {}}   | {"id": 1688849860263939, "label": "v2", "properties": {"id": "end"}}
+ {"id": 2251799813685249, "label": "v3", "properties": {"id": "initial"}}   | {"id": 2533274790395906, "start_id": 2251799813685249, "end_id": 2251799813685250, "label": "e3", "properties": {}}   | {"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}
+ {"id": 2251799813685251, "label": "v3", "properties": {"id": "end"}}       | {"id": 2533274790395905, "start_id": 2251799813685251, "end_id": 2251799813685250, "label": "e3", "properties": {}}   | {"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}
  {"id": 2814749767106561, "label": "loop", "properties": {"id": "initial"}} | {"id": 3096224743817217, "start_id": 2814749767106561, "end_id": 2814749767106561, "label": "self", "properties": {}} | {"id": 2814749767106561, "label": "loop", "properties": {"id": "initial"}}
 (7 rows)
 
@@ -865,7 +865,7 @@ SELECT * FROM cypher('cypher_match', $$
 $$) as (u1 vertex, u2 edge, u3 vertex);
                                 u1                                 |                                                        u2                                                         |                                u3                                 
 -------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------
- {"id": 281474976710660, "label": "", "properties": {"name": "F"}} | {"id": 1407374883553283, "start_id": 281474976710661, "end_id": 281474976710661, "label": "e1", "properties": {}} | {"id": 281474976710661, "label": "", "properties": {"name": "T"}}
+ {"id": 281474976710660, "label": "", "properties": {"name": "F"}} | {"id": 1407374883553283, "start_id": 281474976710660, "end_id": 281474976710661, "label": "e1", "properties": {}} | {"id": 281474976710661, "label": "", "properties": {"name": "T"}}
 (1 row)
 
 -- Querying NOT EXISTS syntax

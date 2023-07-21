@@ -33,10 +33,8 @@
 #include "utils/array.h"
 #include "utils/numeric.h"
 #include "utils/syscache.h"
-
 #include "utils/fmgrprotos.h"
 #include "utils/varlena.h"
-
 
 #include "catalog/ag_namespace.h"
 #include "catalog/pg_type.h"
@@ -51,6 +49,20 @@
 
 
 typedef uint32 eentry;
+
+
+#define EXTRACT_EDGE_ID(e) \
+    (*((int64 *)(&((edge *)e)->children[0])))
+
+#define EXTRACT_EDGE_STARTID(e) \
+    (*((int64 *)(&((edge *)e)->children[2])))
+
+#define EXTRACT_EDGE_ENDID(e) \
+    (*((int64 *)(&((edge *)e)->children[4])))
+
+#define EXTRACT_EDGE_GRAPH_OID(v) \
+    (*((Oid *)(&((edge *)v)->children[6])))
+
 
 /*
  * An edge, within an gtype Datum.
@@ -67,7 +79,7 @@ void append_edge_to_string(StringInfoData *buffer, edge *v);
 char *extract_edge_label(edge *v);
 gtype *extract_edge_properties(edge *v);
 Datum build_edge(PG_FUNCTION_ARGS);
-edge *create_edge(graphid id,graphid start_id,graphid end_id, char *label, gtype *properties);
+edge *create_edge(graphid id,graphid start_id,graphid end_id, Oid graph_oid, gtype *properties);
 int extract_edge_label_length(edge *v);
 
 #define EDGEOID \

@@ -37,7 +37,7 @@ SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map()) FROM ag_graph;
 SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map('id', 2)) FROM ag_graph;
 
 --Null properties
-SELECT build_vertex(_graphid(1, 1), $$label_name$$, NULL);
+SELECT build_vertex(_graphid(1, 1),  graphid, NULL) FROM ag_graph;
 SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_list()) FROM ag_graph;
 
 SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map()) =

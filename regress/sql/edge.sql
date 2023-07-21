@@ -23,47 +23,52 @@
 LOAD 'postgraph';
 SET search_path TO postgraph;
 
+SELECT create_graph('edge');
+SELECT create_elabel('edge', 'elabel');
 --
 -- Vertex
 --
 --Basic Vertex Creation
-SELECT build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label$$, gtype_build_map());
-SELECT build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, gtype_build_map('id', 2));
+SELECT build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()) FROM ag_graph;
+SELECT build_edge(_graphid(3, 1),  '2'::graphid, '3'::graphid, graphid, gtype_build_map('id', 2)) FROM ag_graph;
 
 --Null properties
-SELECT build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label_name$$, NULL);
-SELECT build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, gtype_build_list());
+SELECT build_edge(_graphid(3, 1),  '2'::graphid, '3'::graphid,  graphid, NULL) FROM ag_graph;
+SELECT build_edge(_graphid(3, 1),  '2'::graphid, '3'::graphid, graphid, gtype_build_list()) FROM ag_graph;
 
 
-SELECT build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label$$, gtype_build_map()) =
-       build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, gtype_build_map());
+SELECT build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()) =
+       build_edge(_graphid(3, 1),  '2'::graphid, '3'::graphid, graphid, gtype_build_map()) FROM ag_graph;
 
-SELECT build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label$$, gtype_build_map()) =
-       build_edge('4'::graphid,  '2'::graphid, '3'::graphid, $$label$$, gtype_build_map());
+SELECT build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()) =
+       build_edge(_graphid(3, 4),  '2'::graphid, '3'::graphid, graphid, gtype_build_map()) FROM ag_graph;
 
-SELECT build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label$$, gtype_build_map()) <>
-       build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, gtype_build_map());
+SELECT build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()) <>
+       build_edge(_graphid(3, 1),  '2'::graphid, '3'::graphid, graphid, gtype_build_map()) FROM ag_graph;
 
-SELECT build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label$$, gtype_build_map()) <>
-       build_edge('4'::graphid,  '2'::graphid, '3'::graphid, $$label$$, gtype_build_map());
+SELECT build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()) <>
+       build_edge(_graphid(3, 4),  '2'::graphid, '3'::graphid, graphid, gtype_build_map()) FROM ag_graph;
 
 
 -- id
-SELECT id(build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label$$, gtype_build_map()));
-SELECT id(build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, gtype_build_map('id', 2)));
+SELECT id(build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())) FROM ag_graph;
+SELECT id(build_edge(_graphid(3, 1),  '2'::graphid, '3'::graphid, graphid, gtype_build_map('id', 2))) FROM ag_graph;
 
 -- start_id
-SELECT start_id(build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label$$, gtype_build_map()));
-SELECT start_id(build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, gtype_build_map('id', 2)));
+SELECT start_id(build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())) FROM ag_graph;
+SELECT start_id(build_edge(_graphid(3, 1),  '2'::graphid, '3'::graphid, graphid, gtype_build_map('id', 2))) FROM ag_graph;
 
 -- end_id
-SELECT end_id(build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label$$, gtype_build_map()));
-SELECT end_id(build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, gtype_build_map('id', 2)));
+SELECT end_id(build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())) FROM ag_graph;
+SELECT end_id(build_edge(_graphid(3, 1),  '2'::graphid, '3'::graphid, graphid, gtype_build_map('id', 2))) FROM ag_graph;
 
 -- label
-SELECT label(build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label$$, gtype_build_map()));
-SELECT label(build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, gtype_build_map('id', 2)));
+SELECT label(build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())) FROM ag_graph;
+SELECT label(build_edge(_graphid(3, 1),  '2'::graphid, '3'::graphid, graphid, gtype_build_map('id', 2))) FROM ag_graph;
 
 --properties
-SELECT properties(build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$label$$, gtype_build_map()));
-SELECT properties(build_edge('1'::graphid,  '2'::graphid, '3'::graphid, $$label$$, gtype_build_map('id', 2)));
+SELECT properties(build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())) FROM ag_graph;
+SELECT properties(build_edge(_graphid(3, 1),  '2'::graphid, '3'::graphid, graphid, gtype_build_map('id', 2))) FROM ag_graph;
+
+
+SELECT drop_graph('edge', true);

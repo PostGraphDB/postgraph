@@ -502,7 +502,7 @@ static void process_update_list(CustomScanState *node)
 
             slot = ExecInitExtraTupleSlot(estate, RelationGetDescr(resultRelInfo->ri_RelationDesc), &TTSOpsHeapTuple);
 
-            new_entity = EDGE_GET_DATUM(create_edge(id, startid, endid, label_name, gtype_value_to_gtype(altered_properties)));
+            new_entity = EDGE_GET_DATUM(create_edge(id, startid, endid, css->graph_oid, gtype_value_to_gtype(altered_properties)));
 
             slot = populate_edge_tts_1(slot, id, startid, endid, altered_properties);
 	

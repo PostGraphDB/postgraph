@@ -3005,7 +3005,7 @@ static Node *make_edge_expr(cypher_parsestate *cpstate, ParseNamespaceItem *pnsi
     FuncExpr *func_expr;
     FuncExpr *label_name_func_expr;
 
-    func_oid = get_ag_func_oid("build_edge", 5, GRAPHIDOID, GRAPHIDOID, GRAPHIDOID, CSTRINGOID, GTYPEOID);
+    func_oid = get_ag_func_oid("build_edge", 5, GRAPHIDOID, GRAPHIDOID, GRAPHIDOID, OIDOID, GTYPEOID);
 
     id = scanNSItemForColumn(pstate, pnsi, 0, AG_EDGE_COLNAME_ID, -1);
 
@@ -3013,20 +3013,20 @@ static Node *make_edge_expr(cypher_parsestate *cpstate, ParseNamespaceItem *pnsi
 
     end_id = scanNSItemForColumn(pstate, pnsi, 0, AG_EDGE_COLNAME_END_ID, -1);
 
-    label_name_func_oid = get_ag_func_oid("_label_name", 2, OIDOID, GRAPHIDOID);
+ //   label_name_func_oid = get_ag_func_oid("_label_name", 2, OIDOID, GRAPHIDOID);
 
     graph_oid_const = makeConst(OIDOID, -1, InvalidOid, sizeof(Oid),
                                 ObjectIdGetDatum(cpstate->graph_oid), false, true);
-
+/*
     label_name_args = list_make2(graph_oid_const, id);
 
     label_name_func_expr = makeFuncExpr(label_name_func_oid, CSTRINGOID, label_name_args, InvalidOid,
                                         InvalidOid, COERCE_EXPLICIT_CALL);
     label_name_func_expr->location = -1;
-
+*/
     props = scanNSItemForColumn(pstate, pnsi, 0, AG_EDGE_COLNAME_PROPERTIES, -1);
 
-    args = list_make5(id, start_id, end_id, label_name_func_expr, props);
+    args = list_make5(id, start_id, end_id, graph_oid_const, props);
 
     func_expr = makeFuncExpr(func_oid, EDGEOID, args, InvalidOid, InvalidOid, COERCE_EXPLICIT_CALL);
     func_expr->location = -1;

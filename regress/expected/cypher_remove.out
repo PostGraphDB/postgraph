@@ -107,13 +107,13 @@ SELECT * FROM cypher('cypher_remove', $$CREATE (:test_4 { i : 20 } )-[:test_4_ed
 SELECT * FROM cypher('cypher_remove', $$MATCH ()-[n]->(:test_4) REMOVE n.i RETURN n$$) AS (a edge);
                                                                   a                                                                  
 -------------------------------------------------------------------------------------------------------------------------------------
- {"id": 2251799813685249, "start_id": 1970324836974594, "end_id": 1970324836974594, "label": "test_4_edge", "properties": {"j": 20}}
+ {"id": 2251799813685249, "start_id": 1970324836974593, "end_id": 1970324836974594, "label": "test_4_edge", "properties": {"j": 20}}
 (1 row)
 
 SELECT * FROM cypher('cypher_remove', $$MATCH ()-[n]->(:test_4) RETURN n$$) AS (a edge);
                                                                   a                                                                  
 -------------------------------------------------------------------------------------------------------------------------------------
- {"id": 2251799813685249, "start_id": 1970324836974594, "end_id": 1970324836974594, "label": "test_4_edge", "properties": {"j": 20}}
+ {"id": 2251799813685249, "start_id": 1970324836974593, "end_id": 1970324836974594, "label": "test_4_edge", "properties": {"j": 20}}
 (1 row)
 
 --test 5 two REMOVE clauses
@@ -172,9 +172,9 @@ SELECT * FROM cypher('cypher_remove', $$
 	REMOVE e.y
 	RETURN e
 $$) AS (a edge);
-                                                            a                                                            
--------------------------------------------------------------------------------------------------------------------------
- {"id": 3096224743817219, "start_id": 281474976710657, "end_id": 281474976710657, "label": "e", "properties": {"j": 34}}
+                                                            a                                                             
+--------------------------------------------------------------------------------------------------------------------------
+ {"id": 3096224743817219, "start_id": 3377699720527873, "end_id": 281474976710657, "label": "e", "properties": {"j": 34}}
 (1 row)
 
 SELECT * FROM cypher('cypher_remove', $$MATCH (n:test_7) RETURN n$$) AS (a vertex);
@@ -446,15 +446,15 @@ SELECT * FROM cypher('cypher_remove', $$CREATE ()-[:edge_multi_property { i: 5, 
 SELECT * FROM cypher('cypher_remove', $$MATCH ()-[e:edge_multi_property]-() RETURN e$$) AS (a edge);
                                                                          a                                                                         
 ---------------------------------------------------------------------------------------------------------------------------------------------------
- {"id": 3659174697238529, "start_id": 281474976710664, "end_id": 281474976710664, "label": "edge_multi_property", "properties": {"i": 5, "j": 20}}
- {"id": 3659174697238529, "start_id": 281474976710664, "end_id": 281474976710664, "label": "edge_multi_property", "properties": {"i": 5, "j": 20}}
+ {"id": 3659174697238529, "start_id": 281474976710663, "end_id": 281474976710664, "label": "edge_multi_property", "properties": {"i": 5, "j": 20}}
+ {"id": 3659174697238529, "start_id": 281474976710663, "end_id": 281474976710664, "label": "edge_multi_property", "properties": {"i": 5, "j": 20}}
 (2 rows)
 
 SELECT * FROM cypher('cypher_remove', $$MATCH ()-[e:edge_multi_property]-() REMOVE e.i, e.j RETURN e$$) AS (a edge);
                                                                  a                                                                  
 ------------------------------------------------------------------------------------------------------------------------------------
- {"id": 3659174697238529, "start_id": 281474976710664, "end_id": 281474976710664, "label": "edge_multi_property", "properties": {}}
- {"id": 3659174697238529, "start_id": 281474976710664, "end_id": 281474976710664, "label": "edge_multi_property", "properties": {}}
+ {"id": 3659174697238529, "start_id": 281474976710663, "end_id": 281474976710664, "label": "edge_multi_property", "properties": {}}
+ {"id": 3659174697238529, "start_id": 281474976710663, "end_id": 281474976710664, "label": "edge_multi_property", "properties": {}}
 (2 rows)
 
 --Errors

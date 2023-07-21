@@ -419,7 +419,7 @@ static void create_edge_1(cypher_create_custom_scan_state *css,
         PlanState *ps = css->css.ss.ps.lefttree;
         TupleTableSlot *scantuple = ps->ps_ExprContext->ecxt_scantuple;
             
-       edge *e = create_edge(id, start_id, end_id, node->label_name, DATUM_GET_GTYPE_P(scanTupleSlot->tts_values[node->prop_attr_num]));
+       edge *e = create_edge(id, start_id, end_id, css->graph_oid, DATUM_GET_GTYPE_P(scanTupleSlot->tts_values[node->prop_attr_num]));
 
         if (CYPHER_TARGET_NODE_IN_PATH(node->flags))
         {

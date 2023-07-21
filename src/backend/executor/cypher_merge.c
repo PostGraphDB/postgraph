@@ -908,7 +908,7 @@ static void merge_edge(cypher_merge_custom_scan_state *css,
         Datum result;
 
         //result = make_edge( id, start_id, end_id, CStringGetDatum(node->label_name), prop);
-        result = EDGE_GET_DATUM(create_edge(id, start_id, end_id, node->label_name, GTYPE_P_GET_DATUM(prop)));
+        result = EDGE_GET_DATUM(create_edge(id, start_id, end_id, css->graph_oid, GTYPE_P_GET_DATUM(prop)));
 
         // add the Datum to the list of entities for creating the path variable
         if (CYPHER_TARGET_NODE_IN_PATH(node->flags)) {

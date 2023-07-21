@@ -58,10 +58,12 @@ SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_map('id', 2)) FROM ag_g
 (1 row)
 
 --Null properties
-SELECT build_vertex(_graphid(1, 1), $$label_name$$, NULL);
-ERROR:  invalid input syntax for type oid: "label_name"
-LINE 1: SELECT build_vertex(_graphid(1, 1), $$label_name$$, NULL);
-                                            ^
+SELECT build_vertex(_graphid(1, 1),  graphid, NULL) FROM ag_graph;
+ build_vertex 
+--------------
+ 
+(1 row)
+
 SELECT build_vertex(_graphid(1, 1), graphid, gtype_build_list()) FROM ag_graph;
  build_vertex 
 --------------

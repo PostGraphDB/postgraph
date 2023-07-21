@@ -68,7 +68,7 @@ ERROR:  Cannot delete vertex n2, because it still has edges attached. To delete 
 SELECT * FROM cypher('cypher_delete', $$MATCH(n1)-[e]->(n2) DELETE e RETURN e$$) AS (a edge);
                                                         a                                                         
 ------------------------------------------------------------------------------------------------------------------
- {"id": 1125899906842625, "start_id": 844424930131973, "end_id": 844424930131973, "label": "e", "properties": {}}
+ {"id": 1125899906842625, "start_id": 844424930131972, "end_id": 844424930131973, "label": "e", "properties": {}}
 (1 row)
 
 SELECT * FROM cypher('cypher_delete', $$MATCH()-[e]->() DELETE e RETURN e$$) AS (a edge);
@@ -93,7 +93,7 @@ SELECT * FROM cypher('cypher_delete', $$CREATE (:v)-[:e]->(:v)$$) AS (a gtype);
 SELECT * FROM cypher('cypher_delete', $$MATCH(n1)-[e]->(n2) DETACH DELETE n1 RETURN e$$) AS (a edge);
                                                         a                                                         
 ------------------------------------------------------------------------------------------------------------------
- {"id": 1125899906842626, "start_id": 844424930131975, "end_id": 844424930131975, "label": "e", "properties": {}}
+ {"id": 1125899906842626, "start_id": 844424930131974, "end_id": 844424930131975, "label": "e", "properties": {}}
 (1 row)
 
 --Cleanup
@@ -112,7 +112,7 @@ SELECT * FROM cypher('cypher_delete', $$CREATE (:v)-[:e]->(:v)$$) AS (a gtype);
 SELECT * FROM cypher('cypher_delete', $$MATCH(n1)-[e]->(n2) DETACH DELETE n1, n2 RETURN e$$) AS (a edge);
                                                         a                                                         
 ------------------------------------------------------------------------------------------------------------------
- {"id": 1125899906842627, "start_id": 844424930131977, "end_id": 844424930131977, "label": "e", "properties": {}}
+ {"id": 1125899906842627, "start_id": 844424930131976, "end_id": 844424930131977, "label": "e", "properties": {}}
 (1 row)
 
 --Test 4: DETACH DELECT a vertex
@@ -124,7 +124,7 @@ SELECT * FROM cypher('cypher_delete', $$CREATE (:v)-[:e]->(:v)$$) AS (a gtype);
 SELECT * FROM cypher('cypher_delete', $$MATCH(n1)-[e]->(n2) DETACH DELETE n1, n2 RETURN e$$) AS (a edge);
                                                         a                                                         
 ------------------------------------------------------------------------------------------------------------------
- {"id": 1125899906842628, "start_id": 844424930131979, "end_id": 844424930131979, "label": "e", "properties": {}}
+ {"id": 1125899906842628, "start_id": 844424930131978, "end_id": 844424930131979, "label": "e", "properties": {}}
 (1 row)
 
 --Test 5: DETACH DELETE a vertex that points to itself
@@ -258,8 +258,8 @@ SELECT * FROM cypher('cypher_delete', $$CREATE (n:v)-[:e]->(:v), (n)-[:e]->(:v) 
 SELECT * FROM cypher('cypher_delete', $$MATCH(n1)-[e]->() DETACH DELETE n1 RETURN n1, e$$) AS (a vertex, b edge);
                             a                            |                                                        b                                                         
 ---------------------------------------------------------+------------------------------------------------------------------------------------------------------------------
- {"id": 844424930131992, "label": "v", "properties": {}} | {"id": 1125899906842635, "start_id": 844424930131993, "end_id": 844424930131993, "label": "e", "properties": {}}
- {"id": 844424930131992, "label": "v", "properties": {}} | {"id": 1125899906842636, "start_id": 844424930131994, "end_id": 844424930131994, "label": "e", "properties": {}}
+ {"id": 844424930131992, "label": "v", "properties": {}} | {"id": 1125899906842635, "start_id": 844424930131992, "end_id": 844424930131993, "label": "e", "properties": {}}
+ {"id": 844424930131992, "label": "v", "properties": {}} | {"id": 1125899906842636, "start_id": 844424930131992, "end_id": 844424930131994, "label": "e", "properties": {}}
 (2 rows)
 
 --Cleanup
@@ -388,7 +388,7 @@ SELECT * FROM cypher('cypher_delete', $$CREATE (n:v)-[:e]->(:v)$$) AS (a gtype);
 SELECT * FROM cypher('cypher_delete', $$MATCH(n)-[e]->(m) DETACH DELETE n SET e.i = 1 RETURN e$$) AS (a edge);
                                                            a                                                            
 ------------------------------------------------------------------------------------------------------------------------
- {"id": 1125899906842641, "start_id": 844424930132004, "end_id": 844424930132004, "label": "e", "properties": {"i": 1}}
+ {"id": 1125899906842641, "start_id": 844424930132003, "end_id": 844424930132004, "label": "e", "properties": {"i": 1}}
 (1 row)
 
 --Cleanup
@@ -408,7 +408,7 @@ SELECT * FROM cypher('cypher_delete', $$CREATE (n:v)-[:e]->(:v)$$) AS (a gtype);
 SELECT * FROM cypher('cypher_delete', $$MATCH(n)-[e]->(m) SET e.i = 1 DETACH DELETE n RETURN e$$) AS (a edge);
                                                            a                                                            
 ------------------------------------------------------------------------------------------------------------------------
- {"id": 1125899906842642, "start_id": 844424930132006, "end_id": 844424930132006, "label": "e", "properties": {"i": 1}}
+ {"id": 1125899906842642, "start_id": 844424930132005, "end_id": 844424930132006, "label": "e", "properties": {"i": 1}}
 (1 row)
 
 --Cleanup

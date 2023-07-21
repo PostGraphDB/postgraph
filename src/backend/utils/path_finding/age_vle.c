@@ -767,7 +767,7 @@ VariableEdge *create_variable_edge(path_container *vpc) {
         graphid startid = get_start_id(ee);
         graphid endid = get_end_id(ee);
         gtype *prop = DATUM_GET_GTYPE_P(get_edge_entry_properties(ee));
-        Datum d = EDGE_GET_DATUM(create_edge(id, startid, endid, label_name, prop));
+        Datum d = EDGE_GET_DATUM(create_edge(id, startid, endid, vpc->graph_oid, prop));
 
         append_to_buffer(&buffer, DATUM_GET_EDGE(d), VARSIZE(d));
         cnt++;

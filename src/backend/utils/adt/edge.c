@@ -33,6 +33,7 @@
 #include "utils/varlena.h"
 
 #include "catalog/ag_label.h"
+#include "commands/label_commands.h"
 #include "utils/ag_cache.h"
 #include "utils/gtype.h"
 #include "utils/graphid.h"
@@ -64,7 +65,7 @@ Datum edge_out(PG_FUNCTION_ARGS) {
 
     // start_id
     appendStringInfoString(str, ", \"start_id\": ");
-    graphid startid = *((int64 *)(&v->children[4]));
+    graphid startid = *((int64 *)(&v->children[2]));
     appendStringInfoString(str, DatumGetCString(DirectFunctionCall1(int8out, Int64GetDatum(startid))));
 
     // end_id
@@ -120,12 +121,13 @@ build_edge(PG_FUNCTION_ARGS) {
     graphid id = AG_GETARG_GRAPHID(0);
     graphid start_id = AG_GETARG_GRAPHID(1);
     graphid end_id = AG_GETARG_GRAPHID(2);
-    char *label = PG_GETARG_CSTRING(3);
+    Oid graph_oid = PG_GETARG_OID(3);
+    //char *label = PG_GETARG_CSTRING(3);
     gtype *properties = AG_GET_ARG_GTYPE_P(4);
 
     if (!AGT_ROOT_IS_OBJECT(properties))
         PG_RETURN_NULL();
-
+/*
     StringInfoData buffer;
     initStringInfo(&buffer);
 
@@ -153,11 +155,12 @@ build_edge(PG_FUNCTION_ARGS) {
 
     SET_VARSIZE(v, buffer.len);
 
-    AG_RETURN_EDGE(v);
+    AG_RETURN_EDGE(v);*/
+    AG_RETURN_EDGE(create_edge(id, start_id, end_id, graph_oid, properties));
 }
  
 edge *
-create_edge(graphid id,graphid start_id,graphid end_id, char *label, gtype *properties) {
+create_edge(graphid id,graphid start_id,graphid end_id, Oid graph_oid, gtype *properties) {
     StringInfoData buffer;
     initStringInfo(&buffer);
 
@@ -174,10 +177,11 @@ create_edge(graphid id,graphid start_id,graphid end_id, char *label, gtype *prop
     append_to_buffer(&buffer, (char *)&end_id, sizeof(graphid));
 
     // label
-    int len = strlen(label);
+    append_to_buffer(&buffer, (char *)&graph_oid, sizeof(Oid));
+/*    int len = strlen(label);
     append_to_buffer(&buffer, (char *)&len, sizeof(agtentry));
     append_to_buffer(&buffer, label, len);
-
+*/
     // properties
     append_to_buffer(&buffer, properties, VARSIZE(properties));
 
@@ -273,10 +277,12 @@ Datum
 edge_label(PG_FUNCTION_ARGS) {
     edge *v = AG_GET_ARG_EDGE(0);
 
+    char *label = extract_edge_label(v);
+
     gtype_value gtv = {
-        .type = AGTV_STRING,
-        .val.string = { extract_edge_label_length(v), extract_edge_label(v) }
-    };
+            .type = AGTV_STRING,
+            .val.string = { strlen(label), label }
+            };
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
@@ -394,14 +400,28 @@ append_to_buffer(StringInfo buffer, const char *data, int len) {
 }
 
 char *
-extract_edge_label(edge *v) {
-    char *bytes = (char *)v;
+extract_edge_label(edge *e) {
+    graphid id = EXTRACT_EDGE_ID(e);
+    int32 label_id = get_graphid_label_id(id);
+
+    Oid graph_oid = EXTRACT_EDGE_GRAPH_OID(e);
+
+    label_cache_data *cache_data = search_label_graph_oid_cache(graph_oid, label_id);
+    char *label = NameStr(cache_data->name);
+
+    if (IS_AG_DEFAULT_LABEL(label))
+            return "";
+
+    return label;
+
+/*
+    	char *bytes = (char *)v;
     char *label_addr = &bytes[VARHDRSZ + ( 3 * sizeof(graphid)) + sizeof(agtentry)];
     int *label_length = (int *)&bytes[VARHDRSZ + ( 3 * sizeof(graphid))];
 
-    return pnstrdup(label_addr, *label_length);
+    return pnstrdup(label_addr, *label_length);*/
 }
-
+/*
 int
 extract_edge_label_length(edge *v) {
     char *bytes = (char *)v;
@@ -409,13 +429,13 @@ extract_edge_label_length(edge *v) {
 
     return *label_length;
 }
-
+*/
 
 
 gtype *
 extract_edge_properties(edge *v) {
     char *bytes = (char *)v;
-    int *label_length = (int *)&bytes[VARHDRSZ + (3 * sizeof(graphid))];
+//    int *label_length = (int *)&bytes[VARHDRSZ + (3 * sizeof(graphid))];
 
-    return (gtype *)&bytes[VARHDRSZ + (3 * sizeof(graphid)) + sizeof(agtentry) + ((*label_length) * sizeof(char))];
+    return (gtype *)&bytes[VARHDRSZ + (3 * sizeof(graphid)) + sizeof(Oid)];
 }

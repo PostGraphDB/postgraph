@@ -31,34 +31,41 @@ NOTICE:  VLabel "vlabel" has been created
  
 (1 row)
 
+SELECT create_vlabel('variable_edge', 'elabel');
+NOTICE:  VLabel "elabel" has been created
+ create_vlabel 
+---------------
+ 
+(1 row)
+
 --Basic Route Creation
 SELECT build_traversal(
 	build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
-	build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map()),
+	build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
 	build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
 )
 FROM ag_graph;
-                                                                                               build_traversal                                                                                                
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 844424930131970, "label": "vlabel", "properties": {}}, {"id": 1, "start_id": 2, "end_id": 3, "label": "edge_label", "properties": {}}, {"id": 844424930131971, "label": "vlabel", "properties": {}}]
+                                                                                                     build_traversal                                                                                                     
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 844424930131970, "label": "vlabel", "properties": {}}, {"id": 1125899906842625, "start_id": 2, "end_id": 3, "label": "elabel", "properties": {}}, {"id": 844424930131971, "label": "vlabel", "properties": {}}]
 (1 row)
 
 SELECT build_traversal(
         build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
-        build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
         build_vertex(_graphid(3, 3), graphid, gtype_build_map()),
-	build_edge('4'::graphid, '3'::graphid, '5'::graphid, $$edge_label$$, gtype_build_map()),
+	build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid,  graphid, gtype_build_map()),
         build_vertex(_graphid(3, 5),  graphid, gtype_build_map())
 )
 FROM ag_graph;
-                                                                                                                                                                      build_traversal                                                                                                                                                                       
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 844424930131970, "label": "vlabel", "properties": {}}, {"id": 1, "start_id": 2, "end_id": 3, "label": "edge_label", "properties": {}}, {"id": 844424930131971, "label": "vlabel", "properties": {}}, {"id": 4, "start_id": 3, "end_id": 5, "label": "edge_label", "properties": {}}, {"id": 844424930131973, "label": "vlabel", "properties": {}}]
+                                                                                                                                                                                 build_traversal                                                                                                                                                                                  
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 844424930131970, "label": "vlabel", "properties": {}}, {"id": 1125899906842625, "start_id": 2, "end_id": 3, "label": "elabel", "properties": {}}, {"id": 844424930131971, "label": "vlabel", "properties": {}}, {"id": 1125899906842628, "start_id": 3, "end_id": 5, "label": "elabel", "properties": {}}, {"id": 844424930131973, "label": "vlabel", "properties": {}}]
 (1 row)
 
 SELECT build_traversal(
         build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
-        build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
         build_vertex(_graphid(3, 3), graphid, gtype_build_map()),
         build_vertex(_graphid(3, 5),  graphid, gtype_build_map())
 )
@@ -66,15 +73,15 @@ FROM ag_graph;
 ERROR:  arguement 3 build_traversal() must be an edge
 SELECT build_traversal(
         build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
-        build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map()),
-        build_edge('4'::graphid, '3'::graphid, '5'::graphid, $$edge_label$$, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid,  graphid, gtype_build_map()),
         build_vertex(_graphid(3, 5),  graphid, gtype_build_map())
 )
 FROM ag_graph;
 ERROR:  arguement 2 build_traversal() must be a vertex
 SELECT build_traversal(
         build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
-        build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
         build_vertex(_graphid(3, 3), graphid, gtype_build_map()),
         NULL,
         build_vertex(_graphid(3, 5),  graphid, gtype_build_map())
@@ -88,36 +95,37 @@ FROM ag_graph;
 SELECT build_traversal(
         build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
         build_variable_edge(
-		build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map())
+		build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map())
 	),
         build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
 )
 FROM ag_graph;
-                                                                                               build_traversal                                                                                                
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 844424930131970, "label": "vlabel", "properties": {}}, {"id": 1, "start_id": 2, "end_id": 3, "label": "edge_label", "properties": {}}, {"id": 844424930131971, "label": "vlabel", "properties": {}}]
+                                                                                                     build_traversal                                                                                                     
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 844424930131970, "label": "vlabel", "properties": {}}, {"id": 1125899906842625, "start_id": 2, "end_id": 3, "label": "elabel", "properties": {}}, {"id": 844424930131971, "label": "vlabel", "properties": {}}]
 (1 row)
 
 SELECT build_traversal(
         build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
         build_variable_edge(
-            build_edge('1'::graphid, '2'::graphid, '3'::graphid, $$edge_label$$, gtype_build_map()),
+            build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
             build_vertex(_graphid(3, 3), graphid, gtype_build_map()),
-            build_edge('4'::graphid, '3'::graphid, '5'::graphid, $$edge_label$$, gtype_build_map())
+            build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid,  graphid, gtype_build_map())
         ),
         build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
 )
 FROM ag_graph;
-                                                                                                                                                                      build_traversal                                                                                                                                                                       
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 844424930131970, "label": "vlabel", "properties": {}}, {"id": 1, "start_id": 2, "end_id": 3, "label": "edge_label", "properties": {}}, {"id": 844424930131971, "label": "vlabel", "properties": {}}, {"id": 4, "start_id": 3, "end_id": 5, "label": "edge_label", "properties": {}}, {"id": 844424930131971, "label": "vlabel", "properties": {}}]
+                                                                                                                                                                                 build_traversal                                                                                                                                                                                  
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 844424930131970, "label": "vlabel", "properties": {}}, {"id": 1125899906842625, "start_id": 2, "end_id": 3, "label": "elabel", "properties": {}}, {"id": 844424930131971, "label": "vlabel", "properties": {}}, {"id": 1125899906842628, "start_id": 3, "end_id": 5, "label": "elabel", "properties": {}}, {"id": 844424930131971, "label": "vlabel", "properties": {}}]
 (1 row)
 
 SELECT drop_graph('variable_edge', true);
-NOTICE:  drop cascades to 3 other objects
+NOTICE:  drop cascades to 4 other objects
 DETAIL:  drop cascades to table variable_edge._ag_label_vertex
 drop cascades to table variable_edge._ag_label_edge
 drop cascades to table variable_edge.vlabel
+drop cascades to table variable_edge.elabel
 NOTICE:  graph "variable_edge" has been dropped
  drop_graph 
 ------------
