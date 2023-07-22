@@ -127,35 +127,7 @@ build_edge(PG_FUNCTION_ARGS) {
 
     if (!AGT_ROOT_IS_OBJECT(properties))
         PG_RETURN_NULL();
-/*
-    StringInfoData buffer;
-    initStringInfo(&buffer);
-
-    // header
-    reserve_from_buffer(&buffer, VARHDRSZ);
-
-    // id
-    append_to_buffer(&buffer, (char *)&id, sizeof(graphid));
-
-    // start_id
-    append_to_buffer(&buffer, (char *)&start_id, sizeof(graphid));
-
-    // end_id
-    append_to_buffer(&buffer, (char *)&end_id, sizeof(graphid));
-
-    // label
-    int len = strlen(label);
-    append_to_buffer(&buffer, (char *)&len, sizeof(agtentry));
-    append_to_buffer(&buffer, label, len);
-
-    // properties
-    append_to_buffer(&buffer, properties, VARSIZE(properties));
-
-    edge *v = (edge *)buffer.data;
-
-    SET_VARSIZE(v, buffer.len);
-
-    AG_RETURN_EDGE(v);*/
+    
     AG_RETURN_EDGE(create_edge(id, start_id, end_id, graph_oid, properties));
 }
  
@@ -176,12 +148,9 @@ create_edge(graphid id,graphid start_id,graphid end_id, Oid graph_oid, gtype *pr
     // end_id
     append_to_buffer(&buffer, (char *)&end_id, sizeof(graphid));
 
-    // label
+    // graph_oid
     append_to_buffer(&buffer, (char *)&graph_oid, sizeof(Oid));
-/*    int len = strlen(label);
-    append_to_buffer(&buffer, (char *)&len, sizeof(agtentry));
-    append_to_buffer(&buffer, label, len);
-*/
+
     // properties
     append_to_buffer(&buffer, properties, VARSIZE(properties));
 
@@ -279,10 +248,7 @@ edge_label(PG_FUNCTION_ARGS) {
 
     char *label = extract_edge_label(v);
 
-    gtype_value gtv = {
-            .type = AGTV_STRING,
-            .val.string = { strlen(label), label }
-            };
+    gtype_value gtv = { .type = AGTV_STRING, .val.string = { strlen(label), label } };
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
@@ -369,26 +335,23 @@ static Datum get_vertex(const char *graph, const char *vertex_label, int64 graph
     tuple = heap_getnext(scan_desc, ForwardScanDirection);
 
     if (!HeapTupleIsValid(tuple))
-        ereport(ERROR,
-                (errcode(ERRCODE_UNDEFINED_TABLE),
+        ereport(ERROR, (errcode(ERRCODE_UNDEFINED_TABLE),
                  errmsg("graphid cde %lu does not exist", graphid)));
 
     tupdesc = RelationGetDescr(graph_vertex_label);
     if (tupdesc->natts != 2)
-        ereport(ERROR,
-                (errcode(ERRCODE_UNDEFINED_TABLE),
-                 errmsg("Invalid number of attributes for %s.%s", graph,
-                        vertex_label )));
+        ereport(ERROR, (errcode(ERRCODE_UNDEFINED_TABLE),
+                 errmsg("Invalid number of attributes for %s.%s", graph, vertex_label)));
 
     id = column_get_datum(tupdesc, tuple, 0, "id", GRAPHIDOID, true);
     properties = column_get_datum(tupdesc, tuple, 1, "properties", GTYPEOID, true);
 
     graph_cache_data *cache_data = search_graph_name_cache(graph);
     result = VERTEX_GET_DATUM(create_vertex(DATUM_GET_GRAPHID(id), cache_data->oid, DATUM_GET_GTYPE_P(properties)));
-    /* end the scan and close the relation */
+
     table_endscan(scan_desc);
     table_close(graph_vertex_label, ShareLock);
-    /* return the vertex datum */
+
     return result;
 }
 
@@ -410,32 +373,14 @@ extract_edge_label(edge *e) {
     char *label = NameStr(cache_data->name);
 
     if (IS_AG_DEFAULT_LABEL(label))
-            return "";
+        return "";
 
     return label;
-
-/*
-    	char *bytes = (char *)v;
-    char *label_addr = &bytes[VARHDRSZ + ( 3 * sizeof(graphid)) + sizeof(agtentry)];
-    int *label_length = (int *)&bytes[VARHDRSZ + ( 3 * sizeof(graphid))];
-
-    return pnstrdup(label_addr, *label_length);*/
 }
-/*
-int
-extract_edge_label_length(edge *v) {
-    char *bytes = (char *)v;
-    int *label_length = (int *)&bytes[VARHDRSZ + ( 3 * sizeof(graphid))];
-
-    return *label_length;
-}
-*/
-
 
 gtype *
 extract_edge_properties(edge *v) {
     char *bytes = (char *)v;
-//    int *label_length = (int *)&bytes[VARHDRSZ + (3 * sizeof(graphid))];
 
     return (gtype *)&bytes[VARHDRSZ + (3 * sizeof(graphid)) + sizeof(Oid)];
 }

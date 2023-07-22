@@ -63,7 +63,6 @@ Datum vertex_out(PG_FUNCTION_ARGS) {
     gtype *agt = extract_vertex_properties(v);
     gtype_to_cstring(str, &agt->root, 0);
 
-
     appendStringInfoString(str, "}");
 
     PG_RETURN_CSTRING(str->data);
@@ -185,8 +184,8 @@ vertex_property_access_gtype(PG_FUNCTION_ARGS) {
     else if (key_value->type == AGTV_STRING)
         AG_RETURN_GTYPE_P(gtype_object_field_impl(fcinfo, agt, key_value->val.string.val, 
                                                     key_value->val.string.len, false));
-    else
-        PG_RETURN_NULL();
+
+    PG_RETURN_NULL();
 }
 
 

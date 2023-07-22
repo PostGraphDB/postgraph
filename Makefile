@@ -108,7 +108,7 @@ GEN_KEYWORDLIST = $(PERL) -I ./tools/ ./tools/gen_keywordlist.pl
 GEN_KEYWORDLIST_DEPS = ./tools/gen_keywordlist.pl tools/PerfectHash.pm
 
 ag_include_dir = $(srcdir)/src/include
-PG_CPPFLAGS = -Wdeclaration-after-statement -I$(ag_include_dir) -I$(ag_include_dir)/parser
+PG_CPPFLAGS = -w -I$(ag_include_dir) -I$(ag_include_dir)/parser
 
 PG_CONFIG ?= pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)
