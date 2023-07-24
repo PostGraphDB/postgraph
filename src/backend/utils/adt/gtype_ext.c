@@ -86,7 +86,18 @@ bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
 
 	*agtentry = AGTENTRY_IS_GTYPE | (sizeof(int64) + AGT_HEADER_SIZE);
         break;
+   case AGTV_INTERVAL:
+        padlen = ag_serialize_header(buffer, AGT_HEADER_INTERVAL);
 
+        numlen = sizeof(TimeOffset) + (2 * sizeof(int32));
+        offset = reserve_from_buffer(buffer, numlen);
+        *((TimeOffset *)(buffer->data + offset)) = scalar_val->val.interval.time;
+
+        *((int32 *)(buffer->data + offset + sizeof(TimeOffset))) = scalar_val->val.interval.day;
+        *((int32 *)(buffer->data + offset + sizeof(TimeOffset) + sizeof(int32))) = scalar_val->val.interval.month;
+
+        *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
+        break;
     default:
         return false;
     }
@@ -118,7 +129,12 @@ void ag_deserialize_extended_type(char *base_addr, uint32 offset, gtype_value *r
         result->type = AGTV_TIMESTAMP;
         result->val.int_value = *((int64 *)(base + AGT_HEADER_SIZE));
         break;
-
+    case AGT_HEADER_INTERVAL:
+        result->type = AGTV_INTERVAL;
+        result->val.interval.time =  *((TimeOffset *)(base + AGT_HEADER_SIZE));
+        result->val.interval.day =  *((int32 *)(base + AGT_HEADER_SIZE + sizeof(TimeOffset)));
+        result->val.interval.month =  *((int32 *)(base + AGT_HEADER_SIZE + sizeof(TimeOffset) + sizeof(int32)));
+        break;
     default:
         elog(ERROR, "Invalid AGT header value.");
     }

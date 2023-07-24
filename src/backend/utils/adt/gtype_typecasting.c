@@ -186,6 +186,33 @@ gtype_totimestamp(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
 }
 
+PG_FUNCTION_INFO_V1(tointerval);
+Datum tointerval(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+    gtype_value *agtv = get_ith_gtype_value_from_container(&agt->root, 0);
+    Interval *i;
+
+    if (agtv->type == AGTV_NULL)
+        PG_RETURN_NULL();
+
+    if (agtv->type == AGTV_INTERVAL)
+        AG_RETURN_GTYPE_P(agt);
+
+    if (agtv->type != AGTV_STRING)
+        ereport(ERROR,
+                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                 errmsg("typecastint to interval must be a string")));
+
+    i = DatumGetIntervalP(DirectFunctionCall3(interval_in, CStringGetDatum(agtv->val.string.val),
+                                                           ObjectIdGetDatum(InvalidOid),
+                                                           Int32GetDatum(-1)));
+    agtv->type = AGTV_INTERVAL;
+    agtv->val.interval.time = i->time;
+    agtv->val.interval.day = i->day;
+    agtv->val.interval.month = i->month;
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(agtv));
+}
 
 /*
  * gtype to postgres functions

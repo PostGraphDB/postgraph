@@ -36,6 +36,7 @@
 #define AG_GTYPE_H
 
 #include "access/htup_details.h"
+#include "datatype/timestamp.h"
 #include "fmgr.h"
 #include "lib/stringinfo.h"
 #include "nodes/pg_list.h"
@@ -296,7 +297,8 @@ typedef struct
 // values for the GTYPE header field to denote the stored data type
 #define AGT_HEADER_INTEGER 0x0000
 #define AGT_HEADER_FLOAT   0x0001
-#define AGT_HEADER_TIMESTAMP 0x0006
+#define AGT_HEADER_TIMESTAMP 0x0002
+#define AGT_HEADER_INTERVAL 0x0003
 
 #define AGT_IS_INTEGER(agte_) \
     (((agte_) == AGT_HEADER_INTEGER))
@@ -317,6 +319,7 @@ enum gtype_value_type
     AGTV_FLOAT,
     AGTV_BOOL,
     AGTV_TIMESTAMP,
+    AGTV_INTERVAL,
     AGTV_EDGE,
     /* Composite types */
     AGTV_ARRAY = 0x20,
@@ -339,6 +342,7 @@ struct gtype_value
         float8 float_value; // 8-byte Float
         Numeric numeric;
         bool boolean;
+	Interval interval;
         struct { int len; char *val; /* Not necessarily null-terminated */ } string; // String primitive type
         struct { int num_elems; gtype_value *elems; bool raw_scalar; } array;       // Array container type
         struct { int num_pairs; gtype_pair *pairs; } object;                        // Associative container type

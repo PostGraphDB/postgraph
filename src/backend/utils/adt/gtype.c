@@ -58,6 +58,7 @@
 #include "utils/lsyscache.h"
 #include "utils/rel.h"
 #include "utils/snapmgr.h"
+#include "utils/timestamp.h"
 #include "utils/typcache.h"
 
 #include "utils/age_vle.h"
@@ -94,6 +95,7 @@ typedef enum /* type categories for datum_to_gtype */
     AGT_TYPE_DATE, /* we use special formatting for datetimes */
     AGT_TYPE_TIMESTAMP, /* we use special formatting for timestamp */
     AGT_TYPE_TIMESTAMPTZ, /* ... and timestamptz */
+    AGT_TYPE_INTERVAL,
     AGT_TYPE_GTYPE, /* GTYPE */
     AGT_TYPE_JSON, /* JSON */
     AGT_TYPE_JSONB, /* JSONB */
@@ -421,6 +423,11 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
 	numstr = DatumGetCString(DirectFunctionCall1(timestamp_out, TimestampGetDatum(scalar_val->val.int_value)));
 	appendStringInfoString(out, numstr);
 	break;
+    case AGTV_INTERVAL:
+        numstr = DatumGetCString(DirectFunctionCall1(
+            interval_out, IntervalPGetDatum(&scalar_val->val.interval)));
+        appendStringInfoString(out, numstr);
+        break;
     case AGTV_BOOL:
         if (scalar_val->val.boolean)
             appendBinaryStringInfo(out, "true", 4);
@@ -515,6 +522,8 @@ static void gtype_in_scalar(void *pstate, char *token, gtype_token_type tokentyp
             tokentype = GTYPE_TOKEN_FLOAT;
         else if (pg_strcasecmp(annotation, "timestamp") == 0)
             tokentype = GTYPE_TOKEN_TIMESTAMP;
+        else if (len == 8 && pg_strcasecmp(annotation, "interval") == 0)
+            tokentype = GTYPE_TOKEN_INTERVAL;
 	else
             ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                      errmsg("invalid annotation value for scalar")));
@@ -549,7 +558,23 @@ static void gtype_in_scalar(void *pstate, char *token, gtype_token_type tokentyp
         v.type = AGTV_TIMESTAMP;
         v.val.int_value = DatumGetInt64(DirectFunctionCall3(timestamp_in, CStringGetDatum(token), ObjectIdGetDatum(InvalidOid), Int32GetDatum(-1)));
         break;
+    case GTYPE_TOKEN_INTERVAL:
+        {
+        Interval *interval;
 
+        Assert(token != NULL);
+
+        v.type = AGTV_INTERVAL;
+        interval = DatumGetIntervalP(DirectFunctionCall3(interval_in,
+				             CStringGetDatum(token),
+                                             ObjectIdGetDatum(InvalidOid),
+                                             Int32GetDatum(-1)));
+
+        v.val.interval.time = interval->time;
+        v.val.interval.day = interval->day;
+        v.val.interval.month = interval->month;
+        break;
+        }
     case GTYPE_TOKEN_TRUE:
         v.type = AGTV_BOOL;
         v.val.boolean = true;
@@ -890,6 +915,10 @@ static void gtype_categorize_type(Oid typoid, agt_type_category *tcategory, Oid 
         *tcategory = AGT_TYPE_TIMESTAMPTZ;
         break;
 
+    case INTERVALOID:
+        *tcategory = AGT_TYPE_INTERVAL;
+        break;
+
     case JSONBOID:
         *tcategory = AGT_TYPE_JSONB;
         break;
@@ -1054,6 +1083,14 @@ static void datum_to_gtype(Datum val, bool is_null, gtype_in_state *result, agt_
             agtv.type = AGTV_STRING;
             agtv.val.string.val = gtype_encode_date_time(NULL, val, TIMESTAMPTZOID);
             agtv.val.string.len = strlen(agtv.val.string.val);
+            break;
+        case AGT_TYPE_INTERVAL:
+            {
+                Interval *i = DatumGetIntervalP(val);
+                agtv.val.interval.time = i->time;
+                agtv.val.interval.day = i->day;
+                agtv.val.interval.month = i->month;
+            }
             break;
         case AGT_TYPE_JSONCAST:
         case AGT_TYPE_JSON:
@@ -4994,3 +5031,5 @@ Datum gtype_unnest(PG_FUNCTION_ARGS)
 
     PG_RETURN_NULL();
 }
+
+

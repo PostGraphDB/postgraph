@@ -64,6 +64,23 @@ INSERT INTO gtype_table VALUES ('timestamp', '"2023-06-23 13:39:40.00"::timestam
 INSERT INTO gtype_table VALUES ('timestamp', '"06/23/2023 13:39:40.00"::timestamp');
 INSERT INTO gtype_table VALUES ('timestamp', '"Fri Jun 23 13:39:40.00 2023"::timestamp');
 
+INSERT INTO gtype_table VALUES ('interval', '"30 Seconds"::interval');
+INSERT INTO gtype_table VALUES ('interval', '"15 Minutes"::interval');
+INSERT INTO gtype_table VALUES ('interval', '"10 Hours"::interval');
+INSERT INTO gtype_table VALUES ('interval', '"40 Days"::interval');
+INSERT INTO gtype_table VALUES ('interval', '"10 Weeks"::interval');
+INSERT INTO gtype_table VALUES ('interval', '"10 Months"::interval');
+INSERT INTO gtype_table VALUES ('interval', '"3 Years"::interval');
+
+INSERT INTO gtype_table VALUES ('interval', '"30 Seconds Ago"::interval');
+INSERT INTO gtype_table VALUES ('interval', '"15 Minutes Ago"::interval');
+INSERT INTO gtype_table VALUES ('interval', '"10 Hours Ago"::interval');
+INSERT INTO gtype_table VALUES ('interval', '"40 Days Ago"::interval');
+INSERT INTO gtype_table VALUES ('interval', '"10 Weeks Ago"::interval');
+INSERT INTO gtype_table VALUES ('interval', '"10 Months Ago"::interval');
+INSERT INTO gtype_table VALUES ('interval', '"3 Years Ago"::interval');
+
+
 INSERT INTO gtype_table VALUES ('integer array',
 	'[-9223372036854775808, -1, 0, 1, 9223372036854775807]');
 INSERT INTO gtype_table VALUES('float array',

@@ -134,6 +134,117 @@ $$) AS r(c gtype);
 (1 row)
 
 --
+-- interval
+--  
+SELECT * FROM cypher('expr', $$
+RETURN '1997-12-17 07:37:16-08'::timestamp
+$$) AS r(result gtype);
+          result          
+--------------------------
+ Wed Dec 17 07:37:16 1997
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+RETURN '12/17/1997 07:37:16.00'::timestamp
+$$) AS r(result gtype); 
+          result          
+--------------------------
+ Wed Dec 17 07:37:16 1997
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+RETURN 'Wed Dec 17 07:37:16 1997'::timestamp
+$$) AS r(result gtype);
+          result          
+--------------------------
+ Wed Dec 17 07:37:16 1997
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval $$) AS r(result gtype);
+  result   
+-----------
+ @ 30 secs
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN '15 Minutes'::interval $$) AS r(result gtype);
+  result   
+-----------
+ @ 15 mins
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN '10 Hours'::interval $$) AS r(result gtype);
+   result   
+------------
+ @ 10 hours
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN '40 Days'::interval $$) AS r(result gtype);
+  result   
+-----------
+ @ 40 days
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN '10 Weeks'::interval $$) AS r(result gtype);
+  result   
+-----------
+ @ 70 days
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN '10 Months'::interval $$) AS r(result gtype);
+  result   
+-----------
+ @ 10 mons
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN '3 Years'::interval $$) AS r(result gtype);
+  result   
+-----------
+ @ 3 years
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN '30 Seconds Ago'::interval $$) AS r(result gtype);
+    result     
+---------------
+ @ 30 secs ago
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN '15 Minutes Ago'::interval $$) AS r(result gtype);
+    result     
+---------------
+ @ 15 mins ago
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN '10 Hours Ago'::interval $$) AS r(result gtype);
+     result     
+----------------
+ @ 10 hours ago
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN '40 Days Ago'::interval $$) AS r(result gtype);
+    result     
+---------------
+ @ 40 days ago
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN '10 Weeks Ago'::interval $$) AS r(result gtype);
+    result     
+---------------
+ @ 70 days ago
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN '10 Months Ago'::interval $$) AS r(result gtype);
+    result     
+---------------
+ @ 10 mons ago
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN '3 Years Ago'::interval $$) AS r(result gtype);
+    result     
+---------------
+ @ 3 years ago
+(1 row)
+
+--
 -- parameter
 --
 PREPARE cypher_parameter(gtype) AS
