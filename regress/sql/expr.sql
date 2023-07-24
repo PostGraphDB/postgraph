@@ -20,6 +20,7 @@
 SET extra_float_digits = 0;
 LOAD 'postgraph';
 SET search_path TO postgraph;
+set timezone TO 'GMT';
 
 SELECT * FROM create_graph('expr');
 
@@ -91,6 +92,19 @@ RETURN '12/17/1997 07:37:16.00'::timestamp
 $$) AS r(result gtype); 
 SELECT * FROM cypher('expr', $$
 RETURN 'Wed Dec 17 07:37:16 1997'::timestamp
+$$) AS r(result gtype);
+
+--
+-- timestamptz
+--
+SELECT * FROM cypher('expr', $$ 
+RETURN '1997-12-17 07:37:16-06'::timestamptz
+$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ 
+RETURN '12/17/1997 07:37:16.00+00'::timestamptz
+$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$
+RETURN 'Wed Dec 17 07:37:16 1997+09'::timestamptz
 $$) AS r(result gtype);
 
 --

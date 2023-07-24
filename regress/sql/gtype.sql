@@ -27,6 +27,7 @@
 LOAD 'postgraph';
 SET extra_float_digits = 0;
 SET search_path TO postgraph;
+set timezone TO 'GMT';
 
 --
 -- Create a table using the AGTYPE type
@@ -63,6 +64,10 @@ INSERT INTO gtype_table VALUES ('numeric', '-100000000000.0000000000001::numeric
 INSERT INTO gtype_table VALUES ('timestamp', '"2023-06-23 13:39:40.00"::timestamp');
 INSERT INTO gtype_table VALUES ('timestamp', '"06/23/2023 13:39:40.00"::timestamp');
 INSERT INTO gtype_table VALUES ('timestamp', '"Fri Jun 23 13:39:40.00 2023"::timestamp');
+
+INSERT INTO gtype_table VALUES ('timestamptz', '"1997-12-17 07:37:16-06"::timestamptz');
+INSERT INTO gtype_table VALUES ('timestamptz', '"12/17/1997 07:37:16.00+00"::timestamptz');
+INSERT INTO gtype_table VALUES ('timestamptz', '"Wed Dec 17 07:37:16 1997+09"::timestamptz');
 
 INSERT INTO gtype_table VALUES ('date', '"1997-12-17"::date');
 INSERT INTO gtype_table VALUES ('date', '"12/17/1997"::date');
