@@ -64,6 +64,10 @@ INSERT INTO gtype_table VALUES ('timestamp', '"2023-06-23 13:39:40.00"::timestam
 INSERT INTO gtype_table VALUES ('timestamp', '"06/23/2023 13:39:40.00"::timestamp');
 INSERT INTO gtype_table VALUES ('timestamp', '"Fri Jun 23 13:39:40.00 2023"::timestamp');
 
+INSERT INTO gtype_table VALUES ('date', '"1997-12-17"::date');
+INSERT INTO gtype_table VALUES ('date', '"12/17/1997"::date');
+INSERT INTO gtype_table VALUES ('date', '"Wed Dec 17 1997"::date');
+
 INSERT INTO gtype_table VALUES ('interval', '"30 Seconds"::interval');
 INSERT INTO gtype_table VALUES ('interval', '"15 Minutes"::interval');
 INSERT INTO gtype_table VALUES ('interval', '"10 Hours"::interval');

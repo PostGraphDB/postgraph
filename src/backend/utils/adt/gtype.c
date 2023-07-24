@@ -423,6 +423,11 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
 	numstr = DatumGetCString(DirectFunctionCall1(timestamp_out, TimestampGetDatum(scalar_val->val.int_value)));
 	appendStringInfoString(out, numstr);
 	break;
+    case AGTV_DATE:
+        numstr = DatumGetCString(DirectFunctionCall1(
+            date_out, DateADTGetDatum(scalar_val->val.date)));
+        appendStringInfoString(out, numstr);
+        break;
     case AGTV_INTERVAL:
         numstr = DatumGetCString(DirectFunctionCall1(
             interval_out, IntervalPGetDatum(&scalar_val->val.interval)));
@@ -522,7 +527,9 @@ static void gtype_in_scalar(void *pstate, char *token, gtype_token_type tokentyp
             tokentype = GTYPE_TOKEN_FLOAT;
         else if (pg_strcasecmp(annotation, "timestamp") == 0)
             tokentype = GTYPE_TOKEN_TIMESTAMP;
-        else if (len == 8 && pg_strcasecmp(annotation, "interval") == 0)
+        else if (len == 4 && pg_strcasecmp(annotation, "date") == 0)
+            tokentype = GTYPE_TOKEN_DATE;
+	else if (len == 8 && pg_strcasecmp(annotation, "interval") == 0)
             tokentype = GTYPE_TOKEN_INTERVAL;
 	else
             ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
@@ -557,6 +564,10 @@ static void gtype_in_scalar(void *pstate, char *token, gtype_token_type tokentyp
         Assert(token != NULL);
         v.type = AGTV_TIMESTAMP;
         v.val.int_value = DatumGetInt64(DirectFunctionCall3(timestamp_in, CStringGetDatum(token), ObjectIdGetDatum(InvalidOid), Int32GetDatum(-1)));
+        break;
+    case GTYPE_TOKEN_DATE:
+        v.type = AGTV_DATE;
+        v.val.date = DatumGetInt32(DirectFunctionCall1(date_in, CStringGetDatum(token)));
         break;
     case GTYPE_TOKEN_INTERVAL:
         {
@@ -1071,10 +1082,9 @@ static void datum_to_gtype(Datum val, bool is_null, gtype_in_state *result, agt_
             }
             break;
         case AGT_TYPE_DATE:
-            agtv.type = AGTV_STRING;
-            agtv.val.string.val = gtype_encode_date_time(NULL, val, DATEOID);
-            agtv.val.string.len = strlen(agtv.val.string.val);
-            break;
+            agtv.type = AGTV_DATE;
+            agtv.val.date = DatumGetInt32(val);
+	    break;
         case AGT_TYPE_TIMESTAMP:
 	    agtv.type = AGTV_TIMESTAMP;
             agtv.val.int_value = DatumGetInt64(val);

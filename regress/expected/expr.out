@@ -160,6 +160,33 @@ $$) AS r(result gtype);
  Wed Dec 17 07:37:16 1997
 (1 row)
 
+--
+-- date
+--  
+SELECT * FROM cypher('expr', $$
+RETURN '1997-12-17'::date
+$$) AS r(result gtype);
+   result   
+------------
+ 12-17-1997
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+RETURN '12/17/1997'::date
+$$) AS r(result gtype); 
+   result   
+------------
+ 12-17-1997
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+RETURN 'Wed Dec 17 1997'::date
+$$) AS r(result gtype);
+   result   
+------------
+ 12-17-1997
+(1 row)
+
 SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval $$) AS r(result gtype);
   result   
 -----------

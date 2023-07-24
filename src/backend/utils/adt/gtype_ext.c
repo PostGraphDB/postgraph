@@ -86,6 +86,17 @@ bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
 
 	*agtentry = AGTENTRY_IS_GTYPE | (sizeof(int64) + AGT_HEADER_SIZE);
         break;
+    case AGTV_DATE:
+        padlen = ag_serialize_header(buffer, AGT_HEADER_DATE);
+
+        /* copy in the date data */
+        numlen = sizeof(int32);
+        offset = reserve_from_buffer(buffer, numlen);
+        *((int32 *)(buffer->data + offset)) = scalar_val->val.date;
+
+        *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
+	break;
+
    case AGTV_INTERVAL:
         padlen = ag_serialize_header(buffer, AGT_HEADER_INTERVAL);
 
@@ -128,6 +139,10 @@ void ag_deserialize_extended_type(char *base_addr, uint32 offset, gtype_value *r
     case AGT_HEADER_TIMESTAMP:
         result->type = AGTV_TIMESTAMP;
         result->val.int_value = *((int64 *)(base + AGT_HEADER_SIZE));
+        break;
+    case AGT_HEADER_DATE:
+        result->type = AGTV_DATE;
+        result->val.date = *((int32 *)(base + AGT_HEADER_SIZE));
         break;
     case AGT_HEADER_INTERVAL:
         result->type = AGTV_INTERVAL;

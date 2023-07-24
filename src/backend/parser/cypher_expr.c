@@ -638,6 +638,8 @@ transform_cypher_typecast(cypher_parsestate *cpstate, cypher_typecast *ctypecast
         fname = lappend(fname, makeString("tointeger"));
     else if (pg_strcasecmp(ctypecast->typecast, "timestamp") == 0)
         fname = lappend(fname, makeString("totimestamp"));
+    else if (pg_strcasecmp(ctypecast->typecast, "date") == 0)
+        fname = lappend(fname, makeString("todate"));
     else if (pg_strcasecmp(ctypecast->typecast, "interval") == 0)
         fname = lappend(fname, makeString("tointerval"));
     else

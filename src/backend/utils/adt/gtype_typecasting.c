@@ -214,6 +214,38 @@ Datum tointerval(PG_FUNCTION_ARGS) {
     PG_RETURN_POINTER(gtype_value_to_gtype(agtv));
 }
 
+PG_FUNCTION_INFO_V1(todate);
+/*                  
+ * Execute function to typecast an agtype to an agtype interval
+ */
+Datum todate(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+    gtype_value *agtv = get_ith_gtype_value_from_container(&agt->root, 0);
+    DateADT dte;
+
+    if (agtv->type == AGTV_NULL)
+        PG_RETURN_NULL();
+
+
+    if (agtv->type == AGTV_DATE)
+        AG_RETURN_GTYPE_P(agt);
+
+    if (agtv->type != AGTV_STRING)
+        ereport(ERROR,
+                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                 errmsg("typecast to date must be a string")));
+
+    dte = DatumGetDateADT(DirectFunctionCall1(date_in, CStringGetDatum(agtv->val.string.val)));
+
+    agtv->type = AGTV_DATE;
+    agtv->val.date = dte;
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(agtv));
+}  
+
+
+
 /*
  * gtype to postgres functions
  */
