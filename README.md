@@ -4,34 +4,67 @@
 
 You can view the full manual [here](https://postgraphdb.github.io/)
 
-Postgraph is an extension for Postgres with the explicit goal of combining the power of graph modeling together with the full fledged power of the Postgres ecosystem. Originally a fork of Apache AGE, PostGraph will combine a graph based model and query language with the power of the open source Postgres community.
+PostGraph is an extension that adds the graph query Cypher to the [Postgres](https://www.postgresql.org/) Database.
 
-PostGraph is and will always be open source and free. If you would like to contribute to the project in any way, that would be greatly appreciated. We use [github projects](https://github.com/PostGraphDB/postgraph/projects?query=is%3Aopen) for all our work. If you wanna help the developer focus more on this rather than a real job you can contribute to the [patreon](https://www.patreon.com/PostGraph). The [wiki](https://github.com/PostGraphDB/postgraph/wiki) could definitely use some work and I'm sure you will find some [bugs](https://github.com/PostGraphDB/postgraph/issues) at some point, or just join the [discord](https://discord.gg/XEp56VaqZs) and hangout.
+PostGraph is a fork of the Apache AGE project. The goal of PostGraph is to go beyond AGE's stated goal of implementing the openCypher query language. PostGraph's internals have been greatly overhauled with the expressed goal of improving performance and allowing for new and powerful features.
 
-# Goals
-
-Before the goals, a small history lesson. PostGraph is the child of Apache AGE, which is the birthchild of AgensGraph. AgensGraph's original goal was to implement the openCypher query language in Postgres, and Apache AGE's original goal was the same (only as an extension to Postgres, rather than a fork). After success of that original goal, we asked ourselves: now what?
-
-PostGraph is the answer to that question. While developing Apache AGE, we relyed on the Postgres's existing functionality in so many cases. Yet, we have barely tapped into what Postgres has to offer, so PostGraph's primary goal is to tap into all that untapped potential.
-
-Postgres' tagline is: the most advanced open source database, and its true. From the vast library of [builtin functionality](https://www.postgresql.org/docs/14/index.html) to its [many](http://www.postgis.net/), [many](https://github.com/michelp/pgsodium), [Many](https://www.timescale.com/), [MANY](https://www.citusdata.com/) extensions, Postgres is truely powerful in what it can do.
+What new in Postgraph 0.1.0:
+ - Improved Performance
+ - Stronger Type Safety
+ - Reworked and Expanded Typecasting System
+ - Builtin Functions conform with the Postgres counterparts
+ - Basic Timestamp Support
+ - Indices in WHERE clause.
 
 # Roadmap
 
-## Phase 0 - Initial Release
+## 2023
 
-PostGraph plans to leave alpha and begin offering stable releases by the end of 2023. Alpha releases will be made available before that, starting at the end of July, 2023.
+The main goal of 2023 is to refactor the internal code base, for performance, memory safety and in preperation of 2024 and beyond. However, there still will be many new features implemented this year.
 
-### The reason for phase 0:
+PostGraph plans to offer its first stable release between December 2023 and March 2024.
 
-Despite numerous companies chosing to break this rule (looking at you Google with your angular releases): Once you commit to a design/api you need to ensure basckwards compatibility. Between AGE and Phase 0, backwards compatibility will be broken. Phase 0 is about defining the interface that users will have from now on. All phases after this is about improving this interface.
+ - Temporal Datatypes - Support Timstamp and Time with and without Timezones, Date, and Duration Datatypes
+ - Network Datatypes - Support Data types for MAC and IP Addresses
+ - uri datatypes - Support holding uris in Postgraph.
+ - English Full Text Search - Support to perform Full Text Search in English
+ - Regex Support - Robust Regular Expression Support
+ - Windows Operating System Support - Allow users to run natively on Windows
+ - Performance Improvements - Improvements to performance without the use of indices and constraints.
+ - Indexing - Full support for creating Indices
+ - Constraints - Full Support for creating constraints
+ - Label Partitioning - Allow Labels to be partitioned
 
-## Phase 1 - Vanilla Postgres
+## 2024
 
-The first step of PostGraph is to utilize what Postgres' offers in it's most basic form. Vanilla Postgres has the ability to outperform almost every other database in 90% of all cases like this. 
+2024 primary goal is to support Spatial Datatypes and improve the usability of PostGraph, making it easier for people to use and expanding the ways in which it can be used and the number of people who can use it.
 
-## Phase 2 - xxx What does the community have to offer
+ - Shortest Path Algorithms - Weighted and Unweighted Shortest Path.
+ - Spatial Datatypes via [PostGIS](http://postgis.net/)
+ - Cryptology Support via [pgsodium](https://github.com/michelp/pgsodium)
+ - Chinese Full Text Search - Allow users to use a Chinese Full Text Dictionary.
+ - Apache Spark Connector - Allow PostGraph to be a data source or sink for Apache Spark.
+ - Native Cypher Support Command Line Interface - Allow users to enter queries without having to call the cypher function, via a CLI similar to psql.
+ - PgAdmin Support - Support the PostGraph in PgAdmin.
+ - PgPool-2 Support - Support PostGraph queries in PG-Pool2
+ - Windows Functions - Support Windows Functions such as rank and row_number
 
-We are limited in what PostGraph can be only by what the community has to offer. Which means the sky is the limit.
+## Future Goals
 
-For more information, [see the licensing information](https://github.com/PostGraphDB/postgraph/blob/PG14/LICENSE).
+Many more features and side projects are planned for after 2024, including, but not limited too:
+
+ - Localization - Korean, Japanese, Mandarin Chinese, Cantonese Chinese, Hindi, Spanish, Arabic, Portugese, French, German, Italian, Polish, etc.
+ - Table Triggers
+ - SQL Support in Cypher Queries
+ - Time Series Support via TimeScaleDB
+ - Native Cypher support for drivers.
+ - GraphQL support
+ - Distributed Graphs via citus
+ - Orioledb Support
+ - Data Science Library
+ - RUM Indices for Full Text Search
+ - ElasticSearch Support via [ZomboDB](https://www.zombodb.com/).
+ - Multi Graph Queries
+ - Undirected Graphs
+ - zson properties - The original writers of JsonB, which gtype is based on, created a new zson. Zson in certain uses case see a 10% Improvement in throughput and 40% improvement in compression. Allow users to be able to use zson as its storage mechanism for properties.
+
