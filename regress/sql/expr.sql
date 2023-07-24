@@ -123,15 +123,16 @@ $$) AS r(result gtype);
 --  
 -- time
 --
-SELECT * FROM cypher('expr', $$ 
-RETURN '07:37:16-08'::time
-$$) AS r(result gtype);
-SELECT * FROM cypher('expr', $$
-RETURN '07:37:16.00'::time
-$$) AS r(result gtype);
-SELECT * FROM cypher('expr', $$
-RETURN '07:37:16'::time
-$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16-08'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16'::time $$) AS r(result gtype);
+
+--
+-- timetz
+--
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16-08'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16'::timetz $$) AS r(result gtype);
 
 SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval $$) AS r(result gtype);
 SELECT * FROM cypher('expr', $$ RETURN '15 Minutes'::interval $$) AS r(result gtype);

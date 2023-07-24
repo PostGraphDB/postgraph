@@ -96,6 +96,7 @@ typedef enum /* type categories for datum_to_gtype */
     AGT_TYPE_TIMESTAMP, /* we use special formatting for timestamp */
     AGT_TYPE_TIMESTAMPTZ, /* ... and timestamptz */
     AGT_TYPE_TIME,
+    AGT_TYPE_TIMETZ,
     AGT_TYPE_INTERVAL,
     AGT_TYPE_GTYPE, /* GTYPE */
     AGT_TYPE_JSON, /* JSON */
@@ -439,6 +440,11 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
             time_out, TimeADTGetDatum(scalar_val->val.int_value)));
         appendStringInfoString(out, numstr);
         break;
+    case AGTV_TIMETZ:
+        numstr = DatumGetCString(DirectFunctionCall1(
+            timetz_out, DatumGetTimeTzADTP(&scalar_val->val.timetz)));
+        appendStringInfoString(out, numstr);
+        break;
     case AGTV_INTERVAL:
         numstr = DatumGetCString(DirectFunctionCall1(
             interval_out, IntervalPGetDatum(&scalar_val->val.interval)));
@@ -544,6 +550,8 @@ static void gtype_in_scalar(void *pstate, char *token, gtype_token_type tokentyp
             tokentype = GTYPE_TOKEN_DATE;
         else if (len == 4 && pg_strcasecmp(annotation, "time") == 0)
             tokentype = GTYPE_TOKEN_TIME;
+        else if (len == 6 && pg_strcasecmp(annotation, "timetz") == 0)
+            tokentype = GTYPE_TOKEN_TIMETZ;
 	else if (len == 8 && pg_strcasecmp(annotation, "interval") == 0)
             tokentype = GTYPE_TOKEN_INTERVAL;
 	else
@@ -598,6 +606,15 @@ static void gtype_in_scalar(void *pstate, char *token, gtype_token_type tokentyp
                                         ObjectIdGetDatum(InvalidOid),
                                         Int32GetDatum(-1)));
 	break;
+    case GTYPE_TOKEN_TIMETZ:
+        v.type = AGTV_TIMETZ;
+        TimeTzADT * timetz= DatumGetTimeTzADTP(DirectFunctionCall3(timetz_in,
+                                        CStringGetDatum(token),
+                                        ObjectIdGetDatum(InvalidOid),
+                                        Int32GetDatum(-1)));
+        v.val.timetz.time = timetz->time;
+        v.val.timetz.zone = timetz->zone;
+        break;
     case GTYPE_TOKEN_INTERVAL:
         {
         Interval *interval;
@@ -1126,7 +1143,13 @@ static void datum_to_gtype(Datum val, bool is_null, gtype_in_state *result, agt_
             agtv.type = AGTV_TIME;
             agtv.val.int_value = DatumGetInt64(val);
             break; 
-        case AGT_TYPE_INTERVAL:
+        case AGT_TYPE_TIMETZ:
+            agtv.type = AGTV_TIMETZ;
+            TimeTzADT *timetz = DatumGetTimeTzADTP(val);
+            agtv.val.timetz.time = timetz->time;
+            agtv.val.timetz.zone = timetz->zone;
+            break;
+	case AGT_TYPE_INTERVAL:
             {
                 Interval *i = DatumGetIntervalP(val);
                 agtv.val.interval.time = i->time;

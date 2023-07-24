@@ -302,7 +302,8 @@ typedef struct
 #define AGT_HEADER_TIMESTAMPTZ 0x0003
 #define AGT_HEADER_DATE 0x0004
 #define AGT_HEADER_TIME 0x0005
-#define AGT_HEADER_INTERVAL 0x0006
+#define AGT_HEADER_TIMETZ 0x0006
+#define AGT_HEADER_INTERVAL 0x0007
 
 #define AGT_IS_INTEGER(agte_) \
     (((agte_) == AGT_HEADER_INTEGER))
@@ -326,6 +327,7 @@ enum gtype_value_type
     AGTV_TIMESTAMPTZ,
     AGTV_DATE,
     AGTV_TIME,
+    AGTV_TIMETZ,
     AGTV_INTERVAL,
     AGTV_EDGE,
     /* Composite types */
@@ -351,6 +353,7 @@ struct gtype_value
         bool boolean;
 	Interval interval;
 	DateADT date;
+	TimeTzADT timetz;
         struct { int len; char *val; /* Not necessarily null-terminated */ } string; // String primitive type
         struct { int num_elems; gtype_value *elems; bool raw_scalar; } array;       // Array container type
         struct { int num_pairs; gtype_pair *pairs; } object;                        // Associative container type

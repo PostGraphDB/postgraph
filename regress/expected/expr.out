@@ -218,30 +218,42 @@ $$) AS r(result gtype);
 --  
 -- time
 --
-SELECT * FROM cypher('expr', $$ 
-RETURN '07:37:16-08'::time
-$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16-08'::time $$) AS r(result gtype);
   result  
 ----------
  07:37:16
 (1 row)
 
-SELECT * FROM cypher('expr', $$
-RETURN '07:37:16.00'::time
-$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time $$) AS r(result gtype);
   result  
 ----------
  07:37:16
 (1 row)
 
-SELECT * FROM cypher('expr', $$
-RETURN '07:37:16'::time
-$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16'::time $$) AS r(result gtype);
   result  
 ----------
  07:37:16
 (1 row)
 
+--
+-- timetz
+--
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16-08'::timetz $$) AS r(result gtype);
+ERROR:  function postgraph.totimetz(gtype) does not exist
+LINE 1: ...LECT * FROM cypher('expr', $$ RETURN '07:37:16-08'::timetz $...
+                                                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz $$) AS r(result gtype);
+ERROR:  function postgraph.totimetz(gtype) does not exist
+LINE 1: ...LECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz $...
+                                                             ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16'::timetz $$) AS r(result gtype);
+ERROR:  function postgraph.totimetz(gtype) does not exist
+LINE 1: SELECT * FROM cypher('expr', $$ RETURN '07:37:16'::timetz $$...
+                                                         ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval $$) AS r(result gtype);
   result   
 -----------

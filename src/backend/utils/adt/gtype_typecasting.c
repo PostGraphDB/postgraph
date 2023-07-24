@@ -247,6 +247,38 @@ Datum totime(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(agtv));
 }   
 
+PG_FUNCTION_INFO_V1(totimetz);
+/*                  
+ * Execute function to typecast an agtype to an agtype timetz
+ */                 
+Datum totimetz(PG_FUNCTION_ARGS)
+{   
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+    gtype_value *agtv = get_ith_gtype_value_from_container(&agt->root, 0);
+    TimeTzADT* t;
+
+    if (agtv->type == AGTV_NULL)
+        PG_RETURN_NULL();
+
+
+    if (agtv->type == AGTV_TIMETZ)
+        AG_RETURN_GTYPE_P(agt);
+
+    if (agtv->type != AGTV_STRING)
+        ereport(ERROR,
+                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                 errmsg("typecastint to timetz must be a string")));
+
+    t = DatumGetTimeTzADTP(DirectFunctionCall3(timetz_in, CStringGetDatum(agtv->val.string.val),
+                                                            ObjectIdGetDatum(InvalidOid),
+                                                            Int32GetDatum(-1)));
+    agtv->type = AGTV_TIMETZ;
+    agtv->val.timetz.time = t->time;
+    agtv->val.timetz.zone = t->zone;
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(agtv));
+} 
+
 PG_FUNCTION_INFO_V1(tointerval);
 Datum tointerval(PG_FUNCTION_ARGS) {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
