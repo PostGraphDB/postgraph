@@ -301,7 +301,8 @@ typedef struct
 #define AGT_HEADER_TIMESTAMP 0x0002
 #define AGT_HEADER_TIMESTAMPTZ 0x0003
 #define AGT_HEADER_DATE 0x0004
-#define AGT_HEADER_INTERVAL 0x0005
+#define AGT_HEADER_TIME 0x0005
+#define AGT_HEADER_INTERVAL 0x0006
 
 #define AGT_IS_INTEGER(agte_) \
     (((agte_) == AGT_HEADER_INTEGER))
@@ -324,6 +325,7 @@ enum gtype_value_type
     AGTV_TIMESTAMP,
     AGTV_TIMESTAMPTZ,
     AGTV_DATE,
+    AGTV_TIME,
     AGTV_INTERVAL,
     AGTV_EDGE,
     /* Composite types */

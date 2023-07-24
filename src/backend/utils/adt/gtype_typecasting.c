@@ -216,6 +216,37 @@ Datum totimestamptz(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(agtv));
 }           
 
+PG_FUNCTION_INFO_V1(totime);
+/*                  
+ * Execute function to typecast an agtype to an agtype timestamp
+ */                 
+Datum totime(PG_FUNCTION_ARGS)
+{   
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+    gtype_value *agtv = get_ith_gtype_value_from_container(&agt->root, 0);
+    Timestamp t;
+
+    if (agtv->type == AGTV_NULL)
+        PG_RETURN_NULL();
+
+
+    if (agtv->type == AGTV_TIMESTAMP)
+        AG_RETURN_GTYPE_P(agt);
+
+    if (agtv->type != AGTV_STRING)
+        ereport(ERROR,
+                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                 errmsg("typecastint to timestamp must be a string")));
+
+    t = DatumGetTimestamp(DirectFunctionCall3(time_in, CStringGetDatum(agtv->val.string.val),
+                                                            ObjectIdGetDatum(InvalidOid),
+                                                            Int32GetDatum(-1)));
+    agtv->type = AGTV_TIME;
+    agtv->val.int_value = (int64)t;
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(agtv));
+}   
+
 PG_FUNCTION_INFO_V1(tointerval);
 Datum tointerval(PG_FUNCTION_ARGS) {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);

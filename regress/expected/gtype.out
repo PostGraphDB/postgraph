@@ -59,6 +59,9 @@ INSERT INTO gtype_table VALUES ('timestamptz', '"Wed Dec 17 07:37:16 1997+09"::t
 INSERT INTO gtype_table VALUES ('date', '"1997-12-17"::date');
 INSERT INTO gtype_table VALUES ('date', '"12/17/1997"::date');
 INSERT INTO gtype_table VALUES ('date', '"Wed Dec 17 1997"::date');
+INSERT INTO gtype_table VALUES ('time', '"07:37:16-08"::time');
+INSERT INTO gtype_table VALUES ('time', '"07:37:16.00"::time');
+INSERT INTO gtype_table VALUES ('time', '"07:37:16"::time');
 INSERT INTO gtype_table VALUES ('interval', '"30 Seconds"::interval');
 INSERT INTO gtype_table VALUES ('interval', '"15 Minutes"::interval');
 INSERT INTO gtype_table VALUES ('interval', '"10 Hours"::interval');
@@ -118,6 +121,9 @@ SELECT * FROM gtype_table;
  date            | 12-17-1997
  date            | 12-17-1997
  date            | 12-17-1997
+ time            | 07:37:16
+ time            | 07:37:16
+ time            | 07:37:16
  interval        | @ 30 secs
  interval        | @ 15 mins
  interval        | @ 10 hours
@@ -142,7 +148,7 @@ SELECT * FROM gtype_table;
  float -Infinity | -Infinity
  float  inf      | Infinity
  float -inf      | -Infinity
-(50 rows)
+(53 rows)
 
 --
 -- These should fail

@@ -73,6 +73,10 @@ INSERT INTO gtype_table VALUES ('date', '"1997-12-17"::date');
 INSERT INTO gtype_table VALUES ('date', '"12/17/1997"::date');
 INSERT INTO gtype_table VALUES ('date', '"Wed Dec 17 1997"::date');
 
+INSERT INTO gtype_table VALUES ('time', '"07:37:16-08"::time');
+INSERT INTO gtype_table VALUES ('time', '"07:37:16.00"::time');
+INSERT INTO gtype_table VALUES ('time', '"07:37:16"::time');
+
 INSERT INTO gtype_table VALUES ('interval', '"30 Seconds"::interval');
 INSERT INTO gtype_table VALUES ('interval', '"15 Minutes"::interval');
 INSERT INTO gtype_table VALUES ('interval', '"10 Hours"::interval');
