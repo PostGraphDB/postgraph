@@ -1,0 +1,42 @@
+# License: AGPL v3
+
+#  Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+#  Everyone is permitted to copy and distribute verbatim copies
+#  of this license document, but changing it is not allowed.
+
+#                             Preamble
+
+#   The GNU Affero General Public License is a free, copyleft license for
+# software and other kinds of works, specifically designed to ensure
+# cooperation with the community in the case of network server software.
+
+
+
+Source: postgraph
+Section: database
+Priority: optional
+Maintainer: Debian PostgreSQL Maintainers <team+postgresql@tracker.debian.org>
+Uploaders:
+  Sarthak Jaiswal <sarthak.8858@gmail.com>,
+  Ahmar Zaidi <ahmarzaidi07@gmail.com>,
+Build-Depends:
+ debhelper-compat (= 13),
+ build-essential,
+ postgresql-14,
+ libreadline-dev,
+ zlib1g-dev,
+ flex,
+ bison,
+Standards-Version: 4.5.1
+Rules-Requires-Root: no
+
+Package: postgraph
+Architecture: all
+Depends:
+ ${misc:Depends},
+ ${postgresql:Depends},
+ ${shlibs:Depends},
+Description: Postgraph is an extension for Postgres with the explicit goal of combining the power of graph modeling together 
+ with the full fledged power of the Postgres ecosystem. 
+ Originally a fork of Apache AGE, PostGraph will combine a graph based model and query language with the power of the open source 
+ Postgres community.
