@@ -53,6 +53,7 @@ OBJS = src/backend/postgraph.o \
        src/backend/utils/adt/gtype_gin.o \
        src/backend/utils/adt/gtype_ops.o \
        src/backend/utils/adt/gtype_parser.o \
+       src/backend/utils/adt/gtype_temporal.o \
        src/backend/utils/adt/gtype_typecasting.o \
        src/backend/utils/adt/gtype_util.o \
        src/backend/utils/path_finding/age_global_graph.o \

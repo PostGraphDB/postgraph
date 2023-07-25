@@ -338,7 +338,7 @@ RETURN (-(3 * 2 - 4.0) ^ ((10 / 5) + 1)) % -3
 $$) AS r(result gtype);
 
 --
--- Test transform logic for comparison operators
+-- comparison operators
 --
 
 SELECT * FROM cypher('expr', $$
@@ -376,6 +376,529 @@ $$) AS r(result boolean);
 SELECT * FROM cypher('expr', $$
 RETURN (1 + 1.0) = (7 % 5)
 $$) AS r(result boolean);
+
+
+--
+-- Timestamp Comparison
+--
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp = '2023-06-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp = '2023-07-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp = '2023-05-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp <> '2023-06-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp <> '2023-07-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp <> '2023-05-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp > '2023-06-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp > '2023-07-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp > '2023-05-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp < '2023-06-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp < '2023-07-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp < '2023-05-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp >= '2023-06-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp >= '2023-07-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp >= '2023-05-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp <= '2023-06-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp <= '2023-07-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp <= '2023-05-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+
+--
+-- Timestamp With Timezone Comparison
+--
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz = '2023-06-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz = '2023-07-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz = '2023-05-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz <> '2023-06-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz <> '2023-07-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz <> '2023-05-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz > '2023-06-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz > '2023-07-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz > '2023-05-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz < '2023-06-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz < '2023-07-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz < '2023-05-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz >= '2023-06-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz >= '2023-07-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz >= '2023-05-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz <= '2023-06-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz <= '2023-07-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz <= '2023-05-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+
+
+--
+-- Timestamp With Timezone Timestamp Comparison
+--
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz = '2023-06-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz = '2023-07-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz = '2023-05-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz <> '2023-06-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz <> '2023-07-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz <> '2023-05-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz > '2023-06-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz > '2023-07-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz > '2023-05-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz < '2023-06-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz < '2023-07-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz < '2023-05-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz >= '2023-06-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz >= '2023-07-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz >= '2023-05-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz <= '2023-06-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz <= '2023-07-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamptz <= '2023-05-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+
+--
+-- Timestamp With Timezone Comparison
+--
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp = '2023-06-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp = '2023-07-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp = '2023-05-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp <> '2023-06-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp <> '2023-07-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp <> '2023-05-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp > '2023-06-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp > '2023-07-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp > '2023-05-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp < '2023-06-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp < '2023-07-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp < '2023-05-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp >= '2023-06-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp >= '2023-07-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp >= '2023-05-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp <= '2023-06-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp <= '2023-07-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp <= '2023-05-23 13:39:40.00'::timestamptz
+$$) AS r(c gtype);
+
+
+--
+-- date comparison
+--
+SELECT * FROM cypher('expr', $$ RETURN '1997-12-17'::date = '1997-12-17'::date $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '1997-12-17'::date = '1997-12-16'::date $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '1997-12-17'::date = '1997-12-18'::date $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '1997-12-17'::date <> '1997-12-17'::date $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '1997-12-17'::date <> '1997-12-16'::date $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '1997-12-17'::date <> '1997-12-18'::date $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '1997-12-17'::date > '1997-12-17'::date $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '1997-12-17'::date > '1997-12-16'::date $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '1997-12-17'::date > '1997-12-18'::date $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '1997-12-17'::date < '1997-12-17'::date $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '1997-12-17'::date < '1997-12-16'::date $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '1997-12-17'::date < '1997-12-18'::date $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '1997-12-17'::date >= '1997-12-17'::date $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '1997-12-17'::date >= '1997-12-16'::date $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '1997-12-17'::date >= '1997-12-18'::date $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '1997-12-17'::date <= '1997-12-17'::date $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '1997-12-17'::date <= '1997-12-16'::date $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '1997-12-17'::date <= '1997-12-18'::date $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$
+RETURN '2023-06-23 0:0:00.00'::timestamp = '2023-06-23'::date
+$$) AS r(c gtype);
+--
+-- Timestamp and Date Comparison
+--
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 0:0:00.00'::timestamp = '2023-06-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamp = '2023-07-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamp = '2023-05-23'::date $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 0:0:00.00'::timestamp <> '2023-06-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamp <> '2023-07-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamp <> '2023-05-23'::date $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 0:0:00.00'::timestamp > '2023-06-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamp > '2023-07-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamp > '2023-05-23'::date $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 0:0:00.00'::timestamp < '2023-06-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamp < '2023-07-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamp < '2023-05-23'::date $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 0:0:00.00'::timestamp >= '2023-06-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamp >= '2023-07-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamp >= '2023-05-23'::date $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 0:0:00.00'::timestamp <= '2023-06-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamp <= '2023-07-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamp <= '2023-05-23'::date $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23'::date = '2023-06-23 0:0:00.00'::timestamp $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-07-23'::date = '2023-06-23 13:39:40.00'::timestamp $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-05-23'::date = '2023-06-23 13:39:40.00'::timestamp $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23'::date <> '2023-06-23 0:0:00.00'::timestamp $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-07-23'::date <> '2023-06-23 13:39:40.00'::timestamp $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-05-23'::date <> '2023-06-23 13:39:40.00'::timestamp $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23'::date > '2023-06-23 0:0:00.00'::timestamp $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-07-23'::date > '2023-06-23 13:39:40.00'::timestamp $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-05-23'::date > '2023-06-23 13:39:40.00'::timestamp $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23'::date < '2023-06-23 0:0:00.00'::timestamp $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-07-23'::date < '2023-06-23 13:39:40.00'::timestamp $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-05-23'::date < '2023-06-23 13:39:40.00'::timestamp $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23'::date >= '2023-06-23 0:0:00.00'::timestamp $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-07-23'::date >= '2023-06-23 13:39:40.00'::timestamp $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-05-23'::date >= '2023-06-23 13:39:40.00'::timestamp $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23'::date <= '2023-06-23 0:0:00.00'::timestamp $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-07-23'::date <= '2023-06-23 13:39:40.00'::timestamp $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-05-23'::date <= '2023-06-23 13:39:40.00'::timestamp $$) AS r(c gtype);
+
+--
+-- Timestamp With TimeZone and Date Comparison
+--
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 0:0:00.00'::timestamptz = '2023-06-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamptz = '2023-07-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamptz = '2023-05-23'::date $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 0:0:00.00'::timestamptz <> '2023-06-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamptz <> '2023-07-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamptz <> '2023-05-23'::date $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 0:0:00.00'::timestamptz > '2023-06-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamptz > '2023-07-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamptz > '2023-05-23'::date $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 0:0:00.00'::timestamptz < '2023-06-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamptz < '2023-07-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamptz < '2023-05-23'::date $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 0:0:00.00'::timestamptz >= '2023-06-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamptz >= '2023-07-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamptz >= '2023-05-23'::date $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 0:0:00.00'::timestamptz <= '2023-06-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamptz <= '2023-07-23'::date $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamptz <= '2023-05-23'::date $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23'::date = '2023-06-23 0:0:00.00'::timestamptz $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-07-23'::date = '2023-06-23 13:39:40.00'::timestamptz $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-05-23'::date = '2023-06-23 13:39:40.00'::timestamptz $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23'::date <> '2023-06-23 0:0:00.00'::timestamptz $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-07-23'::date <> '2023-06-23 13:39:40.00'::timestamptz $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-05-23'::date <> '2023-06-23 13:39:40.00'::timestamptz $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23'::date > '2023-06-23 0:0:00.00'::timestamptz $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-07-23'::date > '2023-06-23 13:39:40.00'::timestamptz $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-05-23'::date > '2023-06-23 13:39:40.00'::timestamptz $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23'::date < '2023-06-23 0:0:00.00'::timestamptz $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-07-23'::date < '2023-06-23 13:39:40.00'::timestamptz $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-05-23'::date < '2023-06-23 13:39:40.00'::timestamptz $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23'::date >= '2023-06-23 0:0:00.00'::timestamptz $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-07-23'::date >= '2023-06-23 13:39:40.00'::timestamptz $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-05-23'::date >= '2023-06-23 13:39:40.00'::timestamptz $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23'::date <= '2023-06-23 0:0:00.00'::timestamptz $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-07-23'::date <= '2023-06-23 13:39:40.00'::timestamptz $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '2023-05-23'::date <= '2023-06-23 13:39:40.00'::timestamptz $$) AS r(c gtype);
+
+
+--
+-- Time Comparison
+--
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time = '07:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time = '06:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time = '08:37:16.00'::time $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time <> '07:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time <> '06:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time <> '08:37:16.00'::time $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time > '07:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time > '06:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time > '08:37:16.00'::time $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time < '07:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time < '06:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time < '08:37:16.00'::time $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time >= '07:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time >= '06:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time >= '08:37:16.00'::time $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time <= '07:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time <= '06:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time <= '08:37:16.00'::time $$) AS r(result gtype);
+
+--
+-- Time With Timezone Comparison
+--
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz = '07:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz = '06:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz = '08:37:16.00'::timetz $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz <> '07:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz <> '06:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz <> '08:37:16.00'::timetz $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz > '07:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz > '06:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz > '08:37:16.00'::timetz $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz < '07:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz < '06:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz < '08:37:16.00'::timetz $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz >= '07:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz >= '06:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz >= '08:37:16.00'::timetz $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz <= '07:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz <= '06:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz <= '08:37:16.00'::timetz $$) AS r(result gtype);
+
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz = '07:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz = '06:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz = '08:37:16.00'::time $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz <> '07:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz <> '06:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz <> '08:37:16.00'::time $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz > '07:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz > '06:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz > '08:37:16.00'::time $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz < '07:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz < '06:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz < '08:37:16.00'::time $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz >= '07:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz >= '06:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz >= '08:37:16.00'::time $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz <= '07:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz <= '06:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::timetz <= '08:37:16.00'::time $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time = '07:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time = '06:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time = '08:37:16.00'::timetz $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time <> '07:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time <> '06:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time <> '08:37:16.00'::timetz $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time > '07:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time > '06:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time > '08:37:16.00'::timetz $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time < '07:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time < '06:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time < '08:37:16.00'::timetz $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time >= '07:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time >= '06:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time >= '08:37:16.00'::timetz $$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time <= '07:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time <= '06:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '07:37:16.00'::time <= '08:37:16.00'::timetz $$) AS r(result gtype);
+
+--
+-- Interval Comparison
+--
+SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval = '30 Seconds'::interval$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval = '20 Seconds'::interval$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval = '40 Seconds'::interval$$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval <> '30 Seconds'::interval$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval <> '20 Seconds'::interval$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval <> '40 Seconds'::interval$$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval > '30 Seconds'::interval$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval > '20 Seconds'::interval$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval > '40 Seconds'::interval$$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval < '30 Seconds'::interval$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval < '20 Seconds'::interval$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval < '40 Seconds'::interval$$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval >= '30 Seconds'::interval$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval >= '20 Seconds'::interval$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval >= '40 Seconds'::interval$$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval <= '30 Seconds'::interval$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval <= '20 Seconds'::interval$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ RETURN '30 Seconds'::interval <= '40 Seconds'::interval$$) AS r(result gtype);
+
 
 --
 -- Test chained comparisons

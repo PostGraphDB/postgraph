@@ -1,31 +1,26 @@
-/*
- * For PostgreSQL Database Management System:
- * (formerly known as Postgres, then as Postgres95)
- *
- * Portions Copyright (c) 1996-2010, The PostgreSQL Global Development Group
- *
- * Portions Copyright (c) 1994, The Regents of the University of California
- *
- * Permission to use, copy, modify, and distribute this software and its documentation for any purpose,
- * without fee, and without a written agreement is hereby granted, provided that the above copyright notice
- * and this paragraph and the following two paragraphs appear in all copies.
- *
- * IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR DIRECT,
- * INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS,
- * ARISING OUT OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF THE UNIVERSITY
- * OF CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING,
- * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
- *
- * THE SOFTWARE PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA
- * HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
- */
 
 /*
  * converting between gtype and gtype_values, and iterating.
  *
- * Portions Copyright (c) 2014-2018, PostgreSQL Global Development Group
+ * Copyright (C) 2023 PostGraphDB
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Portions Copyright (c) 2020-2023, Apache Software Foundation (ASF)
+ * Portions Copyright (c) 2019-2020, Bitnine Global Inc.
+ * Portions Copyright (c) 1996-2018, The PostgreSQL Global Development Group
+ * Portions Copyright (c) 1994, The Regents of the University of California
  */
 
 #include "postgres.h"
@@ -37,6 +32,8 @@
 #include "miscadmin.h"
 #include "utils/builtins.h"
 #include "utils/memutils.h"
+#include "utils/date.h"
+#include "utils/timestamp.h"
 #include "utils/varlena.h"
 
 #include "utils/gtype.h"
@@ -60,30 +57,20 @@ static void fill_gtype_value(gtype_container *container, int index,
                               gtype_value *result);
 static bool equals_gtype_scalar_value(const gtype_value *a, const gtype_value *b);
 static gtype *convert_to_gtype(gtype_value *val);
-static void convert_gtype_value(StringInfo buffer, agtentry *header,
-                                 gtype_value *val, int level);
-static void convert_gtype_array(StringInfo buffer, agtentry *pheader,
-                                 gtype_value *val, int level);
-static void convert_gtype_object(StringInfo buffer, agtentry *pheader,
-                                  gtype_value *val, int level);
-static void convert_gtype_scalar(StringInfo buffer, agtentry *entry,
-                                  gtype_value *scalar_val);
-
+static void convert_gtype_value(StringInfo buffer, agtentry *header, gtype_value *val, int level);
+static void convert_gtype_array(StringInfo buffer, agtentry *pheader, gtype_value *val, int level);
+static void convert_gtype_object(StringInfo buffer, agtentry *pheader, gtype_value *val, int level);
+static void convert_gtype_scalar(StringInfo buffer, agtentry *entry, gtype_value *scalar_val);
 static void append_to_buffer(StringInfo buffer, const char *data, int len);
-static void copy_to_buffer(StringInfo buffer, int offset, const char *data,
-                           int len);
-
-static gtype_iterator *iterator_from_container(gtype_container *container,
-                                                gtype_iterator *parent);
+static void copy_to_buffer(StringInfo buffer, int offset, const char *data, int len);
+static gtype_iterator *iterator_from_container(gtype_container *container, gtype_iterator *parent);
 static gtype_iterator *free_and_get_parent(gtype_iterator *it);
 static gtype_parse_state *push_state(gtype_parse_state **pstate);
 static void append_key(gtype_parse_state *pstate, gtype_value *string);
 static void append_value(gtype_parse_state *pstate, gtype_value *scalar_val);
-static void append_element(gtype_parse_state *pstate,
-                           gtype_value *scalar_val);
+static void append_element(gtype_parse_state *pstate, gtype_value *scalar_val);
 static int length_compare_gtype_string_value(const void *a, const void *b);
-static int length_compare_gtype_pair(const void *a, const void *b,
-                                      void *binequal);
+static int length_compare_gtype_pair(const void *a, const void *b, void *binequal);
 static gtype_value *push_gtype_value_scalar(gtype_parse_state **pstate,
                                               gtype_iterator_token seq,
                                               gtype_value *scalar_val);
@@ -207,8 +194,16 @@ static int get_type_sort_priority(enum gtype_value_type type)
         return 3;
     if (type == AGTV_NUMERIC || type == AGTV_INTEGER || type == AGTV_FLOAT)
         return 4;
+    if (type == AGTV_TIMESTAMP || type == AGTV_TIMESTAMPTZ)
+	return 5;
+    if (type == AGTV_DATE)
+	return 6;
+    if (type == AGTV_TIME || AGTV_TIMETZ)
+	 return 7;
+    if (type == AGTV_INTERVAL)
+	 return 8;   
     if (type == AGTV_NULL)
-        return 5;
+        return 9;
     return -1;
 }
 
@@ -222,8 +217,7 @@ static int get_type_sort_priority(enum gtype_value_type type)
  * called from B-Tree support function 1, we're careful about not leaking
  * memory here.
  */
-int compare_gtype_containers_orderability(gtype_container *a,
-                                           gtype_container *b)
+int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b)
 {
     gtype_iterator *ita;
     gtype_iterator *itb;
@@ -262,10 +256,12 @@ int compare_gtype_containers_orderability(gtype_container *a,
             }
 
             if ((va.type == vb.type) ||
-                ((va.type == AGTV_INTEGER || va.type == AGTV_FLOAT ||
-                  va.type == AGTV_NUMERIC) &&
-                 (vb.type == AGTV_INTEGER || vb.type == AGTV_FLOAT ||
-                  vb.type == AGTV_NUMERIC)))
+                ((va.type == AGTV_INTEGER || va.type == AGTV_FLOAT || va.type == AGTV_NUMERIC ||
+		  va.type == AGTV_TIMESTAMP || va.type == AGTV_DATE || va.type == AGTV_TIMESTAMPTZ ||
+		  va.type == AGTV_TIMETZ || va.type == AGTV_TIME || va.type == AGTV_DATE) &&
+                 (vb.type == AGTV_INTEGER || vb.type == AGTV_FLOAT || vb.type == AGTV_NUMERIC || 
+		  vb.type == AGTV_TIMESTAMP || vb.type == AGTV_DATE || vb.type == AGTV_TIMESTAMPTZ ||
+                  vb.type == AGTV_TIMETZ || vb.type == AGTV_TIME || vb.type == AGTV_DATE)))
             {
                 switch (va.type)
                 {
@@ -275,6 +271,12 @@ int compare_gtype_containers_orderability(gtype_container *a,
                 case AGTV_BOOL:
                 case AGTV_INTEGER:
                 case AGTV_FLOAT:
+		case AGTV_TIMESTAMP:
+		case AGTV_TIMESTAMPTZ:
+		case AGTV_DATE:
+		case AGTV_TIME:
+		case AGTV_TIMETZ:
+		case AGTV_INTERVAL:
                     res = compare_gtype_scalar_values(&va, &vb);
                     break;
                 case AGTV_ARRAY:
@@ -291,19 +293,13 @@ int compare_gtype_containers_orderability(gtype_container *a,
                         {
                             /* advance iterator ita and get contained type */
                             ra = gtype_iterator_next(&ita, &va, false);
-                            res = (get_type_sort_priority(va.type) <
-                                   get_type_sort_priority(vb.type)) ?
-                                      -1 :
-                                      1;
+                            res = (get_type_sort_priority(va.type) < get_type_sort_priority(vb.type)) ?  -1 : 1;
                         }
                         else
                         {
                             /* advance iterator itb and get contained type */
                             rb = gtype_iterator_next(&itb, &vb, false);
-                            res = (get_type_sort_priority(va.type) <
-                                   get_type_sort_priority(vb.type)) ?
-                                      -1 :
-                                      1;
+                            res = (get_type_sort_priority(va.type) < get_type_sort_priority(vb.type)) ?  -1 : 1;
                         }
                     }
                     break;
@@ -316,10 +312,7 @@ int compare_gtype_containers_orderability(gtype_container *a,
             else
             {
                 /* Type-defined order */
-                res = (get_type_sort_priority(va.type) <
-                       get_type_sort_priority(vb.type)) ?
-                          -1 :
-                          1;
+                res = (get_type_sort_priority(va.type) < get_type_sort_priority(vb.type)) ?  -1 : 1;
             }
         }
         else
@@ -355,10 +348,7 @@ int compare_gtype_containers_orderability(gtype_container *a,
             Assert(va.type != AGTV_BINARY);
             Assert(vb.type != AGTV_BINARY);
             /* Type-defined order */
-            res = (get_type_sort_priority(va.type) <
-                   get_type_sort_priority(vb.type)) ?
-                      -1 :
-                      1;
+            res = (get_type_sort_priority(va.type) < get_type_sort_priority(vb.type)) ?  -1 : 1;
         }
     } while (res == 0);
 
@@ -1503,12 +1493,21 @@ static bool equals_gtype_scalar_value(const gtype_value *a, const gtype_value *b
         case AGTV_BOOL:
             return a->val.boolean == b->val.boolean;
         case AGTV_INTEGER:
+        case AGTV_TIMESTAMP:
+        case AGTV_TIME:
             return a->val.int_value == b->val.int_value;
-        case AGTV_FLOAT:
+        case AGTV_TIMESTAMPTZ:
+            return timestamptz_cmp_internal(a->val.int_value, b->val.int_value) == 0;
+        case AGTV_DATE:
+            return a->val.date == b->val.date;
+        case AGTV_TIMETZ:
+            return timetz_cmp_internal(&a->val.timetz, &b->val.timetz) == 0;
+        case AGTV_INTERVAL:
+            return interval_cmp_internal(&a->val.interval, &b->val.interval) == 0;
+	case AGTV_FLOAT:
             return a->val.float_value == b->val.float_value;
         default:
-            ereport(ERROR, (errmsg("invalid gtype scalar type %d for equals",
-                                   a->type)));
+            ereport(ERROR, (errmsg("invalid gtype scalar type %d for equals", a->type)));
         }
     }
     /* otherwise, the values are of differing type */
@@ -1547,28 +1546,87 @@ int compare_gtype_scalar_values(gtype_value *a, gtype_value *b)
                 return 1;
             else
                 return -1;
-        case AGTV_INTEGER:
+        case AGTV_TIMESTAMP:
+	    return timestamp_cmp_internal(a->val.int_value, b->val.int_value);
+	case AGTV_TIMESTAMPTZ:
+	    return timestamptz_cmp_internal(a->val.int_value, b->val.int_value);
+	case AGTV_INTEGER:
+	case AGTV_TIME:
             if (a->val.int_value == b->val.int_value)
                 return 0;
             else if (a->val.int_value > b->val.int_value)
                 return 1;
             else
                 return -1;
+	case AGTV_DATE:
+            if (a->val.date == b->val.date)
+                return 0;
+            else if (a->val.date > b->val.date)
+                return 1;
+            else
+                return -1;
+	case AGTV_TIMETZ:
+	    return timetz_cmp_internal(&a->val.timetz, &b->val.timetz);
+	case AGTV_INTERVAL:
+	    return interval_cmp_internal(&a->val.interval, &b->val.interval);
         case AGTV_FLOAT:
             return compare_two_floats_orderability(a->val.float_value, b->val.float_value);
-        default:
-            ereport(ERROR, (errmsg("invalid gtype scalar type %d for compare",
-                                   a->type)));
+	default:
+            ereport(ERROR, (errmsg("invalid gtype scalar type %d for compare", a->type)));
         }
     }
+
+    // timestamp and timestamp with timezone
+    if (a->type == AGTV_TIMESTAMP && b->type == AGTV_TIMESTAMPTZ)
+        return timestamp_cmp_timestamptz_internal(a->val.int_value, b->val.int_value);
+
+    if (a->type == AGTV_TIMESTAMPTZ && b->type == AGTV_TIMESTAMP)
+        return -1 * timestamp_cmp_timestamptz_internal(b->val.int_value, a->val.int_value);
+
+    // date and timestamp
+    if (a->type == AGTV_DATE && b->type == AGTV_TIMESTAMP)
+        return date_cmp_timestamp_internal(a->val.date, b->val.int_value);
+
+    if (a->type == AGTV_TIMESTAMP && b->type == AGTV_DATE)
+        return -1 * date_cmp_timestamp_internal(b->val.date, a->val.int_value);
+
+    // date and timestamp with timezone
+    if (a->type == AGTV_DATE && b->type == AGTV_TIMESTAMPTZ)
+        return date_cmp_timestamptz_internal(a->val.date, b->val.int_value);
+
+    if (a->type == AGTV_TIMESTAMPTZ && b->type == AGTV_DATE)
+        return -1 * date_cmp_timestamptz_internal(b->val.date, a->val.int_value);
+
+    // time and time with timezone
+    if (a->type == AGTV_TIME && b->type == AGTV_TIMETZ) {
+         int64 b_time = DatumGetTimeADT(DirectFunctionCall1(timetz_time, TimeTzADTPGetDatum(&b->val.timetz)));
+
+         if (a->val.int_value == b_time)
+            return 0;
+         else if (a->val.int_value > b_time)
+            return 1;
+         else
+            return -1;
+    }
+
+    if (a->type == AGTV_TIMETZ && b->type == AGTV_TIME) {
+         int64 a_time = DatumGetTimeADT(DirectFunctionCall1(timetz_time, TimeTzADTPGetDatum(&a->val.timetz)));
+
+         if (a_time == b->val.int_value)
+            return 0;
+         else if (a_time > b->val.int_value)
+            return 1;
+         else
+            return -1; 
+    }
+
+
     /* check for integer compared to float */
     if (a->type == AGTV_INTEGER && b->type == AGTV_FLOAT)
-        return compare_two_floats_orderability((float8)a->val.int_value,
-                                               b->val.float_value);
+        return compare_two_floats_orderability((float8)a->val.int_value, b->val.float_value);
     /* check for float compared to integer */
     if (a->type == AGTV_FLOAT && b->type == AGTV_INTEGER)
-        return compare_two_floats_orderability(a->val.float_value,
-                                               (float8)b->val.int_value);
+        return compare_two_floats_orderability(a->val.float_value, (float8)b->val.int_value);
     /* check for integer or float compared to numeric */
     if (is_numeric_result(a, b))
     {
