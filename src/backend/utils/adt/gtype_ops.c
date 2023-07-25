@@ -29,6 +29,7 @@
 #include "fmgr.h"
 #include "utils/builtins.h"
 #include "utils/numeric.h"
+#include "utils/timestamp.h"
 
 #include "utils/gtype.h"
 
@@ -192,29 +193,25 @@ Datum gtype_add(PG_FUNCTION_ARGS)
     else if (agtv_lhs->type == AGTV_INTEGER && agtv_rhs->type == AGTV_INTEGER)
     {
         agtv_result.type = AGTV_INTEGER;
-        agtv_result.val.int_value = agtv_lhs->val.int_value +
-                                    agtv_rhs->val.int_value;
+        agtv_result.val.int_value = agtv_lhs->val.int_value + agtv_rhs->val.int_value;
     }
     /* Both are floats - regular addition */
     else if (agtv_lhs->type == AGTV_FLOAT && agtv_rhs->type == AGTV_FLOAT)
     {
         agtv_result.type = AGTV_FLOAT;
-        agtv_result.val.float_value = agtv_lhs->val.float_value +
-                                      agtv_rhs->val.float_value;
+        agtv_result.val.float_value = agtv_lhs->val.float_value + agtv_rhs->val.float_value;
     }
     /* The left is a float, the right is an integer - regular addition */
     else if (agtv_lhs->type == AGTV_FLOAT && agtv_rhs->type == AGTV_INTEGER)
     {
         agtv_result.type = AGTV_FLOAT;
-        agtv_result.val.float_value = agtv_lhs->val.float_value +
-                                      agtv_rhs->val.int_value;
+        agtv_result.val.float_value = agtv_lhs->val.float_value + agtv_rhs->val.int_value;
     }
     /* The right is a float, the left is an integer - regular addition */
     else if (agtv_lhs->type == AGTV_INTEGER && agtv_rhs->type == AGTV_FLOAT)
     {
         agtv_result.type = AGTV_FLOAT;
-        agtv_result.val.float_value = agtv_lhs->val.int_value +
-                                      agtv_rhs->val.float_value;
+        agtv_result.val.float_value = agtv_lhs->val.int_value + agtv_rhs->val.float_value;
     }
     /* Is this a numeric result */
     else if (is_numeric_result(agtv_lhs, agtv_rhs))
@@ -228,6 +225,55 @@ Datum gtype_add(PG_FUNCTION_ARGS)
         agtv_result.type = AGTV_NUMERIC;
         agtv_result.val.numeric = DatumGetNumeric(numd);
     }
+    else if (agtv_lhs->type == AGTV_TIMESTAMP && agtv_rhs->type == AGTV_INTERVAL)
+    {
+        agtv_result.type = AGTV_TIMESTAMP;
+	agtv_result.val.int_value = DatumGetTimestamp(DirectFunctionCall2(timestamp_pl_interval,
+				TimestampGetDatum(agtv_lhs->val.int_value),
+				IntervalPGetDatum(&agtv_rhs->val.interval)));
+    }
+    else if (agtv_lhs->type == AGTV_TIMESTAMPTZ && agtv_rhs->type == AGTV_INTERVAL)
+    {
+        agtv_result.type = AGTV_TIMESTAMPTZ;
+        agtv_result.val.int_value = DatumGetTimestampTz(DirectFunctionCall2(timestamptz_pl_interval,
+                                TimestampTzGetDatum(agtv_lhs->val.int_value),
+                                IntervalPGetDatum(&agtv_rhs->val.interval)));
+    }
+    else if (agtv_lhs->type == AGTV_DATE && agtv_rhs->type == AGTV_INTERVAL)
+    {
+        agtv_result.type = AGTV_TIMESTAMP;
+        agtv_result.val.int_value = DatumGetTimestampTz(DirectFunctionCall2(date_pl_interval,
+                                DateADTGetDatum(agtv_lhs->val.date),
+                                IntervalPGetDatum(&agtv_rhs->val.interval)));
+    }   
+    else if (agtv_lhs->type == AGTV_TIME && agtv_rhs->type == AGTV_INTERVAL)
+    {
+        agtv_result.type = AGTV_TIME;
+        agtv_result.val.int_value = DatumGetTimeADT(DirectFunctionCall2(time_pl_interval,
+                                TimeADTGetDatum(agtv_lhs->val.int_value),
+                                IntervalPGetDatum(&agtv_rhs->val.interval)));
+    }
+    else if (agtv_lhs->type == AGTV_TIMETZ && agtv_rhs->type == AGTV_INTERVAL)
+    {
+        agtv_result.type = AGTV_TIMETZ;
+        TimeTzADT *time = DatumGetTimeTzADTP(DirectFunctionCall2(timetz_pl_interval,
+                                TimeTzADTPGetDatum(&agtv_lhs->val.timetz),
+                                IntervalPGetDatum(&agtv_rhs->val.interval)));
+
+       agtv_result.val.timetz.time = time->time;
+       agtv_result.val.timetz.zone = time->zone;
+    }
+    else if (agtv_lhs->type == AGTV_INTERVAL && agtv_rhs->type == AGTV_INTERVAL)
+    {
+        agtv_result.type = AGTV_INTERVAL;
+        Interval *interval = DatumGetIntervalP(DirectFunctionCall2(interval_pl,
+                                IntervalPGetDatum(&agtv_lhs->val.interval),
+                                IntervalPGetDatum(&agtv_rhs->val.interval)));
+
+       agtv_result.val.interval.time = interval->time;
+       agtv_result.val.interval.day = interval->day;
+       agtv_result.val.interval.month = interval->month;
+    } 
     else
         /* Not a covered case, error out */
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
@@ -263,26 +309,22 @@ Datum gtype_sub(PG_FUNCTION_ARGS)
     if (agtv_lhs->type == AGTV_INTEGER && agtv_rhs->type == AGTV_INTEGER)
     {
         agtv_result.type = AGTV_INTEGER;
-        agtv_result.val.int_value = agtv_lhs->val.int_value -
-                                    agtv_rhs->val.int_value;
+        agtv_result.val.int_value = agtv_lhs->val.int_value - agtv_rhs->val.int_value;
     }
     else if (agtv_lhs->type == AGTV_FLOAT && agtv_rhs->type == AGTV_FLOAT)
     {
         agtv_result.type = AGTV_FLOAT;
-        agtv_result.val.float_value = agtv_lhs->val.float_value -
-                                      agtv_rhs->val.float_value;
+        agtv_result.val.float_value = agtv_lhs->val.float_value - agtv_rhs->val.float_value;
     }
     else if (agtv_lhs->type == AGTV_FLOAT && agtv_rhs->type == AGTV_INTEGER)
     {
         agtv_result.type = AGTV_FLOAT;
-        agtv_result.val.float_value = agtv_lhs->val.float_value -
-                                      agtv_rhs->val.int_value;
+        agtv_result.val.float_value = agtv_lhs->val.float_value - agtv_rhs->val.int_value;
     }
     else if (agtv_lhs->type == AGTV_INTEGER && agtv_rhs->type == AGTV_FLOAT)
     {
         agtv_result.type = AGTV_FLOAT;
-        agtv_result.val.float_value = agtv_lhs->val.int_value -
-                                      agtv_rhs->val.float_value;
+        agtv_result.val.float_value = agtv_lhs->val.int_value - agtv_rhs->val.float_value;
     }
     /* Is this a numeric result */
     else if (is_numeric_result(agtv_lhs, agtv_rhs))
@@ -378,26 +420,22 @@ Datum gtype_mul(PG_FUNCTION_ARGS)
     if (agtv_lhs->type == AGTV_INTEGER && agtv_rhs->type == AGTV_INTEGER)
     {
         agtv_result.type = AGTV_INTEGER;
-        agtv_result.val.int_value = agtv_lhs->val.int_value *
-                                    agtv_rhs->val.int_value;
+        agtv_result.val.int_value = agtv_lhs->val.int_value * agtv_rhs->val.int_value;
     }
     else if (agtv_lhs->type == AGTV_FLOAT && agtv_rhs->type == AGTV_FLOAT)
     {
         agtv_result.type = AGTV_FLOAT;
-        agtv_result.val.float_value = agtv_lhs->val.float_value *
-                                      agtv_rhs->val.float_value;
+        agtv_result.val.float_value = agtv_lhs->val.float_value * agtv_rhs->val.float_value;
     }
     else if (agtv_lhs->type == AGTV_FLOAT && agtv_rhs->type == AGTV_INTEGER)
     {
         agtv_result.type = AGTV_FLOAT;
-        agtv_result.val.float_value = agtv_lhs->val.float_value *
-                                      agtv_rhs->val.int_value;
+        agtv_result.val.float_value = agtv_lhs->val.float_value * agtv_rhs->val.int_value;
     }
     else if (agtv_lhs->type == AGTV_INTEGER && agtv_rhs->type == AGTV_FLOAT)
     {
         agtv_result.type = AGTV_FLOAT;
-        agtv_result.val.float_value = agtv_lhs->val.int_value *
-                                      agtv_rhs->val.float_value;
+        agtv_result.val.float_value = agtv_lhs->val.int_value * agtv_rhs->val.float_value;
     }
     /* Is this a numeric result */
     else if (is_numeric_result(agtv_lhs, agtv_rhs))
