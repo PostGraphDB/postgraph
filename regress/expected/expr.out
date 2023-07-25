@@ -2653,6 +2653,60 @@ SELECT * FROM cypher('expr', $$ RETURN '10 Days'::interval + '8 Hours'::interval
 (1 row)
 
 --
+-- Timestamp - Interval Operator
+--
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamp - '10 Days'::interval $$) AS r(c gtype);
+            c             
+--------------------------
+ Tue Jun 13 13:39:40 2023
+(1 row)
+
+--
+-- Timestamp With Timezone - Interval Operator
+--
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamptz - '10 Days'::interval $$) AS r(c gtype);
+              c               
+------------------------------
+ Tue Jun 13 13:39:40 2023 GMT
+(1 row)
+
+--
+-- Date - Interval Operator
+--
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23'::date - '10 Days'::interval $$) AS r(c gtype);
+            c             
+--------------------------
+ Tue Jun 13 00:00:00 2023
+(1 row)
+
+--
+-- Time - Interval Operator
+--
+SELECT * FROM cypher('expr', $$ RETURN '13:39:40.00'::time - '8 Hours'::interval $$) AS r(c gtype);
+    c     
+----------
+ 05:39:40
+(1 row)
+
+--
+-- Time With Timezone - Interval Operator
+--
+SELECT * FROM cypher('expr', $$ RETURN '13:39:40.00'::timetz - '8 Hours'::interval $$) AS r(c gtype);
+      c      
+-------------
+ 05:39:40+00
+(1 row)
+
+--
+-- Interval - Interval Operator
+--
+SELECT * FROM cypher('expr', $$ RETURN '10 Days'::interval - '8 Hours'::interval $$) AS r(c gtype);
+         c          
+--------------------
+ @ 10 days -8 hours
+(1 row)
+
+--
 -- Test chained comparisons
 --
 SELECT * FROM create_graph('chained');

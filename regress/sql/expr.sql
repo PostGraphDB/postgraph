@@ -931,6 +931,37 @@ SELECT * FROM cypher('expr', $$ RETURN '13:39:40.00'::timetz + '8 Hours'::interv
 SELECT * FROM cypher('expr', $$ RETURN '10 Days'::interval + '8 Hours'::interval $$) AS r(c gtype);
 
 --
+-- Timestamp - Interval Operator
+--
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamp - '10 Days'::interval $$) AS r(c gtype);
+
+--
+-- Timestamp With Timezone - Interval Operator
+--
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23 13:39:40.00'::timestamptz - '10 Days'::interval $$) AS r(c gtype);
+
+--
+-- Date - Interval Operator
+--
+SELECT * FROM cypher('expr', $$ RETURN '2023-06-23'::date - '10 Days'::interval $$) AS r(c gtype);
+
+--
+-- Time - Interval Operator
+--
+SELECT * FROM cypher('expr', $$ RETURN '13:39:40.00'::time - '8 Hours'::interval $$) AS r(c gtype);
+
+--
+-- Time With Timezone - Interval Operator
+--
+SELECT * FROM cypher('expr', $$ RETURN '13:39:40.00'::timetz - '8 Hours'::interval $$) AS r(c gtype);
+
+--
+-- Interval - Interval Operator
+--
+SELECT * FROM cypher('expr', $$ RETURN '10 Days'::interval - '8 Hours'::interval $$) AS r(c gtype);
+
+
+--
 -- Test chained comparisons
 --
 

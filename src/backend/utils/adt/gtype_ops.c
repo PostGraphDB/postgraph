@@ -338,6 +338,55 @@ Datum gtype_sub(PG_FUNCTION_ARGS)
         agtv_result.type = AGTV_NUMERIC;
         agtv_result.val.numeric = DatumGetNumeric(numd);
     }
+    else if (agtv_lhs->type == AGTV_TIMESTAMP && agtv_rhs->type == AGTV_INTERVAL)
+    {
+        agtv_result.type = AGTV_TIMESTAMP;
+        agtv_result.val.int_value = DatumGetTimestamp(DirectFunctionCall2(timestamp_mi_interval,
+                                TimestampGetDatum(agtv_lhs->val.int_value),
+                                IntervalPGetDatum(&agtv_rhs->val.interval)));
+    }
+    else if (agtv_lhs->type == AGTV_TIMESTAMPTZ && agtv_rhs->type == AGTV_INTERVAL)
+    {
+        agtv_result.type = AGTV_TIMESTAMPTZ;
+        agtv_result.val.int_value = DatumGetTimestampTz(DirectFunctionCall2(timestamptz_mi_interval,
+                                TimestampTzGetDatum(agtv_lhs->val.int_value),
+                                IntervalPGetDatum(&agtv_rhs->val.interval)));
+    }
+    else if (agtv_lhs->type == AGTV_DATE && agtv_rhs->type == AGTV_INTERVAL)
+    {
+        agtv_result.type = AGTV_TIMESTAMP;
+        agtv_result.val.int_value = DatumGetTimestampTz(DirectFunctionCall2(date_mi_interval,
+                                DateADTGetDatum(agtv_lhs->val.date),
+                                IntervalPGetDatum(&agtv_rhs->val.interval)));
+    }
+    else if (agtv_lhs->type == AGTV_TIME && agtv_rhs->type == AGTV_INTERVAL)
+    {
+        agtv_result.type = AGTV_TIME;
+        agtv_result.val.int_value = DatumGetTimeADT(DirectFunctionCall2(time_mi_interval,
+                                TimeADTGetDatum(agtv_lhs->val.int_value),
+                                IntervalPGetDatum(&agtv_rhs->val.interval)));
+    }
+    else if (agtv_lhs->type == AGTV_TIMETZ && agtv_rhs->type == AGTV_INTERVAL)
+    {
+        agtv_result.type = AGTV_TIMETZ;
+        TimeTzADT *time = DatumGetTimeTzADTP(DirectFunctionCall2(timetz_mi_interval,
+                                TimeTzADTPGetDatum(&agtv_lhs->val.timetz),
+                                IntervalPGetDatum(&agtv_rhs->val.interval)));
+
+       agtv_result.val.timetz.time = time->time;
+       agtv_result.val.timetz.zone = time->zone;
+    }
+    else if (agtv_lhs->type == AGTV_INTERVAL && agtv_rhs->type == AGTV_INTERVAL)
+    {
+        agtv_result.type = AGTV_INTERVAL;
+        Interval *interval = DatumGetIntervalP(DirectFunctionCall2(interval_mi,
+                                IntervalPGetDatum(&agtv_lhs->val.interval),
+                                IntervalPGetDatum(&agtv_rhs->val.interval)));
+
+       agtv_result.val.interval.time = interval->time;
+       agtv_result.val.interval.day = interval->day;
+       agtv_result.val.interval.month = interval->month;
+    }
     else
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("Invalid input parameter types for gtype_sub")));
