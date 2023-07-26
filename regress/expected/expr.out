@@ -6623,6 +6623,41 @@ $$) AS r(result gtype);
 (1 row)
 
 --
+-- toTimestampTz()
+--
+SELECT * FROM cypher('expr', $$
+    RETURN toTimestampTz('12/17/1997 07:37:16.00+00'::timestamp)
+$$) AS r(result gtype);
+            result            
+------------------------------
+ Wed Dec 17 07:37:16 1997 GMT
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN toTimestampTz('12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+            result            
+------------------------------
+ Wed Dec 17 07:37:16 1997 GMT
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN toTimestampTz('12/17/1997'::date)
+$$) AS r(result gtype);
+            result            
+------------------------------
+ Wed Dec 17 00:00:00 1997 GMT
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN toTimestampTz(100000000000)
+$$) AS r(result gtype);
+            result            
+------------------------------
+ Sun Jan 02 03:46:40 2000 GMT
+(1 row)
+
+--
 -- aggregate functions avg(), sum(), count(), & count(*)
 --
 SELECT create_graph('UCSC');

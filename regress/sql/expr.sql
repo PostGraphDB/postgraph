@@ -2638,7 +2638,6 @@ $$) AS r(result gtype);
 SELECT * FROM cypher('expr', $$
     RETURN toTimestamp('12/17/1997 07:37:16.00+00')
 $$) AS r(result gtype);
-
 SELECT * FROM cypher('expr', $$
     RETURN toTimestamp('12/17/1997'::date)
 $$) AS r(result gtype);
@@ -2646,6 +2645,21 @@ SELECT * FROM cypher('expr', $$
     RETURN toTimestamp(100000000000)
 $$) AS r(result gtype);
 
+--
+-- toTimestampTz()
+--
+SELECT * FROM cypher('expr', $$
+    RETURN toTimestampTz('12/17/1997 07:37:16.00+00'::timestamp)
+$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$
+    RETURN toTimestampTz('12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$
+    RETURN toTimestampTz('12/17/1997'::date)
+$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$
+    RETURN toTimestampTz(100000000000)
+$$) AS r(result gtype);
 
 
 --
