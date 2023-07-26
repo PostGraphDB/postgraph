@@ -2661,6 +2661,24 @@ SELECT * FROM cypher('expr', $$
     RETURN toTimestampTz(100000000000)
 $$) AS r(result gtype);
 
+--
+-- toDate()
+--
+SELECT * FROM cypher('expr', $$
+    RETURN toDate('12/17/1997 07:37:16.00+00'::timestamp)
+$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$
+    RETURN toDate('12/17/1997 07:37:16.00+00'::timestamptz)
+$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$
+    RETURN toDate('12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$
+    RETURN toDate('12/17/1997'::date)
+$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$
+    RETURN toDate(100000000000)
+$$) AS r(result gtype);
 
 --
 -- aggregate functions avg(), sum(), count(), & count(*)

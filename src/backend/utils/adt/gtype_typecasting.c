@@ -75,6 +75,7 @@ static Datum gtype_to_numeric_internal(gtype_value *agtv);
 static Datum gtype_to_string_internal(gtype_value *agtv);
 static Datum gtype_to_timestamp_internal(gtype_value *agtv);
 static Datum gtype_to_timestamptz_internal(gtype_value *agtv);
+static Datum gtype_to_date_internal(gtype_value *agtv);
 
 static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqltype);
 
@@ -193,7 +194,6 @@ PG_FUNCTION_INFO_V1(totimestamptz);
  */                 
 Datum totimestamptz(PG_FUNCTION_ARGS)
 {               
-
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
 
     if (is_gtype_null(agt))
@@ -308,27 +308,17 @@ PG_FUNCTION_INFO_V1(todate);
 Datum todate(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    gtype_value *agtv = get_ith_gtype_value_from_container(&agt->root, 0);
-    DateADT dte;
 
-    if (agtv->type == AGTV_NULL)
+    if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
+    DateADT dte = DatumGetInt64(convert_to_scalar(gtype_to_date_internal, agt, "date"));
 
-    if (agtv->type == AGTV_DATE)
-        AG_RETURN_GTYPE_P(agt);
+    gtype_value agtv;
+    agtv.type = AGTV_DATE;
+    agtv.val.date = dte;
 
-    if (agtv->type != AGTV_STRING)
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("typecast to date must be a string")));
-
-    dte = DatumGetDateADT(DirectFunctionCall1(date_in, CStringGetDatum(agtv->val.string.val)));
-
-    agtv->type = AGTV_DATE;
-    agtv->val.date = dte;
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
 }  
 
 
@@ -630,6 +620,27 @@ gtype_to_timestamptz_internal(gtype_value *agtv) {
         return DirectFunctionCall1(timestamp_timestamptz, TimestampGetDatum(agtv->val.int_value));
     else if (agtv->type == AGTV_DATE)
         return TimestampGetDatum(date2timestamptz_opt_overflow(agtv->val.date, NULL));
+    else
+        cannot_cast_gtype_value(agtv->type, "timestamptz");
+
+    // unreachable
+    return CStringGetDatum("");
+}
+
+
+static Datum
+gtype_to_date_internal(gtype_value *agtv) {
+    if (agtv->type == AGTV_TIMESTAMPTZ)
+        return DateADTGetDatum(DirectFunctionCall1(timestamptz_date, TimestampTzGetDatum(agtv->val.int_value)));
+    else if (agtv->type == AGTV_STRING)
+        return DateADTGetDatum(DirectFunctionCall3(date_in,
+                                          CStringGetDatum(pnstrdup(agtv->val.string.val, agtv->val.string.len)),
+                                          ObjectIdGetDatum(InvalidOid),
+                                          Int32GetDatum(-1)));
+    else if (agtv->type == AGTV_TIMESTAMP)
+	return DateADTGetDatum(DirectFunctionCall1(timestamp_date, TimestampGetDatum(agtv->val.int_value)));
+    else if (agtv->type == AGTV_DATE)
+        return DateADTGetDatum(agtv->val.date);
     else
         cannot_cast_gtype_value(agtv->type, "timestamptz");
 
