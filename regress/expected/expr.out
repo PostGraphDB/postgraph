@@ -6588,6 +6588,41 @@ SELECT * from cypher('expr', $$
 $$) as (result gtype);
 ERROR:  sqrt() unsupported argument gtype 1
 --
+-- toTimestamp()
+--
+SELECT * FROM cypher('expr', $$
+    RETURN toTimestamp('12/17/1997 07:37:16.00+00'::timestamptz)
+$$) AS r(result gtype);
+          result          
+--------------------------
+ Wed Dec 17 07:37:16 1997
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN toTimestamp('12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+          result          
+--------------------------
+ Wed Dec 17 07:37:16 1997
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN toTimestamp('12/17/1997'::date)
+$$) AS r(result gtype);
+          result          
+--------------------------
+ Wed Dec 17 00:00:00 1997
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN toTimestamp(100000000000)
+$$) AS r(result gtype);
+          result          
+--------------------------
+ Sun Jan 02 03:46:40 2000
+(1 row)
+
+--
 -- aggregate functions avg(), sum(), count(), & count(*)
 --
 SELECT create_graph('UCSC');

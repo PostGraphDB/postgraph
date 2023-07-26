@@ -2630,6 +2630,25 @@ SELECT * from cypher('expr', $$
 $$) as (result gtype);
 
 --
+-- toTimestamp()
+--
+SELECT * FROM cypher('expr', $$
+    RETURN toTimestamp('12/17/1997 07:37:16.00+00'::timestamptz)
+$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$
+    RETURN toTimestamp('12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$
+    RETURN toTimestamp('12/17/1997'::date)
+$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$
+    RETURN toTimestamp(100000000000)
+$$) AS r(result gtype);
+
+
+
+--
 -- aggregate functions avg(), sum(), count(), & count(*)
 --
 SELECT create_graph('UCSC');

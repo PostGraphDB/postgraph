@@ -175,7 +175,7 @@ gtype_totimestamp(PG_FUNCTION_ARGS) {
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    int64 ts = DatumGetInt64(convert_to_scalar(gtype_to_timestamp_internal, agt, "string"));
+    int64 ts = DatumGetInt64(convert_to_scalar(gtype_to_timestamp_internal, agt, "timestamp"));
 
     gtype_value agtv;
     agtv.type = AGTV_TIMESTAMP;
@@ -594,6 +594,8 @@ gtype_to_string_internal(gtype_value *agtv) {
         return DirectFunctionCall1(numeric_to_string, NumericGetDatum(agtv->val.numeric));
     else if (agtv->type == AGTV_BOOL)
         return CStringGetDatum((agtv->val.boolean) ? "true" : "false");
+    else if (agtv->type == AGTV_TIMESTAMP)
+        return DirectFunctionCall1(timestamp_out, TimestampGetDatum(agtv->val.int_value));
     else
         cannot_cast_gtype_value(agtv->type, "string");
 
@@ -606,7 +608,14 @@ gtype_to_timestamp_internal(gtype_value *agtv) {
     if (agtv->type == AGTV_INTEGER || agtv->type == AGTV_TIMESTAMP)
         return TimestampGetDatum(agtv->val.int_value);
     else if (agtv->type == AGTV_STRING)
-        return TimestampGetDatum(DirectFunctionCall3(timestamp_in, CStringGetDatum(pnstrdup(agtv->val.string.val, agtv->val.string.len)), ObjectIdGetDatum(InvalidOid), Int32GetDatum(-1)));
+        return TimestampGetDatum(DirectFunctionCall3(timestamp_in,
+				          CStringGetDatum(pnstrdup(agtv->val.string.val, agtv->val.string.len)),
+					  ObjectIdGetDatum(InvalidOid),
+					  Int32GetDatum(-1)));
+    else if (agtv->type == AGTV_TIMESTAMPTZ)
+        return DirectFunctionCall1(timestamptz_timestamp, TimestampTzGetDatum(agtv->val.int_value));
+    else if (agtv->type == AGTV_DATE)
+        return TimestampGetDatum(date2timestamp_opt_overflow(agtv->val.date, NULL));
     else
         cannot_cast_gtype_value(agtv->type, "timestamp");
 
