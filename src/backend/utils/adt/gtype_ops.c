@@ -704,26 +704,22 @@ Datum gtype_mod(PG_FUNCTION_ARGS)
     if (agtv_lhs->type == AGTV_INTEGER && agtv_rhs->type == AGTV_INTEGER)
     {
         agtv_result.type = AGTV_INTEGER;
-        agtv_result.val.int_value = agtv_lhs->val.int_value %
-                                    agtv_rhs->val.int_value;
+        agtv_result.val.int_value = agtv_lhs->val.int_value % agtv_rhs->val.int_value;
     }
     else if (agtv_lhs->type == AGTV_FLOAT && agtv_rhs->type == AGTV_FLOAT)
     {
         agtv_result.type = AGTV_FLOAT;
-        agtv_result.val.float_value = fmod(agtv_lhs->val.float_value,
-                                           agtv_rhs->val.float_value);
+        agtv_result.val.float_value = fmod(agtv_lhs->val.float_value, agtv_rhs->val.float_value);
     }
     else if (agtv_lhs->type == AGTV_FLOAT && agtv_rhs->type == AGTV_INTEGER)
     {
         agtv_result.type = AGTV_FLOAT;
-        agtv_result.val.float_value = fmod(agtv_lhs->val.float_value,
-                                           agtv_rhs->val.int_value);
+        agtv_result.val.float_value = fmod(agtv_lhs->val.float_value, agtv_rhs->val.int_value);
     }
     else if (agtv_lhs->type == AGTV_INTEGER && agtv_rhs->type == AGTV_FLOAT)
     {
         agtv_result.type = AGTV_FLOAT;
-        agtv_result.val.float_value = fmod(agtv_lhs->val.int_value,
-                                           agtv_rhs->val.float_value);
+        agtv_result.val.float_value = fmod(agtv_lhs->val.int_value, agtv_rhs->val.float_value);
     }
     /* Is this a numeric result */
     else if (is_numeric_result(agtv_lhs, agtv_rhs))
@@ -771,26 +767,22 @@ Datum gtype_pow(PG_FUNCTION_ARGS)
     if (agtv_lhs->type == AGTV_INTEGER && agtv_rhs->type == AGTV_INTEGER)
     {
         agtv_result.type = AGTV_FLOAT;
-        agtv_result.val.float_value = pow(agtv_lhs->val.int_value,
-                                          agtv_rhs->val.int_value);
+        agtv_result.val.float_value = pow(agtv_lhs->val.int_value, agtv_rhs->val.int_value);
     }
     else if (agtv_lhs->type == AGTV_FLOAT && agtv_rhs->type == AGTV_FLOAT)
     {
         agtv_result.type = AGTV_FLOAT;
-        agtv_result.val.float_value = pow(agtv_lhs->val.float_value,
-                                          agtv_rhs->val.float_value);
+        agtv_result.val.float_value = pow(agtv_lhs->val.float_value, agtv_rhs->val.float_value);
     }
     else if (agtv_lhs->type == AGTV_FLOAT && agtv_rhs->type == AGTV_INTEGER)
     {
         agtv_result.type = AGTV_FLOAT;
-        agtv_result.val.float_value = pow(agtv_lhs->val.float_value,
-                                          agtv_rhs->val.int_value);
+        agtv_result.val.float_value = pow(agtv_lhs->val.float_value, agtv_rhs->val.int_value);
     }
     else if (agtv_lhs->type == AGTV_INTEGER && agtv_rhs->type == AGTV_FLOAT)
     {
         agtv_result.type = AGTV_FLOAT;
-        agtv_result.val.float_value = pow(agtv_lhs->val.int_value,
-                                          agtv_rhs->val.float_value);
+        agtv_result.val.float_value = pow(agtv_lhs->val.int_value, agtv_rhs->val.float_value);
     }
     /* Is this a numeric result */
     else if (is_numeric_result(agtv_lhs, agtv_rhs))
@@ -819,8 +811,7 @@ Datum gtype_eq(PG_FUNCTION_ARGS)
     gtype *gtype_rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    result = (compare_gtype_containers_orderability(&gtype_lhs->root,
-                                                     &gtype_rhs->root) == 0);
+    result = (compare_gtype_containers_orderability(&gtype_lhs->root, &gtype_rhs->root) == 0);
 
     PG_FREE_IF_COPY(gtype_lhs, 0);
     PG_FREE_IF_COPY(gtype_rhs, 1);
@@ -836,8 +827,7 @@ Datum gtype_ne(PG_FUNCTION_ARGS)
     gtype *gtype_rhs = AG_GET_ARG_GTYPE_P(1);
     bool result = true;
 
-    result = (compare_gtype_containers_orderability(&gtype_lhs->root,
-                                                     &gtype_rhs->root) != 0);
+    result = (compare_gtype_containers_orderability(&gtype_lhs->root, &gtype_rhs->root) != 0);
 
     PG_FREE_IF_COPY(gtype_lhs, 0);
     PG_FREE_IF_COPY(gtype_rhs, 1);
@@ -853,8 +843,7 @@ Datum gtype_lt(PG_FUNCTION_ARGS)
     gtype *gtype_rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    result = (compare_gtype_containers_orderability(&gtype_lhs->root,
-                                                     &gtype_rhs->root) < 0);
+    result = (compare_gtype_containers_orderability(&gtype_lhs->root, &gtype_rhs->root) < 0);
 
     PG_FREE_IF_COPY(gtype_lhs, 0);
     PG_FREE_IF_COPY(gtype_rhs, 1);
@@ -870,8 +859,7 @@ Datum gtype_gt(PG_FUNCTION_ARGS)
     gtype *gtype_rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    result = (compare_gtype_containers_orderability(&gtype_lhs->root,
-                                                     &gtype_rhs->root) > 0);
+    result = (compare_gtype_containers_orderability(&gtype_lhs->root, &gtype_rhs->root) > 0);
 
     PG_FREE_IF_COPY(gtype_lhs, 0);
     PG_FREE_IF_COPY(gtype_rhs, 1);
@@ -887,8 +875,7 @@ Datum gtype_le(PG_FUNCTION_ARGS)
     gtype *gtype_rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    result = (compare_gtype_containers_orderability(&gtype_lhs->root,
-                                                     &gtype_rhs->root) <= 0);
+    result = (compare_gtype_containers_orderability(&gtype_lhs->root, &gtype_rhs->root) <= 0);
 
     PG_FREE_IF_COPY(gtype_lhs, 0);
     PG_FREE_IF_COPY(gtype_rhs, 1);
@@ -904,8 +891,7 @@ Datum gtype_ge(PG_FUNCTION_ARGS)
     gtype *gtype_rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    result = (compare_gtype_containers_orderability(&gtype_lhs->root,
-                                                     &gtype_rhs->root) >= 0);
+    result = (compare_gtype_containers_orderability(&gtype_lhs->root, &gtype_rhs->root) >= 0);
 
     PG_FREE_IF_COPY(gtype_lhs, 0);
     PG_FREE_IF_COPY(gtype_rhs, 1);
@@ -920,19 +906,11 @@ PG_FUNCTION_INFO_V1(gtype_contains);
  */
 Datum gtype_contains(PG_FUNCTION_ARGS)
 {
-    gtype_iterator *constraint_it, *property_it;
-    gtype *properties, *constraints;
+    gtype *properties = AG_GET_ARG_GTYPE_P(0);
+    gtype *constraints = AG_GET_ARG_GTYPE_P(1);
 
-    if (PG_ARGISNULL(0) || PG_ARGISNULL(1))
-    {
-        PG_RETURN_NULL();
-    }
-
-    properties = AG_GET_ARG_GTYPE_P(0);
-    constraints = AG_GET_ARG_GTYPE_P(1);
-
-    constraint_it = gtype_iterator_init(&constraints->root);
-    property_it = gtype_iterator_init(&properties->root);
+    gtype_iterator *constraint_it = gtype_iterator_init(&constraints->root);
+    gtype_iterator *property_it = gtype_iterator_init(&properties->root);
 
     PG_RETURN_BOOL(gtype_deep_contains(&property_it, &constraint_it));
 }
@@ -945,19 +923,11 @@ PG_FUNCTION_INFO_V1(gtype_contained_by);
  */
 Datum gtype_contained_by(PG_FUNCTION_ARGS)
 {
-    gtype_iterator *constraint_it, *property_it;
-    gtype *properties, *constraints;
+    gtype *properties = AG_GET_ARG_GTYPE_P(0);
+    gtype *constraints = AG_GET_ARG_GTYPE_P(1);
 
-    if (PG_ARGISNULL(0) || PG_ARGISNULL(1))
-    {
-        PG_RETURN_NULL();
-    }
-
-    properties = AG_GET_ARG_GTYPE_P(0);
-    constraints = AG_GET_ARG_GTYPE_P(1);
-
-    constraint_it = gtype_iterator_init(&constraints->root);
-    property_it = gtype_iterator_init(&properties->root);
+    gtype_iterator *constraint_it = gtype_iterator_init(&constraints->root);
+    gtype_iterator *property_it = gtype_iterator_init(&properties->root);
 
     PG_RETURN_BOOL(gtype_deep_contains(&constraint_it, &property_it));
 }
@@ -983,9 +953,7 @@ Datum gtype_exists(PG_FUNCTION_ARGS)
     aval.val.string.val = VARDATA_ANY(key);
     aval.val.string.len = VARSIZE_ANY_EXHDR(key);
 
-    v = find_gtype_value_from_container(&agt->root,
-                                         AGT_FOBJECT | AGT_FARRAY,
-                                         &aval);
+    v = find_gtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, &aval);
 
     PG_RETURN_BOOL(v != NULL);
 }
@@ -1004,28 +972,21 @@ Datum gtype_exists_any(PG_FUNCTION_ARGS)
     bool *key_nulls;
     int elem_count;
 
-    deconstruct_array(keys, TEXTOID, -1, false, 'i', &key_datums, &key_nulls,
-                      &elem_count);
+    deconstruct_array(keys, TEXTOID, -1, false, 'i', &key_datums, &key_nulls, &elem_count);
 
     for (i = 0; i < elem_count; i++)
     {
         gtype_value strVal;
 
         if (key_nulls[i])
-        {
             continue;
-        }
 
         strVal.type = AGTV_STRING;
         strVal.val.string.val = VARDATA(key_datums[i]);
         strVal.val.string.len = VARSIZE(key_datums[i]) - VARHDRSZ;
 
-        if (find_gtype_value_from_container(&agt->root,
-                                        AGT_FOBJECT | AGT_FARRAY,
-                                        &strVal) != NULL)
-        {
+        if (find_gtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, &strVal) != NULL)
             PG_RETURN_BOOL(true);
-        }
     }
 
     PG_RETURN_BOOL(false);
@@ -1045,28 +1006,20 @@ Datum gtype_exists_all(PG_FUNCTION_ARGS)
     bool *key_nulls;
     int elem_count;
 
-    deconstruct_array(keys, TEXTOID, -1, false, 'i', &key_datums, &key_nulls,
-                      &elem_count);
+    deconstruct_array(keys, TEXTOID, -1, false, 'i', &key_datums, &key_nulls, &elem_count);
 
-    for (i = 0; i < elem_count; i++)
-    {
+    for (i = 0; i < elem_count; i++) {
         gtype_value strVal;
 
         if (key_nulls[i])
-        {
             continue;
-        }
 
         strVal.type = AGTV_STRING;
         strVal.val.string.val = VARDATA(key_datums[i]);
         strVal.val.string.len = VARSIZE(key_datums[i]) - VARHDRSZ;
 
-        if (find_gtype_value_from_container(&agt->root,
-                                        AGT_FOBJECT | AGT_FARRAY,
-                                        &strVal) == NULL)
-        {
+        if (find_gtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, &strVal) == NULL)
             PG_RETURN_BOOL(false);
-        }
     }
 
     PG_RETURN_BOOL(true);
@@ -1110,10 +1063,7 @@ static gtype *gtype_concat(gtype *agt1, gtype *agt2)
  * In that case we just append the content of it2 to it1 without any
  * verifications.
  */
-static gtype_value *iterator_concat(gtype_iterator **it1,
-                                     gtype_iterator **it2,
-                                     gtype_parse_state **state)
-{
+static gtype_value *iterator_concat(gtype_iterator **it1, gtype_iterator **it2, gtype_parse_state **state) {
     gtype_value v1, v2, *res = NULL;
     gtype_iterator_token r1, r2, rk1, rk2;
 
@@ -1138,8 +1088,7 @@ static gtype_value *iterator_concat(gtype_iterator **it1,
          * (the concatenation will be completed).
          */
         while ((r2 = gtype_iterator_next(it2, &v2, true)) != 0)
-            res = push_gtype_value(state, r2,
-                                    r2 != WAGT_END_OBJECT ? &v2 : NULL);
+            res = push_gtype_value(state, r2, r2 != WAGT_END_OBJECT ? &v2 : NULL);
     }
 
     /*
@@ -1165,10 +1114,8 @@ static gtype_value *iterator_concat(gtype_iterator **it1,
                                 NULL /* signal to sort */);
     }
     /* have we got array || object or object || array? */
-    else if (((rk1 == WAGT_BEGIN_ARRAY && !(*it1)->is_scalar) &&
-              rk2 == WAGT_BEGIN_OBJECT) ||
-             (rk1 == WAGT_BEGIN_OBJECT &&
-              (rk2 == WAGT_BEGIN_ARRAY && !(*it2)->is_scalar)))
+    else if (((rk1 == WAGT_BEGIN_ARRAY && !(*it1)->is_scalar) && rk2 == WAGT_BEGIN_OBJECT) ||
+             (rk1 == WAGT_BEGIN_OBJECT && (rk2 == WAGT_BEGIN_ARRAY && !(*it2)->is_scalar)))
     {
         gtype_iterator **it_array = rk1 == WAGT_BEGIN_ARRAY ? it1 : it2;
         gtype_iterator **it_object = rk1 == WAGT_BEGIN_OBJECT ? it1 : it2;
@@ -1181,23 +1128,19 @@ static gtype_value *iterator_concat(gtype_iterator **it1,
         {
             push_gtype_value(state, WAGT_BEGIN_OBJECT, NULL);
             while ((r1 = gtype_iterator_next(it_object, &v1, true)) != 0)
-                push_gtype_value(state, r1,
-                                  r1 != WAGT_END_OBJECT ? &v1 : NULL);
+                push_gtype_value(state, r1, r1 != WAGT_END_OBJECT ? &v1 : NULL);
 
             while ((r2 = gtype_iterator_next(it_array, &v2, true)) != 0)
-                res = push_gtype_value(state, r2,
-                                        r2 != WAGT_END_ARRAY ? &v2 : NULL);
+                res = push_gtype_value(state, r2, r2 != WAGT_END_ARRAY ? &v2 : NULL);
         }
         else
         {
-            while ((r1 = gtype_iterator_next(it_array, &v1, true)) !=
-                   WAGT_END_ARRAY)
+            while ((r1 = gtype_iterator_next(it_array, &v1, true)) != WAGT_END_ARRAY)
                 push_gtype_value(state, r1, &v1);
 
             push_gtype_value(state, WAGT_BEGIN_OBJECT, NULL);
             while ((r2 = gtype_iterator_next(it_object, &v2, true)) != 0)
-                push_gtype_value(state, r2,
-                                  r2 != WAGT_END_OBJECT ? &v2 : NULL);
+                push_gtype_value(state, r2, r2 != WAGT_END_OBJECT ? &v2 : NULL);
 
             res = push_gtype_value(state, WAGT_END_ARRAY, NULL);
         }
@@ -1223,18 +1166,14 @@ static void ereport_op_str(const char *op, gtype *lhs, gtype *rhs)
 
     AssertArg(rhs != NULL);
 
-    if (lhs == NULL)
-    {
+    if (lhs == NULL) {
         msgfmt = "invalid expression: %s%s%s";
         lstr = "";
-    }
-    else
-    {
+    } else {
         msgfmt = "invalid expression: %s %s %s";
         lstr = gtype_to_cstring(NULL, &lhs->root, VARSIZE(lhs));
     }
     rstr = gtype_to_cstring(NULL, &rhs->root, VARSIZE(rhs));
 
-    ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                    errmsg(msgfmt, lstr, op, rstr)));
+    ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg(msgfmt, lstr, op, rstr)));
 }
