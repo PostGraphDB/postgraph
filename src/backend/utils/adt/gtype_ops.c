@@ -435,6 +435,17 @@ Datum gtype_neg(PG_FUNCTION_ARGS)
         agtv_result.type = AGTV_NUMERIC;
         agtv_result.val.numeric = DatumGetNumeric(numd);
     }
+    else if (agtv_value->type == AGTV_INTERVAL)
+    {
+        agtv_result.type = AGTV_INTERVAL;
+        Interval *interval = DatumGetIntervalP(DirectFunctionCall1(interval_um,
+                                IntervalPGetDatum(&agtv_value->val.interval)));
+
+       agtv_result.val.interval.time = interval->time;
+       agtv_result.val.interval.day = interval->day;
+       agtv_result.val.interval.month = interval->month;
+	    
+    }
     else
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("Invalid input parameter type for gtype_neg")));

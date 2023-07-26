@@ -960,6 +960,11 @@ SELECT * FROM cypher('expr', $$ RETURN '13:39:40.00'::timetz - '8 Hours'::interv
 --
 SELECT * FROM cypher('expr', $$ RETURN '10 Days'::interval - '8 Hours'::interval $$) AS r(c gtype);
 
+--
+-- - Interval Operator
+--
+SELECT * FROM cypher('expr', $$ RETURN - '8 Hours'::interval $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN - '8 Hours Ago'::interval $$) AS r(c gtype);
 
 --
 -- Test chained comparisons
