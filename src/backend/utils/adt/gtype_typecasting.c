@@ -77,6 +77,7 @@ static Datum gtype_to_timestamp_internal(gtype_value *agtv);
 static Datum gtype_to_timestamptz_internal(gtype_value *agtv);
 static Datum gtype_to_date_internal(gtype_value *agtv);
 static Datum gtype_to_time_internal(gtype_value *agtv);
+static Datum gtype_to_timetz_internal(gtype_value *agtv);
 
 static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqltype);
 
@@ -225,27 +226,6 @@ Datum totime(PG_FUNCTION_ARGS)
 
     t = DatumGetInt64(convert_to_scalar(gtype_to_time_internal, agt, "time"));
 
-/*
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    gtype_value *agtv = get_ith_gtype_value_from_container(&agt->root, 0);
-    Timestamp t;
-
-    if (agtv->type == AGTV_NULL)
-        PG_RETURN_NULL();
-
-
-    if (agtv->type == AGTV_TIMESTAMP)
-        AG_RETURN_GTYPE_P(agt);
-
-    if (agtv->type != AGTV_STRING)
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("typecastint to timestamp must be a string")));
-
-    t = DatumGetTimestamp(DirectFunctionCall3(time_in, CStringGetDatum(agtv->val.string.val),
-                                                            ObjectIdGetDatum(InvalidOid),
-                                                            Int32GetDatum(-1)));
-  */
     gtype_value agtv;
     agtv.type = AGTV_TIME;
     agtv.val.int_value = (int64)t;
@@ -260,29 +240,19 @@ PG_FUNCTION_INFO_V1(totimetz);
 Datum totimetz(PG_FUNCTION_ARGS)
 {   
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    gtype_value *agtv = get_ith_gtype_value_from_container(&agt->root, 0);
     TimeTzADT* t;
 
-    if (agtv->type == AGTV_NULL)
+    if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
+    t = DatumGetInt64(convert_to_scalar(gtype_to_timetz_internal, agt, "time"));
 
-    if (agtv->type == AGTV_TIMETZ)
-        AG_RETURN_GTYPE_P(agt);
+    gtype_value agtv;
+    agtv.type = AGTV_TIMETZ;
+    agtv.val.timetz.time = t->time;
+    agtv.val.timetz.zone = t->zone;
 
-    if (agtv->type != AGTV_STRING)
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("typecastint to timetz must be a string")));
-
-    t = DatumGetTimeTzADTP(DirectFunctionCall3(timetz_in, CStringGetDatum(agtv->val.string.val),
-                                                            ObjectIdGetDatum(InvalidOid),
-                                                            Int32GetDatum(-1)));
-    agtv->type = AGTV_TIMETZ;
-    agtv->val.timetz.time = t->time;
-    agtv->val.timetz.zone = t->zone;
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
 } 
 
 PG_FUNCTION_INFO_V1(tointerval);
@@ -682,6 +652,25 @@ gtype_to_time_internal(gtype_value *agtv) {
     return CStringGetDatum("");
 }
 
+static Datum
+gtype_to_timetz_internal(gtype_value *agtv) {
+    if (agtv->type == AGTV_TIMESTAMPTZ)
+        return TimeTzADTPGetDatum(DirectFunctionCall1(timestamptz_timetz, TimestampTzGetDatum(agtv->val.int_value)));
+    else if (agtv->type == AGTV_STRING)
+        return TimeTzADTPGetDatum(DirectFunctionCall3(timetz_in,
+                                          CStringGetDatum(pnstrdup(agtv->val.string.val, agtv->val.string.len)),
+                                          ObjectIdGetDatum(InvalidOid),
+                                          Int32GetDatum(-1)));
+    else if (agtv->type == AGTV_TIME)
+        return TimeTzADTPGetDatum(DirectFunctionCall1(time_timetz, TimeADTGetDatum(agtv->val.int_value)));
+    else if (agtv->type == AGTV_TIMETZ)
+	return TimeTzADTPGetDatum(&agtv->val.timetz);
+    else                 
+        cannot_cast_gtype_value(agtv->type, "time");
+    
+    // unreachable
+    return CStringGetDatum("");
+}  
 
 /*
  * Emit correct, translatable cast error message
@@ -698,7 +687,13 @@ cannot_cast_gtype_value(enum gtype_value_type type, const char *sqltype) {
         {AGTV_INTEGER, gettext_noop("cannot cast gtype integer to type %s")},
         {AGTV_FLOAT, gettext_noop("cannot cast gtype float to type %s")},
         {AGTV_BOOL, gettext_noop("cannot cast gtype boolean to type %s")},
-        {AGTV_ARRAY, gettext_noop("cannot cast gtype array to type %s")},
+	{AGTV_TIMESTAMP, gettext_noop("cannot cast gtype timestamp to type %s")},
+	{AGTV_TIMESTAMPTZ, gettext_noop("cannot cast gtype timestamptz to type %s")},
+	{AGTV_DATE, gettext_noop("cannot cast gtype date to type %s")},
+	{AGTV_TIME, gettext_noop("cannot cast gtype time to type %s")},
+	{AGTV_TIMETZ, gettext_noop("cannot cast gtype timetz to type %s")},
+        {AGTV_INTERVAL, gettext_noop("cannot cast gtype interval to type %s")},
+	{AGTV_ARRAY, gettext_noop("cannot cast gtype array to type %s")},
         {AGTV_OBJECT, gettext_noop("cannot cast gtype object to type %s")},
         {AGTV_BINARY,
          gettext_noop("cannot cast gtype array or object to type %s")}};

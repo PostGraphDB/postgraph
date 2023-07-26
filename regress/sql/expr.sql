@@ -2696,6 +2696,23 @@ $$) AS r(result gtype);
 SELECT * FROM cypher('expr', $$
     RETURN toTime('7 Hours 37 Minutes 16 Seconds'::interval)
 $$) AS r(result gtype);
+
+--
+-- toTimeTz()
+--
+SELECT * FROM cypher('expr', $$
+    RETURN toTimeTz('12/17/1997 07:37:16.00+00'::timestamptz)
+$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ 
+    RETURN toTimeTz('07:37:16.00+00')
+$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$ 
+    RETURN toTimeTz('07:37:16.00+00'::timetz)
+$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$
+    RETURN toTimeTz('07:37:16.00+00'::time)
+$$) AS r(result gtype);
+
 --
 -- aggregate functions avg(), sum(), count(), & count(*)
 --

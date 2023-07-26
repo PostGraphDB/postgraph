@@ -6736,6 +6736,41 @@ $$) AS r(result gtype);
 (1 row)
 
 --
+-- toTimeTz()
+--
+SELECT * FROM cypher('expr', $$
+    RETURN toTimeTz('12/17/1997 07:37:16.00+00'::timestamptz)
+$$) AS r(result gtype);
+   result    
+-------------
+ 07:37:16+00
+(1 row)
+
+SELECT * FROM cypher('expr', $$ 
+    RETURN toTimeTz('07:37:16.00+00')
+$$) AS r(result gtype);
+   result    
+-------------
+ 07:37:16+00
+(1 row)
+
+SELECT * FROM cypher('expr', $$ 
+    RETURN toTimeTz('07:37:16.00+00'::timetz)
+$$) AS r(result gtype);
+   result    
+-------------
+ 07:37:16+00
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN toTimeTz('07:37:16.00+00'::time)
+$$) AS r(result gtype);
+   result    
+-------------
+ 07:37:16+00
+(1 row)
+
+--
 -- aggregate functions avg(), sum(), count(), & count(*)
 --
 SELECT create_graph('UCSC');
