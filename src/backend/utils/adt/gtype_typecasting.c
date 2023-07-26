@@ -401,6 +401,19 @@ text_to_gtype(PG_FUNCTION_ARGS) {
     return string_to_gtype(TextDatumGetCString(txt));
 }
 
+PG_FUNCTION_INFO_V1(timestamp_to_gtype);
+//timestamp -> gtype
+Datum
+timestamp_to_gtype(PG_FUNCTION_ARGS) {
+    int64 ts = PG_GETARG_TIMESTAMP(0);
+
+    gtype_value agtv;
+    agtv.type = AGTV_TIMESTAMP;
+    agtv.val.int_value = ts;
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
+}
+
 /*
  * gtype to postgres array functions
  */

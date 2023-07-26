@@ -2646,6 +2646,11 @@ SELECT * FROM cypher('expr', $$
 $$) AS r(result gtype);
 
 --
+-- Postgres Timestamp to GType
+--
+SELECT '12/17/1997 07:37:16.00+00'::timestamp::gtype;
+
+--
 -- toTimestampTz()
 --
 SELECT * FROM cypher('expr', $$
