@@ -966,10 +966,20 @@ SELECT * FROM cypher('expr', $$ RETURN '10 Days'::interval - '8 Hours'::interval
 SELECT * FROM cypher('expr', $$ RETURN - '8 Hours'::interval $$) AS r(c gtype);
 SELECT * FROM cypher('expr', $$ RETURN - '8 Hours Ago'::interval $$) AS r(c gtype);
 
+
+--
+-- * Interval Operator
+--
 SELECT * FROM cypher('expr', $$ RETURN '8 Hours'::interval * 8.0 $$) AS r(c gtype);
 SELECT * FROM cypher('expr', $$ RETURN '8 Hours'::interval * 8 $$) AS r(c gtype);
 SELECT * FROM cypher('expr', $$ RETURN 8 * '8 Hours'::interval $$) AS r(c gtype);
 SELECT * FROM cypher('expr', $$ RETURN 8.0 * '8 Hours'::interval $$) AS r(c gtype);
+
+--
+-- / Interval Operator
+--
+SELECT * FROM cypher('expr', $$ RETURN '8 Hours'::interval / 8.0 $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$ RETURN '8 Hours'::interval / 8 $$) AS r(c gtype);
 
 --
 -- Test chained comparisons

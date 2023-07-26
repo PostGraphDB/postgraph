@@ -2721,6 +2721,9 @@ SELECT * FROM cypher('expr', $$ RETURN - '8 Hours Ago'::interval $$) AS r(c gtyp
  @ 8 hours
 (1 row)
 
+--
+-- * Interval Operator
+--
 SELECT * FROM cypher('expr', $$ RETURN '8 Hours'::interval * 8.0 $$) AS r(c gtype);
      c      
 ------------
@@ -2743,6 +2746,21 @@ SELECT * FROM cypher('expr', $$ RETURN 8.0 * '8 Hours'::interval $$) AS r(c gtyp
      c      
 ------------
  @ 64 hours
+(1 row)
+
+--
+-- / Interval Operator
+--
+SELECT * FROM cypher('expr', $$ RETURN '8 Hours'::interval / 8.0 $$) AS r(c gtype);
+    c     
+----------
+ @ 1 hour
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN '8 Hours'::interval / 8 $$) AS r(c gtype);
+    c     
+----------
+ @ 1 hour
 (1 row)
 
 --

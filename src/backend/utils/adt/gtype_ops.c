@@ -648,6 +648,28 @@ Datum gtype_div(PG_FUNCTION_ARGS)
         agtv_result.type = AGTV_NUMERIC;
         agtv_result.val.numeric = DatumGetNumeric(numd);
     }
+    else if (agtv_lhs->type == AGTV_INTERVAL && agtv_rhs->type == AGTV_FLOAT)
+    {
+        agtv_result.type = AGTV_INTERVAL;
+        Interval *interval = DatumGetIntervalP(DirectFunctionCall2(interval_div,
+                                IntervalPGetDatum(&agtv_lhs->val.interval),
+                                Float8GetDatum(agtv_rhs->val.float_value)));
+
+       agtv_result.val.interval.time = interval->time;
+       agtv_result.val.interval.day = interval->day;
+       agtv_result.val.interval.month = interval->month;
+    }
+    else if (agtv_lhs->type == AGTV_INTERVAL && agtv_rhs->type == AGTV_INTEGER)
+    {
+        agtv_result.type = AGTV_INTERVAL;
+        Interval *interval = DatumGetIntervalP(DirectFunctionCall2(interval_div,
+                                IntervalPGetDatum(&agtv_lhs->val.interval),
+                                Float8GetDatum((float8)agtv_rhs->val.int_value)));
+
+       agtv_result.val.interval.time = interval->time;
+       agtv_result.val.interval.day = interval->day;
+       agtv_result.val.interval.month = interval->month;
+    }
     else
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("Invalid input parameter types for gtype_div")));
