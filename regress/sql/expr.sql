@@ -2734,6 +2734,11 @@ SELECT * FROM cypher('expr', $$
 $$) AS r(result gtype);
 
 --
+-- Postgres Time to GType
+--
+SELECT '07:37:16.00+08'::timetz::gtype;
+
+--
 -- Current Temporal Keywords
 --
 SELECT result = CURRENT_TIMESTAMP::gtype FROM cypher('expr', $$

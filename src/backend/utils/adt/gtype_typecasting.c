@@ -450,6 +450,19 @@ time_to_gtype(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
 }
 
+PG_FUNCTION_INFO_V1(timetz_to_gtype);
+//timetz -> gtype
+Datum
+timetz_to_gtype(PG_FUNCTION_ARGS) {
+    TimeTzADT *t = PG_GETARG_TIMETZADT_P(0);
+
+    gtype_value agtv;
+    agtv.type = AGTV_TIMETZ;
+    agtv.val.timetz.time = t->time;
+    agtv.val.timetz.zone = t->zone;
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
+}
 
 /*
  * gtype to postgres array functions
