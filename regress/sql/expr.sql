@@ -2761,6 +2761,24 @@ SELECT result = CURRENT_TIME(1)::gtype FROM cypher('expr', $$
     RETURN CURRENT_TIME(1)
 $$) AS r(result gtype);
 
+--
+-- Local Temporal Keywords
+--
+SELECT result = LOCALTIMESTAMP::gtype FROM cypher('expr', $$
+    RETURN LOCALTIMESTAMP
+$$) AS r(result gtype);
+
+SELECT result = LOCALTIMESTAMP(1)::gtype FROM cypher('expr', $$
+    RETURN LOCALTIMESTAMP(1)
+$$) AS r(result gtype);
+
+SELECT result = LOCALTIME::gtype FROM cypher('expr', $$
+    RETURN LOCALTIME
+$$) AS r(result gtype);
+
+SELECT result = LOCALTIME(1)::gtype FROM cypher('expr', $$
+    RETURN LOCALTIME(1)
+$$) AS r(result gtype);
 
 --
 -- aggregate functions avg(), sum(), count(), & count(*)

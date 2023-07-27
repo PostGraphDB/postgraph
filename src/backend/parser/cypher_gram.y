@@ -89,7 +89,7 @@
                  ELSE END_P ENDS EXISTS
                  FALSE_P
                  IN IS
-                 LIMIT
+                 LIMIT LOCALTIME LOCALTIMESTAMP
                  MATCH MERGE
                  NOT NULL_P
                  OPTIONAL OR ORDER
@@ -1366,6 +1366,14 @@ expr_func_subexpr:
         {
             $$ = makeSQLValueFunction(SVFOP_CURRENT_DATE, -1, @1);
         }
+    | CURRENT_TIME
+        {
+            $$ = makeSQLValueFunction(SVFOP_CURRENT_TIME, -1, @1);
+        }
+    | CURRENT_TIME '(' INTEGER ')'
+        {
+            $$ = makeSQLValueFunction(SVFOP_CURRENT_TIME, $3, @1);
+        }
     | CURRENT_TIMESTAMP
         {
             $$ = makeSQLValueFunction(SVFOP_CURRENT_TIMESTAMP, -1, @1);
@@ -1382,6 +1390,22 @@ expr_func_subexpr:
             c->args = $3;
             c->location = @1;
             $$ = (Node *) c;
+        }
+    | LOCALTIME
+        {
+            $$ = makeSQLValueFunction(SVFOP_LOCALTIME, -1, @1);
+        }
+    | LOCALTIME '(' INTEGER ')'
+        {
+            $$ = makeSQLValueFunction(SVFOP_LOCALTIME, $3, @1);
+        }
+    | LOCALTIMESTAMP
+        {
+            $$ = makeSQLValueFunction(SVFOP_LOCALTIMESTAMP, -1, @1);
+        }
+    | LOCALTIMESTAMP '(' INTEGER ')'
+        {
+            $$ = makeSQLValueFunction(SVFOP_LOCALTIMESTAMP, $3, @1);
         }
     | EXISTS '(' anonymous_path ')'
         {

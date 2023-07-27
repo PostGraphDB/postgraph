@@ -6845,16 +6845,54 @@ $$) AS r(result gtype);
 SELECT result = CURRENT_TIME::gtype FROM cypher('expr', $$
     RETURN CURRENT_TIME
 $$) AS r(result gtype);
-ERROR:  could not find rte for CURRENT_TIME
-LINE 2:     RETURN CURRENT_TIME
-                   ^
+ ?column? 
+----------
+ t
+(1 row)
+
 SELECT result = CURRENT_TIME(1)::gtype FROM cypher('expr', $$
     RETURN CURRENT_TIME(1)
 $$) AS r(result gtype);
-ERROR:  function postgraph.current_time(gtype) does not exist
-LINE 2:     RETURN CURRENT_TIME(1)
-                   ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+ ?column? 
+----------
+ t
+(1 row)
+
+--
+-- Local Temporal Keywords
+--
+SELECT result = LOCALTIMESTAMP::gtype FROM cypher('expr', $$
+    RETURN LOCALTIMESTAMP
+$$) AS r(result gtype);
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT result = LOCALTIMESTAMP(1)::gtype FROM cypher('expr', $$
+    RETURN LOCALTIMESTAMP(1)
+$$) AS r(result gtype);
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT result = LOCALTIME::gtype FROM cypher('expr', $$
+    RETURN LOCALTIME
+$$) AS r(result gtype);
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT result = LOCALTIME(1)::gtype FROM cypher('expr', $$
+    RETURN LOCALTIME(1)
+$$) AS r(result gtype);
+ ?column? 
+----------
+ t
+(1 row)
+
 --
 -- aggregate functions avg(), sum(), count(), & count(*)
 --
