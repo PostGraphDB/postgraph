@@ -6834,6 +6834,14 @@ $$) AS r(result gtype);
  t
 (1 row)
 
+SELECT result = CURRENT_DATE::gtype FROM cypher('expr', $$
+    RETURN CURRENT_DATE
+$$) AS r(result gtype);
+ ?column? 
+----------
+ t
+(1 row)
+
 --
 -- aggregate functions avg(), sum(), count(), & count(*)
 --

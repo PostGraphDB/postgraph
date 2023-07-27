@@ -84,7 +84,7 @@
 /* keywords in alphabetical order */
 %token <keyword> ALL AND AS ASC ASCENDING
                  BY
-                 CALL CASE COALESCE CONTAINS CREATE CURRENT_TIME CURRENT_TIMESTAMP
+                 CALL CASE COALESCE CONTAINS CREATE CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
                  DELETE DESC DESCENDING DETACH DISTINCT
                  ELSE END_P ENDS EXISTS
                  FALSE_P
@@ -1362,7 +1362,11 @@ expr_func_norm:
     ;
 
 expr_func_subexpr:
-    CURRENT_TIMESTAMP
+    CURRENT_DATE
+        {
+            $$ = makeSQLValueFunction(SVFOP_CURRENT_DATE, -1, @1);
+        }
+    | CURRENT_TIMESTAMP
         {
             $$ = makeSQLValueFunction(SVFOP_CURRENT_TIMESTAMP, -1, @1);
         }
