@@ -6711,6 +6711,15 @@ $$) AS r(result gtype);
 (1 row)
 
 --
+-- Postgres Date to GType
+--
+SELECT '12/17/1997'::date::gtype;
+   gtype    
+------------
+ 12-17-1997
+(1 row)
+
+--
 -- toTime()
 --
 SELECT * FROM cypher('expr', $$

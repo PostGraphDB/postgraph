@@ -2687,6 +2687,10 @@ SELECT * FROM cypher('expr', $$
     RETURN toDate('12/17/1997'::date)
 $$) AS r(result gtype);
 
+--
+-- Postgres Date to GType
+--
+SELECT '12/17/1997'::date::gtype;
 
 --
 -- toTime()

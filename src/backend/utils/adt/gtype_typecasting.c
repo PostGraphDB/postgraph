@@ -427,6 +427,19 @@ timestamptz_to_gtype(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
 }
 
+PG_FUNCTION_INFO_V1(date_to_gtype);
+//date -> gtype
+Datum
+date_to_gtype(PG_FUNCTION_ARGS) {
+
+    gtype_value agtv;
+    agtv.type = AGTV_DATE;
+    agtv.val.int_value = PG_GETARG_DATEADT(0);
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
+}
+
+
 /*
  * gtype to postgres array functions
  */
