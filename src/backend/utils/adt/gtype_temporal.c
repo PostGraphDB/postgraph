@@ -19,6 +19,7 @@
 
 #include "postgres.h"
 
+#include "access/xact.h"
 #include "common/int128.h"
 #include "utils/date.h"
 #include "utils/timestamp.h"

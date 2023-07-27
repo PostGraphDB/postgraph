@@ -667,9 +667,6 @@ make_qualified_function_name(cypher_parsestate *cpstate, List *lst, List *targs)
     char *ag_name = palloc(pnlen + 1);
     int i;
         
-//    // catalog functions are prefixed with age_
-  //  strncpy(ag_name, "age_", 4);
-        
     /*
      * change all functions to lower case, this is mostly uncessary, but some
      * functions are keywords in SQL, we need to escape those functions in the sql
@@ -683,7 +680,11 @@ make_qualified_function_name(cypher_parsestate *cpstate, List *lst, List *targs)
     ag_name[i] = '\0';
 
     // add the catalog schema and create list        
-    List *fname = list_make2(makeString(CATALOG_SCHEMA), makeString(ag_name));
+    List *fname;
+    if (strcmp(ag_name, "now") == 0)
+        fname = list_make2(makeString("pg_catalog"), makeString(ag_name));
+    else
+        fname = list_make2(makeString(CATALOG_SCHEMA), makeString(ag_name));
 
     // Some functions need the graph name passed to them in order to work
     if (strcmp("startnode", ag_name) == 0 || strcmp("endnode", ag_name) == 0 || strcmp("vle", ag_name) == 0 || strcmp("vertex_stats", ag_name) == 0) {
@@ -723,6 +724,30 @@ transform_func_call(cypher_parsestate *cpstate, FuncCall *fn) {
     // Passed our new fname to the normal function transform logic
     Node *retval = ParseFuncOrColumn(pstate, fname, args, last_srf, fn, false, fn->location);
 
+
+    if (list_length(fn->funcname) == 1) {
+        char *name = strVal(linitial(fn->funcname));
+	if (strcmp(name, "now") == 0) {
+            Node *result;
+            Oid inputType;
+            Oid targetType;
+            int32 targetTypmod;
+    
+            typenameTypeIdAndMod(cpstate, makeTypeName("gtype"), &targetType, &targetTypmod);
+
+            inputType = exprType(retval);
+
+            result = coerce_to_target_type(cpstate, retval, inputType, targetType, targetTypmod,
+                                           COERCION_EXPLICIT, COERCE_EXPLICIT_CAST, -1);
+
+            if (result == NULL)
+                ereport(ERROR, (errcode(ERRCODE_CANNOT_COERCE),
+                        errmsg("cannot cast type %s to %s", format_type_be(inputType), format_type_be(targetType)),
+                        parser_coercion_errposition(cpstate, -1, retval)));
+
+            retval = result;
+	}
+    }
     // flag that an aggregate was found
     if (retval != NULL && retval->type == T_Aggref)
         cpstate->exprHasAgg = true;
