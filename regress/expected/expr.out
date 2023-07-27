@@ -6842,6 +6842,19 @@ $$) AS r(result gtype);
  t
 (1 row)
 
+SELECT result = CURRENT_TIME::gtype FROM cypher('expr', $$
+    RETURN CURRENT_TIME
+$$) AS r(result gtype);
+ERROR:  could not find rte for CURRENT_TIME
+LINE 2:     RETURN CURRENT_TIME
+                   ^
+SELECT result = CURRENT_TIME(1)::gtype FROM cypher('expr', $$
+    RETURN CURRENT_TIME(1)
+$$) AS r(result gtype);
+ERROR:  function postgraph.current_time(gtype) does not exist
+LINE 2:     RETURN CURRENT_TIME(1)
+                   ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
 -- aggregate functions avg(), sum(), count(), & count(*)
 --
