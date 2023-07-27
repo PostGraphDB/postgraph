@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-default_version = '0.0.1'
+default_version = '0.1.0'
 comment = 'postgraph database extension'
 module_pathname = '$libdir/postgraph'
 
