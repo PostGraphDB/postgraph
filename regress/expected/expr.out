@@ -6763,6 +6763,15 @@ $$) AS r(result gtype);
 (1 row)
 
 --
+-- Postgres Time to GType
+--
+SELECT '07:37:16.00'::time::gtype;
+  gtype   
+----------
+ 07:37:16
+(1 row)
+
+--
 -- toTimeTz()
 --
 SELECT * FROM cypher('expr', $$

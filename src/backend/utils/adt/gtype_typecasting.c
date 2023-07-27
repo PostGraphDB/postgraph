@@ -434,7 +434,18 @@ date_to_gtype(PG_FUNCTION_ARGS) {
 
     gtype_value agtv;
     agtv.type = AGTV_DATE;
-    agtv.val.int_value = PG_GETARG_DATEADT(0);
+    agtv.val.date = PG_GETARG_DATEADT(0);
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
+}
+
+PG_FUNCTION_INFO_V1(time_to_gtype);
+//time -> gtype
+Datum
+time_to_gtype(PG_FUNCTION_ARGS) {
+    gtype_value agtv;
+    agtv.type = AGTV_TIME;
+    agtv.val.int_value = PG_GETARG_TIMEADT(0);
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
 }

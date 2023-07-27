@@ -455,13 +455,15 @@ CREATE CAST (gtype AS bigint) WITH FUNCTION gtype_to_int8(gtype) AS ASSIGNMENT;
 -- timestamp -> gtype
 CREATE FUNCTION timestamp_to_gtype(timestamp) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE CAST (timestamp AS gtype) WITH FUNCTION timestamp_to_gtype(timestamp);
-
 -- timestamptz -> gtype
 CREATE FUNCTION timestamptz_to_gtype(timestamptz) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE CAST (timestamptz AS gtype) WITH FUNCTION timestamptz_to_gtype(timestamptz);
 -- date -> gtype
 CREATE FUNCTION date_to_gtype(date) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE CAST (date AS gtype) WITH FUNCTION date_to_gtype(date);
+-- time -> gtype
+CREATE FUNCTION time_to_gtype(time) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
+CREATE CAST (time AS gtype) WITH FUNCTION time_to_gtype(time);
 -- gtype -> int8[]
 CREATE FUNCTION gtype_to_int8_array(gtype) RETURNS bigint[] LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE CAST (gtype AS bigint[]) WITH FUNCTION gtype_to_int8_array(gtype);
