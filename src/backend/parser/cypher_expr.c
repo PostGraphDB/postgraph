@@ -681,7 +681,8 @@ make_qualified_function_name(cypher_parsestate *cpstate, List *lst, List *targs)
 
     // add the catalog schema and create list        
     List *fname;
-    if (strcmp(ag_name, "now") == 0)
+    if (strcmp(ag_name, "now") == 0 || strcmp(ag_name, "transaction_timestamp") == 0 ||
+        strcmp(ag_name, "statement_timestamp") == 0 ||  strcmp(ag_name, "clock_timestamp") == 0)
         fname = list_make2(makeString("pg_catalog"), makeString(ag_name));
     else
         fname = list_make2(makeString(CATALOG_SCHEMA), makeString(ag_name));
@@ -726,8 +727,10 @@ transform_func_call(cypher_parsestate *cpstate, FuncCall *fn) {
 
 
     if (list_length(fn->funcname) == 1) {
-        char *name = strVal(linitial(fn->funcname));
-	if (strcmp(name, "now") == 0) {
+        char *name = strVal(linitial(fname));
+	if (strcmp(name, "now") == 0 || strcmp(name, "transaction_timestamp") == 0 ||
+	    strcmp(name, "statement_timestamp") == 0 || strcmp(name, "clock_timestamp") == 0) {
+
             Node *result;
             Oid inputType;
             Oid targetType;

@@ -6891,6 +6891,24 @@ SELECT result = now()::gtype FROM cypher('expr', $$ RETURN now() $$) AS r(result
  t
 (1 row)
 
+SELECT result = transaction_timestamp()::gtype FROM cypher('expr', $$ RETURN transaction_timestamp() $$) AS r(result gtype);
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT result = statement_timestamp()::gtype FROM cypher('expr', $$ RETURN statement_timestamp() $$) AS r(result gtype);
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT 1 FROM cypher('expr', $$ RETURN clock_timestamp() $$) AS r(result gtype);
+ ?column? 
+----------
+        1
+(1 row)
+
 --
 -- aggregate functions avg(), sum(), count(), & count(*)
 --

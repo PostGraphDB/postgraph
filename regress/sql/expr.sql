@@ -2771,6 +2771,9 @@ SELECT result = LOCALTIME(1)::gtype FROM cypher('expr', $$ RETURN LOCALTIME(1) $
 
 
 SELECT result = now()::gtype FROM cypher('expr', $$ RETURN now() $$) AS r(result gtype);
+SELECT result = transaction_timestamp()::gtype FROM cypher('expr', $$ RETURN transaction_timestamp() $$) AS r(result gtype);
+SELECT result = statement_timestamp()::gtype FROM cypher('expr', $$ RETURN statement_timestamp() $$) AS r(result gtype);
+SELECT 1 FROM cypher('expr', $$ RETURN clock_timestamp() $$) AS r(result gtype);
 
 --
 -- aggregate functions avg(), sum(), count(), & count(*)
