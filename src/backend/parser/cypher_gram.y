@@ -31,6 +31,7 @@
 #include "nodes/primnodes.h"
 #include "nodes/value.h"
 #include "parser/parser.h"
+#include "nodes/primnodes.h"
 
 #include "nodes/ag_nodes.h"
 #include "nodes/cypher_nodes.h"
@@ -83,7 +84,7 @@
 /* keywords in alphabetical order */
 %token <keyword> ALL AND AS ASC ASCENDING
                  BY
-                 CALL CASE COALESCE CONTAINS CREATE
+                 CALL CASE COALESCE CONTAINS CREATE CURRENT_TIME CURRENT_TIMESTAMP
                  DELETE DESC DESCENDING DETACH DISTINCT
                  ELSE END_P ENDS EXISTS
                  FALSE_P
@@ -213,6 +214,8 @@ static Node *make_null_const(int location);
 // typecast
 static Node *make_typecast_expr(Node *expr, char *typecast, int location);
 
+// sql value
+static Node *makeSQLValueFunction(SQLValueFunctionOp op, int32 typmod, int location);
 // setops
 static Node *make_set_op(SetOperation op, bool all_or_distinct, List *larg,
                          List *rarg);
@@ -1359,7 +1362,15 @@ expr_func_norm:
     ;
 
 expr_func_subexpr:
-    COALESCE '(' expr_list ')'
+    CURRENT_TIMESTAMP
+        {
+            $$ = makeSQLValueFunction(SVFOP_CURRENT_TIMESTAMP, -1, @1);
+        }
+    | CURRENT_TIMESTAMP '(' INTEGER ')'
+        {
+            $$ = makeSQLValueFunction(SVFOP_CURRENT_TIMESTAMP, $3, @1);
+        }
+    | COALESCE '(' expr_list ')'
         {
             CoalesceExpr *c;
 
@@ -1866,6 +1877,19 @@ static Node *make_typecast_expr(Node *expr, char *typecast, int location)
 
     return (Node *)node;
 }
+
+static Node *
+makeSQLValueFunction(SQLValueFunctionOp op, int32 typmod, int location)
+{
+        SQLValueFunction *svf = makeNode(SQLValueFunction);
+
+        svf->op = op;
+        /* svf->type will be filled during parse analysis */
+        svf->typmod = typmod;
+        svf->location = location;
+        return (Node *) svf;
+}
+
 
 /* function to create a unique name given a prefix */
 static char *create_unique_name(char *prefix_name)

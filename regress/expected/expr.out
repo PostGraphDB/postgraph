@@ -6789,6 +6789,25 @@ $$) AS r(result gtype);
 (1 row)
 
 --
+-- Current Temporal Keywords
+--
+SELECT result = CURRENT_TIMESTAMP::gtype FROM cypher('expr', $$
+    RETURN CURRENT_TIMESTAMP
+$$) AS r(result gtype);
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT result = CURRENT_TIMESTAMP(1)::gtype FROM cypher('expr', $$
+    RETURN CURRENT_TIMESTAMP(1)
+$$) AS r(result gtype);
+ ?column? 
+----------
+ t
+(1 row)
+
+--
 -- aggregate functions avg(), sum(), count(), & count(*)
 --
 SELECT create_graph('UCSC');

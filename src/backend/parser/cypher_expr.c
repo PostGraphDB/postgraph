@@ -31,6 +31,7 @@
 #include "nodes/nodeFuncs.h"
 #include "nodes/nodes.h"
 #include "nodes/parsenodes.h"
+#include "nodes/primnodes.h"
 #include "nodes/value.h"
 #include "optimizer/tlist.h"
 #include "parser/parse_coerce.h"
@@ -77,6 +78,7 @@ static Node *transform_coalesce_expr(cypher_parsestate *cpstate, CoalesceExpr *c
 static Node *transform_sub_link(cypher_parsestate *cpstate, SubLink *sublink);
 static Node *transform_func_call(cypher_parsestate *cpstate, FuncCall *fn);
 static Node *transform_column_ref_for_indirection(cypher_parsestate *cpstate, ColumnRef *cr);
+static Node *transformSQLValueFunction(cypher_parsestate *cpstate, SQLValueFunction *svf);
 static List *make_qualified_function_name(cypher_parsestate *cpstate, List *lst, List *targs);
 
 Node *
@@ -164,7 +166,8 @@ transform_cypher_expr_recurse(cypher_parsestate *cpstate, Node *expr) {
         return transform_func_call(cpstate, (FuncCall *)expr);
     case T_SubLink:
         return transform_sub_link(cpstate, (SubLink *)expr);
-        break;
+    case T_SQLValueFunction:
+        return transformSQLValueFunction(cpstate, (SQLValueFunction *)expr);
     default:
         ereport(ERROR, (errmsg_internal("unrecognized node type: %d", nodeTag(expr))));
     }
@@ -913,3 +916,81 @@ transform_sub_link(cypher_parsestate *cpstate, SubLink *sublink) {
 
     return (Node *)sublink;
 }
+
+static Node *
+transformSQLValueFunction(cypher_parsestate *cpstate, SQLValueFunction *svf)
+{
+        /*
+         * All we need to do is insert the correct result type and (where needed)
+         * validate the typmod, so we just modify the node in-place.
+         */
+        switch (svf->op)
+        {
+                case SVFOP_CURRENT_DATE:
+                        svf->type = DATEOID;
+                        break;
+                case SVFOP_CURRENT_TIME:
+                        svf->type = TIMETZOID;
+                        break;
+                case SVFOP_CURRENT_TIME_N:
+                        svf->type = TIMETZOID;
+                        svf->typmod = anytime_typmod_check(true, svf->typmod);
+                        break;
+                case SVFOP_CURRENT_TIMESTAMP:
+                        svf->type = TIMESTAMPTZOID;
+                        break;
+                case SVFOP_CURRENT_TIMESTAMP_N:
+                        svf->type = TIMESTAMPTZOID;
+                        svf->typmod = anytimestamp_typmod_check(true, svf->typmod);
+                        break;
+                case SVFOP_LOCALTIME:
+                        svf->type = TIMEOID;
+                        break;
+                case SVFOP_LOCALTIME_N:
+                        svf->type = TIMEOID;
+                        svf->typmod = anytime_typmod_check(false, svf->typmod);
+                        break;
+                case SVFOP_LOCALTIMESTAMP:
+                        svf->type = TIMESTAMPOID;
+                        break;
+                case SVFOP_LOCALTIMESTAMP_N:
+                        svf->type = TIMESTAMPOID;
+                        svf->typmod = anytimestamp_typmod_check(false, svf->typmod);
+                        break;
+                case SVFOP_CURRENT_ROLE:
+                case SVFOP_CURRENT_USER:
+                case SVFOP_USER:
+                case SVFOP_SESSION_USER:
+                case SVFOP_CURRENT_CATALOG:
+                case SVFOP_CURRENT_SCHEMA:
+                        svf->type = NAMEOID;
+                        break;
+        }
+
+//        return (Node *) svf;
+
+
+        Node *result;
+        //Node       *arg = tc->arg;
+        Node *expr = (Node *) svf;
+        Oid inputType;
+        Oid targetType;
+        int32 targetTypmod;
+
+        typenameTypeIdAndMod(cpstate, makeTypeName("gtype"), &targetType, &targetTypmod);
+
+        inputType = exprType(expr);
+        if (inputType == InvalidOid)
+                return expr;
+
+        result = coerce_to_target_type(cpstate, expr, inputType, targetType, targetTypmod,
+                                       COERCION_EXPLICIT, COERCE_EXPLICIT_CAST, -1);
+
+	if (result == NULL)
+                ereport(ERROR, (errcode(ERRCODE_CANNOT_COERCE),
+                        errmsg("cannot cast type %s to %s", format_type_be(inputType), format_type_be(targetType)),
+                        parser_coercion_errposition(cpstate, -1, expr)));
+
+        return result;
+}
+
