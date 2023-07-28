@@ -2775,6 +2775,21 @@ SELECT result = transaction_timestamp()::gtype FROM cypher('expr', $$ RETURN tra
 SELECT result = statement_timestamp()::gtype FROM cypher('expr', $$ RETURN statement_timestamp() $$) AS r(result gtype);
 SELECT 1 FROM cypher('expr', $$ RETURN clock_timestamp() $$) AS r(result gtype);
 
+
+--
+-- Temporal Functions
+--
+SELECT * FROM cypher('expr', $$
+    RETURN age('12/17/1997 07:37:16.00+00'::timestamptz, '6/12/2007 12:45:19.89+00'::timestamptz)
+$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$
+    RETURN age('12/17/1997 07:37:16.00+00'::timestamp, '6/12/2007 12:45:19.89+00'::timestamp)
+$$) AS r(result gtype);
+SELECT * FROM cypher('expr', $$
+    RETURN age('12/17/1997 07:37:16.00+00'::timestamptz, '6/12/2007 12:45:19.89+00'::timestamp)
+$$) AS r(result gtype);
+
+
 --
 -- aggregate functions avg(), sum(), count(), & count(*)
 --

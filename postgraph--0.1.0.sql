@@ -532,6 +532,11 @@ CREATE FUNCTION cypher(graph_name name, query_string cstring, params gtype = NUL
 CREATE FUNCTION get_cypher_keywords(OUT word text, OUT catcode "char", OUT catdesc text) RETURNS SETOF record LANGUAGE c STABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE COST 10 ROWS 60 AS 'MODULE_PATHNAME';
 
 --
+-- Temporal Functions
+--
+CREATE FUNCTION age(gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_age_w2args';
+
+--
 -- Scalar Functions
 --
 CREATE FUNCTION head (gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_head';

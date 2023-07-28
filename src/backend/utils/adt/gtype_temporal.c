@@ -22,8 +22,10 @@
 #include "access/xact.h"
 #include "common/int128.h"
 #include "utils/date.h"
+#include "utils/fmgrprotos.h"
 #include "utils/timestamp.h"
 
+#include "utils/gtype.h"
 #include "utils/gtype_temporal.h"
 
 int
@@ -84,4 +86,43 @@ interval_cmp_internal(Interval *interval1, Interval *interval2)
     INT128 span2 = interval_cmp_value(interval2);
  
     return int128_compare(span1, span2);
-} 
+}
+
+
+
+PG_FUNCTION_INFO_V1(gtype_age_w2args);
+Datum
+gtype_age_w2args(PG_FUNCTION_ARGS) {
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+
+    if (is_gtype_null(lhs) || is_gtype_null(rhs))
+        PG_RETURN_NULL();
+
+    gtype_value *lhs_value = get_ith_gtype_value_from_container(&lhs->root, 0);
+    gtype_value *rhs_value = get_ith_gtype_value_from_container(&rhs->root, 0); 
+
+    Interval *i;
+    if (lhs_value->type == AGTV_TIMESTAMP && rhs_value->type == AGTV_TIMESTAMP)
+         i = DatumGetIntervalP(DirectFunctionCall2(timestamp_age,
+				    TimestampGetDatum(lhs_value->val.int_value),
+				    TimestampGetDatum(rhs_value->val.int_value)));
+    else if (lhs_value->type == AGTV_TIMESTAMPTZ && rhs_value->type == AGTV_TIMESTAMPTZ)
+         i = DatumGetIntervalP(DirectFunctionCall2(timestamptz_age,
+                                    TimestampTzGetDatum(lhs_value->val.int_value),
+                                    TimestampTzGetDatum(rhs_value->val.int_value)));
+    else
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("Invalid input for age(gtype, gtype)"),
+                        errhint("You may have to use explicit casts.")));
+
+    gtype_value gtv;
+    gtv.type = AGTV_INTERVAL;
+    gtv.val.interval.time = i->time;
+    gtv.val.interval.day = i->day;
+    gtv.val.interval.month = i->month;
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+

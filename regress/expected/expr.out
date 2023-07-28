@@ -6910,6 +6910,30 @@ SELECT 1 FROM cypher('expr', $$ RETURN clock_timestamp() $$) AS r(result gtype);
 (1 row)
 
 --
+-- Temporal Functions
+--
+SELECT * FROM cypher('expr', $$
+    RETURN age('12/17/1997 07:37:16.00+00'::timestamptz, '6/12/2007 12:45:19.89+00'::timestamptz)
+$$) AS r(result gtype);
+                        result                         
+-------------------------------------------------------
+ @ 9 years 5 mons 26 days 5 hours 8 mins 3.89 secs ago
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN age('12/17/1997 07:37:16.00+00'::timestamp, '6/12/2007 12:45:19.89+00'::timestamp)
+$$) AS r(result gtype);
+                        result                         
+-------------------------------------------------------
+ @ 9 years 5 mons 26 days 5 hours 8 mins 3.89 secs ago
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN age('12/17/1997 07:37:16.00+00'::timestamptz, '6/12/2007 12:45:19.89+00'::timestamp)
+$$) AS r(result gtype);
+ERROR:  Invalid input for age(gtype, gtype)
+HINT:  You may have to use explicit casts.
+--
 -- aggregate functions avg(), sum(), count(), & count(*)
 --
 SELECT create_graph('UCSC');
