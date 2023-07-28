@@ -6909,6 +6909,12 @@ SELECT 1 FROM cypher('expr', $$ RETURN clock_timestamp() $$) AS r(result gtype);
         1
 (1 row)
 
+SELECT 1 FROM cypher('expr', $$ RETURN timeofday() $$) AS r(result gtype);
+ ?column? 
+----------
+        1
+(1 row)
+
 --
 -- Temporal Functions
 --

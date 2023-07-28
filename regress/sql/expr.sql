@@ -2774,7 +2774,7 @@ SELECT result = now()::gtype FROM cypher('expr', $$ RETURN now() $$) AS r(result
 SELECT result = transaction_timestamp()::gtype FROM cypher('expr', $$ RETURN transaction_timestamp() $$) AS r(result gtype);
 SELECT result = statement_timestamp()::gtype FROM cypher('expr', $$ RETURN statement_timestamp() $$) AS r(result gtype);
 SELECT 1 FROM cypher('expr', $$ RETURN clock_timestamp() $$) AS r(result gtype);
-
+SELECT 1 FROM cypher('expr', $$ RETURN timeofday() $$) AS r(result gtype);
 
 --
 -- Temporal Functions
