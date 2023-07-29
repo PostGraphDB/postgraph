@@ -93,6 +93,7 @@ REGRESS = scan \
           cypher_vle \
           cypher_union \
           cypher_merge \
+	  aggregation \
           traversal_functions \
           index \
           drop
