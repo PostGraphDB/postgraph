@@ -3191,6 +3191,25 @@ select * from cypher('expr',$$
 $$) as (result gtype);
 
 --
+-- isfinite
+--
+select * from cypher('expr',$$ 
+    RETURN isfinite('infinity'::date)
+$$) as (result gtype);
+select * from cypher('expr',$$ 
+    RETURN isfinite('2001-02-16'::date)
+$$) as (result gtype);
+select * from cypher('expr',$$ 
+    RETURN isfinite('2001-02-16 23:40:00'::timestamp)
+$$) as (result gtype);
+select * from cypher('expr',$$ 
+    RETURN isfinite('infinity'::timestamp)
+$$) as (result gtype);
+select * from cypher('expr',$$ 
+    RETURN isfinite('15 minutes'::interval)
+$$) as (result gtype);
+
+--
 -- aggregate functions avg(), sum(), count(), & count(*)
 --
 SELECT create_graph('UCSC');

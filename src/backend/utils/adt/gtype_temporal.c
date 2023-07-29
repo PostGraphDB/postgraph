@@ -237,6 +237,40 @@ gtype_date_part(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+
+PG_FUNCTION_INFO_V1(gtype_isfinite);
+
+Datum gtype_isfinite(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+    gtype_value *agtv, agtv_result;
+    bool result = false;
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    agtv = get_ith_gtype_value_from_container(&agt->root, 0);
+
+    if (agtv->type == AGTV_DATE)
+        result = DatumGetBool(DirectFunctionCall1(date_finite, DateADTGetDatum(agtv->val.date)));
+    else if (agtv->type == AGTV_INTERVAL)
+        result = true;
+    else if(agtv->type == AGTV_TIMESTAMP || agtv->type == AGTV_TIMESTAMPTZ)
+    {
+        result = DatumGetBool(DirectFunctionCall1(timestamp_finite, TimestampGetDatum(agtv->val.int_value)));
+    }
+    else
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("Invalid input for isfinite(gtype)"),
+                        errhint("You may have to use explicit casts.")));
+
+
+    agtv_result.type = AGTV_BOOL;
+    agtv_result.val.boolean = result;
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
+}
+
 PG_FUNCTION_INFO_V1(gtype_justify_days);
 Datum
 gtype_justify_days(PG_FUNCTION_ARGS) {
