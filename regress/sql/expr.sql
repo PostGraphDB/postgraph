@@ -2953,6 +2953,31 @@ SELECT * FROM cypher('expr', $$
     RETURN date_part('YEAR', TIMESTAMP '12/17/1997 07:37:16.00+00')
 $$) AS r(result gtype);
 
+--
+-- date_bin
+--
+SELECT * FROM cypher('expr', $$
+    RETURN date_bin(INTERVAL '15 minutes', TIMESTAMP '2020-02-11 15:44:17', TIMESTAMP '2001-01-01')
+$$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_bin(INTERVAL '15 minutes', TIMESTAMP '2020-02-11 15:44:17', TIMESTAMP '2001-01-01')
+$$) AS r(result gtype);
+
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_bin('15 minutes'::interval, '2020-02-11 15:44:17+08'::timestamptz, '2001-01-01'::timestamptz)
+$$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_bin('15 minutes'::interval, '2020-02-11 15:44:17+08'::timestamp, '2001-01-01'::date)
+$$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_bin('15 minutes'::interval, '2001-01-01'::date, '2020-02-11 15:44:17+08'::timestamp)
+$$) AS r(result gtype);
+
+
 
 --
 -- Temporal Functions

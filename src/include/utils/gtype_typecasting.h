@@ -23,5 +23,6 @@
 #include "utils/timestamp.h"
 
 Datum gtype_to_timestamptz_internal(gtype_value *agtv);
+Datum gtype_to_timestamp_internal(gtype_value *agtv);
 
 #endif

@@ -236,3 +236,61 @@ gtype_date_part(PG_FUNCTION_ARGS) {
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
+
+
+PG_FUNCTION_INFO_V1(gtype_date_bin);
+Datum
+gtype_date_bin(PG_FUNCTION_ARGS) {
+    gtype *stride = AG_GET_ARG_GTYPE_P(0);
+    gtype *source = AG_GET_ARG_GTYPE_P(1);
+    gtype *origin = AG_GET_ARG_GTYPE_P(2);
+
+    if (is_gtype_null(stride) || is_gtype_null(source) || is_gtype_null(origin))
+        PG_RETURN_NULL();
+
+    gtype_value *stride_value = get_ith_gtype_value_from_container(&stride->root, 0);    
+    gtype_value *source_value = get_ith_gtype_value_from_container(&source->root, 0);
+    gtype_value *origin_value = get_ith_gtype_value_from_container(&origin->root, 0);
+
+    if ((source_value->type == AGTV_TIMESTAMP || source_value->type == AGTV_DATE) &&
+        (origin_value->type == AGTV_TIMESTAMP || origin_value->type == AGTV_DATE)) {
+         Datum source_ts, origin_ts;
+
+         if (source_value->type == AGTV_DATE)
+             source_ts = gtype_to_timestamp_internal(source_value);
+	 else
+             source_ts = TimestampGetDatum(source_value->val.int_value);
+
+	 if (origin_value->type == AGTV_DATE)
+             origin_ts = gtype_to_timestamp_internal(origin_value);
+         else
+             origin_ts = TimestampGetDatum(origin_value->val.int_value);
+
+	 
+         Timestamp ts = DatumGetTimestamp(DirectFunctionCall3(timestamp_bin,
+                                    IntervalPGetDatum(&stride_value->val.interval),
+                                    source_ts, origin_ts));
+
+         gtype_value gtv;
+         gtv.type = AGTV_TIMESTAMP;
+         gtv.val.int_value = ts;
+
+         AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+    } else if (source_value->type == AGTV_TIMESTAMPTZ && origin_value->type == AGTV_TIMESTAMPTZ) {
+         TimestampTz ts = DatumGetTimestampTz(DirectFunctionCall3(timestamptz_bin,
+				    IntervalPGetDatum(&stride_value->val.interval),
+                                    TimestampTzGetDatum(source_value->val.int_value),
+                                    TimestampTzGetDatum(origin_value->val.int_value)));
+         gtype_value gtv;
+         gtv.type = AGTV_TIMESTAMPTZ;
+         gtv.val.int_value = ts;
+
+        AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+    } else 
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("Invalid input for date_bin(gtype, gtype, gtype)"),
+                        errhint("You may have to use explicit casts.")));
+
+    PG_RETURN_NULL();
+}
+

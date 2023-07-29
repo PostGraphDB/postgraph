@@ -74,7 +74,6 @@ static Datum gtype_to_int2_internal(gtype_value *agtv);
 static Datum gtype_to_float8_internal(gtype_value *agtv);
 static Datum gtype_to_numeric_internal(gtype_value *agtv);
 static Datum gtype_to_string_internal(gtype_value *agtv);
-static Datum gtype_to_timestamp_internal(gtype_value *agtv);
 static Datum gtype_to_date_internal(gtype_value *agtv);
 static Datum gtype_to_time_internal(gtype_value *agtv);
 static Datum gtype_to_timetz_internal(gtype_value *agtv);
@@ -632,7 +631,7 @@ gtype_to_string_internal(gtype_value *agtv) {
     return CStringGetDatum("");
 }
 
-static Datum
+Datum
 gtype_to_timestamp_internal(gtype_value *agtv) {
     if (agtv->type == AGTV_INTEGER || agtv->type == AGTV_TIMESTAMP)
         return TimestampGetDatum(agtv->val.int_value);

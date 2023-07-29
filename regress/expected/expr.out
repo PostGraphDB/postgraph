@@ -7268,6 +7268,49 @@ $$) AS r(result gtype);
 (1 row)
 
 --
+-- date_bin
+--
+SELECT * FROM cypher('expr', $$
+    RETURN date_bin(INTERVAL '15 minutes', TIMESTAMP '2020-02-11 15:44:17', TIMESTAMP '2001-01-01')
+$$) AS r(result gtype);
+          result          
+--------------------------
+ Tue Feb 11 15:30:00 2020
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_bin(INTERVAL '15 minutes', TIMESTAMP '2020-02-11 15:44:17', TIMESTAMP '2001-01-01')
+$$) AS r(result gtype);
+          result          
+--------------------------
+ Tue Feb 11 15:30:00 2020
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_bin('15 minutes'::interval, '2020-02-11 15:44:17+08'::timestamptz, '2001-01-01'::timestamptz)
+$$) AS r(result gtype);
+            result            
+------------------------------
+ Tue Feb 11 07:30:00 2020 GMT
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_bin('15 minutes'::interval, '2020-02-11 15:44:17+08'::timestamp, '2001-01-01'::date)
+$$) AS r(result gtype);
+          result          
+--------------------------
+ Tue Feb 11 15:30:00 2020
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_bin('15 minutes'::interval, '2001-01-01'::date, '2020-02-11 15:44:17+08'::timestamp)
+$$) AS r(result gtype);
+          result          
+--------------------------
+ Sun Dec 31 23:59:17 2000
+(1 row)
+
+--
 -- Temporal Functions
 --
 SELECT * FROM cypher('expr', $$
