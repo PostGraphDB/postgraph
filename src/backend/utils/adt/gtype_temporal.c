@@ -90,7 +90,36 @@ interval_cmp_internal(Interval *interval1, Interval *interval2)
     return int128_compare(span1, span2);
 }
 
+PG_FUNCTION_INFO_V1(gtype_age_today);
+Datum gtype_age_today(PG_FUNCTION_ARGS)
+{
+    Timestamp ts;
+    gtype *arg1 = AG_GET_ARG_GTYPE_P(0);
+    gtype_value agtv_result, *agtv1;
+    Interval *i;
 
+    if (is_gtype_null(arg1))
+        PG_RETURN_NULL();
+    agtv1 = get_ith_gtype_value_from_container(&arg1->root, 0);
+
+    ts = TimestampGetDatum(GetCurrentTransactionStartTimestamp());
+    ts = DatumGetTimestamp(DirectFunctionCall2(timestamp_trunc, cstring_to_text_with_len("day",3), ts));
+
+    if (agtv1->type != AGTV_TIMESTAMP)
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("age(gtype) only supports timestamps")));
+
+    i = DatumGetIntervalP(DirectFunctionCall2(timestamp_mi,
+                                              TimestampGetDatum(agtv1->val.int_value),
+                                              ts));
+
+    agtv_result.type = AGTV_INTERVAL;
+    agtv_result.val.interval.time = i->time;
+    agtv_result.val.interval.day = i->day;
+    agtv_result.val.interval.month = i->month;
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
+}
 
 PG_FUNCTION_INFO_V1(gtype_age_w2args);
 Datum
