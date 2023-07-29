@@ -97,7 +97,7 @@
                  SET SKIP STARTS
                  TIME THEN TIMESTAMP TRUE_P
                  UNION UNWIND
-                 WHEN WHERE WITH
+                 WHEN WHERE WITH WITHOUT
                  XOR
                  YIELD
                  ZONE
@@ -1447,6 +1447,10 @@ temporal_cast:
         {
             $$ = pnstrdup("timestamp", 9);
         }
+    | TIMESTAMP WITHOUT TIME ZONE
+        {
+            $$ = pnstrdup("timestamp", 9);
+        }
     | TIMESTAMP WITH TIME ZONE
         {
             $$ = pnstrdup("timestamptz", 11);
@@ -1458,6 +1462,10 @@ temporal_cast:
     | TIME
         {
             $$ = pnstrdup("time", 4); 
+        }
+    | TIME WITHOUT TIME ZONE
+        {
+            $$ = pnstrdup("time", 4);
         }
     | TIME WITH TIME ZONE
         {

@@ -2781,6 +2781,10 @@ SELECT * FROM cypher('expr', $$
 $$) AS r(result gtype);
 
 SELECT * FROM cypher('expr', $$
+    RETURN EXTRACT(day FROM TIMESTAMP WITHOUT TIME ZONE '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$
     RETURN EXTRACT(day FROM TIMESTAMP '12/17/1997 07:37:16.00+00')
 $$) AS r(result gtype);
 SELECT * FROM cypher('expr', $$
@@ -2789,6 +2793,10 @@ $$) AS r(result gtype);
 
 SELECT * FROM cypher('expr', $$
     RETURN EXTRACT(hour FROM TIME WITH TIME ZONE '07:37:16.00+00')
+$$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$
+    RETURN EXTRACT(hour FROM TIME WITHOUT TIME ZONE '07:37:16.00+00')
 $$) AS r(result gtype);
 
 SELECT * FROM cypher('expr', $$
