@@ -21,6 +21,7 @@
 
 #include "access/xact.h"
 #include "common/int128.h"
+#include "utils/builtins.h"
 #include "utils/date.h"
 #include "utils/fmgrprotos.h"
 #include "utils/timestamp.h"
@@ -125,4 +126,58 @@ gtype_age_w2args(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(gtype_extract);
+Datum
+gtype_extract(PG_FUNCTION_ARGS) {
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+
+    if (is_gtype_null(lhs) || is_gtype_null(rhs))
+        PG_RETURN_NULL();
+
+    gtype_value *lhs_value = get_ith_gtype_value_from_container(&lhs->root, 0);
+    gtype_value *rhs_value = get_ith_gtype_value_from_container(&rhs->root, 0);
+
+    if (lhs_value->type != AGTV_STRING)
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("Invalid input for EXTRACT arg 1 must be a string"),
+                        errhint("You may have to use explicit casts.")));
+
+    char *field = lhs_value->val.string.val;
+    
+    gtype_value gtv;
+    if (rhs_value->type == AGTV_TIMESTAMP) {
+        gtv.val.numeric = DatumGetNumeric(DirectFunctionCall2(extract_timestamp,
+                                               CStringGetTextDatum(field),
+                                               TimestampGetDatum(rhs_value->val.int_value)));
+    } else if (rhs_value->type == AGTV_TIMESTAMPTZ) {
+        gtv.val.numeric = DatumGetNumeric(DirectFunctionCall2(extract_timestamptz,
+                                              CStringGetTextDatum(field),
+                                              TimestampTzGetDatum(rhs_value->val.int_value)));
+    } else if (rhs_value->type == AGTV_DATE) {
+         gtv.val.numeric = DatumGetNumeric(DirectFunctionCall2(extract_date,
+                                              CStringGetTextDatum(field),
+                                              DateADTGetDatum(rhs_value->val.date)));
+    } else if (rhs_value->type == AGTV_TIME) {
+         gtv.val.numeric = DatumGetNumeric(DirectFunctionCall2(extract_time,
+                                              CStringGetTextDatum(field),
+                                              TimeADTGetDatum(rhs_value->val.int_value)));
+    } else if (rhs_value->type == AGTV_TIMETZ) {
+         gtv.val.numeric = DatumGetNumeric(DirectFunctionCall2(extract_timetz,
+                                              CStringGetTextDatum(field),
+                                              TimeTzADTPGetDatum(&rhs_value->val.timetz)));
+    } else if (rhs_value->type == AGTV_INTERVAL) {
+         gtv.val.numeric = DatumGetNumeric(DirectFunctionCall2(extract_interval,
+                                              CStringGetTextDatum(field),
+                                              IntervalPGetDatum(&rhs_value->val.interval)));
+    } else {
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("Invalid input for age(gtype, gtype)"),
+                        errhint("You may have to use explicit casts.")));
+    }
+
+    gtv.type = AGTV_NUMERIC;
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
 

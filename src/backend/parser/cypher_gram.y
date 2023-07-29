@@ -85,21 +85,22 @@
 %token <keyword> ALL AND AS ASC ASCENDING
                  BY
                  CALL CASE COALESCE CONTAINS CREATE CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
-                 DELETE DESC DESCENDING DETACH DISTINCT
-                 ELSE END_P ENDS EXISTS
-                 FALSE_P
-                 IN IS
+                 DATE DECADE DELETE DESC DESCENDING DETACH DISTINCT
+                 ELSE END_P ENDS EXISTS EXTRACT
+                 FALSE_P FROM
+                 IN INTERVAL IS
                  LIMIT LOCALTIME LOCALTIMESTAMP
-                 MATCH MERGE
+                 MATCH MERGE 
                  NOT NULL_P
                  OPTIONAL OR ORDER
                  REMOVE RETURN
                  SET SKIP STARTS
-                 THEN TRUE_P
+                 TIME THEN TIMESTAMP TRUE_P
                  UNION UNWIND
                  WHEN WHERE WITH
                  XOR
                  YIELD
+                 ZONE
 
 /* query */
 %type <node> stmt
@@ -160,7 +161,7 @@
 
 /* names */
 %type <string> property_key_name var_name var_name_opt label_name
-%type <string> symbolic_name schema_name
+%type <string> symbolic_name schema_name temporal_cast
 %type <keyword> reserved_keyword safe_keywords conflicted_keywords
 %type <list> func_name
 
@@ -1287,9 +1288,13 @@ expr:
                 $$ = append_indirection($1, $3);
             }
         }
-    | expr TYPECAST symbolic_name
+    | expr TYPECAST schema_name
         {
             $$ = make_typecast_expr($1, $3, @2);
+        }
+    | temporal_cast expr %prec TYPECAST
+        {
+            $$ = make_typecast_expr($2, $1, @1);
         }
     | expr_atom
     ;
@@ -1425,8 +1430,40 @@ expr_func_subexpr:
             n->location = @1;
             $$ = (Node *) n;
         }
+    | EXTRACT '(' IDENTIFIER FROM expr ')'
+        {
+            $$ = (Node *)makeFuncCall(list_make1(makeString($1)),
+                                      list_make2(make_string_const($3, @3), $5),
+                                      COERCE_SQL_SYNTAX, @1);
+        }
     ;
 
+temporal_cast:
+    TIMESTAMP
+        {
+            $$ = pnstrdup("timestamp", 9);
+        }
+    | TIMESTAMP WITH TIME ZONE
+        {
+            $$ = pnstrdup("timestamptz", 11);
+        }
+    | DATE
+        {
+            $$ = pnstrdup("date", 4);
+        }
+    | TIME
+        {
+            $$ = pnstrdup("time", 4); 
+        }
+    | TIME WITH TIME ZONE
+        {
+            $$ = pnstrdup("timetz", 6);
+        }
+    | INTERVAL
+        {
+            $$ = pnstrdup("interval", 8);
+        }
+    ;
 
 expr_atom:
     expr_literal
@@ -1670,6 +1707,7 @@ safe_keywords:
     | COALESCE   { $$ = pnstrdup($1, 8); }
     | CONTAINS   { $$ = pnstrdup($1, 8); }
     | CREATE     { $$ = pnstrdup($1, 6); }
+    | DATE       { $$ = pnstrdup($1, 4); }
     | DELETE     { $$ = pnstrdup($1, 6); }
     | DESC       { $$ = pnstrdup($1, 4); }
     | DESCENDING { $$ = pnstrdup($1, 10); }
@@ -1678,6 +1716,7 @@ safe_keywords:
     | ELSE       { $$ = pnstrdup($1, 4); }
     | ENDS       { $$ = pnstrdup($1, 4); }
     | EXISTS     { $$ = pnstrdup($1, 6); }
+    | INTERVAL   { $$ = pnstrdup($1, 8); }
     | IN         { $$ = pnstrdup($1, 2); }
     | IS         { $$ = pnstrdup($1, 2); }
     | LIMIT      { $$ = pnstrdup($1, 6); }
@@ -1692,11 +1731,12 @@ safe_keywords:
     | SET        { $$ = pnstrdup($1, 3); }
     | SKIP       { $$ = pnstrdup($1, 4); }
     | STARTS     { $$ = pnstrdup($1, 6); }
+    | TIME       { $$ = pnstrdup($1, 4); }
+    | TIMESTAMP  { $$ = pnstrdup($1, 9); }
     | THEN       { $$ = pnstrdup($1, 4); }
     | UNION      { $$ = pnstrdup($1, 5); }
     | WHEN       { $$ = pnstrdup($1, 4); }
     | WHERE      { $$ = pnstrdup($1, 5); }
-    | WITH       { $$ = pnstrdup($1, 4); }
     | XOR        { $$ = pnstrdup($1, 3); }
     | YIELD      { $$ = pnstrdup($1, 5); }
     ;
@@ -1706,6 +1746,7 @@ conflicted_keywords:
     | FALSE_P { $$ = pnstrdup($1, 7); }
     | NULL_P  { $$ = pnstrdup($1, 6); }
     | TRUE_P  { $$ = pnstrdup($1, 6); }
+    | WITH       { $$ = pnstrdup($1, 4); }
     ;
 
 %%
