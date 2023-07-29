@@ -7645,6 +7645,103 @@ $$) as (result gtype);
 (1 row)
 
 --
+-- justify_interval
+--
+select * from cypher('expr',$$
+    RETURN justify_interval('1 month -1 hours'::interval)
+$$) as (result gtype);
+       result       
+--------------------
+ @ 29 days 23 hours
+(1 row)
+
+select * from cypher('expr',$$
+    RETURN justify_interval('1 month 33 days 1 hours'::interval)
+$$) as (result gtype);
+         result         
+------------------------
+ @ 2 mons 3 days 1 hour
+(1 row)
+
+select * from cypher('expr',$$
+    RETURN justify_interval('1 week 6 days 27 hours'::interval)
+$$) as (result gtype);
+      result       
+-------------------
+ @ 14 days 3 hours
+(1 row)
+
+select * from cypher('expr',$$
+    RETURN justify_interval('27 hours'::interval)
+$$) as (result gtype);
+     result      
+-----------------
+ @ 1 day 3 hours
+(1 row)
+
+--
+-- justify_days
+--
+select * from cypher('expr',$$
+    RETURN justify_days('5 weeks'::interval)
+$$) as (result gtype);
+     result     
+----------------
+ @ 1 mon 5 days
+(1 row)
+
+select * from cypher('expr',$$
+    RETURN justify_days('35 days'::interval)
+$$) as (result gtype);
+     result     
+----------------
+ @ 1 mon 5 days
+(1 row)
+
+select * from cypher('expr',$$
+    RETURN justify_days('4 weeks 8 days'::interval)
+$$) as (result gtype);
+     result     
+----------------
+ @ 1 mon 6 days
+(1 row)
+
+select * from cypher('expr',$$
+    RETURN justify_days('1 month 5 weeks'::interval)
+$$) as (result gtype);
+     result      
+-----------------
+ @ 2 mons 5 days
+(1 row)
+
+--
+-- justify_hours
+--
+select * from cypher('expr',$$
+    RETURN justify_hours('27 hours'::interval)
+$$) as (result gtype);
+     result      
+-----------------
+ @ 1 day 3 hours
+(1 row)
+
+select * from cypher('expr',$$
+    RETURN justify_hours('1 week 27 hours'::interval)
+$$) as (result gtype);
+      result      
+------------------
+ @ 8 days 3 hours
+(1 row)
+
+select * from cypher('expr',$$
+    RETURN justify_hours('2 days 30 hours'::interval)
+$$) as (result gtype);
+      result      
+------------------
+ @ 3 days 6 hours
+(1 row)
+
+--
 -- aggregate functions avg(), sum(), count(), & count(*)
 --
 SELECT create_graph('UCSC');

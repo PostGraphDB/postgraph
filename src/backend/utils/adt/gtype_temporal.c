@@ -237,6 +237,85 @@ gtype_date_part(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(gtype_justify_days);
+Datum
+gtype_justify_days(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(gt))
+        PG_RETURN_NULL();
+
+    gtype_value *gt_value = get_ith_gtype_value_from_container(&gt->root, 0);
+
+    gtype_value gtv;
+    if (gt_value->type != AGTV_INTERVAL)
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("Invalid input for justify_days(gtype)"),
+                        errhint("You may have to use explicit casts.")));
+
+    Interval *i = DatumGetIntervalP(DirectFunctionCall1(interval_justify_days,
+                                              IntervalPGetDatum(&gt_value->val.interval)));
+    gtv.type = AGTV_INTERVAL;
+    gtv.val.interval.time = i->time;
+    gtv.val.interval.day = i->day;
+    gtv.val.interval.month = i->month;
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+
+PG_FUNCTION_INFO_V1(gtype_justify_hours);
+Datum
+gtype_justify_hours(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(gt))
+        PG_RETURN_NULL();
+
+    gtype_value *gt_value = get_ith_gtype_value_from_container(&gt->root, 0);
+
+    gtype_value gtv;
+    if (gt_value->type != AGTV_INTERVAL)
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("Invalid input for justify_days(gtype)"),
+                        errhint("You may have to use explicit casts.")));
+
+    Interval *i = DatumGetIntervalP(DirectFunctionCall1(interval_justify_hours,
+                                              IntervalPGetDatum(&gt_value->val.interval)));
+    gtv.type = AGTV_INTERVAL;
+    gtv.val.interval.time = i->time;
+    gtv.val.interval.day = i->day;
+    gtv.val.interval.month = i->month;
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+PG_FUNCTION_INFO_V1(gtype_justify_interval);
+Datum
+gtype_justify_interval(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(gt))
+        PG_RETURN_NULL();
+
+    gtype_value *gt_value = get_ith_gtype_value_from_container(&gt->root, 0);
+
+    gtype_value gtv;
+    if (gt_value->type != AGTV_INTERVAL)
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("Invalid input for justify_days(gtype)"),
+                        errhint("You may have to use explicit casts.")));
+
+    Interval *i = DatumGetIntervalP(DirectFunctionCall1(interval_justify_interval,
+                                              IntervalPGetDatum(&gt_value->val.interval)));
+    gtv.type = AGTV_INTERVAL;
+    gtv.val.interval.time = i->time;
+    gtv.val.interval.day = i->day;
+    gtv.val.interval.month = i->month;
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+
+}
+
+
+
 PG_FUNCTION_INFO_V1(gtype_date_trunc);
 Datum
 gtype_date_trunc(PG_FUNCTION_ARGS) {

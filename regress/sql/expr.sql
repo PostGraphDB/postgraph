@@ -3145,6 +3145,50 @@ select * from cypher('expr',$$
     RETURN ('20:00:00+00'::timetz,'20:08:00+00'::timetz) overlaps ('20:10:00+00'::timetz,'-3 minutes'::interval)
 $$) as (result gtype);
 
+--
+-- justify_interval
+--
+select * from cypher('expr',$$
+    RETURN justify_interval('1 month -1 hours'::interval)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN justify_interval('1 month 33 days 1 hours'::interval)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN justify_interval('1 week 6 days 27 hours'::interval)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN justify_interval('27 hours'::interval)
+$$) as (result gtype);
+
+--
+-- justify_days
+--
+select * from cypher('expr',$$
+    RETURN justify_days('5 weeks'::interval)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN justify_days('35 days'::interval)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN justify_days('4 weeks 8 days'::interval)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN justify_days('1 month 5 weeks'::interval)
+$$) as (result gtype);
+
+--
+-- justify_hours
+--
+select * from cypher('expr',$$
+    RETURN justify_hours('27 hours'::interval)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN justify_hours('1 week 27 hours'::interval)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN justify_hours('2 days 30 hours'::interval)
+$$) as (result gtype);
 
 --
 -- aggregate functions avg(), sum(), count(), & count(*)
