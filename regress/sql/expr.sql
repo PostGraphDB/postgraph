@@ -3210,6 +3210,26 @@ select * from cypher('expr',$$
 $$) as (result gtype);
 
 --
+-- Temporal Make Functions
+--
+SELECT * from cypher('expr', $$RETURN make_date(0, 7, 15)$$) as (g gtype);
+SELECT * from cypher('expr', $$RETURN make_date(2013, 2, 30)$$) as (g gtype);
+SELECT * from cypher('expr', $$RETURN make_date(2013, 13, 1)$$) as (g gtype);
+SELECT * from cypher('expr', $$RETURN make_date(-44, 3, 15)$$) as (g gtype);
+SELECT * from cypher('expr', $$RETURN make_date(2013, 11, -1)$$) as (g gtype);
+SELECT * from cypher('expr', $$RETURN make_date(2013, 7, 15)$$) as (g gtype);
+
+SELECT * from cypher('expr', $$RETURN make_time(8, 20, 0.0)$$) as (g gtype);
+SELECT * from cypher('expr', $$RETURN make_time(10, 55, 100.1)$$) as (g gtype);
+SELECT * from cypher('expr', $$RETURN make_time(24, 0, 2.1)$$) as (g gtype);
+
+SELECT * from cypher('expr', $$RETURN make_timestamp(2023, 2, 14, 5, 30, 0.0)$$) as (g gtype);
+SELECT * from cypher('expr', $$RETURN make_timestamptz(2023, 2, 14, 5, 30, 0.0)$$) as (g gtype);
+SELECT * from cypher('expr', $$RETURN make_timestamptz(2023, 2, 14, 5, 30, 0.0, 'KST')$$) as (g gtype);
+SELECT * from cypher('expr', $$RETURN make_timestamptz(2023, 2, 14, 5, 30, 0.0, 'GMT')$$) as (g gtype);
+
+
+--
 -- aggregate functions avg(), sum(), count(), & count(*)
 --
 SELECT create_graph('UCSC');

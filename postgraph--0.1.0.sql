@@ -546,6 +546,12 @@ CREATE FUNCTION isfinite(gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL 
 CREATE FUNCTION justify_hours(gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_justify_hours';
 CREATE FUNCTION justify_days(gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_justify_days';
 CREATE FUNCTION justify_interval(gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_justify_interval';
+CREATE FUNCTION make_date(gtype, gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_make_date';
+CREATE FUNCTION make_time(gtype, gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_make_time';
+CREATE FUNCTION make_timestamp(gtype, gtype, gtype, gtype, gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_make_timestamp';
+CREATE FUNCTION make_timestamptz(gtype, gtype, gtype, gtype, gtype, gtype) RETURNS gtype LANGUAGE c STABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_make_timestamptz';
+CREATE FUNCTION make_timestamptz(gtype, gtype, gtype, gtype, gtype, gtype, gtype) RETURNS gtype LANGUAGE c STABLE PARALLEL SAFE AS 'MODULE_PATHNAME','gtype_make_timestamptz_wtimezone';
+
 
 --
 -- Scalar Functions
