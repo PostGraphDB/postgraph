@@ -28,6 +28,7 @@
 
 #include "utils/gtype.h"
 #include "utils/gtype_temporal.h"
+#include "utils/gtype_typecasting.h"
 
 int
 timetz_cmp_internal(TimeTzADT *time1, TimeTzADT *time2) {                                
@@ -172,7 +173,7 @@ gtype_extract(PG_FUNCTION_ARGS) {
                                               IntervalPGetDatum(&rhs_value->val.interval)));
     } else {
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("Invalid input for age(gtype, gtype)"),
+                        errmsg("Invalid input for EXTRACT(gtype, gtype)"),
                         errhint("You may have to use explicit casts.")));
     }
 
@@ -181,3 +182,57 @@ gtype_extract(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(gtype_date_part);
+Datum
+gtype_date_part(PG_FUNCTION_ARGS) {
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+
+    if (is_gtype_null(lhs) || is_gtype_null(rhs))
+        PG_RETURN_NULL();
+
+    gtype_value *lhs_value = get_ith_gtype_value_from_container(&lhs->root, 0);
+    gtype_value *rhs_value = get_ith_gtype_value_from_container(&rhs->root, 0);
+
+    if (lhs_value->type != AGTV_STRING)
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("Invalid input for EXTRACT arg 1 must be a string"),
+                        errhint("You may have to use explicit casts.")));
+
+    char *field = lhs_value->val.string.val;
+
+    gtype_value gtv;
+    if (rhs_value->type == AGTV_TIMESTAMP) {
+        gtv.val.float_value = DatumGetFloat8(DirectFunctionCall2(timestamp_part,
+                                               CStringGetTextDatum(field),
+                                               TimestampGetDatum(rhs_value->val.int_value)));
+    } else if (rhs_value->type == AGTV_TIMESTAMPTZ) {
+        gtv.val.float_value = DatumGetFloat8(DirectFunctionCall2(timestamptz_part,
+                                              CStringGetTextDatum(field),
+                                              TimestampTzGetDatum(rhs_value->val.int_value)));
+    } else if (rhs_value->type == AGTV_DATE) {
+	Datum ts = gtype_to_timestamptz_internal(rhs_value);
+        gtv.val.float_value = DatumGetFloat8(DirectFunctionCall2(timestamptz_part,
+                                              CStringGetTextDatum(field), ts));
+    } else if (rhs_value->type == AGTV_TIME) {
+         gtv.val.float_value = DatumGetFloat8(DirectFunctionCall2(time_part,
+                                              CStringGetTextDatum(field),
+                                              TimeADTGetDatum(rhs_value->val.int_value)));
+    } else if (rhs_value->type == AGTV_TIMETZ) {
+         gtv.val.float_value = DatumGetFloat8(DirectFunctionCall2(timetz_part,
+                                              CStringGetTextDatum(field),
+                                              TimeTzADTPGetDatum(&rhs_value->val.timetz)));
+    } else if (rhs_value->type == AGTV_INTERVAL) {
+         gtv.val.float_value = DatumGetFloat8(DirectFunctionCall2(interval_part,
+                                              CStringGetTextDatum(field),
+                                              IntervalPGetDatum(&rhs_value->val.interval)));
+    } else {
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("Invalid input for date_part(gtype, gtype)"),
+                        errhint("You may have to use explicit casts.")));
+    }
+
+    gtv.type = AGTV_FLOAT;
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}

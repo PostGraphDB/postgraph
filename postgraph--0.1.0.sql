@@ -536,6 +536,7 @@ CREATE FUNCTION get_cypher_keywords(OUT word text, OUT catcode "char", OUT catde
 --
 CREATE FUNCTION age(gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_age_w2args';
 CREATE FUNCTION "extract"(gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_extract';
+CREATE FUNCTION date_part(gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_date_part';
 
 --
 -- Scalar Functions

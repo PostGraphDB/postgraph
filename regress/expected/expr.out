@@ -7091,6 +7091,182 @@ $$) AS r(result gtype);
  1997::numeric
 (1 row)
 
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('day', TIMESTAMP WITH TIME ZONE '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+ result 
+--------
+ 17.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('day', TIMESTAMP '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+ result 
+--------
+ 17.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('hour', TIME '07:37:16.00+00')
+$$) AS r(result gtype);
+ result 
+--------
+ 7.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('hour', TIME WITH TIME ZONE '07:37:16.00+00')
+$$) AS r(result gtype);
+ result 
+--------
+ 7.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('day', DATE '12/17/1997')
+$$) AS r(result gtype);
+ result 
+--------
+ 17.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+        RETURN date_part('day', INTERVAL '6 Years 11 Months 24 Days 5 Hours 23 Minutes')
+$$) AS r(result gtype);
+ result 
+--------
+ 24.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('CENTURY', TIMESTAMP '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+ result 
+--------
+ 20.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('DECADE', TIMESTAMP '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+ result 
+--------
+ 199.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('DOW', TIMESTAMP '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+ result 
+--------
+ 3.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('EPOCH', TIMESTAMP '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+   result    
+-------------
+ 882344236.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('ISODOW', TIMESTAMP '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+ result 
+--------
+ 3.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('ISOYEAR', TIMESTAMP '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+ result 
+--------
+ 1997.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('JULIAN', TIMESTAMP '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+     result      
+-----------------
+ 2450800.3175463
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('MICROSECONDS', TIMESTAMP '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+   result   
+------------
+ 16000000.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('MILLISECONDS', TIMESTAMP '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+ result  
+---------
+ 16000.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('ISOYEAR', TIMESTAMP '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+ result 
+--------
+ 1997.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('MINUTE', TIMESTAMP '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+ result 
+--------
+ 37.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('MONTH', TIMESTAMP '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+ result 
+--------
+ 12.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('QUARTER', TIMESTAMP '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+ result 
+--------
+ 4.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('SECOND', TIMESTAMP '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+ result 
+--------
+ 16.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('TIMEZONE', TIMESTAMP WITH TIME ZONE '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+ result 
+--------
+ 0.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_part('YEAR', TIMESTAMP '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+ result 
+--------
+ 1997.0
+(1 row)
+
 --
 -- Temporal Functions
 --
