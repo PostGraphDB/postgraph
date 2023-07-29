@@ -2,7 +2,7 @@
 
 [![discord badge](https://img.shields.io/discord/1036610864071053413?label=discord&logo=discord&style=plastic)](https://discord.gg/KDTTx2vz2m)
 
-You can view the full manual [here](https://postgraphdb.github.io/)
+You can view the full manual [here](https://postgraphdb.github.io/docs/intro)
 
 PostGraph is an extension that adds the graph query Cypher to the [Postgres](https://www.postgresql.org/) Database.
 
@@ -13,7 +13,7 @@ What new in Postgraph 0.1.0:
  - Stronger Type Safety
  - Reworked and Expanded Typecasting System
  - Builtin Functions conform with the Postgres counterparts
- - Basic Timestamp Support
+ - Temporal Datatypes - Support Timstamp and Time with and without Timezones, Date, and Duration Datatypes
  - Indices in WHERE clause.
 
 # Roadmap
@@ -24,7 +24,6 @@ The main goal of 2023 is to refactor the internal code base, for performance, me
 
 PostGraph plans to offer its first stable release between December 2023 and March 2024.
 
- - Temporal Datatypes - Support Timstamp and Time with and without Timezones, Date, and Duration Datatypes
  - Network Datatypes - Support Data types for MAC and IP Addresses
  - uri datatypes - Support holding uris in Postgraph.
  - English Full Text Search - Support to perform Full Text Search in English
