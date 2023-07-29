@@ -541,7 +541,7 @@ CREATE FUNCTION date_bin(gtype, gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE
 
 CREATE FUNCTION date_trunc(gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_date_trunc';
 CREATE FUNCTION date_trunc(gtype, gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_date_trunc_zone';
-
+CREATE FUNCTION overlaps(gtype, gtype, gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_overlaps';
 --
 -- Scalar Functions
 --

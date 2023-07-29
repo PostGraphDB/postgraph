@@ -92,7 +92,7 @@
                  LIMIT LOCALTIME LOCALTIMESTAMP
                  MATCH MERGE 
                  NOT NULL_P
-                 OPTIONAL OR ORDER
+                 OPTIONAL OR ORDER OVERLAPS
                  REMOVE RETURN
                  SET SKIP STARTS
                  TIME THEN TIMESTAMP TRUE_P
@@ -1435,6 +1435,10 @@ expr_func_subexpr:
             $$ = (Node *)makeFuncCall(list_make1(makeString($1)),
                                       list_make2(make_string_const($3, @3), $5),
                                       COERCE_SQL_SYNTAX, @1);
+        }
+    | '(' expr ',' expr ')' OVERLAPS '(' expr ',' expr ')'
+        {
+            $$ = makeFuncCall(list_make1(makeString("overlaps")), list_make4($2, $4, $8, $10), COERCE_SQL_SYNTAX, @6);
         }
     ;
 

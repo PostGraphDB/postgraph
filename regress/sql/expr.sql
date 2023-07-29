@@ -3013,6 +3013,138 @@ SELECT * FROM cypher('expr', $$
     RETURN age('12/17/1997 07:37:16.00+00'::timestamptz, '6/12/2007 12:45:19.89+00'::timestamp)
 $$) AS r(result gtype);
 
+--
+-- Overlap
+--
+
+-- date date date date
+select * from cypher('expr',$$
+    RETURN ('2001-02-16'::date,'2001-10-29'::date) overlaps ('2001-10-30'::date,'2002-10-30'::date)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN ('2001-02-16'::date,'2001-10-31'::date) overlaps ('2001-10-30'::date,'2002-10-30'::date)
+$$) as (result gtype);
+
+-- date interval date interval
+select * from cypher('expr',$$
+    RETURN ('2001-02-16'::date,'10 days'::interval) overlaps ('2001-10-30'::date,'10 days'::interval)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN ('2001-02-16'::date,'365 days'::interval) overlaps ('2001-10-30'::date,'10 days'::interval)
+$$) as (result gtype);
+
+-- date interval date date
+select * from cypher('expr',$$
+    RETURN ('2001-02-16'::date,'10 days'::interval) overlaps ('2001-10-30'::date,'2001-11-09'::date)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN ('2001-02-16'::date,'365 days'::interval) overlaps ('2001-10-30'::date,'2001-11-09'::date)
+$$) as (result gtype);
+
+-- date date date interval
+select * from cypher('expr',$$
+    RETURN ('2001-02-16'::date,'2001-10-28'::date) overlaps ('2001-10-30'::date,'-2 days'::interval)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN ('2001-02-16'::date,'2001-10-28'::date) overlaps ('2001-10-30'::date,'-3 days'::interval)
+$$) as (result gtype);
+
+-- timestamp timestamp timestamp timestamp
+select * from cypher('expr',$$
+    RETURN ('2001-02-16'::timestamp,'2001-10-29'::timestamp) overlaps ('2001-10-30'::timestamp,'2002-10-30'::timestamp)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN ('2001-02-16'::timestamp,'2001-10-31'::timestamp) overlaps ('2001-10-30'::timestamp,'2002-10-30'::timestamp)
+$$) as (result gtype);
+
+-- timestamp interval timestamp interval
+select * from cypher('expr',$$
+    RETURN ('2001-02-16'::timestamp,'10 days'::interval) overlaps ('2001-10-30'::timestamp,'10 days'::interval)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN ('2001-02-16'::timestamp,'365 days'::interval) overlaps ('2001-10-30'::timestamp,'10 days'::interval)
+$$) as (result gtype);
+
+-- timestamp interval timestamp timestamp
+select * from cypher('expr',$$
+    RETURN ('2001-02-16'::timestamp,'10 days'::interval) overlaps ('2001-10-30'::timestamp,'2001-11-09'::timestamp)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN ('2001-02-16'::timestamp,'365 days'::interval) overlaps ('2001-10-30'::timestamp,'2001-11-09'::timestamp)
+$$) as (result gtype);
+
+-- timestamp timestamp timestamp interval
+select * from cypher('expr',$$
+    RETURN ('2001-02-16'::timestamp,'2001-10-28'::timestamp) overlaps ('2001-10-30'::timestamp,'-2 days'::interval)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN ('2001-02-16'::timestamp,'2001-10-28'::timestamp) overlaps ('2001-10-30'::timestamp,'-3 days'::interval)
+$$) as (result gtype);
+
+-- time time time time
+select * from cypher('expr',$$
+    RETURN ('20:00:00'::time,'21:00:00'::time) overlaps ('21:00:00'::time,'22:00:00'::time)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN ('20:00:00'::time,'21:01:00'::time) overlaps ('21:00:00'::time,'22:00:00'::time)
+$$) as (result gtype);
+
+-- time interval time interval
+select * from cypher('expr',$$
+    RETURN ('20:00:00'::time,'10 minutes'::interval) overlaps ('20:10:00'::time,'10 minutes'::interval)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN ('20:00:00'::time,'11 minutes'::interval) overlaps ('20:10:00'::time,'10 minutes'::interval)
+$$) as (result gtype);
+
+-- time interval time time
+select * from cypher('expr',$$
+    RETURN ('20:00:00'::time,'10 minutes'::interval) overlaps ('20:10:00'::time,'20:20:00'::time)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN ('20:00:00'::time,'11 minutes'::interval) overlaps ('20:10:00'::time,'20:20:00'::time)
+$$) as (result gtype);
+
+-- time time time interval
+select * from cypher('expr',$$
+    RETURN ('20:00:00'::time,'20:08:00'::time) overlaps ('20:10:00'::time,'-2 minutes'::interval)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN ('20:00:00'::time,'20:08:00'::time) overlaps ('20:10:00'::time,'-3 minutes'::interval)
+$$) as (result gtype);
+
+-- timetz timetz timetz timetz
+select * from cypher('expr',$$
+    RETURN ('20:00:00+00'::timetz,'21:00:00+00'::timetz) overlaps ('21:00:00+00'::timetz,'22:00:00+00'::timetz)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN ('20:00:00+00'::timetz,'21:01:00+00'::timetz) overlaps ('21:00:00+00'::timetz,'22:00:00+00'::timetz)
+$$) as (result gtype);
+
+-- timetz interval timetz interval
+select * from cypher('expr',$$
+    RETURN ('20:00:00+00'::timetz,'10 minutes'::interval) overlaps ('20:10:00+00'::timetz,'10 minutes'::interval)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN ('20:00:00+00'::timetz,'11 minutes'::interval) overlaps ('20:10:00+00'::timetz,'10 minutes'::interval)
+$$) as (result gtype);
+
+-- timetz interval timetz timetz
+select * from cypher('expr',$$
+    RETURN ('20:00:00+00'::timetz,'10 minutes'::interval) overlaps ('20:10:00+00'::timetz,'20:20:00+00'::timetz)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN ('20:00:00+00'::timetz,'11 minutes'::interval) overlaps ('20:10:00+00'::timetz,'20:20:00+00'::timetz)
+$$) as (result gtype);
+
+-- timetz timetz timetz interval
+select * from cypher('expr',$$
+    RETURN ('20:00:00+00'::timetz,'20:08:00+00'::timetz) overlaps ('20:10:00+00'::timetz,'-2 minutes'::interval)
+$$) as (result gtype);
+select * from cypher('expr',$$
+    RETURN ('20:00:00+00'::timetz,'20:08:00+00'::timetz) overlaps ('20:10:00+00'::timetz,'-3 minutes'::interval)
+$$) as (result gtype);
+
 
 --
 -- aggregate functions avg(), sum(), count(), & count(*)
