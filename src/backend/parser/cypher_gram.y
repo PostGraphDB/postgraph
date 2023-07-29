@@ -186,12 +186,6 @@
 %left TYPECAST
 
 %{
-//
-// unique name generation
-#define UNIQUE_NAME_NULL_PREFIX "_unique_null_prefix"
-static char *create_unique_name(char *prefix_name);
-static unsigned long get_a_unique_number(void);
-
 // logical operators
 static Node *make_or_expr(Node *lexpr, Node *rexpr, int location);
 static Node *make_and_expr(Node *lexpr, Node *rexpr, int location);
@@ -218,19 +212,12 @@ static Node *make_typecast_expr(Node *expr, char *typecast, int location);
 // sql value
 static Node *makeSQLValueFunction(SQLValueFunctionOp op, int32 typmod, int location);
 // setops
-static Node *make_set_op(SetOperation op, bool all_or_distinct, List *larg,
-                         List *rarg);
+static Node *make_set_op(SetOperation op, bool all_or_distinct, List *larg, List *rarg);
 
-// VLE
-static cypher_relationship *build_VLE_relation(List *left_arg,
-                                               cypher_relationship *cr,
-                                               Node *right_arg,
-                                               int left_arg_location,
-                                               int cr_location);
 // comparison
 static bool is_A_Expr_a_comparison_operation(A_Expr *a);
-static Node *build_comparison_expression(Node *left_grammar_node,
-                                         Node *right_grammar_node,
+static Node *build_comparison_expression(Node *left_node,
+                                         Node *right_node,
                                          char *opr_name, int location);
 %}
 %%
@@ -989,15 +976,7 @@ simple_path:
         }
     | simple_path path_relationship path_node
         {
-       /*     cypher_relationship *cr = (cypher_relationship *)$2;
-
-            if (cr->varlen) {
-                cr = build_VLE_relation($1, cr, $3, @1, @2);
-
-                $$ = lappend(lappend($1, cr), $3);
-            } else {*/
-                $$ = lappend(lappend($1, $2), $3);
-            //}
+            $$ = lappend(lappend($1, $2), $3);
         }
     ;
 
@@ -1971,59 +1950,8 @@ makeSQLValueFunction(SQLValueFunctionOp op, int32 typmod, int location)
         return (Node *) svf;
 }
 
-
-/* function to create a unique name given a prefix */
-static char *create_unique_name(char *prefix_name)
-{
-    char *name = NULL;
-    char *prefix = NULL;
-    uint nlen = 0;
-    unsigned long unique_number = 0;
-
-    /* get a unique number */
-    unique_number = get_a_unique_number();
-
-    /* was a valid prefix supplied */
-    if (prefix_name == NULL || strlen(prefix_name) <= 0)
-    {
-        prefix = pnstrdup(UNIQUE_NAME_NULL_PREFIX,
-                          strlen(UNIQUE_NAME_NULL_PREFIX));
-    }
-    else
-    {
-        prefix = prefix_name;
-    }
-
-    /* get the length of the combinded string */
-    nlen = snprintf(NULL, 0, "%s_%lu", prefix, unique_number);
-
-    /* allocate the space */
-    name = palloc0(nlen + 1);
-
-    /* create the name */
-    snprintf(name, nlen + 1, "%s_%lu", prefix, unique_number);
-
-    /* if we created the prefix, we need to free it */
-    if (prefix_name == NULL || strlen(prefix_name) <= 0)
-    {
-        pfree(prefix);
-    }
-
-    return name;
-}
-
-/* function to return a unique unsigned long number */
-static unsigned long get_a_unique_number(void)
-{
-    /* STATIC VARIABLE unique_counter for number uniqueness */
-    static unsigned long unique_counter = 0;
-
-    return unique_counter++;
-}
-
 /*set operation function node to make a set op node*/
-static Node *make_set_op(SetOperation op, bool all_or_distinct, List *larg,
-                         List *rarg)
+static Node *make_set_op(SetOperation op, bool all_or_distinct, List *larg, List *rarg)
 {
     cypher_return *n = make_ag_node(cypher_return);
 
@@ -2078,11 +2006,11 @@ static bool is_A_Expr_a_comparison_operation(A_Expr *a)
  * build a chained comparison operator expression if it detects a chained
  * comparison.
  */
-static Node *build_comparison_expression(Node *left_grammar_node, Node *right_grammar_node, char *opr_name, int location) {
+static Node *build_comparison_expression(Node *left_node, Node *right_node, char *opr_name, int location) {
     Node *result_expr = NULL;
 
-    Assert(left_grammar_node != NULL);
-    Assert(right_grammar_node != NULL);
+    Assert(left_node != NULL);
+    Assert(right_node != NULL);
     Assert(opr_name != NULL);
 
     /*
@@ -2091,23 +2019,22 @@ static Node *build_comparison_expression(Node *left_grammar_node, Node *right_gr
      *    comparison, then this is part of a chained comparison. In this
      *    specific case, the second chained element.
      */
-    if (IsA(left_grammar_node, A_Expr) &&
-        is_A_Expr_a_comparison_operation((A_Expr *)left_grammar_node))
+    if (IsA(left_node, A_Expr) && is_A_Expr_a_comparison_operation((A_Expr *)left_node))
     {
         A_Expr *aexpr = NULL;
         Node *lexpr = NULL;
         Node *n = NULL;
 
         /* get the A_Expr on the left side */
-        aexpr = (A_Expr *) left_grammar_node;
+        aexpr = (A_Expr *) left_node;
         /* get its rexpr which will be our lexpr */
         lexpr = aexpr->rexpr;
         /* build our comparison operator */
         n = (Node *)makeSimpleA_Expr(AEXPR_OP, opr_name, lexpr,
-                                     right_grammar_node, location);
+                                     right_node, location);
 
         /* now add it (AND) to the other comparison */
-        result_expr = make_and_expr(left_grammar_node, n, location);
+        result_expr = make_and_expr(left_node, n, location);
     }
 
     /*
@@ -2117,14 +2044,13 @@ static Node *build_comparison_expression(Node *left_grammar_node, Node *right_gr
      *    a chained comparison. In this specific case, the third and
      *    beyond chained element.
      */
-    if (IsA(left_grammar_node, BoolExpr) &&
-        ((BoolExpr*)left_grammar_node)->boolop == AND_EXPR)
+    if (IsA(left_node, BoolExpr) && ((BoolExpr*)left_node)->boolop == AND_EXPR)
     {
         BoolExpr *bexpr = NULL;
         Node *last = NULL;
 
         /* cast the left to a boolean */
-        bexpr = (BoolExpr *)left_grammar_node;
+        bexpr = (BoolExpr *)left_node;
         /* extract the last node - ANDs are chained in a flat list */
         last = llast(bexpr->args);
 
@@ -2141,9 +2067,9 @@ static Node *build_comparison_expression(Node *left_grammar_node, Node *right_gr
             lexpr = aexpr->rexpr;
             /* make our comparison operator */
             n = (Node *)makeSimpleA_Expr(AEXPR_OP, opr_name, lexpr,
-                                         right_grammar_node, location);
+                                         right_node, location);
 
-            result_expr = make_and_expr(left_grammar_node, n, location);
+            result_expr = make_and_expr(left_node, n, location);
         }
     }
 
@@ -2153,95 +2079,7 @@ static Node *build_comparison_expression(Node *left_grammar_node, Node *right_gr
      *    it as a regular comparison expression.
      */
     if (result_expr == NULL)
-        result_expr = (Node *)makeSimpleA_Expr(AEXPR_OP, opr_name, left_grammar_node, right_grammar_node, location);
+        result_expr = (Node *)makeSimpleA_Expr(AEXPR_OP, opr_name, left_node, right_node, location);
 
     return result_expr;
-}
-
-static cypher_relationship *build_VLE_relation(List *left_arg, cypher_relationship *cr, Node *right_arg, int left_arg_location, int cr_location) {
-    ColumnRef *cref = NULL;
-    A_Indices *ai = NULL;
-    List *args = NIL;
-    List *eargs = NIL;
-    List *fname = NIL;
-    cypher_node *cnl = NULL;
-    cypher_node *cnr = NULL;
-    Node *node = NULL;
-    int location = 0;
-
-    /* get the location */
-    location = cr->location;
-
-    /* get the left and right cypher_nodes */
-    cnl = (cypher_node*)llast(left_arg);
-    cnr = (cypher_node*)right_arg;
-
-    // If the left name is NULL we need to create a variable name for the left node.
-    if (cnl->name == NULL)
-        cnl->name = create_unique_name("_vle_function_start_var");
-
-    /* add in the start vertex as a ColumnRef if necessary */
-    if (cnl->name != NULL) {
-        cref = makeNode(ColumnRef);
-        //cref->fields = list_make2(makeString(cnl->name), makeString("id"));
-        cref->fields = list_make1(makeString(cnl->name));
-        cref->location = left_arg_location;
-        args = lappend(args, cref);
-    } else {
-        args = lappend(args, make_null_const(-1));
-    }
-
-    if (cnr->name == NULL)
-        cnr->name = create_unique_name("_vle_function_end_var");
-
-    if (cnl->name == NULL)
-    {
-        cref = makeNode(ColumnRef);
-        //cref->fields = list_make2(makeString(cnr->name), makeString("id"));
-        cref->fields = list_make1(makeString(cnr->name));        
-        cref->location = left_arg_location;
-        args = lappend(args, cref);
-    } else {
-        args = lappend(args, make_null_const(-1));
-    }
-
-    /* build the required edge arguments */
-    if (!cr->label)
-        eargs = lappend(eargs, make_null_const(location));
-    else
-        eargs = lappend(eargs, make_string_const(cr->label, location));
-
-    if (!cr->props)
-        eargs = lappend(eargs, make_null_const(location));
-    else
-        eargs = lappend(eargs, cr->props);
-
-    /* build the edge function name (schema.funcname) */
-    fname = list_make2(makeString(CATALOG_SCHEMA), makeString("age_build_vle_match_edge"));
-
-    /* build the edge function node */
-    node = (Node *)makeFuncCall(fname, eargs, COERCE_SQL_SYNTAX, location);
-
-    /* add in the edge*/
-    args = lappend(args, node);
-    
-    /* add in the lidx and uidx range as Const */
-    ai = (A_Indices*)cr->varlen;
-    if (!ai || !ai->lidx)
-        args = lappend(args, make_null_const(location));
-    else
-        args = lappend(args, ai->lidx);
-
-    if (!ai || !ai->uidx)
-        args = lappend(args, make_null_const(location));
-    else
-        args = lappend(args, ai->uidx);
-
-    /* add in the direction as Const */
-    args = lappend(args, make_int_const(cr->dir, cr_location));
-
-    /* build the VLE function node */
-    cr->varlen = (Node *)makeFuncCall(list_make1(makeString("vle")), args, COERCE_SQL_SYNTAX, cr_location);
-
-    return cr;
 }
