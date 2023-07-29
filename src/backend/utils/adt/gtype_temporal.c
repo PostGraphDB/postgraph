@@ -237,6 +237,104 @@ gtype_date_part(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(gtype_date_trunc);
+Datum
+gtype_date_trunc(PG_FUNCTION_ARGS) {
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+
+    if (is_gtype_null(lhs) || is_gtype_null(rhs))
+        PG_RETURN_NULL();
+
+    gtype_value *lhs_value = get_ith_gtype_value_from_container(&lhs->root, 0);
+    gtype_value *rhs_value = get_ith_gtype_value_from_container(&rhs->root, 0);
+
+    if (lhs_value->type != AGTV_STRING)
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("Invalid input for EXTRACT arg 1 must be a string"),
+                        errhint("You may have to use explicit casts.")));
+
+    char *field = lhs_value->val.string.val;
+
+    gtype_value gtv;
+    if (rhs_value->type == AGTV_TIMESTAMP) {
+        gtv.val.int_value = DatumGetTimestamp(DirectFunctionCall2(timestamp_trunc,
+                                               CStringGetTextDatum(field),
+                                               TimestampGetDatum(rhs_value->val.int_value)));
+	gtv.type = AGTV_TIMESTAMP;
+	AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+    } else if (rhs_value->type == AGTV_TIMESTAMPTZ) {
+        gtv.val.int_value = DatumGetTimestampTz(DirectFunctionCall2(timestamptz_trunc,
+                                              CStringGetTextDatum(field),
+                                              TimestampTzGetDatum(rhs_value->val.int_value)));
+        gtv.type = AGTV_TIMESTAMPTZ;
+        AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+    } else if (rhs_value->type == AGTV_INTERVAL) {
+         Interval *i = DatumGetIntervalP(DirectFunctionCall2(interval_trunc,
+                                              CStringGetTextDatum(field),
+                                              IntervalPGetDatum(&rhs_value->val.interval)));
+        gtv.type = AGTV_INTERVAL;
+        gtv.val.interval.time = i->time;
+        gtv.val.interval.day = i->day;
+        gtv.val.interval.month = i->month;
+
+	AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+    } else {
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("Invalid input for date_trun(gtype, gtype)"),
+                        errhint("You may have to use explicit casts.")));
+    }
+
+    PG_RETURN_NULL();
+}
+
+PG_FUNCTION_INFO_V1(gtype_date_trunc_zone);
+Datum
+gtype_date_trunc_zone(PG_FUNCTION_ARGS) {
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+    gtype *zone = AG_GET_ARG_GTYPE_P(2);
+
+    if (is_gtype_null(lhs) || is_gtype_null(rhs))
+        PG_RETURN_NULL();
+
+    gtype_value *lhs_value = get_ith_gtype_value_from_container(&lhs->root, 0);
+    gtype_value *rhs_value = get_ith_gtype_value_from_container(&rhs->root, 0);
+    gtype_value *zone_value = get_ith_gtype_value_from_container(&zone->root, 0);
+
+    if (lhs_value->type != AGTV_STRING)
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("Invalid input for date_trunc arg 1 must be a string"),
+                        errhint("You may have to use explicit casts.")));
+
+    char *field = lhs_value->val.string.val;
+
+    if (lhs_value->type != AGTV_STRING)
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("Invalid input for date_trunc arg 3 must be a string"),
+                        errhint("You may have to use explicit casts.")));
+
+    char *zone_str = zone_value->val.string.val;
+
+
+    gtype_value gtv;
+    if (rhs_value->type == AGTV_TIMESTAMPTZ) {
+        gtv.val.int_value = DatumGetTimestampTz(DirectFunctionCall3(timestamptz_trunc_zone,
+                                              CStringGetTextDatum(field),
+                                              TimestampTzGetDatum(rhs_value->val.int_value),
+					      CStringGetTextDatum(zone_str)));
+        gtv.type = AGTV_TIMESTAMPTZ;
+        AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+    } else {
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("Invalid input for date_trun(gtype, gtype, gtype)"),
+                        errhint("You may have to use explicit casts.")));
+    }
+
+    PG_RETURN_NULL();
+}
+
+
 
 PG_FUNCTION_INFO_V1(gtype_date_bin);
 Datum

@@ -2980,6 +2980,27 @@ $$) AS r(result gtype);
 
 
 --
+-- date_trunc
+--
+SELECT * FROM cypher('expr', $$
+    RETURN date_trunc('day', TIMESTAMP WITH TIME ZONE '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_trunc('day', TIMESTAMP WITH TIME ZONE '12/17/1997 07:37:16.00+00', 'Australia/Sydney')
+$$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$
+    RETURN date_trunc('day', TIMESTAMP '12/17/1997 07:37:16.00+00')
+$$) AS r(result gtype);
+
+SELECT * FROM cypher('expr', $$
+        RETURN date_trunc('day', INTERVAL '6 Years 11 Months 24 Days 5 Hours 23 Minutes')
+$$) AS r(result gtype);
+
+
+
+--
 -- Temporal Functions
 --
 SELECT * FROM cypher('expr', $$
