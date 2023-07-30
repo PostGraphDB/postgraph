@@ -3297,18 +3297,6 @@ SELECT * FROM cypher('case_statement', $$
 	END
 $$ ) AS (j gtype, case_statement gtype);
 
--- RETURN * and (u)--(v) optional forms
-SELECT create_graph('opt_forms');
-SELECT * FROM cypher('opt_forms', $$CREATE ({i:1})-[:KNOWS]->({i:2})<-[:KNOWS]-({i:3})$$)AS (result gtype);
-SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN u$$) AS (result vertex);
-SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN *$$) AS (result vertex);
-SELECT * FROM cypher('opt_forms', $$MATCH (u)--(v) RETURN u.i, v.i$$) AS (u gtype, v gtype);
-SELECT * FROM cypher('opt_forms', $$MATCH (u)-->(v) RETURN u.i, v.i$$) AS (u gtype, v gtype);
-SELECT * FROM cypher('opt_forms', $$MATCH (u)<--(v) RETURN u.i, v.i$$) AS (u gtype, v gtype);
-SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN u.i, v.i$$) AS (u gtype, v gtype);
-SELECT * FROM cypher('opt_forms', $$MATCH (u) CREATE (u)-[:edge]->() RETURN *$$) AS (results vertex);
-SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN *$$) AS (col1 vertex, col2 vertex);
-
 -- list functions range(), keys()
 SELECT create_graph('keys');
 -- keys()
@@ -3365,7 +3353,6 @@ SELECT * from cypher('list', $$RETURN labels("string")$$) as (Labels gtype);
 --
 SELECT * FROM drop_graph('chained', true);
 SELECT * FROM drop_graph('case_statement', true);
-SELECT * FROM drop_graph('opt_forms', true);
 SELECT * FROM drop_graph('type_coercion', true);
 SELECT * FROM drop_graph('order_by', true);
 SELECT * FROM drop_graph('group_by', true);

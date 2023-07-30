@@ -502,9 +502,23 @@ SELECT * FROM cypher('cypher_match', $$
     RETURN n
 $$) as (n vertex);
 
+-- RETURN * and (u)--(v) optional forms
+SELECT create_graph('opt_forms');
+SELECT * FROM cypher('opt_forms', $$CREATE ({i:1})-[:KNOWS]->({i:2})<-[:KNOWS]-({i:3})$$)AS (result gtype);
+SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN u$$) AS (result vertex);
+SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN *$$) AS (result vertex);
+SELECT * FROM cypher('opt_forms', $$MATCH (u)--(v) RETURN u.i, v.i$$) AS (u gtype, v gtype);
+SELECT * FROM cypher('opt_forms', $$MATCH (u)-->(v) RETURN u.i, v.i$$) AS (u gtype, v gtype);
+SELECT * FROM cypher('opt_forms', $$MATCH (u)<--(v) RETURN u.i, v.i$$) AS (u gtype, v gtype);
+SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN u.i, v.i$$) AS (u gtype, v gtype);
+SELECT * FROM cypher('opt_forms', $$MATCH (u) CREATE (u)-[:edge]->() RETURN *$$) AS (results vertex);
+SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN *$$) AS (col1 vertex, col2 vertex);
+
+
 --
 -- Clean up
 --
+SELECT drop_graph('opt_forms', true);
 SELECT drop_graph('cypher_match', true);
 
 --
