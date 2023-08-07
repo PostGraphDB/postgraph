@@ -274,6 +274,21 @@ SELECT * from cypher('vector', $$
     RETURN tovector("[1.0]") <= tovector("[2.0]")
 $$) as (Labels gtype);
 
+--
+-- l2 squared distance
+--
+SELECT * from cypher('vector', $$
+    RETURN l2_squared_distance(tovector("[1.0, 9, 2, .9]"), tovector("[1.0, 9, 2, .9]"))
+$$) as (Labels gtype);
+
+SELECT * from cypher('vector', $$
+    RETURN l2_squared_distance(tovector("[5.0, 2, 4, .324]"), tovector("[1.0, 9, 2, .9]"))
+$$) as (Labels gtype);
+
+
+SELECT * from cypher('vector', $$
+    RETURN l2_squared_distance(tovector("[1.0]"), tovector("[2.0]"))
+$$) as (Labels gtype);
 
 --
 -- cleanup

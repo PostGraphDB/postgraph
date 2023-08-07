@@ -329,6 +329,13 @@ IMMUTABLE
 RETURNS NULL ON NULL INPUT
 PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_norm';
 
+CREATE FUNCTION l2_squared_distance(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_l2_squared_distance';
+
 --
 -- graphid - hash operator class
 --
