@@ -179,6 +179,33 @@ $$) as (Labels gtype);
 (1 row)
 
 --
+-- norm
+--
+SELECT * from cypher('vector', $$
+    RETURN norm(tovector("[1.0, 9, 2, .9]"))
+$$) as (Labels gtype);
+      labels      
+------------------
+ 9.31718841711382
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN norm(tovector("[5.0, 2, 4, .324]"))
+$$) as (Labels gtype);
+      labels      
+------------------
+ 6.71602382366233
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN norm(tovector("[1.0]"))
+$$) as (Labels gtype);
+ labels 
+--------
+ 1.0
+(1 row)
+
+--
 -- cleanup
 --
 SELECT drop_graph('vector', true);

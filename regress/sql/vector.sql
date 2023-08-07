@@ -113,6 +113,22 @@ SELECT * from cypher('vector', $$
     RETURN dims(tovector("[1.0]"))
 $$) as (Labels gtype);
 
+--
+-- norm
+--
+SELECT * from cypher('vector', $$
+    RETURN norm(tovector("[1.0, 9, 2, .9]"))
+$$) as (Labels gtype);
+
+SELECT * from cypher('vector', $$
+    RETURN norm(tovector("[5.0, 2, 4, .324]"))
+$$) as (Labels gtype);
+
+
+SELECT * from cypher('vector', $$
+    RETURN norm(tovector("[1.0]"))
+$$) as (Labels gtype);
+
 
 --
 -- cleanup
