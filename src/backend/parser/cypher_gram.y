@@ -1155,6 +1155,10 @@ expr:
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<->", $1, $5, @3);
         }
+    | expr LT_EQ '>' expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<=>", $1, $4, @3);
+        }
     | expr IN expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "@=", $1, $3, @2);

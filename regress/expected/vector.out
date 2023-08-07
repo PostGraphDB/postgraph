@@ -43,6 +43,9 @@ SELECT * from cypher('list', $$RETURN tovector("[1.0]")$$) as (Labels gtype);
 ERROR:  graph "list" does not exist
 LINE 1: SELECT * from cypher('list', $$RETURN tovector("[1.0]")$$) a...
                              ^
+--
+-- l2 distance
+--
 SELECT * from cypher('vector', $$
     RETURN tovector("[1.0, 9, 2, .9]")  <-> tovector("[1.0, 9, 2, .9]")
 $$) as (Labels gtype);
@@ -67,6 +70,9 @@ $$) as (Labels gtype);
  1.0
 (1 row)
 
+--
+-- inner product
+--
 SELECT * from cypher('vector', $$
     RETURN inner_product(tovector("[1.0, 9, 2, .9]"), tovector("[1.0, 9, 2, .9]"))
 $$) as (Labels gtype);
@@ -89,6 +95,33 @@ $$) as (Labels gtype);
  labels 
 --------
  2.0
+(1 row)
+
+--
+-- cosine distance
+--
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0, 9, 2, .9]")  <=> tovector("[1.0, 9, 2, .9]")
+$$) as (Labels gtype);
+ labels 
+--------
+ 0.0
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN tovector("[5.0, 2, 4, .324]")  <=> tovector("[1.0, 9, 2, .9]")
+$$) as (Labels gtype);
+      labels       
+-------------------
+ 0.499930158237086
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0]")  <=> tovector("[2.0]")
+$$) as (Labels gtype);
+ labels 
+--------
+ 0.0
 (1 row)
 
 --

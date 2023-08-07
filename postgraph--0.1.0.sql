@@ -299,6 +299,14 @@ IMMUTABLE
 RETURNS NULL ON NULL INPUT
 PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_inner_product';
 
+CREATE FUNCTION cosine_distance(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_cosine_distance';
+
+CREATE OPERATOR <=> (FUNCTION = cosine_distance, LEFTARG = gtype, RIGHTARG = gtype, COMMUTATOR = <=>);
 
 --
 -- graphid - hash operator class

@@ -32,6 +32,9 @@ SELECT * from cypher('list', $$RETURN tovector("[]")$$) as (Labels gtype);
 SELECT * from cypher('list', $$RETURN tovector("[1.0, 9, 2, .9]")$$) as (Labels gtype);
 SELECT * from cypher('list', $$RETURN tovector("[1.0]")$$) as (Labels gtype);
 
+--
+-- l2 distance
+--
 SELECT * from cypher('vector', $$
     RETURN tovector("[1.0, 9, 2, .9]")  <-> tovector("[1.0, 9, 2, .9]")
 $$) as (Labels gtype);
@@ -45,7 +48,9 @@ SELECT * from cypher('vector', $$
     RETURN tovector("[1.0]")  <-> tovector("[2.0]")
 $$) as (Labels gtype);
 
-
+--
+-- inner product
+--
 SELECT * from cypher('vector', $$
     RETURN inner_product(tovector("[1.0, 9, 2, .9]"), tovector("[1.0, 9, 2, .9]"))
 $$) as (Labels gtype);
@@ -59,6 +64,21 @@ SELECT * from cypher('vector', $$
     RETURN inner_product(tovector("[1.0]"), tovector("[2.0]"))
 $$) as (Labels gtype);
 
+--
+-- cosine distance
+--
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0, 9, 2, .9]")  <=> tovector("[1.0, 9, 2, .9]")
+$$) as (Labels gtype);
+
+SELECT * from cypher('vector', $$
+    RETURN tovector("[5.0, 2, 4, .324]")  <=> tovector("[1.0, 9, 2, .9]")
+$$) as (Labels gtype);
+
+
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0]")  <=> tovector("[2.0]")
+$$) as (Labels gtype);
 
 --
 -- cleanup
