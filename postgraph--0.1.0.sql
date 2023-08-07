@@ -308,6 +308,13 @@ PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_cosine_distance';
 
 CREATE OPERATOR <=> (FUNCTION = cosine_distance, LEFTARG = gtype, RIGHTARG = gtype, COMMUTATOR = <=>);
 
+CREATE FUNCTION l1_distance(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_l1_distance';
+
 --
 -- graphid - hash operator class
 --
