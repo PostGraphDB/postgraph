@@ -156,6 +156,9 @@ Datum gtype_add(PG_FUNCTION_ARGS)
     {
         Datum agt;
 
+	if  (AGT_IS_VECTOR(lhs) && AGT_IS_VECTOR(rhs))
+            PG_RETURN_POINTER(gtype_value_to_gtype(gtype_vector_add(lhs, rhs)));
+
         /* It can't be a scalar and an object */
         if ((AGT_ROOT_IS_SCALAR(lhs) && AGT_ROOT_IS_OBJECT(rhs)) ||
             (AGT_ROOT_IS_OBJECT(lhs) && AGT_ROOT_IS_SCALAR(rhs)) ||
