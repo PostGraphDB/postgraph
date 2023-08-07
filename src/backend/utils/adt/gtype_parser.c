@@ -199,6 +199,7 @@ gtype_lex_context *make_gtype_lex_context_cstring_len(char *str, int len, bool n
  */
 void parse_gtype(gtype_lex_context *lex, gtype_sem_action *sem) {
     gtype_token_type tok;
+    char **valaddr;
 
     /* get the initial token */
     gtype_lex(lex);
@@ -218,8 +219,30 @@ void parse_gtype(gtype_lex_context *lex, gtype_sem_action *sem) {
         parse_scalar(lex, sem); /* gtype can be a bare scalar */
     }
 
+    //parse_annotation(lex, &annotation);
+
     lex_expect(GTYPE_PARSE_END, lex, GTYPE_TOKEN_END);
 }
+
+static void parse_annotation(gtype_lex_context *lex, void *func, char **annotation) {
+    /* check next token for annotations (typecasts, etc.) */
+    if (lex_peek(lex) == GTYPE_TOKEN_ANNOTATION) {
+        /* eat the annotation token */
+        lex_accept(lex, GTYPE_TOKEN_ANNOTATION, NULL);
+        if (lex_peek(lex) == GTYPE_TOKEN_IDENTIFIER) {
+            /* eat the identifier token and get the annotation value */
+            if (func != NULL)
+                lex_accept(lex, GTYPE_TOKEN_IDENTIFIER, annotation);
+            else
+                lex_accept(lex, GTYPE_TOKEN_IDENTIFIER, NULL);
+        }
+        else
+            ereport(ERROR,
+                    (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                     errmsg("invalid value for annotation")));
+    }
+}
+
 
 static void parse_scalar_annotation(gtype_lex_context *lex, void *func, char **annotation) {
     /* check next token for annotations (typecasts, etc.) */
@@ -283,7 +306,6 @@ static inline void parse_scalar(gtype_lex_context *lex, gtype_sem_action *sem) {
         report_parse_error(GTYPE_PARSE_VALUE, lex);
     }
 
-    /* parse annotations (typecasts) */
     parse_scalar_annotation(lex, sfunc, &annotation);
 
     if (sfunc != NULL)

@@ -63,6 +63,7 @@ OBJS = src/backend/postgraph.o \
        src/backend/utils/adt/graphid.o \
        src/backend/utils/adt/traversal.o \
        src/backend/utils/adt/variable_edge.o \
+       src/backend/utils/adt/vector.o \
        src/backend/utils/adt/vertex.o \
        src/backend/utils/ag_func.o \
        src/backend/utils/cache/ag_cache.o \

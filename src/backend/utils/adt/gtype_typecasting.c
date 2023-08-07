@@ -68,16 +68,6 @@ typedef Datum (*coearce_function) (gtype_value *);
 static Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
 static ArrayType *gtype_to_array(coearce_function func, gtype *agt, char *type); 
 
-static Datum gtype_to_int8_internal(gtype_value *agtv);
-static Datum gtype_to_int4_internal(gtype_value *agtv);
-static Datum gtype_to_int2_internal(gtype_value *agtv);
-static Datum gtype_to_float8_internal(gtype_value *agtv);
-static Datum gtype_to_numeric_internal(gtype_value *agtv);
-static Datum gtype_to_string_internal(gtype_value *agtv);
-static Datum gtype_to_date_internal(gtype_value *agtv);
-static Datum gtype_to_time_internal(gtype_value *agtv);
-static Datum gtype_to_timetz_internal(gtype_value *agtv);
-
 static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqltype);
 
 Datum convert_to_scalar(coearce_function func, gtype *agt, char *type) {
@@ -302,7 +292,30 @@ Datum todate(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
 }  
 
+PG_FUNCTION_INFO_V1(tovector);
+/*                  
+ * Execute function to typecast an agtype to an agtype timestamp
+ */                 
+Datum tovector(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+    gtype_value *agtv = get_ith_gtype_value_from_container(&agt->root, 0);
 
+    if (agtv->type == NULL)
+        PG_RETURN_NULL();
+
+
+    if (agtv->type != AGTV_STRING)
+        ereport(ERROR,
+                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                 errmsg("typecastint to vector must be a string")));
+
+    agtv = gtype_vector_in(agtv->val.string.val, -1);
+
+    //gtype_value_to_gtype(agtv);
+    PG_RETURN_POINTER(gtype_value_to_gtype(agtv));
+      //  PG_RETURN_NULL();
+}
 
 /*
  * gtype to postgres functions
@@ -517,7 +530,7 @@ gtype_to_array(coearce_function func, gtype *agt, char *type) {
 /*
  * internal scalar conversion functions
  */
-static Datum
+Datum
 gtype_to_int8_internal(gtype_value *agtv) {
     if (agtv->type == AGTV_INTEGER)
         return Int64GetDatum(agtv->val.int_value);
@@ -534,7 +547,7 @@ gtype_to_int8_internal(gtype_value *agtv) {
     return 0;
 }
 
-static Datum
+Datum
 gtype_to_int4_internal(gtype_value *agtv) {
     if (agtv->type == AGTV_INTEGER)
         return DirectFunctionCall1(int8_to_int4, Int64GetDatum(agtv->val.int_value));
@@ -551,7 +564,7 @@ gtype_to_int4_internal(gtype_value *agtv) {
     return 0;
 }
 
-static Datum
+Datum
 gtype_to_int2_internal(gtype_value *agtv) {
     if (agtv->type == AGTV_INTEGER)
         return DirectFunctionCall1(int8_to_int2, Int64GetDatum(agtv->val.int_value));
@@ -568,7 +581,7 @@ gtype_to_int2_internal(gtype_value *agtv) {
     return 0;
 }
 
-static Datum
+Datum
 gtype_to_float8_internal(gtype_value *agtv) {
     if (agtv->type == AGTV_FLOAT)
         return Float8GetDatum(agtv->val.float_value);
@@ -585,7 +598,7 @@ gtype_to_float8_internal(gtype_value *agtv) {
     return 0;
 }
 
-static Datum
+Datum
 gtype_to_numeric_internal(gtype_value *agtv) {
     if (agtv->type == AGTV_INTEGER)
         return DirectFunctionCall1(int8_to_numeric, Int64GetDatum(agtv->val.int_value));
@@ -610,7 +623,7 @@ gtype_to_numeric_internal(gtype_value *agtv) {
     return 0;
 }
 
-static Datum
+Datum
 gtype_to_string_internal(gtype_value *agtv) {
     if (agtv->type == AGTV_INTEGER)
         return DirectFunctionCall1(int8_to_string, Int64GetDatum(agtv->val.int_value));
@@ -672,7 +685,7 @@ gtype_to_timestamptz_internal(gtype_value *agtv) {
 }
 
 
-static Datum
+Datum
 gtype_to_date_internal(gtype_value *agtv) {
     if (agtv->type == AGTV_TIMESTAMPTZ)
         return DateADTGetDatum(DirectFunctionCall1(timestamptz_date, TimestampTzGetDatum(agtv->val.int_value)));
@@ -692,7 +705,7 @@ gtype_to_date_internal(gtype_value *agtv) {
     return CStringGetDatum("");
 }
 
-static Datum
+Datum
 gtype_to_time_internal(gtype_value *agtv) {
     if (agtv->type == AGTV_TIMESTAMPTZ)
         return TimeADTGetDatum(DirectFunctionCall1(timestamptz_time, TimestampTzGetDatum(agtv->val.int_value)));
@@ -714,7 +727,7 @@ gtype_to_time_internal(gtype_value *agtv) {
     return CStringGetDatum("");
 }
 
-static Datum
+Datum
 gtype_to_timetz_internal(gtype_value *agtv) {
     if (agtv->type == AGTV_TIMESTAMPTZ)
         return TimeTzADTPGetDatum(DirectFunctionCall1(timestamptz_timetz, TimestampTzGetDatum(agtv->val.int_value)));

@@ -50,6 +50,7 @@ typedef enum
     GTYPE_TOKEN_TIME,
     GTYPE_TOKEN_TIMETZ,
     GTYPE_TOKEN_INTERVAL,
+    GTYPE_TOKEN_VECTOR,
     GTYPE_TOKEN_OBJECT_START,
     GTYPE_TOKEN_OBJECT_END,
     GTYPE_TOKEN_ARRAY_START,
@@ -94,9 +95,8 @@ typedef struct gtype_lex_context
 typedef void (*gtype_struct_action)(void *state);
 typedef void (*gtype_ofield_action)(void *state, char *fname, bool isnull);
 typedef void (*gtype_aelem_action)(void *state, bool isnull);
-typedef void (*gtype_scalar_action)(void *state, char *token,
-                                     gtype_token_type tokentype,
-                                     char *annotation);
+typedef void (*gtype_scalar_action)(void *state, char *token, gtype_token_type tokentype, char *annotation);
+typedef void (*gtype_annotation_actions)(void *state, char *anotation);
 
 /*
  * Semantic Action structure for use in parsing gtype.
@@ -121,6 +121,7 @@ typedef struct gtype_sem_action
     gtype_aelem_action array_element_start;
     gtype_aelem_action array_element_end;
     gtype_scalar_action scalar;
+    gtype_annotation_actions annotation;
 } gtype_sem_action;
 
 /*

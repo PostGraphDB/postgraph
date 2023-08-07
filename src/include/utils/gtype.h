@@ -48,6 +48,7 @@
 #include "catalog/ag_namespace.h"
 #include "catalog/pg_type.h"
 #include "utils/graphid.h"
+#include "utils/vector.h"
 
 /* Tokens used when sequentially processing an gtype value */
 typedef enum
@@ -59,7 +60,9 @@ typedef enum
     WAGT_BEGIN_ARRAY,
     WAGT_END_ARRAY,
     WAGT_BEGIN_OBJECT,
-    WAGT_END_OBJECT
+    WAGT_END_OBJECT,
+    WAGT_BEGIN_VECTOR,
+    WAGT_END_VECTOR
 } gtype_iterator_token;
 
 #define GTYPE_ITERATOR_TOKEN_IS_HASHABLE(x) \
@@ -175,18 +178,18 @@ typedef struct gtype_value gtype_value;
  */
 typedef uint32 agtentry;
 
-#define AGTENTRY_OFFLENMASK 0x0FFF
-#define AGTENTRY_TYPEMASK   0x7000
-#define AGTENTRY_HAS_OFF    0x8000
+#define AGTENTRY_OFFLENMASK 0x0FFFFFFF
+#define AGTENTRY_TYPEMASK   0x70000000
+#define AGTENTRY_HAS_OFF    0x80000000
 
 /* values stored in the type bits */
-#define AGTENTRY_IS_STRING     0x0000
-#define AGTENTRY_IS_NUMERIC    0x1000
-#define AGTENTRY_IS_BOOL_FALSE 0x2000
-#define AGTENTRY_IS_BOOL_TRUE  0x3000
-#define AGTENTRY_IS_NULL       0x4000
-#define AGTENTRY_IS_CONTAINER  0x5000 /* array or object */
-#define AGTENTRY_IS_GTYPE     0x7000 /* our type designator */
+#define AGTENTRY_IS_STRING     0x00000000
+#define AGTENTRY_IS_NUMERIC    0x10000000
+#define AGTENTRY_IS_BOOL_FALSE 0x20000000
+#define AGTENTRY_IS_BOOL_TRUE  0x30000000
+#define AGTENTRY_IS_NULL       0x40000000
+#define AGTENTRY_IS_CONTAINER  0x50000000 /* array or object */
+#define AGTENTRY_IS_GTYPE     0x70000000 /* extended type designator */
 
 /* Access macros.  Note possible multiple evaluations */
 #define AGTE_OFFLENFLD(agte_) \
@@ -249,24 +252,12 @@ typedef struct gtype_container
 } gtype_container;
 
 /* flags for the header-field in gtype_container*/
-#define AGT_CMASK   0x0FFF /* mask for count field */
-#define AGT_FSCALAR 0x1000 /* flag bits */
-#define AGT_FOBJECT 0x2000
-#define AGT_FARRAY  0x4000
-#define AGT_FBINARY 0x8000 /* our binary objects */
-
-/*
- * Flags for the gtype_container type AGT_FBINARY are in the AGT_CMASK (count)
- * field. We put the flags here as this is a strictly AGTV_BINARY blob of data
- * and count is irrelevant because there is only one. The additional flags allow
- * for differing types of user defined binary blobs. To be consistent and clear,
- * we create binary specific masks, flags, and macros.
- */
-#define AGT_FBINARY_MASK          0x0FFF /* mask for binary flags */
-#define GTYPE_FBINARY_CONTAINER_TYPE(agtc) \
-    ((agtc)->header &AGT_FBINARY_MASK)
-#define AGT_ROOT_DATA_FBINARY(agtp_) \
-    VARDATA(agtp_);
+#define AGT_CMASK   0x07FFFFFF /* mask for count field */
+#define AGT_FSCALAR 0x10000000 /* flag bits */
+#define AGT_FOBJECT 0x20000000
+#define AGT_FARRAY  0x40000000
+#define AGT_FBINARY 0x80000000
+#define AGT_FEXTENDED_COMPOSITE 0x08000000
 
 /* convenience macros for accessing an gtype_container struct */
 #define GTYPE_CONTAINER_SIZE(agtc)       ((agtc)->header & AGT_CMASK)
@@ -274,6 +265,7 @@ typedef struct gtype_container
 #define GTYPE_CONTAINER_IS_OBJECT(agtc) (((agtc)->header & AGT_FOBJECT) != 0)
 #define GTYPE_CONTAINER_IS_ARRAY(agtc)  (((agtc)->header & AGT_FARRAY)  != 0)
 #define GTYPE_CONTAINER_IS_BINARY(agtc) (((agtc)->header & AGT_FBINARY) != 0)
+#define GTYPE_CONTAINER_IS_EXTENDED_COMPOSITE(agtc) (((agtc)->header & AGT_FEXTENDED_COMPOSITE) != 0)
 
 // The top-level on-disk format for an gtype datum.
 typedef struct
@@ -292,18 +284,21 @@ typedef struct
     ((*(uint32 *)VARDATA(agtp_) & AGT_FARRAY) != 0)
 #define AGT_ROOT_IS_BINARY(agtp_) \
     ((*(uint32 *)VARDATA(agtp_) & AGT_FBINARY) != 0)
+#define AGT_ROOT_IS_EXTENDED_COMPOSITE(agtp_) \
+    ((*(uint32 *)VARDATA(agtp_) & AGT_FEXTENDED_COMPOSITE) != 0)
 #define AGT_ROOT_BINARY_FLAGS(agtp_) \
     (*(uint32 *)VARDATA(agtp_) & AGT_FBINARY_MASK)
 
 // values for the GTYPE header field to denote the stored data type
-#define AGT_HEADER_INTEGER 0x0000
-#define AGT_HEADER_FLOAT   0x0001
-#define AGT_HEADER_TIMESTAMP 0x0002
-#define AGT_HEADER_TIMESTAMPTZ 0x0003
-#define AGT_HEADER_DATE 0x0004
-#define AGT_HEADER_TIME 0x0005
-#define AGT_HEADER_TIMETZ 0x0006
-#define AGT_HEADER_INTERVAL 0x0007
+#define AGT_HEADER_INTEGER 0x00000000
+#define AGT_HEADER_FLOAT   0x00000001
+#define AGT_HEADER_TIMESTAMP 0x00000002
+#define AGT_HEADER_TIMESTAMPTZ 0x00000003
+#define AGT_HEADER_DATE 0x00000004
+#define AGT_HEADER_TIME 0x00000005
+#define AGT_HEADER_TIMETZ 0x00000006
+#define AGT_HEADER_INTERVAL 0x00000007
+#define AGT_HEADER_VECTOR 0x00000008
 
 #define AGT_IS_INTEGER(agte_) \
     (((agte_) == AGT_HEADER_INTEGER))
@@ -313,6 +308,10 @@ typedef struct
 
 #define AGT_IS_TIMESTAMP(agt) \
     (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_TIMESTAMP)
+
+#define AGT_IS_VECTOR(agt) \
+    (AGTE_IS_GTYPE((agt)->root.children[0]) && (agt)->root.children[1] == AGT_HEADER_VECTOR)
+
 
 enum gtype_value_type
 {
@@ -329,10 +328,10 @@ enum gtype_value_type
     AGTV_TIME,
     AGTV_TIMETZ,
     AGTV_INTERVAL,
-    AGTV_EDGE,
     /* Composite types */
     AGTV_ARRAY = 0x20,
     AGTV_OBJECT,
+    AGTV_VECTOR,
     /* Binary (i.e. struct gtype) AGTV_ARRAY/AGTV_OBJECT */
     AGTV_BINARY
 };
@@ -356,8 +355,9 @@ struct gtype_value
 	TimeTzADT timetz;
         struct { int len; char *val; /* Not necessarily null-terminated */ } string; // String primitive type
         struct { int num_elems; gtype_value *elems; bool raw_scalar; } array;       // Array container type
-        struct { int num_pairs; gtype_pair *pairs; } object;                        // Associative container type
-        struct { int len; gtype_container *data; } binary;                          // Array or object, in on-disk format
+	struct { int num_pairs; gtype_pair *pairs; } object;                        // Associative container type
+        Vector vector;
+	struct { int len; gtype_container *data; } binary;                          // Array or object, in on-disk format
     } val;
 };
 
@@ -405,7 +405,9 @@ typedef enum
     AGTI_ARRAY_ELEM,
     AGTI_OBJECT_START,
     AGTI_OBJECT_KEY,
-    AGTI_OBJECT_VALUE
+    AGTI_OBJECT_VALUE,
+    AGTI_VECTOR_START,
+    AGTI_VECTOR_VALUE
 } agt_iterator_state;
 
 typedef struct gtype_iterator
@@ -448,8 +450,6 @@ gtype *gtype_value_to_gtype(gtype_value *val);
 bool gtype_deep_contains(gtype_iterator **val, gtype_iterator **m_contained);
 void gtype_hash_scalar_value(const gtype_value *scalar_val, uint32 *hash);
 void gtype_hash_scalar_value_extended(const gtype_value *scalar_val, uint64 *hash, uint64 seed);
-void convert_extended_array(StringInfo buffer, agtentry *pheader, gtype_value *val);
-void convert_extended_object(StringInfo buffer, agtentry *pheader, gtype_value *val);
 Datum get_numeric_datum_from_gtype_value(gtype_value *agtv);
 bool is_numeric_result(gtype_value *lhs, gtype_value *rhs);
 

@@ -65,6 +65,7 @@
 #include "utils/gtype.h"
 #include "utils/edge.h"
 #include "utils/variable_edge.h"
+#include "utils/vector.h"
 #include "utils/vertex.h"
 #include "utils/gtype_parser.h"
 #include "catalog/ag_graph.h"
@@ -98,6 +99,7 @@ typedef enum /* type categories for datum_to_gtype */
     AGT_TYPE_TIME,
     AGT_TYPE_TIMETZ,
     AGT_TYPE_INTERVAL,
+    AGT_TYPE_VECTOR,
     AGT_TYPE_GTYPE, /* GTYPE */
     AGT_TYPE_JSON, /* JSON */
     AGT_TYPE_JSONB, /* JSONB */
@@ -335,64 +337,6 @@ static void gtype_in_object_field_start(void *pstate, char *fname, bool isnull) 
     _state->res = push_gtype_value(&_state->parse_state, WAGT_KEY, &v);
 }
 
-static void gtype_put_array(StringInfo out, gtype_value *scalar_val) {
-    int i = 0;
-
-    appendBinaryStringInfo(out, "[", 1);
-
-    for (i = 0; i < scalar_val->val.array.num_elems; i++) {
-        gtype_value *agtv = &scalar_val->val.array.elems[i];
-
-        if (agtv->type == AGTV_BINARY)
-            gtype_to_cstring_worker(out, (gtype_container *)agtv->val.binary.data, agtv->val.binary.len, false);
-        else if (agtv->type == AGTV_ARRAY)
-	    gtype_put_array(out, agtv);
-	else if (agtv->type == AGTV_OBJECT)
-	    gtype_put_object(out, agtv);
-        else
-            gtype_put_escaped_value(out, agtv);
-
-        if (i < scalar_val->val.object.num_pairs -1)
-           appendBinaryStringInfo(out, ", ", 2);
-    }
-
-    appendBinaryStringInfo(out, "]", 1);
-}
-
-
-static void gtype_put_object(StringInfo out, gtype_value *scalar_val) {
-    int i = 0;
-
-    appendBinaryStringInfo(out, "{", 1);	
-
-    for (i = 0; i < scalar_val->val.object.num_pairs; i++) {
-	gtype_pair *pairs = &scalar_val->val.object.pairs[i];
-
-	gtype_value *agtv = &pairs->key;
-	gtype_put_escaped_value(out, agtv);		
-
-        appendBinaryStringInfo(out, ": ", 2);
-
-
-	agtv = &pairs->value;
-
-	if (agtv->type == AGTV_BINARY)
-	    gtype_to_cstring_worker(out, (gtype_container *)agtv->val.binary.data, agtv->val.binary.len, false);
-        else if (agtv->type == AGTV_ARRAY)
-            gtype_put_array(out, agtv);
-        else if (agtv->type == AGTV_OBJECT)
-            gtype_put_object(out, agtv);
-	else
-	    gtype_put_escaped_value(out, agtv);
-
-	if (i < scalar_val->val.object.num_pairs -1)
-	    appendBinaryStringInfo(out, ", ", 2);
-    }
-
-    appendBinaryStringInfo(out, "}", 1);
-}
-
-
 void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
 {
     char *numstr;
@@ -580,20 +524,26 @@ static void gtype_in_scalar(void *pstate, char *token, gtype_token_type tokentyp
     case GTYPE_TOKEN_NUMERIC:
         Assert(token != NULL);
         v.type = AGTV_NUMERIC;
-        numd = DirectFunctionCall3(numeric_in, CStringGetDatum(token), ObjectIdGetDatum(InvalidOid), Int32GetDatum(-1));
+        numd = DirectFunctionCall3(numeric_in,
+			           CStringGetDatum(token),
+				   ObjectIdGetDatum(InvalidOid),
+				   Int32GetDatum(-1));
         v.val.numeric = DatumGetNumeric(numd);
         break;
     case GTYPE_TOKEN_TIMESTAMP:
         Assert(token != NULL);
         v.type = AGTV_TIMESTAMP;
-        v.val.int_value = DatumGetInt64(DirectFunctionCall3(timestamp_in, CStringGetDatum(token), ObjectIdGetDatum(InvalidOid), Int32GetDatum(-1)));
+        v.val.int_value = DatumGetInt64(DirectFunctionCall3(timestamp_in,
+				                            CStringGetDatum(token),
+							    ObjectIdGetDatum(InvalidOid),
+							    Int32GetDatum(-1)));
         break;
     case GTYPE_TOKEN_TIMESTAMPTZ:
         v.type = AGTV_TIMESTAMPTZ;
         v.val.int_value = DatumGetInt64(DirectFunctionCall3(timestamptz_in,
-                                        CStringGetDatum(token),
-                                        ObjectIdGetDatum(InvalidOid),
-                                        Int32GetDatum(-1)));
+                                                            CStringGetDatum(token),
+                                                            ObjectIdGetDatum(InvalidOid),
+                                                            Int32GetDatum(-1)));
         break;
     case GTYPE_TOKEN_DATE:
         v.type = AGTV_DATE;
@@ -602,16 +552,16 @@ static void gtype_in_scalar(void *pstate, char *token, gtype_token_type tokentyp
     case GTYPE_TOKEN_TIME:
         v.type = AGTV_TIME;
         v.val.int_value = DatumGetInt64(DirectFunctionCall3(time_in,
-                                        CStringGetDatum(token),
-                                        ObjectIdGetDatum(InvalidOid),
-                                        Int32GetDatum(-1)));
+                                                            CStringGetDatum(token),
+                                                            ObjectIdGetDatum(InvalidOid),
+                                                            Int32GetDatum(-1)));
 	break;
     case GTYPE_TOKEN_TIMETZ:
         v.type = AGTV_TIMETZ;
         TimeTzADT * timetz= DatumGetTimeTzADTP(DirectFunctionCall3(timetz_in,
-                                        CStringGetDatum(token),
-                                        ObjectIdGetDatum(InvalidOid),
-                                        Int32GetDatum(-1)));
+                                                                   CStringGetDatum(token),
+                                                                   ObjectIdGetDatum(InvalidOid),
+                                                                   Int32GetDatum(-1)));
         v.val.timetz.time = timetz->time;
         v.val.timetz.zone = timetz->zone;
         break;
@@ -749,6 +699,17 @@ static char *gtype_to_cstring_worker(StringInfo out, gtype_container *in, int es
             first = true;
             level++;
             break;
+        case WAGT_BEGIN_VECTOR:
+            if (!first)
+                appendBinaryStringInfo(out, ", ", ispaces);
+
+            add_indent(out, use_indent && !last_was_key, level);
+            appendStringInfoCharMacro(out, '[');
+
+            first = true;
+            level++;
+            break;
+
         case WAGT_BEGIN_OBJECT:
             if (!first)
                 appendBinaryStringInfo(out, ", ", ispaces);
@@ -800,6 +761,12 @@ static char *gtype_to_cstring_worker(StringInfo out, gtype_container *in, int es
                 add_indent(out, use_indent, level);
                 appendStringInfoCharMacro(out, ']');
             }
+            first = false;
+            break;
+        case WAGT_END_VECTOR:
+            level--;
+            add_indent(out, use_indent, level);
+            appendStringInfoCharMacro(out, ']');
             first = false;
             break;
         case WAGT_END_OBJECT:
