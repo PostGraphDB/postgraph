@@ -299,6 +299,15 @@ IMMUTABLE
 RETURNS NULL ON NULL INPUT
 PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_inner_product';
 
+CREATE FUNCTION negative_inner_product(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_negative_inner_product';
+
+CREATE OPERATOR <#> (FUNCTION = negative_inner_product, LEFTARG = gtype, RIGHTARG = gtype, COMMUTATOR = <#>);
+
 CREATE FUNCTION cosine_distance(gtype, gtype)
 RETURNS gtype
 LANGUAGE c
