@@ -279,6 +279,17 @@ CREATE OPERATOR % (FUNCTION = gtype_mod, LEFTARG = gtype, RIGHTARG = gtype);
 CREATE FUNCTION gtype_pow(gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE OPERATOR ^ (FUNCTION = gtype_pow, LEFTARG = gtype, RIGHTARG = gtype);
 
+--
+-- Vector Operators
+--
+CREATE FUNCTION l2_distance(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <-> (FUNCTION = l2_distance, LEFTARG = gtype, RIGHTARG = gtype, COMMUTATOR = <->);
 
 --
 -- graphid - hash operator class

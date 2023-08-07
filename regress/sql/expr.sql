@@ -3349,9 +3349,6 @@ SELECT * from cypher('list', $$RETURN labels(NULL)$$) as (Labels gtype);
 -- should return an error
 SELECT * from cypher('list', $$RETURN labels("string")$$) as (Labels gtype);
 
-SELECT * from cypher('list', $$RETURN tovector("[]")$$) as (Labels gtype);
-SELECT * from cypher('list', $$RETURN tovector("[1.0, 9, 2, .9]")$$) as (Labels gtype);
-SELECT * from cypher('list', $$RETURN tovector("[1.0]")$$) as (Labels gtype);
 --
 -- Cleanup
 --

@@ -310,8 +310,7 @@ typedef struct
     (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_TIMESTAMP)
 
 #define AGT_IS_VECTOR(agt) \
-    (AGTE_IS_GTYPE((agt)->root.children[0]) && (agt)->root.children[1] == AGT_HEADER_VECTOR)
-
+    ((((agt)->root.header & AGT_FEXTENDED_COMPOSITE) != 0 ) && (((agt)->root.children[0] & AGT_HEADER_VECTOR) != 0))
 
 enum gtype_value_type
 {

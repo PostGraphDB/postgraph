@@ -312,9 +312,7 @@ Datum tovector(PG_FUNCTION_ARGS)
 
     agtv = gtype_vector_in(agtv->val.string.val, -1);
 
-    //gtype_value_to_gtype(agtv);
     PG_RETURN_POINTER(gtype_value_to_gtype(agtv));
-      //  PG_RETURN_NULL();
 }
 
 /*

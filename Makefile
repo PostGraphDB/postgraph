@@ -84,6 +84,7 @@ REGRESS = scan \
           catalog \
           cypher \
           expr \
+	  vector \
           cypher_create \
           cypher_match \
           cypher_unwind \
