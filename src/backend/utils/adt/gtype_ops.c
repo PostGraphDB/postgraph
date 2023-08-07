@@ -473,6 +473,9 @@ Datum gtype_mul(PG_FUNCTION_ARGS)
 
     if (!(AGT_ROOT_IS_SCALAR(lhs)) || !(AGT_ROOT_IS_SCALAR(rhs)))
     {
+        if  (AGT_IS_VECTOR(lhs) && AGT_IS_VECTOR(rhs))
+            PG_RETURN_POINTER(gtype_value_to_gtype(gtype_vector_mul(lhs, rhs)));
+
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("must be scalar value, not array or object")));
 
