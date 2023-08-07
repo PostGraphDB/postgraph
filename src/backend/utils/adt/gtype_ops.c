@@ -815,14 +815,18 @@ PG_FUNCTION_INFO_V1(gtype_eq);
 
 Datum gtype_eq(PG_FUNCTION_ARGS)
 {
-    gtype *gtype_lhs = AG_GET_ARG_GTYPE_P(0);
-    gtype *gtype_rhs = AG_GET_ARG_GTYPE_P(1);
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    result = (compare_gtype_containers_orderability(&gtype_lhs->root, &gtype_rhs->root) == 0);
+    if (AGT_IS_VECTOR(lhs) && AGT_IS_VECTOR(rhs))
+        PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) == 0);
 
-    PG_FREE_IF_COPY(gtype_lhs, 0);
-    PG_FREE_IF_COPY(gtype_rhs, 1);
+
+    result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) == 0);
+
+    PG_FREE_IF_COPY(lhs, 0);
+    PG_FREE_IF_COPY(rhs, 1);
 
     PG_RETURN_BOOL(result);
 }
@@ -831,14 +835,17 @@ PG_FUNCTION_INFO_V1(gtype_ne);
 
 Datum gtype_ne(PG_FUNCTION_ARGS)
 {
-    gtype *gtype_lhs = AG_GET_ARG_GTYPE_P(0);
-    gtype *gtype_rhs = AG_GET_ARG_GTYPE_P(1);
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     bool result = true;
 
-    result = (compare_gtype_containers_orderability(&gtype_lhs->root, &gtype_rhs->root) != 0);
+    if (AGT_IS_VECTOR(lhs) && AGT_IS_VECTOR(rhs))
+        PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) != 0);
 
-    PG_FREE_IF_COPY(gtype_lhs, 0);
-    PG_FREE_IF_COPY(gtype_rhs, 1);
+    result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) != 0);
+
+    PG_FREE_IF_COPY(lhs, 0);
+    PG_FREE_IF_COPY(rhs, 1);
 
     PG_RETURN_BOOL(result);
 }
@@ -847,14 +854,18 @@ PG_FUNCTION_INFO_V1(gtype_lt);
 
 Datum gtype_lt(PG_FUNCTION_ARGS)
 {
-    gtype *gtype_lhs = AG_GET_ARG_GTYPE_P(0);
-    gtype *gtype_rhs = AG_GET_ARG_GTYPE_P(1);
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    result = (compare_gtype_containers_orderability(&gtype_lhs->root, &gtype_rhs->root) < 0);
+    if (AGT_IS_VECTOR(lhs) && AGT_IS_VECTOR(rhs))
+        PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) < 0);
 
-    PG_FREE_IF_COPY(gtype_lhs, 0);
-    PG_FREE_IF_COPY(gtype_rhs, 1);
+
+    result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) < 0);
+
+    PG_FREE_IF_COPY(lhs, 0);
+    PG_FREE_IF_COPY(rhs, 1);
 
     PG_RETURN_BOOL(result);
 }
@@ -863,14 +874,18 @@ PG_FUNCTION_INFO_V1(gtype_gt);
 
 Datum gtype_gt(PG_FUNCTION_ARGS)
 {
-    gtype *gtype_lhs = AG_GET_ARG_GTYPE_P(0);
-    gtype *gtype_rhs = AG_GET_ARG_GTYPE_P(1);
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    result = (compare_gtype_containers_orderability(&gtype_lhs->root, &gtype_rhs->root) > 0);
+    if (AGT_IS_VECTOR(lhs) && AGT_IS_VECTOR(rhs))
+        PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) > 0);
 
-    PG_FREE_IF_COPY(gtype_lhs, 0);
-    PG_FREE_IF_COPY(gtype_rhs, 1);
+
+    result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) > 0);
+
+    PG_FREE_IF_COPY(lhs, 0);
+    PG_FREE_IF_COPY(rhs, 1);
 
     PG_RETURN_BOOL(result);
 }
@@ -879,14 +894,18 @@ PG_FUNCTION_INFO_V1(gtype_le);
 
 Datum gtype_le(PG_FUNCTION_ARGS)
 {
-    gtype *gtype_lhs = AG_GET_ARG_GTYPE_P(0);
-    gtype *gtype_rhs = AG_GET_ARG_GTYPE_P(1);
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    result = (compare_gtype_containers_orderability(&gtype_lhs->root, &gtype_rhs->root) <= 0);
+    if (AGT_IS_VECTOR(lhs) && AGT_IS_VECTOR(rhs))
+        PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) <= 0);
 
-    PG_FREE_IF_COPY(gtype_lhs, 0);
-    PG_FREE_IF_COPY(gtype_rhs, 1);
+
+    result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) <= 0);
+
+    PG_FREE_IF_COPY(lhs, 0);
+    PG_FREE_IF_COPY(rhs, 1);
 
     PG_RETURN_BOOL(result);
 }
@@ -895,14 +914,18 @@ PG_FUNCTION_INFO_V1(gtype_ge);
 
 Datum gtype_ge(PG_FUNCTION_ARGS)
 {
-    gtype *gtype_lhs = AG_GET_ARG_GTYPE_P(0);
-    gtype *gtype_rhs = AG_GET_ARG_GTYPE_P(1);
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    result = (compare_gtype_containers_orderability(&gtype_lhs->root, &gtype_rhs->root) >= 0);
+    if (AGT_IS_VECTOR(lhs) && AGT_IS_VECTOR(rhs))
+        PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) >= 0);
 
-    PG_FREE_IF_COPY(gtype_lhs, 0);
-    PG_FREE_IF_COPY(gtype_rhs, 1);
+
+    result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) >= 0);
+
+    PG_FREE_IF_COPY(lhs, 0);
+    PG_FREE_IF_COPY(rhs, 1);
 
     PG_RETURN_BOOL(result);
 }

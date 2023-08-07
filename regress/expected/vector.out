@@ -287,6 +287,168 @@ $$) as (Labels gtype);
 (1 row)
 
 --
+-- = Operator
+--
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0, 9, 2, .9]") = tovector("[1.0, 9, 2, .9]")
+$$) as (Labels gtype);
+ labels 
+--------
+ true
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN tovector("[5.0, 2, 4, .324]") = tovector("[1.0, 9, 2, .9]")
+$$) as (Labels gtype);
+ labels 
+--------
+ false
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0]") = tovector("[2.0]")
+$$) as (Labels gtype);
+ labels 
+--------
+ false
+(1 row)
+
+--
+-- <> Operator
+--
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0, 9, 2, .9]") <> tovector("[1.0, 9, 2, .9]")
+$$) as (Labels gtype);
+ labels 
+--------
+ false
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN tovector("[5.0, 2, 4, .324]") <> tovector("[1.0, 9, 2, .9]")
+$$) as (Labels gtype);
+ labels 
+--------
+ true
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0]") <> tovector("[2.0]")
+$$) as (Labels gtype);
+ labels 
+--------
+ true
+(1 row)
+
+--
+-- > Operator
+--
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0, 9, 2, .9]") > tovector("[1.0, 9, 2, .9]")
+$$) as (Labels gtype);
+ labels 
+--------
+ false
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN tovector("[5.0, 2, 4, .324]") > tovector("[1.0, 9, 2, .9]")
+$$) as (Labels gtype);
+ labels 
+--------
+ true
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0]") > tovector("[2.0]")
+$$) as (Labels gtype);
+ labels 
+--------
+ false
+(1 row)
+
+--
+-- >= Operator
+--
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0, 9, 2, .9]")  >= tovector("[1.0, 9, 2, .9]")
+$$) as (Labels gtype);
+ labels 
+--------
+ true
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN tovector("[5.0, 2, 4, .324]") >= tovector("[1.0, 9, 2, .9]")
+$$) as (Labels gtype);
+ labels 
+--------
+ true
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0]") >= tovector("[2.0]")
+$$) as (Labels gtype);
+ labels 
+--------
+ false
+(1 row)
+
+--
+-- < Operator
+--
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0, 9, 2, .9]") < tovector("[1.0, 9, 2, .9]")
+$$) as (Labels gtype);
+ labels 
+--------
+ false
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN tovector("[5.0, 2, 4, .324]") < tovector("[1.0, 9, 2, .9]")
+$$) as (Labels gtype);
+ labels 
+--------
+ false
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0]") < tovector("[2.0]")
+$$) as (Labels gtype);
+ labels 
+--------
+ true
+(1 row)
+
+--
+-- <= Operator
+--
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0, 9, 2, .9]") <= tovector("[1.0, 9, 2, .9]")
+$$) as (Labels gtype);
+ labels 
+--------
+ true
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN tovector("[5.0, 2, 4, .324]") <= tovector("[1.0, 9, 2, .9]")
+$$) as (Labels gtype);
+ labels 
+--------
+ false
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0]") <= tovector("[2.0]")
+$$) as (Labels gtype);
+ labels 
+--------
+ true
+(1 row)
+
+--
 -- cleanup
 --
 SELECT drop_graph('vector', true);

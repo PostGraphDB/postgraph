@@ -649,3 +649,43 @@ gtype_value *gtype_vector_mul(gtype *lhs, gtype *rhs) {
     return result;
 }
 
+
+int32 gtype_vector_cmp(gtype *lhs, gtype *rhs) {
+
+    if (!AGT_IS_VECTOR(lhs) || !AGT_IS_VECTOR(rhs))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                 errmsg("cmp requires vector arguments")));
+
+    if (AGT_ROOT_COUNT(lhs) != AGT_ROOT_COUNT(rhs))
+            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                 errmsg("different vector dimensions %i and %i", AGT_ROOT_COUNT(lhs), AGT_ROOT_COUNT(rhs))));
+
+    int dim = AGT_ROOT_COUNT(lhs);
+
+    gtype_iterator *lhs_it, *rhs_it;
+    lhs_it = gtype_iterator_init(&lhs->root);
+    rhs_it = gtype_iterator_init(&rhs->root);
+    gtype_iterator_token type;
+
+    gtype_value lgtv, rgtv;
+    type = gtype_iterator_next(&lhs_it, &lgtv, true);
+    gtype_iterator_next(&rhs_it, &rgtv, true);
+
+    Assert (type == WAGT_BEGIN_VECTOR);
+
+    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WAGT_END_VECTOR) {
+        gtype_iterator_next(&rhs_it, &rgtv, true);
+
+        float8 lhs_f = lgtv.val.float_value;
+        float8 rhs_f = rgtv.val.float_value;
+
+	if (lhs_f <  rhs_f)
+            return -1;
+	else if (lhs_f > rhs_f)
+            return 1;
+    }
+
+    return 0;
+}
+
+
