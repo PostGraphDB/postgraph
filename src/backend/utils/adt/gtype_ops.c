@@ -300,10 +300,12 @@ Datum gtype_sub(PG_FUNCTION_ARGS)
 
     if (!(AGT_ROOT_IS_SCALAR(lhs)) || !(AGT_ROOT_IS_SCALAR(rhs)))
     {
+        if  (AGT_IS_VECTOR(lhs) && AGT_IS_VECTOR(rhs))
+            PG_RETURN_POINTER(gtype_value_to_gtype(gtype_vector_sub(lhs, rhs)));
+
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("must be scalar value, not array or object")));
 
-        PG_RETURN_NULL();
     }
 
     agtv_lhs = get_ith_gtype_value_from_container(&lhs->root, 0);
