@@ -468,3 +468,20 @@ Datum gtype_l1_distance(PG_FUNCTION_ARGS) {
     PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
+
+PG_FUNCTION_INFO_V1(gtype_dims);
+Datum gtype_dims(PG_FUNCTION_ARGS) {
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+
+    if (!AGT_IS_VECTOR(lhs))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                 errmsg("<-> requires vector arguments")));
+
+    gtype_value gtv = {
+        .type = AGTV_FLOAT,
+        .val.float_value = AGT_ROOT_COUNT(lhs)
+    };
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
+}
+
