@@ -31,6 +31,18 @@ NOTICE:  graph "vector" has been created
  
 (1 row)
 
+SELECT * from cypher('list', $$RETURN tovector("[]")$$) as (Labels gtype);
+ERROR:  graph "list" does not exist
+LINE 1: SELECT * from cypher('list', $$RETURN tovector("[]")$$) as (...
+                             ^
+SELECT * from cypher('list', $$RETURN tovector("[1.0, 9, 2, .9]")$$) as (Labels gtype);
+ERROR:  graph "list" does not exist
+LINE 1: SELECT * from cypher('list', $$RETURN tovector("[1.0, 9, 2, ...
+                             ^
+SELECT * from cypher('list', $$RETURN tovector("[1.0]")$$) as (Labels gtype);
+ERROR:  graph "list" does not exist
+LINE 1: SELECT * from cypher('list', $$RETURN tovector("[1.0]")$$) a...
+                             ^
 SELECT * from cypher('vector', $$
     RETURN tovector("[1.0, 9, 2, .9]")  <-> tovector("[1.0, 9, 2, .9]")
 $$) as (Labels gtype);
@@ -55,10 +67,28 @@ $$) as (Labels gtype);
  1.0
 (1 row)
 
-SELECT * from cypher('vector', $$RETURN tovector("[1.0]")$$) as (Labels gtype);
+SELECT * from cypher('vector', $$
+    RETURN inner_product(tovector("[1.0, 9, 2, .9]"), tovector("[1.0, 9, 2, .9]"))
+$$) as (Labels gtype);
  labels 
 --------
- [1.0]
+ 86.81
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN inner_product(tovector("[5.0, 2, 4, .324]"), tovector("[1.0, 9, 2, .9]"))
+$$) as (Labels gtype);
+ labels  
+---------
+ 31.2916
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN inner_product(tovector("[1.0]"), tovector("[2.0]"))
+$$) as (Labels gtype);
+ labels 
+--------
+ 2.0
 (1 row)
 
 --

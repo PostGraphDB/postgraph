@@ -291,6 +291,15 @@ PARALLEL SAFE AS 'MODULE_PATHNAME';
 
 CREATE OPERATOR <-> (FUNCTION = l2_distance, LEFTARG = gtype, RIGHTARG = gtype, COMMUTATOR = <->);
 
+
+CREATE FUNCTION inner_product(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_inner_product';
+
+
 --
 -- graphid - hash operator class
 --
