@@ -31,18 +31,32 @@ NOTICE:  graph "vector" has been created
  
 (1 row)
 
-SELECT * from cypher('list', $$RETURN tovector("[]")$$) as (Labels gtype);
-ERROR:  graph "list" does not exist
-LINE 1: SELECT * from cypher('list', $$RETURN tovector("[]")$$) as (...
-                             ^
-SELECT * from cypher('list', $$RETURN tovector("[1.0, 9, 2, .9]")$$) as (Labels gtype);
-ERROR:  graph "list" does not exist
-LINE 1: SELECT * from cypher('list', $$RETURN tovector("[1.0, 9, 2, ...
-                             ^
-SELECT * from cypher('list', $$RETURN tovector("[1.0]")$$) as (Labels gtype);
-ERROR:  graph "list" does not exist
-LINE 1: SELECT * from cypher('list', $$RETURN tovector("[1.0]")$$) a...
-                             ^
+SELECT * from cypher('vector', $$RETURN tovector("[]")$$) as (Labels gtype);
+ERROR:  vector must have at least 1 dimension
+SELECT * from cypher('vector', $$RETURN tovector("[1.0, 9, 2, .9]")$$) as (Labels gtype);
+        labels        
+----------------------
+ [1.0, 9.0, 2.0, 0.9]
+(1 row)
+
+SELECT * from cypher('vector', $$RETURN tovector("[1.0]")$$) as (Labels gtype);
+ labels 
+--------
+ [1.0]
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0, NaN]")
+$$) as (Labels gtype);
+ERROR:  NaN not allowed in vector
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0, Infinity]")
+$$) as (Labels gtype);
+ERROR:  infinite value not allowed in vector
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0, -Infinity]")
+$$) as (Labels gtype);
+ERROR:  infinite value not allowed in vector
 --
 -- l2 distance
 --
@@ -125,11 +139,11 @@ $$) as (Labels gtype);
 (1 row)
 
 SELECT * from cypher('vector', $$
-    RETURN tovector("[1.0, 9, 2, .9]")  <#> tovector("[1.0, 9, 2, .9]")
+    RETURN tovector("[1.0, 9, 2, .9]")  <-> tovector("[1.0, 9, 2, .9]")
 $$) as (Labels gtype);
  labels 
 --------
- -86.81
+ 0.0
 (1 row)
 
 SELECT * from cypher('vector', $$
@@ -200,6 +214,33 @@ $$) as (Labels gtype);
  labels 
 --------
  1.0
+(1 row)
+
+--
+-- spherical distance
+--
+SELECT * from cypher('vector', $$
+    RETURN spherical_distance(tovector("[1.0, 9, 2, .9]"), tovector("[1.0, 9, 2, .9]"))
+$$) as (Labels gtype);
+ labels 
+--------
+ 0.0
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN spherical_distance(tovector("[5.0, 2, 4, .324]"), tovector("[1.0, 9, 2, .9]"))
+$$) as (Labels gtype);
+ labels 
+--------
+ 0.0
+(1 row)
+
+SELECT * from cypher('vector', $$
+    RETURN spherical_distance(tovector("[1.0]"), tovector("[2.0]"))
+$$) as (Labels gtype);
+ labels 
+--------
+ 0.0
 (1 row)
 
 --
@@ -526,6 +567,72 @@ $$) as (Labels gtype);
  1.0
 (1 row)
 
+SELECT gtype_build_map('i'::text, tovector('"[0, 0, 0]"'::gtype)); 
+    gtype_build_map     
+------------------------
+ {"i": [0.0, 0.0, 0.0]}
+(1 row)
+
+SELECT gtype_build_list('i'::text, tovector('"[0, 0, 0]"'::gtype));
+    gtype_build_list    
+------------------------
+ ["i", [0.0, 0.0, 0.0]]
+(1 row)
+
+--
+-- ivfflat
+--
+SET enable_seqscan = off;
+SELECT create_graph('ivfflat');
+NOTICE:  graph "ivfflat" has been created
+ create_graph 
+--------------
+ 
+(1 row)
+
+SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[0, 0, 0]')}) $$) as (i gtype);
+ i 
+---
+(0 rows)
+
+SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[1, 2, 3]')}) $$) as (i gtype);
+ i 
+---
+(0 rows)
+
+SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[1, 1, 1]')}) $$) as (i gtype);
+ i 
+---
+(0 rows)
+
+CREATE INDEX ON ivfflat."_ag_label_vertex" USING ivfflat (properties vector_l2_ops) WITH (lists = 1);
+ERROR:  unrecognized parameter "lists"
+CREATE INDEX ON ivfflat."_ag_label_vertex" USING ivfflat ((properties->'"i"'::gtype) gtype_l2_ops);-- WITH (lists = 1);
+NOTICE:  ivfflat index created with little data
+DETAIL:  This will cause low recall.
+HINT:  Drop the index until the table has more data.
+SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n ORDER BY n.i <-> toVector('[3,3,3]') $$) as (i vertex);
+                                     i                                      
+----------------------------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {"i": [0.0, 0.0, 0.0]}}
+ {"id": 281474976710658, "label": "", "properties": {"i": [1.0, 2.0, 3.0]}}
+ {"id": 281474976710659, "label": "", "properties": {"i": [1.0, 1.0, 1.0]}}
+(3 rows)
+
+SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN count(*) $$) as (i gtype);
+ i 
+---
+ 3
+(1 row)
+
+SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n $$) as (i vertex);
+                                     i                                      
+----------------------------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {"i": [0.0, 0.0, 0.0]}}
+ {"id": 281474976710658, "label": "", "properties": {"i": [1.0, 2.0, 3.0]}}
+ {"id": 281474976710659, "label": "", "properties": {"i": [1.0, 1.0, 1.0]}}
+(3 rows)
+
 --
 -- cleanup
 --
@@ -534,6 +641,16 @@ NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table vector._ag_label_vertex
 drop cascades to table vector._ag_label_edge
 NOTICE:  graph "vector" has been dropped
+ drop_graph 
+------------
+ 
+(1 row)
+
+SELECT drop_graph('ivfflat', true);
+NOTICE:  drop cascades to 2 other objects
+DETAIL:  drop cascades to table ivfflat._ag_label_vertex
+drop cascades to table ivfflat._ag_label_edge
+NOTICE:  graph "ivfflat" has been dropped
  drop_graph 
 ------------
  

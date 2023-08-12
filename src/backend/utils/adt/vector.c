@@ -40,14 +40,16 @@
 #define STATE_DIMS(x) (ARR_DIMS(x)[0] - 1)
 #define CreateStateDatums(dim) palloc(sizeof(Datum) * (dim + 1))
 
-static gtype_value *
+gtype_value *
 InitVectorGType(int dim)
 {
-    int size = VECTOR_SIZE(dim) + sizeof(enum gtype_value_type) + sizeof(float8);
+  //  int size = VECTOR_SIZE(dim) + sizeof(enum gtype_value_type) + sizeof(float8);
 
-    gtype_value *result = (gtype_value *) palloc0(size);
+    gtype_value *result = (gtype_value *) palloc0(sizeof(gtype_value));
 
     result->val.vector.dim = dim;
+
+    result->val.vector.x = palloc0(sizeof(float8) * dim);
 
     return result;
 }
@@ -505,6 +507,56 @@ Datum gtype_cosine_distance(PG_FUNCTION_ARGS) {
     gtype_value gtv = {
         .type = AGTV_FLOAT,
         .val.float_value = 1.0 - similarity
+    };
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
+}
+
+
+PG_FUNCTION_INFO_V1(gtype_spherical_distance);
+Datum gtype_spherical_distance(PG_FUNCTION_ARGS) {
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+
+    if (!AGT_IS_VECTOR(lhs) || !AGT_IS_VECTOR(rhs))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                 errmsg("<-> requires vector arguments")));
+
+
+
+    if (AGT_ROOT_COUNT(lhs) != AGT_ROOT_COUNT(rhs))
+            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                 errmsg("different vector dimensions %i and %i", AGT_ROOT_COUNT(lhs), AGT_ROOT_COUNT(rhs))));
+
+    gtype_iterator *lhs_it, *rhs_it;
+    lhs_it = gtype_iterator_init(&lhs->root);
+    rhs_it = gtype_iterator_init(&rhs->root);
+    gtype_iterator_token type;
+
+    gtype_value lgtv, rgtv;
+    type = gtype_iterator_next(&lhs_it, &lgtv, true);
+    gtype_iterator_next(&rhs_it, &rgtv, true);
+
+    Assert (type == WAGT_BEGIN_VECTOR);
+
+    float8 distance = 0.0;
+    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WAGT_END_VECTOR) {
+        gtype_iterator_next(&rhs_it, &rgtv, true);
+
+        float8 lhs_f = lgtv.val.float_value;
+        float8 rhs_f = rgtv.val.float_value;
+
+        distance += lhs_f * rhs_f;
+    }
+
+    if (distance > 1)
+        distance = 1;
+    else if (distance < -1)
+        distance = -1;
+
+    gtype_value gtv = {
+        .type = AGTV_FLOAT,
+        .val.float_value = acos(distance) / M_PI
     };
 
     PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));

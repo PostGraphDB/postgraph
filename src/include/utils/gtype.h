@@ -56,6 +56,7 @@ typedef enum
     WAGT_DONE,
     WAGT_KEY,
     WAGT_VALUE,
+    WAGT_VECTOR_VALUE,
     WAGT_ELEM,
     WAGT_BEGIN_ARRAY,
     WAGT_END_ARRAY,
@@ -312,6 +313,9 @@ typedef struct
 #define AGT_IS_VECTOR(agt) \
     ((((agt)->root.header & AGT_FEXTENDED_COMPOSITE) != 0 ) && (((agt)->root.children[0] & AGT_HEADER_VECTOR) != 0))
 
+#define AGTE_IS_VECTOR(agt) \
+    ((((agt)->header & AGT_FEXTENDED_COMPOSITE) != 0 ) && (((agt)->children[0] & AGT_HEADER_VECTOR) != 0))
+
 enum gtype_value_type
 {
     /* Scalar types */
@@ -380,7 +384,6 @@ struct gtype_pair
 /* Conversion state used when parsing gtype from text, or for type coercion */
 typedef struct gtype_parse_state
 {
-    gtype_value cont_val;
     Size size;
     struct gtype_parse_state *next;
     /*
@@ -392,6 +395,7 @@ typedef struct gtype_parse_state
      * case for some casts.
      */
     gtype_value *last_updated_value;
+    gtype_value cont_val;
 } gtype_parse_state;
 
 /*

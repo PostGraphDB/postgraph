@@ -122,7 +122,14 @@ CREATE FUNCTION gtype_out(gtype) RETURNS cstring LANGUAGE c IMMUTABLE RETURNS NU
 CREATE FUNCTION gtype_send(gtype) RETURNS bytea LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 CREATE FUNCTION gtype_recv(internal) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
 
-CREATE TYPE gtype (INPUT = gtype_in, OUTPUT = gtype_out, SEND = gtype_send, RECEIVE = gtype_recv, LIKE = jsonb);
+CREATE TYPE gtype (
+	INPUT = gtype_in,
+	OUTPUT = gtype_out,
+	SEND = gtype_send,
+	RECEIVE = gtype_recv,
+	LIKE = jsonb,
+	STORAGE = extended
+);
 
 --
 -- vertex
@@ -324,6 +331,13 @@ IMMUTABLE
 RETURNS NULL ON NULL INPUT
 PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_l1_distance';
 
+CREATE FUNCTION spherical_distance(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_spherical_distance';
+
 CREATE FUNCTION dims(gtype)
 RETURNS gtype
 LANGUAGE c
@@ -344,6 +358,33 @@ LANGUAGE c
 IMMUTABLE
 RETURNS NULL ON NULL INPUT
 PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_l2_squared_distance';
+
+CREATE FUNCTION ivfflathandler(internal) RETURNS index_am_handler AS 'MODULE_PATHNAME' LANGUAGE C;
+
+CREATE ACCESS METHOD ivfflat TYPE INDEX HANDLER ivfflathandler;
+
+COMMENT ON ACCESS METHOD ivfflat IS 'ivfflat index access method';
+
+CREATE OPERATOR CLASS gtype_l2_ops
+DEFAULT FOR TYPE gtype USING ivfflat AS
+OPERATOR 1 <-> (gtype, gtype) FOR ORDER BY float_ops,
+FUNCTION 1 l2_squared_distance(gtype, gtype),
+FUNCTION 3 l2_distance(gtype, gtype);
+
+CREATE OPERATOR CLASS gtype_ip_ops
+FOR TYPE gtype USING ivfflat AS
+OPERATOR 1 <#> (gtype, gtype) FOR ORDER BY float_ops,
+FUNCTION 1 negative_inner_product(gtype, gtype),
+FUNCTION 3 spherical_distance(gtype, gtype),
+FUNCTION 4 norm(gtype);
+
+CREATE OPERATOR CLASS gtype_cosine_ops
+FOR TYPE gtype USING ivfflat AS
+OPERATOR 1 <=> (gtype, gtype) FOR ORDER BY float_ops,
+FUNCTION 1 negative_inner_product(gtype, gtype),
+FUNCTION 2 norm(gtype),
+FUNCTION 3 spherical_distance(gtype, gtype),
+FUNCTION 4 norm(gtype);
 
 --
 -- graphid - hash operator class

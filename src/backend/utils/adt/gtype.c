@@ -736,7 +736,7 @@ static char *gtype_to_cstring_worker(StringInfo out, gtype_container *in, int es
                 first = false;
                 gtype_put_escaped_value(out, &v);
             } else {
-                Assert(type == WAGT_BEGIN_OBJECT || type == WAGT_BEGIN_ARRAY);
+                Assert(type == WAGT_BEGIN_OBJECT || type == WAGT_BEGIN_ARRAY || type == WAGT_BEGIN_VECTOR);
 
                 /*
                  * We need to rerun the current switch() since we need to
@@ -746,6 +746,7 @@ static char *gtype_to_cstring_worker(StringInfo out, gtype_container *in, int es
                 redo_switch = true;
             }
             break;
+	case WAGT_VECTOR_VALUE:
         case WAGT_ELEM:
             if (!first)
                 appendBinaryStringInfo(out, ", ", ispaces);
@@ -1157,6 +1158,19 @@ static void datum_to_gtype(Datum val, bool is_null, gtype_in_state *result, agt_
         case AGT_TYPE_GTYPE:
         case AGT_TYPE_JSONB:
         {
+		/*
+            if (AGT_IS_VECTOR(DATUM_GET_GTYPE_P(val))) {
+                gtype_value *obj = &result->parse_state->cont_val;
+		gtype *vector = DATUM_GET_GTYPE_P(val);
+                int idx = obj->val.object.num_pairs;
+		obj->val.object.pairs[idx] = vector;
+
+		obj->val.object.num_pairs++;
+		result->parse_state.last_updated_value = vector;
+   		    ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                                 errmsg("vector handle")));
+            }
+*/
             gtype *jsonb = DATUM_GET_GTYPE_P(val);
             gtype_iterator *it;
 
@@ -1166,7 +1180,6 @@ static void datum_to_gtype(Datum val, bool is_null, gtype_in_state *result, agt_
              */
 
             it = gtype_iterator_init(&jsonb->root);
-
             if (AGT_ROOT_IS_SCALAR(jsonb)) {
                 gtype_iterator_next(&it, &agtv, true);
                 Assert(agtv.type == AGTV_ARRAY);
@@ -1176,7 +1189,9 @@ static void datum_to_gtype(Datum val, bool is_null, gtype_in_state *result, agt_
                 gtype_iterator_token type;
 
                 while ((type = gtype_iterator_next(&it, &agtv, false)) != WAGT_DONE) {
-                    if (type == WAGT_END_ARRAY || type == WAGT_END_OBJECT || type == WAGT_BEGIN_ARRAY || type == WAGT_BEGIN_OBJECT) {
+                    if (type == WAGT_END_ARRAY || type == WAGT_END_OBJECT ||
+		        type == WAGT_END_VECTOR || type == WAGT_BEGIN_VECTOR ||
+   	  	        type == WAGT_BEGIN_ARRAY || type == WAGT_BEGIN_OBJECT) {
                         result->res = push_gtype_value(&result->parse_state, type, NULL);
                     } else {
                         result->res = push_gtype_value(&result->parse_state, type, &agtv);

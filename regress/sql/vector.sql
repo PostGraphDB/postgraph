@@ -28,9 +28,22 @@ set timezone TO 'GMT';
 
 SELECT create_graph('vector'); 
 
-SELECT * from cypher('list', $$RETURN tovector("[]")$$) as (Labels gtype);
-SELECT * from cypher('list', $$RETURN tovector("[1.0, 9, 2, .9]")$$) as (Labels gtype);
-SELECT * from cypher('list', $$RETURN tovector("[1.0]")$$) as (Labels gtype);
+SELECT * from cypher('vector', $$RETURN tovector("[]")$$) as (Labels gtype);
+SELECT * from cypher('vector', $$RETURN tovector("[1.0, 9, 2, .9]")$$) as (Labels gtype);
+SELECT * from cypher('vector', $$RETURN tovector("[1.0]")$$) as (Labels gtype);
+
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0, NaN]")
+$$) as (Labels gtype);
+
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0, Infinity]")
+$$) as (Labels gtype);
+
+SELECT * from cypher('vector', $$
+    RETURN tovector("[1.0, -Infinity]")
+$$) as (Labels gtype);
+
 
 --
 -- l2 distance
@@ -81,7 +94,7 @@ SELECT * from cypher('vector', $$
 $$) as (Labels gtype);
 
 SELECT * from cypher('vector', $$
-    RETURN tovector("[1.0, 9, 2, .9]")  <#> tovector("[1.0, 9, 2, .9]")
+    RETURN tovector("[1.0, 9, 2, .9]")  <-> tovector("[1.0, 9, 2, .9]")
 $$) as (Labels gtype);
 
 SELECT * from cypher('vector', $$
@@ -125,6 +138,23 @@ $$) as (Labels gtype);
 SELECT * from cypher('vector', $$
     RETURN l1_distance(tovector("[1.0]"), tovector("[2.0]"))
 $$) as (Labels gtype);
+
+--
+-- spherical distance
+--
+SELECT * from cypher('vector', $$
+    RETURN spherical_distance(tovector("[1.0, 9, 2, .9]"), tovector("[1.0, 9, 2, .9]"))
+$$) as (Labels gtype);
+
+SELECT * from cypher('vector', $$
+    RETURN spherical_distance(tovector("[5.0, 2, 4, .324]"), tovector("[1.0, 9, 2, .9]"))
+$$) as (Labels gtype);
+
+
+SELECT * from cypher('vector', $$
+    RETURN spherical_distance(tovector("[1.0]"), tovector("[2.0]"))
+$$) as (Labels gtype);
+
 
 --
 -- dims
@@ -319,7 +349,46 @@ SELECT * from cypher('vector', $$
     RETURN l2_squared_distance(tovector("[1.0]"), tovector("[2.0]"))
 $$) as (Labels gtype);
 
+
+SELECT gtype_build_map('i'::text, tovector('"[0, 0, 0]"'::gtype)); 
+SELECT gtype_build_list('i'::text, tovector('"[0, 0, 0]"'::gtype));
+
+
+SELECT gtype_build_map('i'::text, tovector('"[0, 0, 0]"'::gtype))->'"i"';
+--
+-- ivfflat
+--
+SET enable_seqscan = off;
+
+SELECT create_graph('ivfflat');
+
+SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[0, 0, 0]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[1, 2, 3]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[1, 1, 1]')}) $$) as (i gtype);
+
+CREATE INDEX ON ivfflat."_ag_label_vertex" USING ivfflat (properties vector_l2_ops) WITH (lists = 1);
+
+CREATE INDEX ON ivfflat."_ag_label_vertex" USING ivfflat ((properties->'"i"'::gtype) gtype_l2_ops);-- WITH (lists = 1);
+
+SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n ORDER BY n.i <-> toVector('[3,3,3]') $$) as (i vertex);
+SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN count(*) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n $$) as (i vertex);
+
+SELECT * FROM cypher('ivfflat', $$ CREATE ( {j: tovector('[1, 1, 1]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat', $$ CREATE ( {j: tovector('[1]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat', $$ CREATE ( {j: tovector('[]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n.j $$) as (i gtype);
+
+--
+-- Index Errors
+--
+SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[1, 1 ]')}) $$) as (i gtype);
+
+SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: 'Hello World'}) $$) as (i gtype);
+
+
 --
 -- cleanup
 --
 SELECT drop_graph('vector', true);
+SELECT drop_graph('ivfflat', true);

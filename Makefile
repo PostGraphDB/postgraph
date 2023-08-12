@@ -18,6 +18,13 @@
 MODULE_big = postgraph
 
 OBJS = src/backend/postgraph.o \
+       src/backend/access/ivfbuild.o \
+       src/backend/access/ivfflat.o \
+       src/backend/access/ivfinsert.o \
+       src/backend/access/ivfkmeans.o \
+       src/backend/access/ivfscan.o \
+       src/backend/access/ivfutils.o \
+       src/backend/access/ivfvacuum.o \
        src/backend/catalog/ag_catalog.o \
        src/backend/catalog/ag_graph.o \
        src/backend/catalog/ag_label.o \
@@ -112,7 +119,7 @@ GEN_KEYWORDLIST = $(PERL) -I ./tools/ ./tools/gen_keywordlist.pl
 GEN_KEYWORDLIST_DEPS = ./tools/gen_keywordlist.pl tools/PerfectHash.pm
 
 ag_include_dir = $(srcdir)/src/include
-PG_CPPFLAGS = -w -I$(ag_include_dir) -I$(ag_include_dir)/parser
+PG_CPPFLAGS = -I$(ag_include_dir) -I$(ag_include_dir)/parser
 
 PG_CONFIG ?= pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)

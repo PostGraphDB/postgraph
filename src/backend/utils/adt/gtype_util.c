@@ -581,6 +581,10 @@ static void fill_gtype_value(gtype_container *container, int index,
         result->type = AGTV_BOOL;
         result->val.boolean = false;
     }
+    else if (AGTE_IS_VECTOR(container))
+    {
+                ereport(ERROR, (errmsg("here")));
+    }
     else
     {
         Assert(AGTE_IS_CONTAINER(entry));
@@ -620,7 +624,7 @@ gtype_value *push_gtype_value(gtype_parse_state **pstate,
     gtype_iterator_token tok;
 
     if (!agtval || (seq != WAGT_ELEM && seq != WAGT_VALUE) ||
-        agtval->type != AGTV_BINARY)
+        (agtval->type != AGTV_BINARY))
     {
         // drop through 
         return push_gtype_value_scalar(pstate, seq, agtval);
@@ -644,7 +648,7 @@ gtype_value *push_gtype_value(gtype_parse_state **pstate,
 static gtype_value *push_gtype_value_scalar(gtype_parse_state **pstate,
                                               gtype_iterator_token seq,
                                               gtype_value *scalar_val)
-{
+{//BlackPink
     gtype_value *result = NULL;
 
     switch (seq)
@@ -682,6 +686,30 @@ static gtype_value *push_gtype_value_scalar(gtype_parse_state **pstate,
             palloc(sizeof(gtype_pair) * (*pstate)->size);
         (*pstate)->last_updated_value = NULL;
         break;
+    case WAGT_BEGIN_VECTOR: //BlackPink
+       *pstate = push_state(pstate);
+       result = &(*pstate)->cont_val;
+       (*pstate)->cont_val.type = AGTV_VECTOR;
+       (*pstate)->cont_val.val.vector.dim = 0;
+       (*pstate)->cont_val.val.vector.x	= palloc(sizeof(float8) * 4);
+       (*pstate)->last_updated_value = NULL;
+       break;
+    case WAGT_VECTOR_VALUE:
+       {
+       Vector *v = &(*pstate)->cont_val.val.vector;
+
+       if (scalar_val->type != AGTV_FLOAT)
+           ereport(ERROR, (errmsg("container is not a gtype float")));
+
+       if (v->dim >= (*pstate)->size)
+       {
+             (*pstate)->size *= 2;
+             v->x = repalloc(v->x, sizeof(float8) * (*pstate)->size);
+       }
+
+       v->x[v->dim++] = scalar_val->val.float_value; 
+       break;
+       }
     case WAGT_KEY:
         Assert(scalar_val->type == AGTV_STRING);
         append_key(*pstate, scalar_val);
@@ -697,6 +725,7 @@ static gtype_value *push_gtype_value_scalar(gtype_parse_state **pstate,
     case WAGT_END_OBJECT:
         uniqueify_gtype_object(&(*pstate)->cont_val);
         // fall through! 
+    case WAGT_END_VECTOR:
     case WAGT_END_ARRAY:
         // Steps here common to WAGT_END_OBJECT case 
         Assert(!scalar_val);
@@ -1034,7 +1063,7 @@ recurse:
 	(*it)->curr_data_offset = (*it)->curr_data_offset + sizeof(float8);
         (*it)->curr_index++;
 
-	return WAGT_ELEM;
+	return WAGT_VECTOR_VALUE;
 
     }
 
@@ -1890,11 +1919,11 @@ convert_gtype_vector(StringInfo buffer, agtentry *pheader, gtype_value *val, int
     }
 
     // Total data size is everything we've appended to buffer 
-    totallen = (sizeof(uint32) * 2) + (num_elems * sizeof(float8));//buffer->len - base_offset;
+    totallen = (sizeof(uint32) * 3) + (num_elems * sizeof(float8));//buffer->len - base_offset;
 
     // Initialize the header of this node in the container's agtentry array 
     //*pheader = AGTENTRY_IS_GTYPE | totallen;
-    *pheader = totallen;
+    *pheader = AGTENTRY_IS_CONTAINER | totallen;
 }
 
 
