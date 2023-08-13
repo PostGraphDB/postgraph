@@ -145,10 +145,168 @@ CREATE TYPE vertex (INPUT = vertex_in, OUTPUT = vertex_out, LIKE = jsonb);
 --
 -- vertex - equality operators (=, <>)
 --
-CREATE FUNCTION vertex_eq(vertex, vertex) RETURNS boolean LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE OPERATOR = (FUNCTION = vertex_eq, LEFTARG = vertex, RIGHTARG = vertex, COMMUTATOR = =, NEGATOR = <>, RESTRICT = eqsel, JOIN = eqjoinsel, HASHES, MERGES);
-CREATE FUNCTION vertex_ne(vertex, vertex) RETURNS boolean LANGUAGE c IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
-CREATE OPERATOR <> (FUNCTION = vertex_ne, LEFTARG = vertex, RIGHTARG = vertex, COMMUTATOR = <>, NEGATOR = =, RESTRICT = neqsel, JOIN = neqjoinsel);
+CREATE FUNCTION vertex_eq(vertex, vertex)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR = (
+	FUNCTION = vertex_eq,
+	LEFTARG = vertex,
+	RIGHTARG = vertex, 
+	COMMUTATOR = =, 
+	NEGATOR = <>, 
+	RESTRICT = eqsel, 
+	JOIN = eqjoinsel,
+	HASHES, 
+	MERGES
+);
+
+CREATE FUNCTION vertex_ne(vertex, vertex)
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <> (
+	FUNCTION = vertex_ne, 
+	LEFTARG = vertex, 
+	RIGHTARG = vertex, 
+	COMMUTATOR = <>, 
+	NEGATOR = =, 
+	RESTRICT = neqsel, 
+	JOIN = neqjoinsel
+);
+
+CREATE FUNCTION vertex_lt(vertex, vertex)
+RETURNS boolean
+LANGUAGE c 
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR < (
+	FUNCTION = vertex_lt, 
+	LEFTARG = vertex, 
+	RIGHTARG = vertex, 
+	COMMUTATOR = >, 
+	NEGATOR = >=, 
+	RESTRICT = scalarltsel, 
+	JOIN = scalarltjoinsel
+);
+
+CREATE FUNCTION vertex_gt(vertex, vertex)
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR > (
+	FUNCTION = vertex_gt, 
+	LEFTARG = vertex, 
+	RIGHTARG = vertex, 
+	COMMUTATOR = <, 
+	NEGATOR = <=, 
+	RESTRICT = scalargtsel, 
+	JOIN = scalargtjoinsel
+);
+
+CREATE FUNCTION vertex_le(vertex, vertex)
+RETURNS boolean
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <= (
+	FUNCTION = vertex_le, 
+	LEFTARG = vertex, 
+	RIGHTARG = vertex, 
+	COMMUTATOR = >=, 
+	NEGATOR = >, 
+	RESTRICT = scalarlesel, 
+	JOIN = scalarlejoinsel
+);
+
+CREATE FUNCTION vertex_ge(vertex, vertex)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR >= (
+	FUNCTION = vertex_ge, 
+	LEFTARG = vertex, 
+	RIGHTARG = vertex, 
+	COMMUTATOR = <=, 
+	NEGATOR = <, 
+	RESTRICT = scalargesel, 
+	JOIN = scalargejoinsel
+);
+
+CREATE FUNCTION vertex_btree_cmp(vertex, vertex)
+RETURNS INTEGER 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'vertex_btree_cmp';
+
+CREATE OPERATOR CLASS vertex_ops_btree
+DEFAULT FOR TYPE vertex 
+USING btree 
+AS 
+OPERATOR 1 <, 
+OPERATOR 2 <=, 
+OPERATOR 3 =, 
+OPERATOR 4 >, 
+OPERATOR 5 >=,
+FUNCTION 1 vertex_btree_cmp(vertex, vertex);
+
+CREATE FUNCTION vertex_collect_transfn(internal, vertex)
+RETURNS internal
+LANGUAGE c 
+IMMUTABLE
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+
+CREATE FUNCTION vertex_collect_finalfn(internal)
+RETURNS vertex[]
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE collect(vertex) (
+	stype = internal,
+	sfunc = vertex_collect_transfn,
+	finalfunc = vertex_collect_finalfn,
+	parallel = safe
+);
+
+CREATE FUNCTION vertex_collect_transfn_w_limit(internal, vertex, gtype)
+RETURNS internal
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE collect(vertex, gtype) (
+        stype = internal,
+        sfunc = vertex_collect_transfn_w_limit,
+        finalfunc = vertex_collect_finalfn,
+        parallel = safe
+);
 
 --
 -- vertex - access operators (->, ->> )

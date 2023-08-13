@@ -722,9 +722,11 @@ SELECT * FROM cypher('cypher_match', $$
 	MATCH (u:duplicate)-[]-(:other_v)
 	RETURN DISTINCT u
 $$) AS (i vertex);
-ERROR:  could not identify an equality operator for type vertex
-LINE 3:  RETURN DISTINCT u
-                         ^
+                                i                                 
+------------------------------------------------------------------
+ {"id": 3377699720527873, "label": "duplicate", "properties": {}}
+(1 row)
+
 SELECT * FROM cypher('cypher_match', $$
 	MATCH p=(:duplicate)-[]-(:other_v)
 	RETURN DISTINCT p
@@ -822,9 +824,9 @@ SELECT * FROM cypher('cypher_match', $$
     RETURN u.name as u, type(m), l.name as l
     ORDER BY u, m, l
 $$) AS (u gtype, m gtype, l gtype);
-ERROR:  could not identify an ordering operator for type vertex
+ERROR:  could not identify an ordering operator for type edge
 LINE 5:     ORDER BY u, m, l
-                     ^
+                        ^
 HINT:  Use an explicit ordering operator or modify the query.
 SELECT * FROM cypher('cypher_match', $$
     OPTIONAL MATCH (n:opt_match_v)-[r]->(p), (m:opt_match_v)-[s]->(q)
@@ -833,10 +835,12 @@ SELECT * FROM cypher('cypher_match', $$
            m.name AS m, type(s) AS s, q.name AS q
     ORDER BY n, p, m, q
 $$) AS (n gtype, r gtype, p gtype, m gtype, s gtype, q gtype);
-ERROR:  could not identify an ordering operator for type vertex
-LINE 6:     ORDER BY n, p, m, q
-                     ^
-HINT:  Use an explicit ordering operator or modify the query.
+     n     |       r       |     p      |     m     |       s       |     q      
+-----------+---------------+------------+-----------+---------------+------------
+ "anybody" | "opt_match_e" | "nobody"   | "someone" | "opt_match_e" | "somebody"
+ "someone" | "opt_match_e" | "somebody" | "anybody" | "opt_match_e" | "nobody"
+(2 rows)
+
 SELECT * FROM cypher('cypher_match', $$
     MATCH (n:opt_match_v), (m:opt_match_v)
     WHERE id(n) <> id(m)
@@ -845,10 +849,22 @@ SELECT * FROM cypher('cypher_match', $$
            m.name AS m, type(s) AS s, q.name AS q
     ORDER BY n, p, m, q
  $$) AS (n gtype, r gtype, p gtype, m gtype, s gtype, q gtype);
-ERROR:  could not identify an ordering operator for type vertex
-LINE 7:     ORDER BY n, p, m, q
-                     ^
-HINT:  Use an explicit ordering operator or modify the query.
+     n      |       r       |     p      |     m      |       s       |     q      
+------------+---------------+------------+------------+---------------+------------
+ "nobody"   |               |            | "someone"  |               | 
+ "someone"  | "opt_match_e" | "somebody" | "anybody"  | "opt_match_e" | "nobody"
+ "someone"  |               |            | "nobody"   |               | 
+ "somebody" |               |            | "someone"  |               | 
+ "somebody" |               |            | "anybody"  |               | 
+ "somebody" |               |            | "nobody"   |               | 
+ "someone"  |               |            | "somebody" |               | 
+ "nobody"   |               |            | "anybody"  |               | 
+ "nobody"   |               |            | "somebody" |               | 
+ "anybody"  | "opt_match_e" | "nobody"   | "someone"  | "opt_match_e" | "somebody"
+ "anybody"  |               |            | "nobody"   |               | 
+ "anybody"  |               |            | "somebody" |               | 
+(12 rows)
+
 -- Clean up
 SELECT DISTINCT * FROM cypher('cypher_match', $$
     MATCH (u) DETACH DELETE (u)

@@ -45,6 +45,20 @@ SELECT * from cypher('vector', $$RETURN tovector("[1.0]")$$) as (Labels gtype);
  [1.0]
 (1 row)
 
+SELECT * from cypher('vector', $$RETURN '[]'::vector $$) as (Labels gtype);
+ERROR:  vector must have at least 1 dimension
+SELECT * from cypher('vector', $$RETURN '[1.0, 9, 2, .9]'::vector $$) as (Labels gtype);
+        labels        
+----------------------
+ [1.0, 9.0, 2.0, 0.9]
+(1 row)
+
+SELECT * from cypher('vector', $$RETURN '[1.0]'::vector $$) as (Labels gtype);
+ labels 
+--------
+ [1.0]
+(1 row)
+
 SELECT * from cypher('vector', $$
     RETURN tovector("[1.0, NaN]")
 $$) as (Labels gtype);
@@ -579,6 +593,12 @@ SELECT gtype_build_list('i'::text, tovector('"[0, 0, 0]"'::gtype));
  ["i", [0.0, 0.0, 0.0]]
 (1 row)
 
+SELECT gtype_build_map('i'::text, tovector('"[0, 0, 0]"'::gtype))->'"i"';
+    ?column?     
+-----------------
+ [0.0, 0.0, 0.0]
+(1 row)
+
 --
 -- ivfflat
 --
@@ -614,10 +634,40 @@ HINT:  Drop the index until the table has more data.
 SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n ORDER BY n.i <-> toVector('[3,3,3]') $$) as (i vertex);
                                      i                                      
 ----------------------------------------------------------------------------
- {"id": 281474976710657, "label": "", "properties": {"i": [0.0, 0.0, 0.0]}}
  {"id": 281474976710658, "label": "", "properties": {"i": [1.0, 2.0, 3.0]}}
  {"id": 281474976710659, "label": "", "properties": {"i": [1.0, 1.0, 1.0]}}
+ {"id": 281474976710657, "label": "", "properties": {"i": [0.0, 0.0, 0.0]}}
 (3 rows)
+
+SELECT *
+FROM cypher('ivfflat', $$
+    MATCH (n), (m)
+    WHERE n <> m
+    WITH n, m
+    ORDER BY n.i <-> m.i LIMIT 1
+    WITH n, collect(m) 
+$$) as (n vertex, neighbors vertex[])
+;
+ERROR:  expression item must be aliased
+LINE 7:     WITH n, collect(m) 
+                    ^
+HINT:  Items can be aliased by using AS.
+SELECT *
+FROM cypher('ivfflat', $$
+    MATCH (n), (m) WHERE n <> m
+    WITH n, m
+    ORDER BY n.i <-> m.i
+    RETURN n, collect(m, 2) as neighbors
+$$) as (n vertex, neighbors vertex[]);
+                                     n                                      |                                        neighbors                                         
+----------------------------------------------------------------------------+------------------------------------------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {"i": [0.0, 0.0, 0.0]}} | {"{\"id\": 281474976710659, \"label\": \"\", \"properties\": {\"i\": [1.0, 1.0, 1.0]}}"}
+ {"id": 281474976710659, "label": "", "properties": {"i": [1.0, 1.0, 1.0]}} | {"{\"id\": 281474976710657, \"label\": \"\", \"properties\": {\"i\": [0.0, 0.0, 0.0]}}"}
+ {"id": 281474976710658, "label": "", "properties": {"i": [1.0, 2.0, 3.0]}} | {"{\"id\": 281474976710659, \"label\": \"\", \"properties\": {\"i\": [1.0, 1.0, 1.0]}}"}
+ {"id": 281474976710659, "label": "", "properties": {"i": [1.0, 1.0, 1.0]}} | {"{\"id\": 281474976710658, \"label\": \"\", \"properties\": {\"i\": [1.0, 2.0, 3.0]}}"}
+ {"id": 281474976710657, "label": "", "properties": {"i": [0.0, 0.0, 0.0]}} | {"{\"id\": 281474976710658, \"label\": \"\", \"properties\": {\"i\": [1.0, 2.0, 3.0]}}"}
+ {"id": 281474976710658, "label": "", "properties": {"i": [1.0, 2.0, 3.0]}} | {"{\"id\": 281474976710657, \"label\": \"\", \"properties\": {\"i\": [0.0, 0.0, 0.0]}}"}
+(6 rows)
 
 SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN count(*) $$) as (i gtype);
  i 
@@ -633,6 +683,35 @@ SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n $$) as (i vertex);
  {"id": 281474976710659, "label": "", "properties": {"i": [1.0, 1.0, 1.0]}}
 (3 rows)
 
+SELECT * FROM cypher('ivfflat', $$ CREATE ( {j: tovector('[1, 1, 1]')}) $$) as (i gtype);
+ i 
+---
+(0 rows)
+
+SELECT * FROM cypher('ivfflat', $$ CREATE ( {j: tovector('[1]')}) $$) as (i gtype);
+ i 
+---
+(0 rows)
+
+SELECT * FROM cypher('ivfflat', $$ CREATE ( {j: tovector('[]')}) $$) as (i gtype);
+ERROR:  vector must have at least 1 dimension
+SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n.j $$) as (i gtype);
+        i        
+-----------------
+ 
+ 
+ 
+ [1.0, 1.0, 1.0]
+ [1.0]
+(5 rows)
+
+--
+-- Index Errors
+--
+SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[1, 1 ]')}) $$) as (i gtype);
+ERROR:  different vector dimensions 2 and 3
+SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: 'Hello World'}) $$) as (i gtype);
+ERROR:  <-> requires vector arguments
 --
 -- cleanup
 --

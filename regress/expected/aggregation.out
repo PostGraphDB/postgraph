@@ -507,14 +507,22 @@ AS (a_b_c gtype,  result gtype);
 -- with WITH clause
 SELECT * FROM cypher('group_by', $$MATCH(x:L) WITH x, count(x) AS c RETURN x.a + x.b + x.c + c$$)
 AS (result gtype);
-ERROR:  could not identify an equality operator for type vertex
-LINE 1: ...ELECT * FROM cypher('group_by', $$MATCH(x:L) WITH x, count(x...
-                                                             ^
+ result 
+--------
+ 7
+ 7
+ 7
+(3 rows)
+
 SELECT * FROM cypher('group_by', $$MATCH(x:L) WITH x, count(x) AS c RETURN x.a + x.b + x.c + c + c$$)
 AS (result gtype);
-ERROR:  could not identify an equality operator for type vertex
-LINE 1: ...ELECT * FROM cypher('group_by', $$MATCH(x:L) WITH x, count(x...
-                                                             ^
+ result 
+--------
+ 8
+ 8
+ 8
+(3 rows)
+
 SELECT * FROM cypher('group_by', $$MATCH(x:L) WITH x.a + x.b + x.c AS v, count(x) as c RETURN v + c + c $$)
 AS (result gtype);
  result 

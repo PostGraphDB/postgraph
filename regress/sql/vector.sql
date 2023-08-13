@@ -32,6 +32,11 @@ SELECT * from cypher('vector', $$RETURN tovector("[]")$$) as (Labels gtype);
 SELECT * from cypher('vector', $$RETURN tovector("[1.0, 9, 2, .9]")$$) as (Labels gtype);
 SELECT * from cypher('vector', $$RETURN tovector("[1.0]")$$) as (Labels gtype);
 
+SELECT * from cypher('vector', $$RETURN '[]'::vector $$) as (Labels gtype);
+SELECT * from cypher('vector', $$RETURN '[1.0, 9, 2, .9]'::vector $$) as (Labels gtype);
+SELECT * from cypher('vector', $$RETURN '[1.0]'::vector $$) as (Labels gtype);
+
+
 SELECT * from cypher('vector', $$
     RETURN tovector("[1.0, NaN]")
 $$) as (Labels gtype);
@@ -371,6 +376,26 @@ CREATE INDEX ON ivfflat."_ag_label_vertex" USING ivfflat (properties vector_l2_o
 CREATE INDEX ON ivfflat."_ag_label_vertex" USING ivfflat ((properties->'"i"'::gtype) gtype_l2_ops);-- WITH (lists = 1);
 
 SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n ORDER BY n.i <-> toVector('[3,3,3]') $$) as (i vertex);
+
+SELECT *
+FROM cypher('ivfflat', $$
+    MATCH (n), (m)
+    WHERE n <> m
+    WITH n, m
+    ORDER BY n.i <-> m.i LIMIT 1
+    WITH n, collect(m) 
+$$) as (n vertex, neighbors vertex[])
+
+;
+
+SELECT *
+FROM cypher('ivfflat', $$
+    MATCH (n), (m) WHERE n <> m
+    WITH n, m
+    ORDER BY n.i <-> m.i
+    RETURN n, collect(m, 2) as neighbors
+$$) as (n vertex, neighbors vertex[]);
+
 SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN count(*) $$) as (i gtype);
 SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n $$) as (i vertex);
 

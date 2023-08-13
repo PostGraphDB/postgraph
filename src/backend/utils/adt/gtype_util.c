@@ -1448,8 +1448,7 @@ void gtype_hash_scalar_value(const gtype_value *scalar_val, uint32 *hash)
  * Hash a value to a 64-bit value, with a seed. Otherwise, similar to
  * gtype_hash_scalar_value.
  */
-void gtype_hash_scalar_value_extended(const gtype_value *scalar_val,
-                                       uint64 *hash, uint64 seed)
+void gtype_hash_scalar_value_extended(const gtype_value *scalar_val, uint64 *hash, uint64 seed)
 {
     uint64 tmp = 0;
 
@@ -1750,8 +1749,7 @@ int reserve_from_buffer(StringInfo buffer, int len)
 /*
  * Copy 'len' bytes to a previously reserved area in buffer.
  */
-static void copy_to_buffer(StringInfo buffer, int offset, const char *data,
-                           int len)
+static void copy_to_buffer(StringInfo buffer, int offset, const char *data, int len)
 {
     memcpy(buffer->data + offset, data, len);
 }
@@ -1919,10 +1917,9 @@ convert_gtype_vector(StringInfo buffer, agtentry *pheader, gtype_value *val, int
     }
 
     // Total data size is everything we've appended to buffer 
-    totallen = (sizeof(uint32) * 3) + (num_elems * sizeof(float8));//buffer->len - base_offset;
+    totallen = (sizeof(uint32) * 3) + (num_elems * sizeof(float8));
 
     // Initialize the header of this node in the container's agtentry array 
-    //*pheader = AGTENTRY_IS_GTYPE | totallen;
     *pheader = AGTENTRY_IS_CONTAINER | totallen;
 }
 
