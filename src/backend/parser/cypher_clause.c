@@ -773,14 +773,62 @@ static Query *transform_cypher_delete(cypher_parsestate *cpstate, cypher_clause 
     return query;
 }
 
+
+static Query *add_extra_subquery_layer(cypher_parsestate *cpstate, Query *subquery) {
+    ParseState *pstate = (ParseState *) cpstate;
+    Query *query = makeNode(Query);
+
+    query->commandType = CMD_SELECT;
+
+    Alias *alias = makeAlias(PREV_CYPHER_CLAUSE_ALIAS, NIL);
+
+    ParseNamespaceItem *pnsi = addRangeTableEntryForSubquery(pstate, subquery, alias, false, true);
+
+
+    if (list_length(pstate->p_rtable) > 1) {
+        List *namespace = NULL;
+        int rtindex = 0;
+
+        rtindex = list_length(pstate->p_rtable);
+
+        if (pnsi->p_rte != rt_fetch(rtindex, pstate->p_rtable))
+            ereport(ERROR,
+                    (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+                     errmsg("rte must be last entry in p_rtable")));
+
+        namespace = list_make1(pnsi);
+
+        checkNameSpaceConflicts(pstate, pstate->p_namespace, namespace);
+    }
+
+
+    addNSItemToQuery(pstate, pnsi, true, false, true);
+
+
+        int rtindex = list_length(pstate->p_rtable);
+        Assert(rtindex == 1); // rte is the first RangeTblEntry in pstate
+
+    query->targetList = expandNSItemAttrs(pstate, pnsi, 0, -1);
+
+
+
+    query->rtable = pstate->p_rtable;
+    query->jointree = makeFromExpr(pstate->p_joinlist, NULL);
+    query->hasTargetSRFs = pstate->p_hasTargetSRFs;
+
+    assign_query_collations(pstate, query);
+
+
+    return query;
+}
+
 /*
  * transform_cypher_unwind
  *      It contains logic to convert the form of an array into a row. Here, we
- *      are simply calling `age_unnest` function, and the actual transformation
- *      is handled by `age_unnest` function.
+ *      are simply calling `unnest` function, and the actual transformation
+ *      is handled by `unnest` function.
  */
 static Query *transform_cypher_unwind(cypher_parsestate *cpstate, cypher_clause *clause) {
-    ParseState *pstate = (ParseState *) cpstate;
     cypher_unwind *self = (cypher_unwind *) clause->self;
     int target_syntax_loc;
     Query *query;
@@ -791,13 +839,16 @@ static Query *transform_cypher_unwind(cypher_parsestate *cpstate, cypher_clause 
     TargetEntry *te;
     ParseNamespaceItem *pnsi;
 
+    cypher_parsestate *child_cpstate = make_cypher_parsestate(cpstate);
+ParseState *pstate = (ParseState *) child_cpstate;
+    
     query = makeNode(Query);
     query->commandType = CMD_SELECT;
 
     if (clause->prev) {
         int rtindex;
 
-        pnsi = transform_prev_cypher_clause(cpstate, clause->prev, true);
+        pnsi = transform_prev_cypher_clause(child_cpstate, clause->prev, true);
         rtindex = list_length(pstate->p_rtable);
         Assert(rtindex == 1); // rte is the first RangeTblEntry in pstate
         query->targetList = expandNSItemAttrs(pstate, pnsi, 0, -1);
@@ -808,12 +859,11 @@ static Query *transform_cypher_unwind(cypher_parsestate *cpstate, cypher_clause 
     if (findTarget(query->targetList, self->target->name) != NULL)
         ereport(ERROR, (errcode(ERRCODE_DUPLICATE_ALIAS),
                         errmsg("duplicate variable \"%s\"", self->target->name),
-                        parser_errposition((ParseState *) cpstate, target_syntax_loc)));
+                        parser_errposition((ParseState *) child_cpstate, target_syntax_loc)));
 
-    expr = transform_cypher_expr(cpstate, self->target->val, EXPR_KIND_SELECT_TARGET);
+    expr = transform_cypher_expr(child_cpstate, self->target->val, EXPR_KIND_SELECT_TARGET);
 
-    unwind = makeFuncCall(list_make1(makeString("unnest")), NIL, COERCE_SQL_SYNTAX, -1);
-
+    unwind = makeFuncCall(list_make2(makeString(CATALOG_SCHEMA), makeString("unnest")), NIL, COERCE_SQL_SYNTAX, -1);
 
     old_expr_kind = pstate->p_expr_kind;
     pstate->p_expr_kind = EXPR_KIND_SELECT_TARGET;
@@ -831,7 +881,12 @@ static Query *transform_cypher_unwind(cypher_parsestate *cpstate, cypher_clause 
 
     assign_query_collations(pstate, query);
 
-    return query;
+    Query *new_query = add_extra_subquery_layer(cpstate, query);
+
+
+    free_cypher_parsestate(child_cpstate);
+
+    return new_query;
 }
 
 /*
@@ -3318,7 +3373,7 @@ static int get_target_entry_resno(cypher_parsestate *cpstate, List *target_list,
         TargetEntry *te = (TargetEntry *)lfirst(lc);
  
         if (!strcmp(te->resname, name)) {
-	        enum transform_entity_type type = find_transform_entity_type(cpstate, name);
+            enum transform_entity_type type = find_transform_entity_type(cpstate, name);
             if (type == ENT_VERTEX)
                 te->expr = add_volatile_vertex_wrapper(te->expr);
             else if (type == ENT_EDGE)

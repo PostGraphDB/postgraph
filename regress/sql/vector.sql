@@ -396,6 +396,20 @@ FROM cypher('ivfflat', $$
     RETURN n, collect(m, 2) as neighbors
 $$) as (n vertex, neighbors vertex[]);
 
+
+
+SELECT *
+FROM cypher('ivfflat', $$
+    MATCH (n), (m) WHERE n <> m
+    WITH n, m
+    ORDER BY n.i <-> m.i
+    WITH n, collect(m, 2) as neighbors
+    UNWIND neighbors as m_nearest
+    CREATE (n)-[:NEIGHBOR { distance: n.i <-> m_nearest.i}]->(m_nearest)
+$$) as (n gtype);
+
+SELECT * FROM cypher('ivfflat', $$ MATCH ()-[e]->() RETURN e $$) as (e edge);
+
 SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN count(*) $$) as (i gtype);
 SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n $$) as (i vertex);
 

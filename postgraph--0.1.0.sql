@@ -273,41 +273,6 @@ OPERATOR 4 >,
 OPERATOR 5 >=,
 FUNCTION 1 vertex_btree_cmp(vertex, vertex);
 
-CREATE FUNCTION vertex_collect_transfn(internal, vertex)
-RETURNS internal
-LANGUAGE c 
-IMMUTABLE
-PARALLEL SAFE
-AS 'MODULE_PATHNAME';
-
-
-CREATE FUNCTION vertex_collect_finalfn(internal)
-RETURNS vertex[]
-LANGUAGE c 
-IMMUTABLE 
-PARALLEL SAFE AS 'MODULE_PATHNAME';
-
-CREATE AGGREGATE collect(vertex) (
-	stype = internal,
-	sfunc = vertex_collect_transfn,
-	finalfunc = vertex_collect_finalfn,
-	parallel = safe
-);
-
-CREATE FUNCTION vertex_collect_transfn_w_limit(internal, vertex, gtype)
-RETURNS internal
-LANGUAGE c
-IMMUTABLE
-PARALLEL SAFE
-AS 'MODULE_PATHNAME';
-
-CREATE AGGREGATE collect(vertex, gtype) (
-        stype = internal,
-        sfunc = vertex_collect_transfn_w_limit,
-        finalfunc = vertex_collect_finalfn,
-        parallel = safe
-);
-
 --
 -- vertex - access operators (->, ->> )
 --
@@ -847,7 +812,25 @@ CREATE FUNCTION keys(edge) RETURNS gtype LANGUAGE c IMMUTABLE RETURNS NULL ON NU
 
 CREATE FUNCTION range (gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_range';
 CREATE FUNCTION range (gtype, gtype, gtype) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_range';
-CREATE FUNCTION unnest (gtype, block_types boolean = false) RETURNS SETOF gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_unnest';
+
+
+--
+-- Unnest (UNWIND Clause) Functions
+--
+CREATE FUNCTION unnest (gtype, block_types boolean = false)
+RETURNS SETOF gtype
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_unnest';
+
+CREATE FUNCTION unnest (vertex[], block_types boolean = false)
+RETURNS SETOF vertex
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'vertex_unnest';
+
 
 --
 -- String functions
@@ -928,10 +911,66 @@ CREATE FUNCTION percentile_cont_aggfinalfn (internal) RETURNS gtype LANGUAGE c I
 CREATE FUNCTION percentile_disc_aggfinalfn (internal) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_percentile_disc_aggfinalfn';
 CREATE AGGREGATE percentilecont(gtype, gtype) (stype = internal, sfunc = percentile_aggtransfn, finalfunc = percentile_cont_aggfinalfn, parallel = SAFE);
 CREATE AGGREGATE percentiledisc(gtype, gtype) (stype = internal, sfunc = percentile_aggtransfn, finalfunc = percentile_disc_aggfinalfn, parallel = SAFE);
+
+--
 -- collect
-CREATE FUNCTION collect_aggtransfn (internal, gtype) RETURNS internal LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_collect_aggtransfn';
-CREATE FUNCTION collect_aggfinalfn (internal) RETURNS gtype LANGUAGE c IMMUTABLE PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_collect_aggfinalfn';
-CREATE AGGREGATE collect(gtype) (stype = internal, sfunc = collect_aggtransfn, finalfunc = collect_aggfinalfn, parallel = safe);
+--
+CREATE FUNCTION collect_aggtransfn (internal, gtype)
+RETURNS internal 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_collect_aggtransfn';
+
+CREATE FUNCTION collect_aggfinalfn (internal) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_collect_aggfinalfn';
+
+CREATE AGGREGATE collect(gtype) (
+	stype = internal, 
+	sfunc = collect_aggtransfn, 
+	finalfunc = collect_aggfinalfn, 
+	parallel = safe
+);
+
+CREATE FUNCTION vertex_collect_transfn(internal, vertex)
+RETURNS internal
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+
+CREATE FUNCTION vertex_collect_finalfn(internal)
+RETURNS vertex[] 
+LANGUAGE c  
+IMMUTABLE
+PARALLEL SAFE AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE collect(vertex) (
+        stype = internal,
+        sfunc = vertex_collect_transfn,
+        finalfunc = vertex_collect_finalfn, 
+        parallel = safe 
+);
+
+CREATE FUNCTION vertex_collect_transfn_w_limit(internal, vertex, gtype)
+RETURNS internal
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE collect(vertex, gtype) (
+        stype = internal,
+        sfunc = vertex_collect_transfn_w_limit,
+        finalfunc = vertex_collect_finalfn,
+        parallel = safe
+); 
+
 
 CREATE FUNCTION vle (IN gtype, IN vertex, IN vertex, IN gtype, IN gtype, IN gtype, IN gtype, IN gtype, OUT edges variable_edge) RETURNS SETOF variable_edge LANGUAGE C STABLE CALLED ON NULL INPUT PARALLEL UNSAFE AS 'MODULE_PATHNAME', 'gtype_vle';
 

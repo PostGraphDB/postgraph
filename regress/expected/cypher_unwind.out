@@ -76,11 +76,65 @@ SELECT * FROM cypher('cypher_unwind', $$
     UNWIND n as a
     SET a.i = 1
     RETURN a
+$$) as (i vertex);
+ERROR:  cannot cast type gtype to vertex for column "i"
+LINE 1: SELECT * FROM cypher('cypher_unwind', $$
+                      ^
+SELECT * FROM cypher('cypher_unwind', $$
+    MATCH (n_1)
+    WITH collect(n_1) as n
+    UNWIND n as a
+    RETURN a
+$$) as (i vertex);
+                                  i                                   
+----------------------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {"a": [1, 2, 3]}}
+ {"id": 281474976710658, "label": "", "properties": {"a": [4, 5, 6]}}
+(2 rows)
+
+SELECT * FROM cypher('cypher_unwind', $$
+    MATCH (n_1)
+    WITH collect(n_1) as n
+    UNWIND n as a
+    RETURN a
 $$) as (i gtype);
-ERROR:  function unnest(vertex[], boolean) does not exist
-LINE 4:     UNWIND n as a
-                   ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+ERROR:  cannot cast type vertex to gtype for column "i"
+LINE 1: SELECT * FROM cypher('cypher_unwind', $$
+                      ^
+SELECT * FROM cypher('cypher_unwind', $$
+    MATCH (n_1)
+    WITH collect(n_1) as n
+    UNWIND n as a
+    SET a.i = 1
+    RETURN a
+$$) as (i vertex);
+ERROR:  cannot cast type gtype to vertex for column "i"
+LINE 1: SELECT * FROM cypher('cypher_unwind', $$
+                      ^
+SELECT * FROM cypher('cypher_unwind', $$
+    MATCH (n_1)
+    WITH collect(n_1) as n
+    UNWIND n as a
+    WITH a
+    SET a.i = 1
+    RETURN a
+$$) as (i vertex);
+ERROR:  cannot cast type gtype to vertex for column "i"
+LINE 1: SELECT * FROM cypher('cypher_unwind', $$
+                      ^
+SELECT * FROM cypher('cypher_unwind', $$
+    MATCH (n_1)
+    WITH collect(n_1) as n
+    UNWIND n as a
+    CREATE ({i: a.i})
+    RETURN a
+$$) as (i vertex);
+                                  i                                   
+----------------------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {"a": [1, 2, 3]}}
+ {"id": 281474976710658, "label": "", "properties": {"a": [4, 5, 6]}}
+(2 rows)
+
 SELECT drop_graph('cypher_unwind', true);
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table cypher_unwind._ag_label_vertex

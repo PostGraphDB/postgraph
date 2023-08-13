@@ -669,10 +669,34 @@ $$) as (n vertex, neighbors vertex[]);
  {"id": 281474976710658, "label": "", "properties": {"i": [1.0, 2.0, 3.0]}} | {"{\"id\": 281474976710657, \"label\": \"\", \"properties\": {\"i\": [0.0, 0.0, 0.0]}}"}
 (6 rows)
 
-SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN count(*) $$) as (i gtype);
- i 
+SELECT *
+FROM cypher('ivfflat', $$
+    MATCH (n), (m) WHERE n <> m
+    WITH n, m
+    ORDER BY n.i <-> m.i
+    WITH n, collect(m, 2) as neighbors
+    UNWIND neighbors as m_nearest
+    CREATE (n)-[:NEIGHBOR { distance: n.i <-> m_nearest.i}]->(m_nearest)
+$$) as (n gtype);
+ n 
 ---
- 3
+(0 rows)
+
+SELECT * FROM cypher('ivfflat', $$ MATCH ()-[e]->() RETURN e $$) as (e edge);
+                                                                         e                                                                          
+----------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": 844424930131969, "start_id": 281474976710660, "end_id": 281474976710661, "label": "NEIGHBOR", "properties": {"distance": 1.73205080756888}}
+ {"id": 844424930131970, "start_id": 281474976710662, "end_id": 281474976710663, "label": "NEIGHBOR", "properties": {"distance": 1.73205080756888}}
+ {"id": 844424930131971, "start_id": 281474976710664, "end_id": 281474976710665, "label": "NEIGHBOR", "properties": {"distance": 2.23606797749979}}
+ {"id": 844424930131972, "start_id": 281474976710666, "end_id": 281474976710667, "label": "NEIGHBOR", "properties": {"distance": 2.23606797749979}}
+ {"id": 844424930131973, "start_id": 281474976710668, "end_id": 281474976710669, "label": "NEIGHBOR", "properties": {"distance": 3.74165738677394}}
+ {"id": 844424930131974, "start_id": 281474976710670, "end_id": 281474976710671, "label": "NEIGHBOR", "properties": {"distance": 3.74165738677394}}
+(6 rows)
+
+SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN count(*) $$) as (i gtype);
+ i  
+----
+ 15
 (1 row)
 
 SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n $$) as (i vertex);
@@ -681,7 +705,19 @@ SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n $$) as (i vertex);
  {"id": 281474976710657, "label": "", "properties": {"i": [0.0, 0.0, 0.0]}}
  {"id": 281474976710658, "label": "", "properties": {"i": [1.0, 2.0, 3.0]}}
  {"id": 281474976710659, "label": "", "properties": {"i": [1.0, 1.0, 1.0]}}
-(3 rows)
+ {"id": 281474976710660, "label": "", "properties": {}}
+ {"id": 281474976710661, "label": "", "properties": {}}
+ {"id": 281474976710662, "label": "", "properties": {}}
+ {"id": 281474976710663, "label": "", "properties": {}}
+ {"id": 281474976710664, "label": "", "properties": {}}
+ {"id": 281474976710665, "label": "", "properties": {}}
+ {"id": 281474976710666, "label": "", "properties": {}}
+ {"id": 281474976710667, "label": "", "properties": {}}
+ {"id": 281474976710668, "label": "", "properties": {}}
+ {"id": 281474976710669, "label": "", "properties": {}}
+ {"id": 281474976710670, "label": "", "properties": {}}
+ {"id": 281474976710671, "label": "", "properties": {}}
+(15 rows)
 
 SELECT * FROM cypher('ivfflat', $$ CREATE ( {j: tovector('[1, 1, 1]')}) $$) as (i gtype);
  i 
@@ -701,9 +737,21 @@ SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n.j $$) as (i gtype);
  
  
  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
  [1.0, 1.0, 1.0]
  [1.0]
-(5 rows)
+(17 rows)
 
 --
 -- Index Errors
@@ -726,9 +774,10 @@ NOTICE:  graph "vector" has been dropped
 (1 row)
 
 SELECT drop_graph('ivfflat', true);
-NOTICE:  drop cascades to 2 other objects
+NOTICE:  drop cascades to 3 other objects
 DETAIL:  drop cascades to table ivfflat._ag_label_vertex
 drop cascades to table ivfflat._ag_label_edge
+drop cascades to table ivfflat."NEIGHBOR"
 NOTICE:  graph "ivfflat" has been dropped
  drop_graph 
 ------------

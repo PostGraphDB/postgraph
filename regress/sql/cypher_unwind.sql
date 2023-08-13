@@ -47,6 +47,47 @@ SELECT * FROM cypher('cypher_unwind', $$
     UNWIND n as a
     SET a.i = 1
     RETURN a
+$$) as (i vertex);
+
+
+SELECT * FROM cypher('cypher_unwind', $$
+    MATCH (n_1)
+    WITH collect(n_1) as n
+    UNWIND n as a
+    RETURN a
+$$) as (i vertex);
+
+SELECT * FROM cypher('cypher_unwind', $$
+    MATCH (n_1)
+    WITH collect(n_1) as n
+    UNWIND n as a
+    RETURN a
 $$) as (i gtype);
+
+SELECT * FROM cypher('cypher_unwind', $$
+    MATCH (n_1)
+    WITH collect(n_1) as n
+    UNWIND n as a
+    SET a.i = 1
+    RETURN a
+$$) as (i vertex);
+
+SELECT * FROM cypher('cypher_unwind', $$
+    MATCH (n_1)
+    WITH collect(n_1) as n
+    UNWIND n as a
+    WITH a
+    SET a.i = 1
+    RETURN a
+$$) as (i vertex);
+
+SELECT * FROM cypher('cypher_unwind', $$
+    MATCH (n_1)
+    WITH collect(n_1) as n
+    UNWIND n as a
+    CREATE ({i: a.i})
+    RETURN a
+$$) as (i vertex);
+
 
 SELECT drop_graph('cypher_unwind', true);

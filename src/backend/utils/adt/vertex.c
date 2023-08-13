@@ -22,7 +22,12 @@
 
 #include "postgraph.h"
 
+#include "miscadmin.h"
+#include "funcapi.h"
+#include "nodes/execnodes.h"
+#include "utils/array.h"
 #include "utils/fmgrprotos.h"
+#include "utils/memutils.h"
 #include "utils/varlena.h"
 
 #include "commands/label_commands.h"
@@ -390,6 +395,92 @@ vertex_label(PG_FUNCTION_ARGS) {
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
+
+PG_FUNCTION_INFO_V1(vertex_unnest);
+/*
+ * Function to convert an array of vertices into a set of rows. It is used for
+ * Cypher `UNWIND` clause, but considering the situation in which the user can
+ * directly use this function in vanilla PGSQL, put a second parameter related
+ * to this.
+ */
+Datum vertex_unnest(PG_FUNCTION_ARGS)
+{
+    ArrayType *array = PG_GETARG_ARRAYTYPE_P(0);
+    bool block_types = PG_GETARG_BOOL(1);
+    ReturnSetInfo *rsi;
+    ArrayMetaState *my_extra;
+    Tuplestorestate *tuple_store;
+    TupleDesc tupdesc;
+    TupleDesc ret_tdesc;
+    MemoryContext old_cxt, tmp_cxt;
+    Datum value;
+    bool isnull;
+
+    if(ARR_NDIM(array) != 1) 
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("unnest only supports 1 dimensional arrays")));
+
+    if (ARR_NDIM(array) < 1)
+        PG_RETURN_NULL();
+
+
+    if (ARR_ELEMTYPE(array) != VERTEXOID)
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("Invalid element type for unnest")));
+
+    rsi = (ReturnSetInfo *) fcinfo->resultinfo;
+
+    rsi->returnMode = SFRM_Materialize;
+
+    /* it's a simple type, so don't use get_call_result_type() */
+    tupdesc = rsi->expectedDesc;
+
+    old_cxt = MemoryContextSwitchTo(rsi->econtext->ecxt_per_query_memory);
+
+    ret_tdesc = CreateTupleDescCopy(tupdesc);
+    BlessTupleDesc(ret_tdesc);
+    tuple_store = tuplestore_begin_heap(rsi->allowedModes & SFRM_Materialize_Random, false, work_mem);
+
+    MemoryContextSwitchTo(old_cxt);
+
+    tmp_cxt = AllocSetContextCreate(CurrentMemoryContext, "age_unnest temporary cxt", ALLOCSET_DEFAULT_SIZES);
+
+    ArrayIterator array_iterator = array_create_iterator(array, 0, NULL);
+    while (array_iterate(array_iterator, &value, &isnull))
+    {
+        HeapTuple tuple;
+        Datum values[1];
+        bool nulls[1] = {false};
+
+	if (isnull)
+	    continue;
+
+        /* use the tmp context so we can clean up after each tuple is done */
+        old_cxt = MemoryContextSwitchTo(tmp_cxt);
+
+        values[0] = value;
+
+        tuple = heap_form_tuple(ret_tdesc, values, nulls);
+
+        tuplestore_puttuple(tuple_store, tuple);
+
+        MemoryContextSwitchTo(old_cxt);
+        MemoryContextReset(tmp_cxt);
+    }
+
+    array_free_iterator(array_iterator);
+
+    /* Avoid leaking memory when handed toasted input */
+    PG_FREE_IF_COPY(array, 0);
+
+    MemoryContextDelete(tmp_cxt);
+
+    rsi->setResult = tuple_store;
+    rsi->setDesc = ret_tdesc;
+
+    PG_RETURN_NULL();
+}
+
 
 /*
  * Aggregate Functions

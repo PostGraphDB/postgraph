@@ -276,13 +276,10 @@ transform_column_ref(cypher_parsestate *cpstate, ColumnRef *cref) {
                                            cref->location, &levels_up);
 
                 if (pnsi == NULL)
-                {
                     ereport(ERROR,
                             (errcode(ERRCODE_UNDEFINED_COLUMN),
                              errmsg("could not find rte for %s.%s", relname, colname),
                              parser_errposition(pstate, cref->location)));
-                    break;
-                }
 
                 Assert(IsA(field2, String));
 
@@ -534,7 +531,6 @@ transform_a_indirection(cypher_parsestate *cpstate, A_Indirection *a_ind) {
         Node *node = lfirst(lc);
 
         if (is_a_slice(node)) {
-            // a[1..10]
             A_Indices *indices = (A_Indices *)node;
 
             List *args = list_make1(cur);
