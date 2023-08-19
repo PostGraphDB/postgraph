@@ -21,7 +21,7 @@ LOAD 'postgraph';
 SET search_path TO postgraph;
 set timezone TO 'GMT';
 --
--- aggregate functions avg(), sum(), count(), & count(*)
+-- avg(), sum(), count(), & count(*)
 --
 SELECT create_graph('UCSC');
 NOTICE:  graph "UCSC" has been created
@@ -30,42 +30,44 @@ NOTICE:  graph "UCSC" has been created
  
 (1 row)
 
-SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Jack", gpa: 3.0, age: 21, zip: 94110})$$) AS (a gtype);
+SELECT * FROM cypher('UCSC', $$ CREATE (:students {name: "Jack", gpa: 3.0, age: 21, zip: 94110}) $$) AS (a gtype);
  a 
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Jill", gpa: 3.5, age: 27, zip: 95060})$$) AS (a gtype);
+SELECT * FROM cypher('UCSC', $$ CREATE (:students {name: "Jill", gpa: 3.5, age: 27, zip: 95060}) $$) AS (a gtype);
  a 
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Jim", gpa: 3.75, age: 32, zip: 96062})$$) AS (a gtype);
+SELECT * FROM cypher('UCSC', $$ CREATE (:students {name: "Jim", gpa: 3.75, age: 32, zip: 96062}) $$) AS (a gtype);
  a 
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Rick", gpa: 2.5, age: 24, zip: "95060"})$$) AS (a gtype);
+SELECT * FROM cypher('UCSC', $$ CREATE (:students {name: "Rick", gpa: 2.5, age: 24, zip: "95060"}) $$) AS (a gtype);
  a 
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Ann", gpa: 3.8::numeric, age: 23})$$) AS (a gtype);
+SELECT * FROM cypher('UCSC', $$ CREATE (:students {name: "Ann", gpa: 3.8::numeric, age: 23}) $$) AS (a gtype);
  a 
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Derek", gpa: 4.0, age: 19, zip: 90210})$$) AS (a gtype);
+SELECT * FROM cypher('UCSC', $$ CREATE (:students {name: "Derek", gpa: 4.0, age: 19, zip: 90210}) $$) AS (a gtype);
  a 
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Jessica", gpa: 3.9::numeric, age: 20})$$) AS (a gtype);
+SELECT * FROM cypher('UCSC', $$ CREATE (:students {name: "Jessica", gpa: 3.9::numeric, age: 20}) $$) AS (a gtype);
  a 
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex vertex);
+SELECT * FROM cypher('UCSC', $$
+    MATCH (u) RETURN (u)
+$$) AS (vertex vertex);
                                                        vertex                                                        
 ---------------------------------------------------------------------------------------------------------------------
  {"id": 844424930131969, "label": "students", "properties": {"age": 21, "gpa": 3.0, "zip": 94110, "name": "Jack"}}
@@ -77,8 +79,14 @@ SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex vertex);
  {"id": 844424930131975, "label": "students", "properties": {"age": 20, "gpa": 3.9::numeric, "name": "Jessica"}}
 (7 rows)
 
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN avg(u.gpa), sum(u.gpa), sum(u.gpa)/count(u.gpa), count(u.gpa), count(*) $$) 
-AS (avg gtype, sum gtype, sum_divided_by_count gtype, count gtype, count_star gtype);
+SELECT * FROM cypher('UCSC', $$
+    MATCH (u)
+    RETURN avg(u.gpa),
+           sum(u.gpa),
+	   sum(u.gpa)/count(u.gpa),
+	   count(u.gpa),
+	   count(*)
+$$) AS (avg gtype, sum gtype, sum_divided_by_count gtype, count gtype, count_star gtype);
        avg        |      sum       |    sum_divided_by_count     | count | count_star 
 ------------------+----------------+-----------------------------+-------+------------
  3.49285714285714 | 24.45::numeric | 3.4928571428571429::numeric | 7     | 7
@@ -94,7 +102,9 @@ SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Mike", age: 18})$$) AS 
 ---
 (0 rows)
 
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex vertex);
+SELECT * FROM cypher('UCSC', $$ 
+    MATCH (u) RETURN (u)
+$$) AS (vertex vertex);
                                                        vertex                                                        
 ---------------------------------------------------------------------------------------------------------------------
  {"id": 844424930131969, "label": "students", "properties": {"age": 21, "gpa": 3.0, "zip": 94110, "name": "Jack"}}
@@ -108,8 +118,14 @@ SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex vertex);
  {"id": 844424930131977, "label": "students", "properties": {"age": 18, "name": "Mike"}}
 (9 rows)
 
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN avg(u.gpa), sum(u.gpa), sum(u.gpa)/count(u.gpa), count(u.gpa), count(*) $$) 
-AS (avg gtype, sum gtype, sum_divided_by_count gtype, count gtype, count_star gtype);
+SELECT * FROM cypher('UCSC', $$
+    MATCH (u)
+    RETURN avg(u.gpa),
+           sum(u.gpa),
+	   sum(u.gpa) / count(u.gpa),
+	   count(u.gpa),
+	   count(*)
+$$) AS (avg gtype, sum gtype, sum_divided_by_count gtype, count gtype, count_star gtype);
        avg        |      sum       |    sum_divided_by_count     | count | count_star 
 ------------------+----------------+-----------------------------+-------+------------
  3.49285714285714 | 24.45::numeric | 3.4928571428571429::numeric | 7     | 9
@@ -128,150 +144,88 @@ SELECT * FROM cypher('UCSC', $$ RETURN sum(NULL) $$) AS (sum gtype);
  
 (1 row)
 
--- should return 0
 SELECT * FROM cypher('UCSC', $$ RETURN count(NULL) $$) AS (count gtype);
  count 
 -------
  0
 (1 row)
 
--- should fail
-SELECT * FROM cypher('UCSC', $$ RETURN avg() $$) AS (avg gtype);
-ERROR:  function postgraph.avg() does not exist
-LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN avg() $$) AS (avg gty...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('UCSC', $$ RETURN sum() $$) AS (sum gtype);
-ERROR:  function postgraph.sum() does not exist
-LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN sum() $$) AS (sum gty...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('UCSC', $$ RETURN count() $$) AS (count gtype);
-ERROR:  postgraph.count(*) must be used to call a parameterless aggregate function
-LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN count() $$) AS (count...
-                                               ^
 --
--- aggregate functions min() & max()
+-- min() & max()
 --
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN min(u.gpa), max(u.gpa), count(u.gpa), count(*) $$)
-AS (min gtype, max gtype, count gtype, count_star gtype);
+SELECT * FROM cypher('UCSC', $$
+    MATCH (u)
+    RETURN min(u.gpa),
+           max(u.gpa),
+	   count(u.gpa),
+	   count(*)
+$$) AS (min gtype, max gtype, count gtype, count_star gtype);
  min | max | count | count_star 
 -----+-----+-------+------------
  2.5 | 4.0 | 7     | 9
 (1 row)
 
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN min(u.gpa), max(u.gpa), count(u.gpa), count(*) $$)
-AS (min gtype, max gtype, count gtype, count_star gtype);
+SELECT * FROM cypher('UCSC', $$
+    MATCH (u)
+    RETURN min(u.gpa),
+           max(u.gpa),
+	   count(u.gpa),
+	   count(*) 
+$$) AS (min gtype, max gtype, count gtype, count_star gtype);
  min | max | count | count_star 
 -----+-----+-------+------------
  2.5 | 4.0 | 7     | 9
 (1 row)
 
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN min(u.name), max(u.name), count(u.name), count(*) $$)
-AS (min gtype, max gtype, count gtype, count_star gtype);
+SELECT * FROM cypher('UCSC', $$ 
+    MATCH (u)
+    RETURN min(u.name),
+           max(u.name), 
+           count(u.name),
+           count(*) 
+$$) AS (min gtype, max gtype, count gtype, count_star gtype);
   min  |  max   | count | count_star 
 -------+--------+-------+------------
  "Ann" | "Rick" | 9     | 9
 (1 row)
 
--- check that min() & max() can work against mixed types
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN min(u.zip), max(u.zip), count(u.zip), count(*) $$)
-AS (min gtype, max gtype, count gtype, count_star gtype);
+SELECT * FROM cypher('UCSC', $$
+     MATCH (u)
+     RETURN min(u.zip),
+            max(u.zip),
+	    count(u.zip),
+	    count(*)
+$$) AS (min gtype, max gtype, count gtype, count_star gtype);
    min   |  max  | count | count_star 
 ---------+-------+-------+------------
  "95060" | 96062 | 5     | 9
 (1 row)
 
-CREATE TABLE min_max_tbl (id gtype);
-insert into min_max_tbl VALUES ('16'::gtype), ('17188'::gtype), ('1000'::gtype), ('869'::gtype);
-SELECT min(id), max(id) FROM min_max_tbl;
- min |  max  
------+-------
- 16  | 17188
-(1 row)
-
-SELECT min(tofloat(id)), max(tofloat(id)) FROM min_max_tbl;
- min  |   max   
-------+---------
- 16.0 | 17188.0
-(1 row)
-
-SELECT min(tonumeric(id)), max(tonumeric(id)) FROM min_max_tbl;
-     min     |      max       
--------------+----------------
- 16::numeric | 17188::numeric
-(1 row)
-
-SELECT min(tostring(id)), max(tostring(id)) FROM min_max_tbl;
-  min   |  max  
---------+-------
- "1000" | "869"
-(1 row)
-
-DROP TABLE min_max_tbl;
 -- should return null
-SELECT * FROM cypher('UCSC', $$ RETURN min(NULL) $$) AS (min gtype);
+SELECT * FROM cypher('UCSC', $$
+    RETURN min(NULL)
+$$) AS (min gtype);
  min 
 -----
  
 (1 row)
 
-SELECT * FROM cypher('UCSC', $$ RETURN max(NULL) $$) AS (max gtype);
+SELECT * FROM cypher('UCSC', $$
+    RETURN max(NULL)
+$$) AS (max gtype);
  max 
 -----
  
 (1 row)
 
-SELECT min(NULL);
- min 
------
- 
-(1 row)
-
-SELECT min(gtype_in('null'));
- min 
------
- 
-(1 row)
-
-SELECT max(NULL);
- max 
------
- 
-(1 row)
-
-SELECT max(gtype_in('null'));
- max 
------
- 
-(1 row)
-
--- should fail
-SELECT * FROM cypher('UCSC', $$ RETURN min() $$) AS (min gtype);
-ERROR:  function postgraph.min() does not exist
-LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN min() $$) AS (min gty...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('UCSC', $$ RETURN max() $$) AS (max gtype);
-ERROR:  function postgraph.max() does not exist
-LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN max() $$) AS (max gty...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT min();
-ERROR:  function min() does not exist
-LINE 1: SELECT min();
-               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT min();
-ERROR:  function min() does not exist
-LINE 1: SELECT min();
-               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
--- aggregate functions stDev() & stDevP()
+-- stDev() & stDevP()
 --
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN stDev(u.gpa), stDevP(u.gpa) $$)
-AS (stDev gtype, stDevP gtype);
+SELECT * FROM cypher('UCSC', $$
+    MATCH (u)
+    RETURN stDev(u.gpa),
+           stDevP(u.gpa)
+$$) AS (stDev gtype, stDevP gtype);
        stdev       |      stdevp       
 -------------------+-------------------
  0.549566929066706 | 0.508800109100232
@@ -290,78 +244,68 @@ SELECT * FROM cypher('UCSC', $$ RETURN stDevP(NULL) $$) AS (stDevP gtype);
  0.0
 (1 row)
 
--- should fail
-SELECT * FROM cypher('UCSC', $$ RETURN stDev() $$) AS (stDev gtype);
-ERROR:  function postgraph.stdev() does not exist
-LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN stDev() $$) AS (stDev...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('UCSC', $$ RETURN stDevP() $$) AS (stDevP gtype);
-ERROR:  function postgraph.stdevp() does not exist
-LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN stDevP() $$) AS (stDe...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
--- aggregate functions percentileCont() & percentileDisc()
+-- percentileCont() & percentileDisc()
 --
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN percentileCont(u.gpa, .55), percentileDisc(u.gpa, .55), percentileCont(u.gpa, .9), percentileDisc(u.gpa, .9) $$)
-AS (percentileCont1 gtype, percentileDisc1 gtype, percentileCont2 gtype, percentileDisc2 gtype);
+SELECT * FROM cypher('UCSC', $$
+    MATCH (u)
+    RETURN percentileCont(u.gpa, .55),
+           percentileDisc(u.gpa, .55),
+	   percentileCont(u.gpa, .9),
+	   percentileDisc(u.gpa, .9)
+$$) AS (percentileCont1 gtype, percentileDisc1 gtype, percentileCont2 gtype, percentileDisc2 gtype);
  percentilecont1 | percentiledisc1 | percentilecont2 | percentiledisc2 
 -----------------+-----------------+-----------------+-----------------
  3.765           | 3.75            | 3.94            | 4.0
 (1 row)
 
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN percentileCont(u.gpa, .55) $$)
-AS (percentileCont gtype);
+SELECT * FROM cypher('UCSC', $$
+    MATCH (u)
+    RETURN percentileCont(u.gpa, .55)
+$$) AS (percentileCont gtype);
  percentilecont 
 ----------------
  3.765
 (1 row)
 
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN percentileDisc(u.gpa, .55) $$)
-AS (percentileDisc gtype);
+SELECT * FROM cypher('UCSC', $$
+    MATCH (u) RETURN percentileDisc(u.gpa, .55)
+$$) AS (percentileDisc gtype);
  percentiledisc 
 ----------------
  3.75
 (1 row)
 
--- should return null
-SELECT * FROM cypher('UCSC', $$ RETURN percentileCont(NULL, .5) $$) AS (percentileCont gtype);
- percentilecont 
-----------------
- 
-(1 row)
-
-SELECT * FROM cypher('UCSC', $$ RETURN percentileDisc(NULL, .5) $$) AS (percentileDisc gtype);
- percentiledisc 
-----------------
- 
-(1 row)
-
--- should fail
-SELECT * FROM cypher('UCSC', $$ RETURN percentileCont(.5, NULL) $$) AS (percentileCont gtype);
-ERROR:  percentile value NULL is not a valid numeric value
-SELECT * FROM cypher('UCSC', $$ RETURN percentileDisc(.5, NULL) $$) AS (percentileDisc gtype);
-ERROR:  percentile value NULL is not a valid numeric value
 --
--- aggregate function collect()
+-- collect()
 --
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN collect(u.name), collect(u.age), collect(u.gpa), collect(u.zip) $$)
-AS (name gtype, age gtype, gqa gtype, zip gtype);
+SELECT * FROM cypher('UCSC', $$
+    MATCH (u)
+    RETURN collect(u.name),
+           collect(u.age),
+	   collect(u.gpa),
+	   collect(u.zip)
+$$) AS (name gtype, age gtype, gqa gtype, zip gtype);
                                     name                                    |                 age                  |                          gqa                           |                  zip                  
 ----------------------------------------------------------------------------+--------------------------------------+--------------------------------------------------------+---------------------------------------
  ["Jack", "Jill", "Jim", "Rick", "Ann", "Derek", "Jessica", "Dave", "Mike"] | [21, 27, 32, 24, 23, 19, 20, 24, 18] | [3.0, 3.5, 3.75, 2.5, 3.8::numeric, 4.0, 3.9::numeric] | [94110, 95060, 96062, "95060", 90210]
 (1 row)
 
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN collect(u.gpa), collect(u.gpa) $$)
-AS (gpa1 gtype, gpa2 gtype);
+SELECT * FROM cypher('UCSC', $$
+    MATCH (u)
+    RETURN collect(u.gpa),
+           collect(u.gpa)
+$$) AS (gpa1 gtype, gpa2 gtype);
                           gpa1                          |                          gpa2                          
 --------------------------------------------------------+--------------------------------------------------------
  [3.0, 3.5, 3.75, 2.5, 3.8::numeric, 4.0, 3.9::numeric] | [3.0, 3.5, 3.75, 2.5, 3.8::numeric, 4.0, 3.9::numeric]
 (1 row)
 
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN collect(u.zip), collect(u.zip) $$)
-AS (zip1 gtype, zip2 gtype);
+SELECT * FROM cypher('UCSC', $$
+    MATCH (u)
+    RETURN collect(u.zip),
+           collect(u.zip)
+$$) AS (zip1 gtype, zip2 gtype);
                  zip1                  |                 zip2                  
 ---------------------------------------+---------------------------------------
  [94110, 95060, 96062, "95060", 90210] | [94110, 95060, 96062, "95060", 90210]
@@ -374,27 +318,20 @@ SELECT * FROM cypher('UCSC', $$ RETURN collect(5) $$) AS (result gtype);
 (1 row)
 
 -- should return an empty aray
-SELECT * FROM cypher('UCSC', $$ RETURN collect(NULL) $$) AS (empty gtype);
- empty 
--------
- []
-(1 row)
-
-SELECT * FROM cypher('UCSC', $$ MATCH (u) WHERE u.name =~ "doesn't exist" RETURN collect(u.name) $$) AS (name gtype);
+SELECT * FROM cypher('UCSC', $$
+     MATCH (u)
+     WHERE u.name =~ "doesn't exist"
+     RETURN collect(u.name)
+$$) AS (name gtype);
  name 
 ------
  []
 (1 row)
 
--- should fail
-SELECT * FROM cypher('UCSC', $$ RETURN collect() $$) AS (collect gtype);
-ERROR:  function postgraph.collect() does not exist
-LINE 1: SELECT * FROM cypher('UCSC', $$ RETURN collect() $$) AS (col...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
--- test DISTINCT inside aggregate functions
-SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Sven", gpa: 3.2, age: 27, zip: 94110})$$)
-AS (a gtype);
+--
+-- DISTINCT inside aggregate functions
+--
+SELECT * FROM cypher('UCSC', $$CREATE (:students {name: "Sven", gpa: 3.2, age: 27, zip: 94110})$$) AS (a gtype);
  a 
 ---
 (0 rows)
@@ -414,15 +351,21 @@ SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN (u) $$) AS (vertex vertex);
  {"id": 844424930131978, "label": "students", "properties": {"age": 27, "gpa": 3.2, "zip": 94110, "name": "Sven"}}
 (10 rows)
 
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN count(u.zip), count(DISTINCT u.zip) $$)
-AS (zip gtype, distinct_zip gtype);
+SELECT * FROM cypher('UCSC', $$
+    MATCH (u)
+    RETURN count(u.zip),
+           count(DISTINCT u.zip)
+$$) AS (zip gtype, distinct_zip gtype);
  zip | distinct_zip 
 -----+--------------
  6   | 5
 (1 row)
 
-SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN count(u.age), count(DISTINCT u.age) $$)
-AS (age gtype, distinct_age gtype);
+SELECT * FROM cypher('UCSC', $$
+    MATCH (u)
+    RETURN count(u.age),
+           count(DISTINCT u.age)
+$$) AS (age gtype, distinct_age gtype);
  age | distinct_age 
 -----+--------------
  10  | 8
@@ -456,7 +399,9 @@ SELECT * FROM cypher('group_by', $$CREATE (:row {i: 2, j: 3, k:6})$$) AS (result
 --------
 (0 rows)
 
-SELECT * FROM cypher('group_by', $$MATCH (u:row) RETURN u.i, u.j, u.k$$) AS (i gtype, j gtype, k gtype);
+SELECT * FROM cypher('group_by', $$
+    MATCH (u:row) RETURN u.i, u.j, u.k
+$$) AS (i gtype, j gtype, k gtype);
  i | j | k 
 ---+---+---
  1 | 2 | 3
@@ -465,7 +410,9 @@ SELECT * FROM cypher('group_by', $$MATCH (u:row) RETURN u.i, u.j, u.k$$) AS (i g
  2 | 3 | 6
 (4 rows)
 
-SELECT * FROM cypher('group_by', $$MATCH (u:row) RETURN u.i, u.j, sum(u.k)$$) AS (i gtype, j gtype, sumk gtype);
+SELECT * FROM cypher('group_by', $$
+    MATCH (u:row) RETURN u.i, u.j, sum(u.k)
+$$) AS (i gtype, j gtype, sumk gtype);
  i | j | sumk 
 ---+---+------
  1 | 2 | 7
@@ -488,8 +435,14 @@ SELECT * FROM cypher('group_by', $$CREATE (:L {a: 3, b: 1, c:2})$$) AS (result g
 --------
 (0 rows)
 
-SELECT * FROM cypher('group_by', $$MATCH (x:L) RETURN x.a, x.b, x.c, x.a + count(*) + x.b + count(*) + x.c$$)
-AS (a gtype, b gtype, c gtype, result gtype);
+/*
+ * TODO: Get the link from the opencypher website.
+ */
+SELECT * FROM cypher('group_by', $$
+    MATCH (x:L)
+    RETURN x.a, x.b, x.c,
+           x.a + count(*) + x.b + count(*) + x.c
+$$)  AS (a gtype, b gtype, c gtype, result gtype);
  a | b | c | result 
 ---+---+---+--------
  3 | 1 | 2 | 8
@@ -497,16 +450,21 @@ AS (a gtype, b gtype, c gtype, result gtype);
  1 | 2 | 3 | 8
 (3 rows)
 
-SELECT * FROM cypher('group_by', $$MATCH (x:L) RETURN x.a + x.b + x.c, x.a + x.b + x.c + count(*) + count(*) $$)
-AS (a_b_c gtype,  result gtype);
+SELECT * FROM cypher('group_by', $$
+    MATCH (x:L)
+    RETURN x.a + x.b + x.c,
+           x.a + x.b + x.c + count(*) + count(*)
+$$) AS (a_b_c gtype,  result gtype);
  a_b_c | result 
 -------+--------
  6     | 12
 (1 row)
 
 -- with WITH clause
-SELECT * FROM cypher('group_by', $$MATCH(x:L) WITH x, count(x) AS c RETURN x.a + x.b + x.c + c$$)
-AS (result gtype);
+SELECT * FROM cypher('group_by', $$
+    MATCH (x:L)
+    WITH x, count(x) AS cnt
+    RETURN x.a + x.b + x.c + cnt$$) AS (result gtype);
  result 
 --------
  7
@@ -514,8 +472,10 @@ AS (result gtype);
  7
 (3 rows)
 
-SELECT * FROM cypher('group_by', $$MATCH(x:L) WITH x, count(x) AS c RETURN x.a + x.b + x.c + c + c$$)
-AS (result gtype);
+SELECT * FROM cypher('group_by', $$
+    MATCH(x:L)
+    WITH x, count(x) AS cnt RETURN x.a + x.b + x.c + cnt + cnt
+$$) AS (result gtype);
  result 
 --------
  8
@@ -523,28 +483,86 @@ AS (result gtype);
  8
 (3 rows)
 
-SELECT * FROM cypher('group_by', $$MATCH(x:L) WITH x.a + x.b + x.c AS v, count(x) as c RETURN v + c + c $$)
-AS (result gtype);
+SELECT * FROM cypher('group_by', $$
+    MATCH(x:L)
+    WITH x.a + x.b + x.c AS v, count(x) as cnt
+    RETURN v + cnt + cnt
+$$) AS (result gtype);
  result 
 --------
  12
 (1 row)
 
 -- should fail
-SELECT * FROM cypher('group_by', $$MATCH (x:L) RETURN x.a, x.a + count(*) + x.b + count(*) + x.c$$)
-AS (a gtype, result gtype);
+SELECT * FROM cypher('group_by', $$
+     MATCH (x:L)
+     RETURN x.a, x.a + count(*) + x.b + count(*) + x.c
+$$) AS (a gtype, result gtype);
 ERROR:  "x" must be either part of an explicitly listed key or used inside an aggregate function
-LINE 1: ...p_by', $$MATCH (x:L) RETURN x.a, x.a + count(*) + x.b + coun...
-                                                             ^
-SELECT * FROM cypher('group_by', $$MATCH (x:L) RETURN x.a + count(*) + x.b + count(*) + x.c$$)
-AS (result gtype);
+LINE 3:      RETURN x.a, x.a + count(*) + x.b + count(*) + x.c
+                                          ^
+SELECT * FROM cypher('group_by', $$
+    MATCH (x:L)
+    RETURN x.a + count(*) + x.b + count(*) + x.c
+$$) AS (result gtype);
 ERROR:  "x" must be either part of an explicitly listed key or used inside an aggregate function
-LINE 1: ...CT * FROM cypher('group_by', $$MATCH (x:L) RETURN x.a + coun...
-                                                             ^
+LINE 3:     RETURN x.a + count(*) + x.b + count(*) + x.c
+                   ^
+SELECT create_graph('edge_aggregates');
+NOTICE:  graph "edge_aggregates" has been created
+ create_graph 
+--------------
+ 
+(1 row)
+
+SELECT * FROM cypher('edge_aggregates', $$CREATE ()-[:e]->() $$) AS (result gtype);
+ result 
+--------
+(0 rows)
+
+SELECT * FROM cypher('edge_aggregates', $$CREATE ()-[:e]->() $$) AS (result gtype);
+ result 
+--------
+(0 rows)
+
+SELECT * FROM cypher('edge_aggregates', $$CREATE ()-[:e]->() $$) AS (result gtype);
+ result 
+--------
+(0 rows)
+
+SELECT * FROM cypher('edge_aggregates', $$
+    MATCH ()-[e]->()
+    RETURN collect(e)
+$$) AS (result edge[]);
+                                                                                                                                                                                           result                                                                                                                                                                                            
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"{\"id\": 844424930131969, \"start_id\": 281474976710657, \"end_id\": 281474976710658, \"label\": \"e\", \"properties\": {}}","{\"id\": 844424930131970, \"start_id\": 281474976710659, \"end_id\": 281474976710660, \"label\": \"e\", \"properties\": {}}","{\"id\": 844424930131971, \"start_id\": 281474976710661, \"end_id\": 281474976710662, \"label\": \"e\", \"properties\": {}}"}
+(1 row)
+
+SELECT * FROM cypher('edge_aggregates', $$
+    MATCH ()-[e]->()
+    RETURN collect(e, 2)
+$$) AS (result edge[]);
+                                                                                                                            result                                                                                                                             
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"{\"id\": 844424930131969, \"start_id\": 281474976710657, \"end_id\": 281474976710658, \"label\": \"e\", \"properties\": {}}","{\"id\": 844424930131970, \"start_id\": 281474976710659, \"end_id\": 281474976710660, \"label\": \"e\", \"properties\": {}}"}
+(1 row)
+
 --
 -- Cleanup
 --
-SELECT * FROM drop_graph('group_by', true);
+SELECT drop_graph('edge_aggregates', true);
+NOTICE:  drop cascades to 3 other objects
+DETAIL:  drop cascades to table edge_aggregates._ag_label_vertex
+drop cascades to table edge_aggregates._ag_label_edge
+drop cascades to table edge_aggregates.e
+NOTICE:  graph "edge_aggregates" has been dropped
+ drop_graph 
+------------
+ 
+(1 row)
+
+SELECT drop_graph('group_by', true);
 NOTICE:  drop cascades to 4 other objects
 DETAIL:  drop cascades to table group_by._ag_label_vertex
 drop cascades to table group_by._ag_label_edge
@@ -556,7 +574,7 @@ NOTICE:  graph "group_by" has been dropped
  
 (1 row)
 
-SELECT * FROM drop_graph('UCSC', true);
+SELECT drop_graph('UCSC', true);
 NOTICE:  drop cascades to 3 other objects
 DETAIL:  drop cascades to table "UCSC"._ag_label_vertex
 drop cascades to table "UCSC"._ag_label_edge

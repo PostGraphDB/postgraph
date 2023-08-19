@@ -1082,6 +1082,42 @@ CREATE AGGREGATE collect(vertex, gtype) (
 ); 
 
 
+CREATE FUNCTION edge_collect_transfn(internal, edge)
+RETURNS internal
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+
+CREATE FUNCTION edge_collect_finalfn(internal)
+RETURNS edge[]
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE collect(edge) (
+        stype = internal,
+        sfunc = edge_collect_transfn,
+        finalfunc = edge_collect_finalfn,
+        parallel = safe
+);
+
+CREATE FUNCTION edge_collect_transfn_w_limit(internal, edge, gtype)
+RETURNS internal
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE collect(edge, gtype) (
+        stype = internal,
+        sfunc = edge_collect_transfn_w_limit,
+        finalfunc = edge_collect_finalfn,
+        parallel = safe
+);
+
+
 CREATE FUNCTION vle (IN gtype, IN vertex, IN vertex, IN gtype, IN gtype, IN gtype, IN gtype, IN gtype, OUT edges variable_edge) RETURNS SETOF variable_edge LANGUAGE C STABLE CALLED ON NULL INPUT PARALLEL UNSAFE AS 'MODULE_PATHNAME', 'gtype_vle';
 
 CREATE FUNCTION match_vles(variable_edge, variable_edge) RETURNS boolean LANGUAGE C IMMUTABLE RETURNS NULL ON NULL INPUT PARALLEL SAFE AS 'MODULE_PATHNAME';
