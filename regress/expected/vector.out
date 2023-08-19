@@ -646,8 +646,7 @@ FROM cypher('ivfflat', $$
     WITH n, m
     ORDER BY n.i <-> m.i LIMIT 1
     WITH n, collect(m) 
-$$) as (n vertex, neighbors vertex[])
-;
+$$) as (n vertex, neighbors vertex[]);
 ERROR:  expression item must be aliased
 LINE 7:     WITH n, collect(m) 
                     ^

@@ -135,10 +135,36 @@ $$) as (i vertex);
  {"id": 281474976710658, "label": "", "properties": {"a": [4, 5, 6]}}
 (2 rows)
 
+SELECT * FROM cypher('cypher_unwind', $$
+    CREATE ()-[:e {a: [1, 2, 3]}]->()
+$$) as (i gtype);
+ i 
+---
+(0 rows)
+
+SELECT * FROM cypher('cypher_unwind', $$
+    CREATE ()-[:e {a: [1, 2, 3]}]->()
+$$) as (i gtype);
+ i 
+---
+(0 rows)
+
+SELECT * FROM cypher('cypher_unwind', $$
+    MATCH t=()-[:e]->()
+    UNWIND relationships(t) as rel
+    RETURN rel
+$$) as (i edge);
+                                                               i                                                               
+-------------------------------------------------------------------------------------------------------------------------------
+ {"id": 844424930131969, "start_id": 281474976710661, "end_id": 281474976710662, "label": "e", "properties": {"a": [1, 2, 3]}}
+ {"id": 844424930131970, "start_id": 281474976710663, "end_id": 281474976710664, "label": "e", "properties": {"a": [1, 2, 3]}}
+(2 rows)
+
 SELECT drop_graph('cypher_unwind', true);
-NOTICE:  drop cascades to 2 other objects
+NOTICE:  drop cascades to 3 other objects
 DETAIL:  drop cascades to table cypher_unwind._ag_label_vertex
 drop cascades to table cypher_unwind._ag_label_edge
+drop cascades to table cypher_unwind.e
 NOTICE:  graph "cypher_unwind" has been dropped
  drop_graph 
 ------------

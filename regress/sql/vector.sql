@@ -384,9 +384,7 @@ FROM cypher('ivfflat', $$
     WITH n, m
     ORDER BY n.i <-> m.i LIMIT 1
     WITH n, collect(m) 
-$$) as (n vertex, neighbors vertex[])
-
-;
+$$) as (n vertex, neighbors vertex[]);
 
 SELECT *
 FROM cypher('ivfflat', $$

@@ -89,5 +89,19 @@ SELECT * FROM cypher('cypher_unwind', $$
     RETURN a
 $$) as (i vertex);
 
+SELECT * FROM cypher('cypher_unwind', $$
+    CREATE ()-[:e {a: [1, 2, 3]}]->()
+$$) as (i gtype);
+
+SELECT * FROM cypher('cypher_unwind', $$
+    CREATE ()-[:e {a: [1, 2, 3]}]->()
+$$) as (i gtype);
+
+SELECT * FROM cypher('cypher_unwind', $$
+    MATCH t=()-[:e]->()
+    UNWIND relationships(t) as rel
+    RETURN rel
+$$) as (i edge);
+
 
 SELECT drop_graph('cypher_unwind', true);
