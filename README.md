@@ -4,23 +4,21 @@
 
 You can view the full manual [here](https://postgraphdb.github.io/docs/intro)
 
-PostGraph is an extension that adds the graph query Cypher to the [Postgres](https://www.postgresql.org/) Database.
+PostGraph is the first PostGres based graph extension that supports:
+ - Full support of database normalization
+ - Indexing
+ - Date and Time Support
+ - Vector support and K-Nearest Neighbors (Approximate and Exact)
+ - Conformity of logic between Cypher and Postgres Functions
+ - JsonB Style Key existance operators
+ - Intersect and Union Clauses
+ - Property Constraints
 
 PostGraph is a fork of the Apache AGE project. The goal of PostGraph is to go beyond AGE's stated goal of implementing the openCypher query language. PostGraph's internals have been greatly overhauled with the expressed goal of improving performance and allowing for new and powerful features.
-
-What new in Postgraph 0.1.0:
- - Improved Performance
- - Stronger Type Safety
- - Reworked and Expanded Typecasting System
- - Builtin Functions conform with the Postgres counterparts
- - Temporal Datatypes - Support Timstamp and Time with and without Timezones, Date, and Duration Datatypes
- - Indices in WHERE clause.
 
 # Roadmap
 
 ## 2023
-
-The main goal of 2023 is to refactor the internal code base, for performance, memory safety and in preperation of 2024 and beyond. However, there still will be many new features implemented this year.
 
 PostGraph plans to offer its first stable release between December 2023 and March 2024.
 
@@ -31,7 +29,6 @@ PostGraph plans to offer its first stable release between December 2023 and Marc
  - Windows Operating System Support - Allow users to run natively on Windows
  - Performance Improvements - Improvements to performance without the use of indices and constraints.
  - Indexing - Full support for creating Indices
- - Constraints - Full Support for creating constraints
  - Label Partitioning - Allow Labels to be partitioned
 
 ## 2024
