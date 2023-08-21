@@ -687,7 +687,7 @@ make_qualified_function_name(cypher_parsestate *cpstate, List *lst, List *targs)
         fname = list_make2(makeString(CATALOG_SCHEMA), makeString(ag_name));
 
     // Some functions need the graph name passed to them in order to work
-    if (strcmp("startnode", ag_name) == 0 || strcmp("endnode", ag_name) == 0 || strcmp("vle", ag_name) == 0 || strcmp("vertex_stats", ag_name) == 0) {
+    if (strcmp("vle", ag_name) == 0) {
         char *graph_name = cpstate->graph_name;
         Datum d = string_to_gtype(graph_name);
         Const *c = makeConst(GTYPEOID, -1, InvalidOid, -1, d, false, false);

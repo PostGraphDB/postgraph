@@ -3923,7 +3923,7 @@ $$) AS (id gtype, start_id gtype, startNode vertex);
 SELECT * FROM cypher('expr', $$
     RETURN startNode(null)
 $$) AS (startNode vertex);
-ERROR:  function postgraph.startnode(gtype, gtype) does not exist
+ERROR:  function postgraph.startnode(gtype) does not exist
 LINE 2:     RETURN startNode(null)
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -3931,7 +3931,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN startNode(v)
 $$) AS (startNode vertex);
-ERROR:  function postgraph.startnode(gtype, vertex) does not exist
+ERROR:  function postgraph.startnode(vertex) does not exist
 LINE 2:     MATCH (v) RETURN startNode(v)
                              ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -3958,7 +3958,7 @@ $$) AS (id gtype, end_id gtype, endNode vertex);
 SELECT * FROM cypher('expr', $$
     RETURN endNode(null)
 $$) AS (endNode vertex);
-ERROR:  function postgraph.endnode(gtype, gtype) does not exist
+ERROR:  function postgraph.endnode(gtype) does not exist
 LINE 2:     RETURN endNode(null)
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
@@ -3966,7 +3966,7 @@ HINT:  No function matches the given name and argument types. You might need to 
 SELECT * FROM cypher('expr', $$
     MATCH (v) RETURN endNode(v)
 $$) AS (endNode vertex);
-ERROR:  function postgraph.endnode(gtype, vertex) does not exist
+ERROR:  function postgraph.endnode(vertex) does not exist
 LINE 2:     MATCH (v) RETURN endNode(v)
                              ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.

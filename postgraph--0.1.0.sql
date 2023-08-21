@@ -2161,7 +2161,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME', 'gtype_last';
 
-CREATE FUNCTION startnode(gtype, edge) 
+CREATE FUNCTION startnode(edge) 
 RETURNS vertex 
 LANGUAGE c 
 STABLE 
@@ -2169,7 +2169,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME', 'edge_startnode';
 
-CREATE FUNCTION endnode(gtype, edge) 
+CREATE FUNCTION endnode(edge) 
 RETURNS vertex 
 LANGUAGE c 
 STABLE 
