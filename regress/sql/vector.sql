@@ -363,8 +363,19 @@ SELECT gtype_build_map('i'::text, tovector('"[0, 0, 0]"'::gtype))->'"i"';
 --
 -- ivfflat
 --
-SET enable_seqscan = off;
+SET enable_seqscan = false;
 
+-- SQL
+CREATE TABLE ivfflat (v gtype);
+
+INSERT INTO ivfflat (v) VALUES (tovector('"[0, 0, 0]"'::gtype));
+
+CREATE INDEX ON ivfflat USING ivfflat (v gtype_l2_ops);
+
+EXPLAIN SELECT * FROM ivfflat ORDER BY v <-> '[1, 2, 3]';
+
+
+-- CYPHER XXX: Not Done
 SELECT create_graph('ivfflat');
 
 SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[0, 0, 0]')}) $$) as (i gtype);
@@ -375,7 +386,11 @@ CREATE INDEX ON ivfflat."_ag_label_vertex" USING ivfflat (properties vector_l2_o
 
 CREATE INDEX ON ivfflat."_ag_label_vertex" USING ivfflat ((properties->'"i"'::gtype) gtype_l2_ops);-- WITH (lists = 1);
 
-SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n ORDER BY n.i <-> toVector('[3,3,3]') $$) as (i vertex);
+EXPLAIN SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n ORDER BY n.i <-> toVector('[3,3,3]') $$) as (i vertex);
+
+EXPLAIN SELECT * FROM cypher('ivfflat', $$ MATCH (n) WITH n as n, n.i as i ORDER BY n.i <-> toVector('[3,3,3]') RETURN n LIMIT 1 $$) as (i vertex);
+
+
 
 SELECT *
 FROM cypher('ivfflat', $$
@@ -427,5 +442,6 @@ SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: 'Hello World'}) $$) as (i gtype)
 --
 -- cleanup
 --
+DROP TABLE ivfflat;
 SELECT drop_graph('vector', true);
 SELECT drop_graph('ivfflat', true);

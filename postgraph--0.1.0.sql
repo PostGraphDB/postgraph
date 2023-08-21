@@ -225,16 +225,6 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME';
 
-CREATE OPERATOR < (
-    FUNCTION = graphid_lt, 
-    LEFTARG = graphid, 
-    RIGHTARG = graphid, 
-    COMMUTATOR = >, 
-    NEGATOR = >=, 
-    RESTRICT = scalarltsel, 
-    JOIN = scalarltjoinsel
-);
-
 CREATE FUNCTION graphid_gt(graphid, graphid) 
 RETURNS boolean 
 LANGUAGE c 
@@ -243,15 +233,6 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME';
 
-CREATE OPERATOR > (
-    FUNCTION = graphid_gt, 
-    LEFTARG = graphid, 
-    RIGHTARG = graphid, 
-    COMMUTATOR = <, 
-    NEGATOR = <=, 
-    RESTRICT = scalargtsel, 
-    JOIN = scalargtjoinsel
-);
 
 CREATE FUNCTION graphid_le(graphid, graphid) 
 RETURNS boolean 
@@ -261,15 +242,6 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME';
 
-CREATE OPERATOR <= (
-    FUNCTION = graphid_le, 
-    LEFTARG = graphid, 
-    RIGHTARG = graphid, 
-    COMMUTATOR = >=, 
-    NEGATOR = >, 
-    RESTRICT = scalarlesel, 
-    JOIN = scalarlejoinsel);
-
 CREATE FUNCTION graphid_ge(graphid, graphid) 
 RETURNS boolean 
 LANGUAGE c 
@@ -278,15 +250,6 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME';
 
-CREATE OPERATOR >= (
-    FUNCTION = graphid_ge, 
-    LEFTARG = graphid, 
-    RIGHTARG = graphid, 
-    COMMUTATOR = <=, 
-    NEGATOR = <, 
-    RESTRICT = scalargesel, 
-    JOIN = scalargejoinsel
-);
 
 --
 -- graphid - B-tree support functions
@@ -309,20 +272,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME';
 
---
--- btree operator classes for graphid
---
-CREATE OPERATOR CLASS graphid_ops 
-DEFAULT FOR TYPE graphid 
-USING btree 
-AS 
-    OPERATOR 1 <, 
-    OPERATOR 2 <=, 
-    OPERATOR 3 =, 
-    OPERATOR 4 >=, 
-    OPERATOR 5 >,
-    FUNCTION 1 graphid_btree_cmp (graphid, graphid), 
-    FUNCTION 2 graphid_btree_sort (internal);
+
 
 --
 -- graphid functions
@@ -1035,7 +985,8 @@ RETURNS gtype
 LANGUAGE c
 IMMUTABLE
 RETURNS NULL ON NULL INPUT
-PARALLEL SAFE AS 'MODULE_PATHNAME';
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
 
 CREATE OPERATOR <-> (FUNCTION = l2_distance, LEFTARG = gtype, RIGHTARG = gtype, COMMUTATOR = <->);
 
@@ -1044,7 +995,8 @@ RETURNS gtype
 LANGUAGE c
 IMMUTABLE
 RETURNS NULL ON NULL INPUT
-PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_inner_product';
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_inner_product';
 
 CREATE FUNCTION negative_inner_product(gtype, gtype)
 RETURNS gtype
@@ -1060,7 +1012,8 @@ RETURNS gtype
 LANGUAGE c
 IMMUTABLE
 RETURNS NULL ON NULL INPUT
-PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_cosine_distance';
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_cosine_distance';
 
 CREATE OPERATOR <=> (FUNCTION = cosine_distance, LEFTARG = gtype, RIGHTARG = gtype, COMMUTATOR = <=>);
 
@@ -1069,21 +1022,24 @@ RETURNS gtype
 LANGUAGE c
 IMMUTABLE
 RETURNS NULL ON NULL INPUT
-PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_l1_distance';
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_l1_distance';
 
 CREATE FUNCTION spherical_distance(gtype, gtype)
 RETURNS gtype
 LANGUAGE c
 IMMUTABLE
 RETURNS NULL ON NULL INPUT
-PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_spherical_distance';
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_spherical_distance';
 
 CREATE FUNCTION dims(gtype)
 RETURNS gtype
 LANGUAGE c
 IMMUTABLE
 RETURNS NULL ON NULL INPUT
-PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_dims';
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_dims';
 
 CREATE FUNCTION norm(gtype)
 RETURNS gtype
@@ -1097,51 +1053,70 @@ RETURNS gtype
 LANGUAGE c
 IMMUTABLE
 RETURNS NULL ON NULL INPUT
-PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_l2_squared_distance';
-
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_l2_squared_distance';
+/*
 CREATE FUNCTION ivfflathandler(internal) RETURNS index_am_handler AS 'MODULE_PATHNAME' LANGUAGE C;
 
 CREATE ACCESS METHOD ivfflat TYPE INDEX HANDLER ivfflathandler;
 
 COMMENT ON ACCESS METHOD ivfflat IS 'ivfflat index access method';
 
-CREATE OPERATOR CLASS gtype_l2_ops
-DEFAULT FOR TYPE gtype USING ivfflat AS
-OPERATOR 1 <-> (gtype, gtype) FOR ORDER BY float_ops,
-FUNCTION 1 l2_squared_distance(gtype, gtype),
-FUNCTION 3 l2_distance(gtype, gtype);
+CREATE OPERATOR CLASS gtype_ops_btree
+DEFAULT FOR TYPE gtype
+USING btree
+FAMILY gtype_ops_btree
+AS 
+    OPERATOR 1 <,
+    OPERATOR 2 <=,
+    OPERATOR 3 =,
+    OPERATOR 4 >, 
+    OPERATOR 5 >=,
+    FUNCTION 1 gtype_btree_cmp(gtype, gtype);
+*/
+/*
+CREATE FUNCTION ivfflathandler(internal) RETURNS index_am_handler AS 'MODULE_PATHNAME' LANGUAGE C;
 
-CREATE OPERATOR CLASS gtype_ip_ops
-FOR TYPE gtype USING ivfflat AS
-OPERATOR 1 <#> (gtype, gtype) FOR ORDER BY float_ops,
-FUNCTION 1 negative_inner_product(gtype, gtype),
-FUNCTION 3 spherical_distance(gtype, gtype),
-FUNCTION 4 norm(gtype);
+CREATE ACCESS METHOD ivfflat TYPE INDEX HANDLER ivfflathandler;
 
-CREATE OPERATOR CLASS gtype_cosine_ops
-FOR TYPE gtype USING ivfflat AS
-OPERATOR 1 <=> (gtype, gtype) FOR ORDER BY float_ops,
-FUNCTION 1 negative_inner_product(gtype, gtype),
-FUNCTION 2 norm(gtype),
-FUNCTION 3 spherical_distance(gtype, gtype),
-FUNCTION 4 norm(gtype);
-
---
--- graphid - hash operator class
---
-CREATE FUNCTION graphid_hash_cmp(graphid) 
-RETURNS INTEGER 
+COMMENT ON ACCESS METHOD ivfflat IS 'ivfflat index access method';
+*/
+CREATE FUNCTION gtype_lt(gtype, gtype) 
+RETURNS boolean 
 LANGUAGE c 
 IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME';
 
-CREATE OPERATOR CLASS graphid_ops_hash 
-DEFAULT FOR TYPE graphid 
-USING hash 
-AS 
-    OPERATOR 1 =, 
-    FUNCTION 1 graphid_hash_cmp(graphid);
+CREATE FUNCTION gtype_gt(gtype, gtype) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+
+
+
+CREATE FUNCTION gtype_le(gtype, gtype) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+
+
+CREATE FUNCTION gtype_ge(gtype, gtype) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
 
 --
 -- gtype - comparison operators (=, <>, <, >, <=, >=)
@@ -1183,13 +1158,52 @@ CREATE OPERATOR <> (
     JOIN = neqjoinsel
 );
 
-CREATE FUNCTION gtype_lt(gtype, gtype) 
-RETURNS boolean 
+
+CREATE FUNCTION gtype_btree_cmp(gtype, gtype) 
+RETURNS INTEGER 
 LANGUAGE c 
 IMMUTABLE 
-RETURNS NULL ON NULL INPUT 
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR < (
+    FUNCTION = graphid_lt, 
+    LEFTARG = graphid, 
+    RIGHTARG = graphid, 
+    COMMUTATOR = >, 
+    NEGATOR = >=, 
+    RESTRICT = scalarltsel, 
+    JOIN = scalarltjoinsel
+);
+
+CREATE OPERATOR > (
+    FUNCTION = graphid_gt, 
+    LEFTARG = graphid, 
+    RIGHTARG = graphid, 
+    COMMUTATOR = <, 
+    NEGATOR = <=, 
+    RESTRICT = scalargtsel, 
+    JOIN = scalargtjoinsel
+);
+
+CREATE OPERATOR <= (
+    FUNCTION = graphid_le, 
+    LEFTARG = graphid, 
+    RIGHTARG = graphid, 
+    COMMUTATOR = >=, 
+    NEGATOR = >, 
+    RESTRICT = scalarlesel, 
+    JOIN = scalarlejoinsel);
+
+CREATE OPERATOR >= (
+    FUNCTION = graphid_ge, 
+    LEFTARG = graphid, 
+    RIGHTARG = graphid, 
+    COMMUTATOR = <=, 
+    NEGATOR = <, 
+    RESTRICT = scalargesel, 
+    JOIN = scalargejoinsel
+);
 
 CREATE OPERATOR < (
     FUNCTION = gtype_lt, 
@@ -1201,14 +1215,6 @@ CREATE OPERATOR < (
     JOIN = scalarltjoinsel
 );
 
-CREATE FUNCTION gtype_gt(gtype, gtype) 
-RETURNS boolean 
-LANGUAGE c 
-IMMUTABLE 
-RETURNS NULL ON NULL INPUT 
-PARALLEL SAFE 
-AS 'MODULE_PATHNAME';
-
 CREATE OPERATOR > (
     FUNCTION = gtype_gt, 
     LEFTARG = gtype, 
@@ -1218,14 +1224,6 @@ CREATE OPERATOR > (
     RESTRICT = scalargtsel, 
     JOIN = scalargtjoinsel
 );
-
-CREATE FUNCTION gtype_le(gtype, gtype) 
-RETURNS boolean 
-LANGUAGE c 
-IMMUTABLE 
-RETURNS NULL ON NULL INPUT 
-PARALLEL SAFE 
-AS 'MODULE_PATHNAME';
 
 CREATE OPERATOR <= (
     FUNCTION = gtype_le, 
@@ -1237,14 +1235,6 @@ CREATE OPERATOR <= (
     JOIN = scalarlejoinsel
 );
 
-CREATE FUNCTION gtype_ge(gtype, gtype) 
-RETURNS boolean 
-LANGUAGE c 
-IMMUTABLE 
-RETURNS NULL ON NULL INPUT 
-PARALLEL SAFE 
-AS 'MODULE_PATHNAME';
-
 CREATE OPERATOR >= (
     FUNCTION = gtype_ge, 
     LEFTARG = gtype, 
@@ -1255,19 +1245,107 @@ CREATE OPERATOR >= (
     JOIN = scalargejoinsel
 );
 
-CREATE FUNCTION gtype_btree_cmp(gtype, gtype) 
+--
+-- Access Methods
+--
+
+CREATE FUNCTION ivfflathandler(internal) RETURNS index_am_handler AS 'MODULE_PATHNAME' LANGUAGE C;
+
+CREATE ACCESS METHOD ivfflat TYPE INDEX HANDLER ivfflathandler;
+
+COMMENT ON ACCESS METHOD ivfflat IS 'ivfflat index access method';
+
+--
+-- Operator Classes
+--
+
+--
+-- btree operator classes for graphid
+--
+CREATE OPERATOR CLASS graphid_ops 
+DEFAULT FOR TYPE graphid 
+USING btree 
+AS 
+    OPERATOR 1 <, 
+    OPERATOR 2 <=, 
+    OPERATOR 3 =, 
+    OPERATOR 4 >=, 
+    OPERATOR 5 >,
+    FUNCTION 1 graphid_btree_cmp (graphid, graphid), 
+    FUNCTION 2 graphid_btree_sort (internal);
+
+--
+-- gtype - btree operator class
+--
+CREATE OPERATOR CLASS gtype_ops_btree
+DEFAULT FOR TYPE gtype
+USING btree
+AS 
+    OPERATOR 1 <,
+    OPERATOR 2 <=,
+    OPERATOR 3 =, 
+    OPERATOR 4 >,
+    OPERATOR 5 >=, 
+    FUNCTION 1 gtype_btree_cmp(gtype, gtype);
+
+--
+-- gtype - ivfflat Operator Classes
+--
+CREATE OPERATOR CLASS gtype_l2_ops
+DEFAULT FOR TYPE gtype
+USING ivfflat AS 
+OPERATOR 1 <-> (gtype, gtype) FOR ORDER BY gtype_ops_btree,
+FUNCTION 1 l2_squared_distance(gtype, gtype),
+FUNCTION 3 l2_distance(gtype, gtype);
+
+CREATE OPERATOR CLASS gtype_ip_ops
+FOR TYPE gtype USING ivfflat AS
+OPERATOR 1 <#> (gtype, gtype) FOR ORDER BY gtype_ops_btree,
+FUNCTION 1 negative_inner_product(gtype, gtype),
+FUNCTION 3 spherical_distance(gtype, gtype),
+FUNCTION 4 norm(gtype);
+
+CREATE OPERATOR CLASS gtype_cosine_ops
+FOR TYPE gtype USING ivfflat AS
+OPERATOR 1 <=> (gtype, gtype) FOR ORDER BY gtype_ops_btree,
+FUNCTION 1 negative_inner_product(gtype, gtype),
+FUNCTION 2 norm(gtype),
+FUNCTION 3 spherical_distance(gtype, gtype),
+FUNCTION 4 norm(gtype);
+
+--
+-- graphid - hash operator class
+--
+CREATE FUNCTION graphid_hash_cmp(graphid) 
 RETURNS INTEGER 
 LANGUAGE c 
 IMMUTABLE 
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME';
 
+CREATE OPERATOR CLASS graphid_ops_hash 
+DEFAULT FOR TYPE graphid 
+USING hash 
+AS 
+    OPERATOR 1 =, 
+    FUNCTION 1 graphid_hash_cmp(graphid);
+
+
+
+/*
+CREATE FUNCTION ivfflathandler(internal) RETURNS index_am_handler AS 'MODULE_PATHNAME' LANGUAGE C;
+
+CREATE ACCESS METHOD ivfflat TYPE INDEX HANDLER ivfflathandler;
+
+COMMENT ON ACCESS METHOD ivfflat IS 'ivfflat index access method';
+
+
 --
 -- gtype - btree operator class
 --
 CREATE OPERATOR CLASS gtype_ops_btree 
 DEFAULT FOR TYPE gtype 
-USING btree 
+USING btree
 AS 
     OPERATOR 1 <, 
     OPERATOR 2 <=, 
@@ -1275,7 +1353,7 @@ AS
     OPERATOR 4 >, 
     OPERATOR 5 >=, 
     FUNCTION 1 gtype_btree_cmp(gtype, gtype);
-
+*/
 --
 -- gtype - hash operator class
 --
