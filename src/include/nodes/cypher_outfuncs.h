@@ -25,13 +25,8 @@
 #include "nodes/extensible.h"
 #include "nodes/nodes.h"
 
-/*
- * Serialization functions for AGE's ExtensibleNodes. We assign
- * each node to its serialized function in the DEFINE_NODE_METHODS
- * and DEFINE_NODE_METHODS_EXTENDED macros in ag_nodes.c.
- */
-
 // clauses
+void out_cypher_group_by(StringInfo str, const ExtensibleNode *node);
 void out_cypher_return(StringInfo str, const ExtensibleNode *node);
 void out_cypher_with(StringInfo str, const ExtensibleNode *node);
 void out_cypher_match(StringInfo str, const ExtensibleNode *node);

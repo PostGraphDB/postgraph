@@ -467,6 +467,25 @@ transform_cypher_list(cypher_parsestate *cpstate, cypher_list *cl) {
     return (Node *)expr;
 }
 
+static char *make_property_alias(char *var_name) {
+    char *str = palloc(strlen(var_name) + 8);
+
+    str[0] = '_';
+    str[1] = 'p';
+    str[2] = 'r';
+    str[3] = '_';
+
+    int i = 0;
+    for (; i < strlen(var_name); i++)
+        str[i + 4] = var_name[i];
+
+    str[i + 5] = '_';
+    str[i + 6] = '_';
+    str[i + 7] = '\n';
+
+    return str;
+}
+
 /*
  * Transforms a column ref for indirection. Try to find the rte that the
  * columnRef is references and pass the properties of that rte as what the
@@ -489,9 +508,18 @@ transform_column_ref_for_indirection(cypher_parsestate *cpstate, ColumnRef *cr) 
     pnsi = refnameNamespaceItem(pstate, NULL, relname, cr->location, &levels_up);
 
     // This column ref is referencing something that was created in a previous query and is a variable.
-    if (!pnsi)
-        return transform_cypher_expr_recurse(cpstate, (Node *)cr);
+    if (!pnsi) {
+/*        node = colNameToVar(pstate, make_property_alias(relname), false, -1);
 
+        pnsi = refnameNamespaceItem(pstate, NULL, "_", cr->location, &levels_up);
+
+
+        if (node != NULL) {
+            return node;
+        }
+*/
+        return transform_cypher_expr_recurse(cpstate, (Node *)cr);
+    }
     // try to identify the properties column of the RTE
     node = scanNSItemForColumn(pstate, pnsi, 0, "properties", cr->location);
 

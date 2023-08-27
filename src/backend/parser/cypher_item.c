@@ -68,6 +68,7 @@ List *transform_cypher_item_list(cypher_parsestate *cpstate, List *item_list,
     List *group_clause = NIL;
     bool hasAgg = false;
     bool expand_star;
+    Node *prop_node;
 
     expand_star = (expr_kind != EXPR_KIND_UPDATE_SOURCE);
 
@@ -75,6 +76,9 @@ List *transform_cypher_item_list(cypher_parsestate *cpstate, List *item_list,
     {
         ResTarget *item = lfirst(li);
         TargetEntry *te;
+
+	cpstate->prop_node = NULL;
+	cpstate->prop_name = NULL;
 
         if (expand_star)
         {
@@ -95,9 +99,7 @@ List *transform_cypher_item_list(cypher_parsestate *cpstate, List *item_list,
                                                            cref->location)));
                     }
 
-                    target_list = list_concat(target_list,
-                                              ExpandAllTables(pstate,
-                                                              cref->location));
+                    target_list = list_concat(target_list, ExpandAllTables(pstate, cref->location));
                     continue;
                 }
             }
@@ -106,8 +108,8 @@ List *transform_cypher_item_list(cypher_parsestate *cpstate, List *item_list,
         cpstate->exprHasAgg = false;
 
         /* transform the item */
-        te = transform_cypher_item(cpstate, item->val, NULL, expr_kind,
-                                   item->name, false);
+        te = transform_cypher_item(cpstate, item->val, NULL, expr_kind, item->name, false);
+
 
         target_list = lappend(target_list, te);
 
@@ -119,7 +121,7 @@ List *transform_cypher_item_list(cypher_parsestate *cpstate, List *item_list,
         if (!cpstate->exprHasAgg)
         {
             group_clause = lappend(group_clause, item->val);
-        }
+	}
         else
         {
             hasAgg = true;

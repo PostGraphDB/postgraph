@@ -46,27 +46,34 @@ typedef struct cypher_sub_pattern
 /*
  * clauses
  */
+typedef struct cypher_group_by
+{
+    ExtensibleNode extensible;
+    List *items; // a list of ResTargets
+} cypher_group_by;
 
 typedef struct cypher_return
 {
     ExtensibleNode extensible;
     bool distinct;
-    List *items; // a list of ResTarget's
+    List *items; // a list of ResTargets
+    cypher_group_by *group_by;
     List *order_by;
     Node *skip;
     Node *limit;
 
     bool all_or_distinct;
     SetOperation op;
-    List *larg; /* lefthand argument of the unions */
-    List *rarg; /*righthand argument of the unions */
+    List *larg; // lefthand argument of the unions
+    List *rarg; // righthand argument of the unions
 } cypher_return;
 
 typedef struct cypher_with
 {
     ExtensibleNode extensible;
     bool distinct;
-    List *items; // a list of ResTarget's
+    List *items; // a list of ResTargets
+    cypher_group_by *group_by;
     List *order_by;
     Node *skip;
     Node *limit;
@@ -78,6 +85,7 @@ typedef struct cypher_match
     ExtensibleNode extensible;
     List *pattern; // a list of cypher_paths
     Node *where; // optional WHERE subclause (expression)
+    List *order_by;
     bool optional; // OPTIONAL MATCH
 } cypher_match;
 

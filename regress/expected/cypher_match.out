@@ -992,13 +992,9 @@ SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN u$$) AS (result vertex);
 (3 rows)
 
 SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN *$$) AS (result vertex);
-                            result                            
---------------------------------------------------------------
- {"id": 281474976710657, "label": "", "properties": {"i": 1}}
- {"id": 281474976710658, "label": "", "properties": {"i": 2}}
- {"id": 281474976710659, "label": "", "properties": {"i": 3}}
-(3 rows)
-
+ERROR:  return row and column definition list do not match
+LINE 1: SELECT * FROM cypher('opt_forms', $$MATCH (u) RETURN *$$) AS...
+                      ^
 SELECT * FROM cypher('opt_forms', $$MATCH (u)--(v) RETURN u.i, v.i$$) AS (u gtype, v gtype);
  u | v 
 ---+---
@@ -1034,11 +1030,41 @@ ERROR:  return row and column definition list do not match
 LINE 1: SELECT * FROM cypher('opt_forms', $$MATCH (u) CREATE (u)-[:e...
                       ^
 SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN *$$) AS (col1 vertex, col2 vertex);
-                             col1                             |                             col2                             
---------------------------------------------------------------+--------------------------------------------------------------
- {"id": 281474976710659, "label": "", "properties": {"i": 3}} | {"id": 281474976710657, "label": "", "properties": {"i": 1}}
- {"id": 281474976710657, "label": "", "properties": {"i": 1}} | {"id": 281474976710659, "label": "", "properties": {"i": 3}}
-(2 rows)
+ERROR:  return row and column definition list do not match
+LINE 1: SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RET...
+                      ^
+--
+-- ORDER BY
+--
+SELECT * FROM cypher('cypher_match', $$MATCH (n) ORDER BY n.i RETURN n$$) AS (n vertex);
+                                      n                                       
+------------------------------------------------------------------------------
+ {"id": 281474976710662, "label": "", "properties": {"i": 1, "j": 2, "k": 3}}
+ {"id": 281474976710663, "label": "", "properties": {"i": 1, "j": 3}}
+ {"id": 281474976710664, "label": "", "properties": {"i": 2, "k": 3}}
+ {"id": 281474976710659, "label": "", "properties": {"name": "orphan"}}
+ {"id": 281474976710660, "label": "", "properties": {"name": "F"}}
+ {"id": 281474976710661, "label": "", "properties": {"name": "T"}}
+(6 rows)
+
+EXPLAIN SELECT * FROM cypher('cypher_match', $$MATCH (n) ORDER BY n.i RETURN n$$) AS (n vertex);
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
+ Subquery Scan on _  (cost=1016.39..1137.89 rows=9720 width=32)
+   ->  Sort  (cost=1016.39..1040.69 rows=9720 width=96)
+         Sort Key: ((n.properties -> '"i"'::gtype))
+         ->  Result  (cost=0.00..372.60 rows=9720 width=96)
+               ->  Append  (cost=0.00..226.80 rows=9720 width=40)
+                     ->  Seq Scan on _ag_label_vertex n_1  (cost=0.00..2.20 rows=120 width=40)
+                     ->  Seq Scan on v n_2  (cost=0.00..22.00 rows=1200 width=40)
+                     ->  Seq Scan on v1 n_3  (cost=0.00..22.00 rows=1200 width=40)
+                     ->  Seq Scan on v2 n_4  (cost=0.00..22.00 rows=1200 width=40)
+                     ->  Seq Scan on v3 n_5  (cost=0.00..22.00 rows=1200 width=40)
+                     ->  Seq Scan on loop n_6  (cost=0.00..22.00 rows=1200 width=40)
+                     ->  Seq Scan on duplicate n_7  (cost=0.00..22.00 rows=1200 width=40)
+                     ->  Seq Scan on other_v n_8  (cost=0.00..22.00 rows=1200 width=40)
+                     ->  Seq Scan on opt_match_v n_9  (cost=0.00..22.00 rows=1200 width=40)
+(14 rows)
 
 --
 -- Clean up

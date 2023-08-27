@@ -516,6 +516,12 @@ SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN *$$) AS (col1 ve
 
 
 --
+-- ORDER BY
+--
+SELECT * FROM cypher('cypher_match', $$MATCH (n) ORDER BY n.i RETURN n$$) AS (n vertex);
+
+EXPLAIN SELECT * FROM cypher('cypher_match', $$MATCH (n) ORDER BY n.i RETURN n$$) AS (n vertex);
+--
 -- Clean up
 --
 SELECT drop_graph('opt_forms', true);

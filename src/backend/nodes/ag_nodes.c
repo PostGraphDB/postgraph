@@ -32,6 +32,7 @@ static bool equal_ag_node(const ExtensibleNode *a, const ExtensibleNode *b);
 // This list must match ag_node_tag.
 const char *node_names[] = {
     "ag_node_invalid",
+    "cypher_group_by",
     "cypher_return",
     "cypher_with",
     "cypher_match",
@@ -94,6 +95,7 @@ const char *node_names[] = {
 
 // This list must match ag_node_tag.
 const ExtensibleNodeMethods node_methods[] = {
+    DEFINE_NODE_METHODS(cypher_group_by),
     DEFINE_NODE_METHODS(cypher_return),
     DEFINE_NODE_METHODS(cypher_with),
     DEFINE_NODE_METHODS(cypher_match),

@@ -31,6 +31,7 @@ typedef enum ag_node_tag
     ag_node_invalid_t = 0,
 
     // projection
+    cypher_group_by_t,
     cypher_return_t,
     cypher_with_t,
     // reading clause

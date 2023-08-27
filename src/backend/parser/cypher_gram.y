@@ -705,7 +705,7 @@ with:
  */
 
 match:
-    optional_opt MATCH pattern where_opt
+    optional_opt MATCH pattern where_opt order_by_opt
         {
             cypher_match *n;
 
@@ -713,6 +713,7 @@ match:
             n->optional = $1;
             n->pattern = $3;
             n->where = $4;
+            n->order_by = $5;
 
             $$ = (Node *)n;
         }

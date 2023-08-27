@@ -32,6 +32,8 @@
 #include "parser/parsetree.h"
 #include "rewrite/rewriteManip.h"
 
+#include "parser/cypher_parse_node.h"
+
 typedef struct
 {
     ParseState *pstate;
@@ -363,11 +365,24 @@ static bool check_ungrouped_columns_walker(Node *node, check_ungrouped_columns_c
 
         /* Found an ungrouped local variable; generate error message */
         attname = get_rte_attribute_name(rte, var->varattno);
-        if (context->sublevels_up == 0)
-            ereport(ERROR, (errcode(ERRCODE_GROUPING_ERROR),
+        if (context->sublevels_up == 0) {
+                /*cypher_parsestate *cpstate = context->pstate;
+                Query *query = context->qry;
+                List *targetList = query->targetList;
+
+  	        int resno = cpstate->pstate.p_next_resno++;
+
+
+                TargetEntry *te = makeTargetEntry(var, resno, attname, false);
+                targetList = lappend(targetList, te);
+*/
+
+ 		ereport(ERROR, (errcode(ERRCODE_GROUPING_ERROR),
                             errmsg("\"%s\" must be either part of an explicitly listed key or used inside an aggregate function", attname), context->in_agg_direct_args ?
                                        errdetail("Direct arguments of an ordered-set aggregate must use only grouped columns.") : 0, parser_errposition(context->pstate, var->location)));
-        else
+
+
+	} else
             ereport(ERROR, (errcode(ERRCODE_GROUPING_ERROR),
                             errmsg("subquery uses ungrouped column \"%s.%s\" from outer query",
                                    rte->eref->aliasname, attname),

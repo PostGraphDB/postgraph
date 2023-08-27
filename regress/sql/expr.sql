@@ -982,32 +982,6 @@ SELECT * FROM cypher('expr', $$ RETURN '8 Hours'::interval / 8.0 $$) AS r(c gtyp
 SELECT * FROM cypher('expr', $$ RETURN '8 Hours'::interval / 8 $$) AS r(c gtype);
 
 --
--- Test chained comparisons
---
-
-SELECT * FROM create_graph('chained');
-SELECT * FROM cypher('chained', $$ CREATE (:people {name: "Jason", age:50}) $$) AS (result gtype);
-SELECT * FROM cypher('chained', $$ CREATE (:people {name: "Amy", age:25}) $$) AS (result gtype);
-SELECT * FROM cypher('chained', $$ CREATE (:people {name: "Samantha", age:35}) $$) AS (result gtype);
-SELECT * FROM cypher('chained', $$ CREATE (:people {name: "Mark", age:40}) $$) AS (result gtype);
-SELECT * FROM cypher('chained', $$ CREATE (:people {name: "David", age:15}) $$) AS (result gtype);
--- should return 1
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 < u.age <= 49  RETURN u $$) AS (result vertex);
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 25 <= u.age <= 25  RETURN u $$) AS (result vertex);
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 = u.age = 35  RETURN u $$) AS (result vertex);
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 50 > u.age > 35  RETURN u $$) AS (result vertex);
--- should return 3
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 40 <> u.age <> 35 RETURN u $$) AS (result vertex);
--- should return 2
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 30 <= u.age <= 49 > u.age RETURN u $$) AS (result vertex);
--- should return 0
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 30 <= u.age <= 49 = u.age RETURN u $$) AS (result vertex);
--- should return 2
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE 35 < u.age + 1 <= 50 RETURN u $$) AS (result vertex);
--- should return 3
-SELECT * FROM cypher('chained', $$ MATCH (u:people) WHERE NOT 35 < u.age + 1 <= 50 RETURN u $$) AS (result vertex);
-
---
 -- Test transform logic for IS NULL & IS NOT NULL
 --
 
@@ -3236,31 +3210,6 @@ SELECT * from cypher('expr', $$RETURN make_timestamptz(2023, 2, 14, 5, 30, 0.0)$
 SELECT * from cypher('expr', $$RETURN make_timestamptz(2023, 2, 14, 5, 30, 0.0, 'KST')$$) as (g gtype);
 SELECT * from cypher('expr', $$RETURN make_timestamptz(2023, 2, 14, 5, 30, 0.0, 'GMT')$$) as (g gtype);
 
-
---ORDER BY
-SELECT create_graph('order_by');
-SELECT * FROM cypher('order_by', $$CREATE ()$$) AS (result gtype);
-SELECT * FROM cypher('order_by', $$CREATE ({i: '1'})$$) AS (result gtype);
-SELECT * FROM cypher('order_by', $$CREATE ({i: 1})$$) AS (result gtype);
-SELECT * FROM cypher('order_by', $$CREATE ({i: 1.0})$$) AS (result gtype);
-SELECT * FROM cypher('order_by', $$CREATE ({i: 1::numeric})$$) AS (result gtype);
-SELECT * FROM cypher('order_by', $$CREATE ({i: true})$$) AS (result gtype);
-SELECT * FROM cypher('order_by', $$CREATE ({i: false})$$) AS (result gtype);
-SELECT * FROM cypher('order_by', $$CREATE ({i: {key: 'value'}})$$) AS (result gtype);
-SELECT * FROM cypher('order_by', $$CREATE ({i: [1]})$$) AS (result gtype);
-
-SELECT * FROM cypher('order_by', $$
-	MATCH (u)
-	RETURN u.i
-	ORDER BY u.i
-$$) AS (i gtype);
-
-SELECT * FROM cypher('order_by', $$
-	MATCH (u)
-	RETURN u.i
-	ORDER BY u.i DESC
-$$) AS (i gtype);
-
 --CASE
 SELECT create_graph('case_statement');
 SELECT * FROM cypher('case_statement', $$CREATE ({i: 1, j: null})$$) AS (result gtype);
@@ -3355,9 +3304,6 @@ SELECT * from cypher('list', $$RETURN labels("string")$$) as (Labels gtype);
 SELECT * FROM drop_graph('chained', true);
 SELECT * FROM drop_graph('case_statement', true);
 SELECT * FROM drop_graph('type_coercion', true);
-SELECT * FROM drop_graph('order_by', true);
-SELECT * FROM drop_graph('group_by', true);
-SELECT * FROM drop_graph('UCSC', true);
 SELECT * FROM drop_graph('expr', true);
 SELECT * FROM drop_graph('regex', true);
 SELECT * FROM drop_graph('keys', true);

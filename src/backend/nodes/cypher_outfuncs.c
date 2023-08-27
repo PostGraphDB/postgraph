@@ -96,6 +96,16 @@ static void outChar(StringInfo str, char c);
     } while(0);
 
 
+// serialization function for the cypher_return ExtensibleNode.
+void out_cypher_group_by(StringInfo str, const ExtensibleNode *node)
+{
+    DEFINE_AG_NODE(cypher_group_by);
+
+    WRITE_NODE_FIELD(items);
+}
+
+
+
 
 // serialization function for the cypher_return ExtensibleNode.
 void out_cypher_return(StringInfo str, const ExtensibleNode *node)

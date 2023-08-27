@@ -46,6 +46,8 @@ typedef struct cypher_parsestate
      */
     bool exprHasAgg;
     bool p_opt_match;
+    Node *prop_node;
+    Node *prop_name;
 } cypher_parsestate;
 
 typedef struct errpos_ecb_state

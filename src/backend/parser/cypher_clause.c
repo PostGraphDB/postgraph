@@ -174,6 +174,7 @@ ParseNamespaceItem *find_pnsi(cypher_parsestate *cpstate, char *varname);
 // utils XXX: Should be moved into its own file
 RangeFunction *make_range_function(FuncCall *func, Alias *alias, bool is_lateral, bool ordinality, bool is_rows_from);
 Alias *make_alias(char *name, List *colnames);
+static char *make_property_alias(char *var_name);
 
 /*
  * transform a cypher_clause
@@ -1210,8 +1211,8 @@ static List *add_target_to_group_list(cypher_parsestate *cpstate, TargetEntry *t
 
     /* if tlist item is an UNKNOWN literal, change it to TEXT */
     if (restype == UNKNOWNOID) {
-        tle->expr = (Expr *) coerce_type(pstate, (Node *) tle->expr, restype, TEXTOID, -1, COERCION_IMPLICIT, COERCE_IMPLICIT_CAST, -1);
-        restype = TEXTOID;
+        tle->expr = (Expr *) coerce_type(pstate, (Node *) tle->expr, restype, GTYPEOID, -1, COERCION_IMPLICIT, COERCE_IMPLICIT_CAST, -1);
+        restype = GTYPEOID;
     }
 
     /* avoid making duplicate grouplist entries */
@@ -1476,8 +1477,6 @@ static Query *transform_cypher_with(cypher_parsestate *cpstate, cypher_clause *c
     cypher_return *return_clause;
     cypher_clause *wrapper;
 
-    // TODO: check that all items have an alias for each
-
     // WITH clause is basically RETURN clause with optional WHERE subclause
     return_clause = make_ag_node(cypher_return);
     return_clause->distinct = self->distinct;
@@ -1710,6 +1709,9 @@ static Query *transform_cypher_match_pattern(cypher_parsestate *cpstate, cypher_
 
         transform_match_pattern(cpstate, query, self->pattern, where);
     }
+
+    // ORDER BY
+    query->sortClause = transform_cypher_order_by(cpstate, self->order_by, &query->targetList, EXPR_KIND_ORDER_BY);
 
     markTargetListOrigins(pstate, query->targetList);
 
@@ -2924,6 +2926,25 @@ static Expr *transform_cypher_edge(cypher_parsestate *cpstate, cypher_relationsh
     return expr;
 }
 
+static char *make_property_alias(char *var_name) {
+    char *str = palloc(strlen(var_name) + 8);
+
+    str[0] = '_';
+    str[1] = 'p';
+    str[2] = 'r';
+    str[3] = '_';
+
+    int i = 0;
+    for (; i < strlen(var_name); i++)
+        str[i + 4] = var_name[i];
+
+    str[i + 5] = '_';
+    str[i + 6] = '_';
+    str[i + 7] = '\n';
+
+    return str;
+}
+
 static Expr *transform_cypher_node(cypher_parsestate *cpstate, cypher_node *node, List **target_list, bool output_node) {
     ParseState *pstate = (ParseState *)cpstate;
     char *schema_name;
@@ -3021,6 +3042,16 @@ static Expr *transform_cypher_node(cypher_parsestate *cpstate, cypher_node *node
     /* make target entry and add it */
     te = makeTargetEntry(expr, resno, node->name, false);
     *target_list = lappend(*target_list, te);
+
+    /*
+     * properties field
+     */
+    Node *props = scanNSItemForColumn(pstate, pnsi, 0, AG_VERTEX_COLNAME_PROPERTIES, -1);
+   resno = pstate->p_next_resno++;
+
+    te = makeTargetEntry(props, resno, make_property_alias(node->name), false);
+    *target_list = lappend(*target_list, te);
+
 
     return expr;
 }
