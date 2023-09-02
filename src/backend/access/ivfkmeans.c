@@ -28,31 +28,29 @@ InitCenters(Relation index, VectorArray samples, VectorArray centers, float8 *lo
      procinfo = index_getprocinfo(index, 1, IVFFLAT_KMEANS_DISTANCE_PROC);
      collation = index->rd_indcollation[0];
 
-     /* Choose an initial center uniformly at random */
+     // Choose an initial center uniformly at random 
      VectorArraySet(centers, 0, VectorArrayGet(samples, RandomInt() % samples->length));
      centers->length++;
 
      for (j = 0; j < numSamples; j++)
          weight[j] = DBL_MAX;
 
-     for (int i = 0; i < numCenters; i++)
-     {
+     for (int i = 0; i < numCenters; i++) {
         CHECK_FOR_INTERRUPTS();
 
         sum = 0.0;
 
-        for (j = 0; j < numSamples; j++)
-        {
+        for (j = 0; j < numSamples; j++) {
             vec = VectorArrayGet(samples, j);
 
-            /* Only need to compute distance for new center */
-            /* TODO Use triangle inequality to reduce distance calculations */
+            // Only need to compute distance for new center 
+            // TODO Use triangle inequality to reduce distance calculations 
             distance = DatumGetFloat8(FunctionCall2Coll(procinfo, collation, PointerGetDatum(vec), PointerGetDatum(VectorArrayGet(centers, i))));
 
-            /* Set lower bound */
+            // Set lower bound 
             lowerBound[j * numCenters + i] = distance;
 
-            /* Use distance squared for weighted probability distribution */
+            // Use distance squared for weighted probability distribution 
             distance *= distance;
 
             if (distance < weight[j])
@@ -61,14 +59,13 @@ InitCenters(Relation index, VectorArray samples, VectorArray centers, float8 *lo
             sum += weight[j];
         }
 
-        /* Only compute lower bound on last iteration */
+        // Only compute lower bound on last iteration 
         if (i + 1 == numCenters)
             break;
 
-        /* Choose new center using weighted probability distribution. */
+        // Choose new center using weighted probability distribution. 
         choice = sum * RandomDouble();
-        for (j = 0; j < numSamples - 1; j++)
-        {
+        for (j = 0; j < numSamples - 1; j++) {
             choice -= weight[j];
             if (choice <= 0)
                 break;
@@ -85,13 +82,11 @@ InitCenters(Relation index, VectorArray samples, VectorArray centers, float8 *lo
  * Apply norm to vector
  */
 static inline void
-ApplyNorm(FmgrInfo *normprocinfo, Oid collation, gtype * vec)
-{
+ApplyNorm(FmgrInfo *normprocinfo, Oid collation, gtype * vec) {
     double norm = DatumGetFloat8(FunctionCall1Coll(normprocinfo, collation, PointerGetDatum(vec)));
 
-    /* TODO Handle zero norm */
-    if (norm > 0)
-    {
+    // TODO Handle zero norm 
+    if (norm > 0) {
         for (int i = 0; i < AGT_ROOT_COUNT(vec); i++)
             *((float8 *)(&vec->root.children[1 + (i * sizeof(float8))]))  /= norm;
     }
@@ -101,8 +96,7 @@ ApplyNorm(FmgrInfo *normprocinfo, Oid collation, gtype * vec)
  * Compare vectors
  */
 static int
-CompareVectors(const void *a, const void *b)
-{
+CompareVectors(const void *a, const void *b) {
     return gtype_vector_cmp((Vector *) a, (Vector *) b);
 }
 
@@ -110,46 +104,38 @@ CompareVectors(const void *a, const void *b)
  * Quick approach if we have little data
  */
 static void
-QuickCenters(Relation index, VectorArray samples, VectorArray centers)
-{
-    gtype       *vec;
-    int            dimensions = centers->dim;
-    Oid            collation = index->rd_indcollation[0];
-    FmgrInfo   *normprocinfo = IvfflatOptionalProcInfo(index, IVFFLAT_KMEANS_NORM_PROC);
+QuickCenters(Relation index, VectorArray samples, VectorArray centers) {
+    gtype *vec;
+    int dimensions = centers->dim;
+    Oid collation = index->rd_indcollation[0];
+    FmgrInfo *normprocinfo = IvfflatOptionalProcInfo(index, IVFFLAT_KMEANS_NORM_PROC);
 
-    /* Copy existing vectors while avoiding duplicates */
-    if (samples->length > 0)
-    {
+    // Copy existing vectors while avoiding duplicates 
+    if (samples->length > 0) {
         qsort(samples->items, samples->length, VECTOR_SIZE(samples->dim), CompareVectors);
-        for (int i = 0; i < samples->length; i++)
-        {
+        for (int i = 0; i < samples->length; i++) {
             vec = VectorArrayGet(samples, i);
 
-            if (i == 0 || CompareVectors(vec, VectorArrayGet(samples, i - 1)) != 0)
-            {
+            if (i == 0 || CompareVectors(vec, VectorArrayGet(samples, i - 1)) != 0) {
                 VectorArraySet(centers, centers->length, vec);
                 centers->length++;
             }
         }
     }
 
-    /* Fill remaining with random data */
-    while (centers->length < centers->maxlen)
-    {
+    // Fill remaining with random data 
+    while (centers->length < centers->maxlen) {
         vec = VectorArrayGet(centers, centers->length);
 
         SET_VARSIZE(vec, VECTOR_SIZE(dimensions));
         vec->root.header = dimensions | AGT_FEXTENDED_COMPOSITE;
         vec->root.children[0] = AGT_HEADER_VECTOR;
-        //vec->dim = dimensions;
-                //vec->x = palloc(vec->dim * sizeof(float8));
+                
         for (int j = 0; j < dimensions; j++) {
              *((float8 *)(&vec->root.children[1 + (j * sizeof(float8))])) = RandomDouble();
-	}
-		//            vec->root.children[1 + (j * sizeof(float8))] = RandomDouble();
-            //vec->x[j] = RandomDouble();
+        }
 
-        /* Normalize if needed (only needed for random centers) */
+        // Normalize if needed (only needed for random centers) 
         if (normprocinfo != NULL)
             ApplyNorm(normprocinfo, collation, vec);
 
@@ -196,7 +182,7 @@ ElkanKmeans(Relation index, VectorArray samples, VectorArray centers)
     double dxcx;
     double dxc;
 
-    /* Calculate allocation sizes */
+    // Calculate allocation sizes 
     Size samplesSize = VECTOR_ARRAY_SIZE(samples->maxlen, samples->dim);
     Size centersSize = VECTOR_ARRAY_SIZE(centers->maxlen, centers->dim);
     Size newCentersSize = VECTOR_ARRAY_SIZE(numCenters, dimensions);
@@ -208,27 +194,25 @@ ElkanKmeans(Relation index, VectorArray samples, VectorArray centers)
     Size halfcdistSize = sizeof(float8) * numCenters * numCenters;
     Size newcdistSize = sizeof(float8) * numCenters;
 
-    /* Calculate total size */
+    // Calculate total size 
     Size totalSize = samplesSize + centersSize + newCentersSize + centerCountsSize + closestCentersSize + lowerBoundSize + upperBoundSize + sSize + halfcdistSize + newcdistSize;
 
-    /* Check memory requirements */
-    /* Add one to error message to ceil */
+    // Check memory requirements 
+    // Add one to error message to ceil 
     if (totalSize > (Size) maintenance_work_mem * 1024L)
-        ereport(ERROR, (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-                 errmsg("memory required is %zu MB, maintenance_work_mem is %d MB",
-                        totalSize / (1024 * 1024) + 1, maintenance_work_mem / 1024)));
+        ereport(ERROR, (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED), errmsg("memory required is %zu MB, maintenance_work_mem is %d MB", totalSize / (1024 * 1024) + 1, maintenance_work_mem / 1024)));
 
-    /* Ensure indexing does not overflow */
+    // Ensure indexing does not overflow 
     if (numCenters * numCenters > INT_MAX)
         elog(ERROR, "Indexing overflow detected. Please report a bug.");
 
-    /* Set support functions */
+    // Set support functions 
     procinfo = index_getprocinfo(index, 1, IVFFLAT_KMEANS_DISTANCE_PROC);
     normprocinfo = IvfflatOptionalProcInfo(index, IVFFLAT_KMEANS_NORM_PROC);
     collation = index->rd_indcollation[0];
 
-    /* Allocate space */
-    /* Use float instead of double to save memory */
+    // Allocate space 
+    // Use float instead of double to save memory 
     centerCounts = palloc(centerCountsSize);
     closestCenters = palloc(closestCentersSize);
     lowerBound = palloc_extended(lowerBoundSize, MCXT_ALLOC_HUGE);
@@ -238,31 +222,28 @@ ElkanKmeans(Relation index, VectorArray samples, VectorArray centers)
     newcdist = palloc(newcdistSize);
 
     newCenters = VectorArrayInit(numCenters, dimensions);
-    for (j = 0; j < numCenters; j++)
-    {
+    for (j = 0; j < numCenters; j++) {
         vec = VectorArrayGet(newCenters, j);
         SET_VARSIZE(vec, VECTOR_SIZE(dimensions));
         vec->root.header = dimensions | AGT_FEXTENDED_COMPOSITE;
         vec->root.children[0] = AGT_HEADER_VECTOR;
     }
  
-    /* Pick initial centers */
+    // Pick initial centers 
     InitCenters(index, samples, centers, lowerBound);
 
-    /* Assign each x to its closest initial center c(x) = argmin d(x,c) */
+    // Assign each x to its closest initial center c(x) = argmin d(x,c) 
     for (j = 0; j < numSamples; j++)
     {
         minDistance = DBL_MAX;
         closestCenter = 0;
 
-        /* Find closest center */
-        for (k = 0; k < numCenters; k++)
-        {
-            /* TODO Use Lemma 1 in k-means++ initialization */
+        // Find closest center 
+        for (k = 0; k < numCenters; k++) {
+            // TODO Use Lemma 1 in k-means++ initialization 
             distance = lowerBound[j * numCenters + k];
 
-            if (distance < minDistance)
-            {
+            if (distance < minDistance) {
                 minDistance = distance;
                 closestCenter = k;
             }
@@ -272,15 +253,14 @@ ElkanKmeans(Relation index, VectorArray samples, VectorArray centers)
         closestCenters[j] = closestCenter;
     }
 
-    /* Give 500 iterations to converge */
-    for (iteration = 0; iteration < 500; iteration++)
-    {
-        /* Can take a while, so ensure we can interrupt */
+    // Give 500 iterations to converge 
+    for (iteration = 0; iteration < 500; iteration++) {
+        // Can take a while, so ensure we can interrupt 
         CHECK_FOR_INTERRUPTS();
 
         changes = 0;
 
-        /* Step 1: For all centers, compute distance */
+        // Step 1: For all centers, compute distance 
         for (j = 0; j < numCenters; j++)
         {
             vec = VectorArrayGet(centers, j);
@@ -293,7 +273,7 @@ ElkanKmeans(Relation index, VectorArray samples, VectorArray centers)
             }
         }
 
-        /* For all centers c, compute s(c) */
+        // For all centers c, compute s(c) 
         for (j = 0; j < numCenters; j++)
         {
             minDistance = DBL_MAX;
@@ -315,7 +295,7 @@ ElkanKmeans(Relation index, VectorArray samples, VectorArray centers)
 
         for (j = 0; j < numSamples; j++)
         {
-            /* Step 2: Identify all points x such that u(x) <= s(c(x)) */
+            // Step 2: Identify all points x such that u(x) <= s(c(x)) 
             if (upperBound[j] <= s[closestCenters[j]])
                 continue;
 
@@ -323,7 +303,7 @@ ElkanKmeans(Relation index, VectorArray samples, VectorArray centers)
 
             for (k = 0; k < numCenters; k++)
             {
-                /* Step 3: For all remaining points x and centers c */
+                // Step 3: For all remaining points x and centers c 
                 if (k == closestCenters[j])
                     continue;
 
@@ -335,13 +315,12 @@ ElkanKmeans(Relation index, VectorArray samples, VectorArray centers)
 
                 vec = VectorArrayGet(samples, j);
 
-                /* Step 3a */
+                // Step 3a 
                 if (rj)
                 {
-                    dxcx = DatumGetFloat8(FunctionCall2Coll(procinfo, collation, PointerGetDatum(vec),
-                                                      PointerGetDatum(VectorArrayGet(centers, closestCenters[j]))));
+                    dxcx = DatumGetFloat8(FunctionCall2Coll(procinfo, collation, PointerGetDatum(vec), PointerGetDatum(VectorArrayGet(centers, closestCenters[j]))));
 
-                    /* d(x,c(x)) computed, which is a form of d(x,c) */
+                    // d(x,c(x)) computed, which is a form of d(x,c) 
                     lowerBound[j * numCenters + closestCenters[j]] = dxcx;
                     upperBound[j] = dxcx;
 
@@ -350,20 +329,19 @@ ElkanKmeans(Relation index, VectorArray samples, VectorArray centers)
                 else
                     dxcx = upperBound[j];
 
-                /* Step 3b */
+                // Step 3b 
                 if (dxcx > lowerBound[j * numCenters + k] || dxcx > halfcdist[closestCenters[j] * numCenters + k])
                 {
-                    dxc = DatumGetFloat8(FunctionCall2Coll(procinfo, collation, PointerGetDatum(vec),
-                                                           PointerGetDatum(VectorArrayGet(centers, k))));
+                    dxc = DatumGetFloat8(FunctionCall2Coll(procinfo, collation, PointerGetDatum(vec), PointerGetDatum(VectorArrayGet(centers, k))));
 
-                    /* d(x,c) calculated */
+                    // d(x,c) calculated 
                     lowerBound[j * numCenters + k] = dxc;
 
                     if (dxc < dxcx)
                     {
                         closestCenters[j] = k;
 
-                        /* c(x) changed */
+                        // c(x) changed 
                         upperBound[j] = dxc;
 
                         changes++;
@@ -373,12 +351,12 @@ ElkanKmeans(Relation index, VectorArray samples, VectorArray centers)
             }
         }
  
-        /* Step 4: For each center c, let m(c) be mean of all points assigned */
+        // Step 4: For each center c, let m(c) be mean of all points assigned 
         for (j = 0; j < numCenters; j++)
         {
             vec = VectorArrayGet(newCenters, j);
             for (k = 0; k < dimensions; k++)
-                *((float8 *)&vec->root.children[1 + (k * sizeof(float8))] )= 0.0; // XXX
+                *((float8 *)&vec->root.children[1 + (k * sizeof(float8))]) = 0.0;
 
             centerCounts[j] = 0;
         }
@@ -388,11 +366,10 @@ ElkanKmeans(Relation index, VectorArray samples, VectorArray centers)
             vec = VectorArrayGet(samples, j);
             closestCenter = closestCenters[j];
 
-            /* Increment sum and count of closest center */
+            // Increment sum and count of closest center 
             newCenter = VectorArrayGet(newCenters, closestCenter);
             for (k = 0; k < dimensions; k++)
-                *((float8 *)&newCenter->root.children[1 + (k * sizeof(float8))]) +=  //XXX
-                      *((float8 *)(&vec->root.children[1 + (k * sizeof(float8))]));
+                *((float8 *)&newCenter->root.children[1 + (k * sizeof(float8))]) += *((float8 *)(&vec->root.children[1 + (k * sizeof(float8))]));
 
             centerCounts[closestCenter] += 1;
         }
@@ -403,36 +380,32 @@ ElkanKmeans(Relation index, VectorArray samples, VectorArray centers)
 
             if (centerCounts[j] > 0)
             {
-                /* Double avoids overflow, but requires more memory */
-                /* TODO Update bounds */
+                // Double avoids overflow, but requires more memory 
+                // TODO Update bounds 
                 for (k = 0; k < dimensions; k++)
                 {
-                    if (isinf((double)vec->root.children[1 + (k * sizeof(float8))])) // XXX
-                        *((float8 *)(&vec->root.children[1 + (k * sizeof(float8))])) =
-                            *((float8 *)&vec->root.children[1 + (k * sizeof(float8))]) > 0 ?
-                                FLT_MAX : -FLT_MAX;
+                    if (isinf((double)vec->root.children[1 + (k * sizeof(float8))]))
+                        *((float8 *)(&vec->root.children[1 + (k * sizeof(float8))])) = *((float8 *)&vec->root.children[1 + (k * sizeof(float8))]) > 0 ?  FLT_MAX : -FLT_MAX;
                 }
 
                 for (k = 0; k < dimensions; k++)
-                    *((float8 *)&vec->root.children[1 + (k * sizeof(float8))]) /= centerCounts[j]; //XXX
+                    *((float8 *)&vec->root.children[1 + (k * sizeof(float8))]) /= centerCounts[j];
             }
             else
             {
-                /* TODO Handle empty centers properly */
+                // TODO Handle empty centers properly 
                 for (k = 0; k < dimensions; k++)
-                    *((float8 *)&vec->root.children[1 + (k * sizeof(float8))]) = RandomDouble(); //XXX
+                    *((float8 *)&vec->root.children[1 + (k * sizeof(float8))]) = RandomDouble();
             }
 
-            /* Normalize if needed */
+            // Normalize if needed 
             if (normprocinfo != NULL)
                 ApplyNorm(normprocinfo, collation, vec);
         }
 
-        /* Step 5 */
+        // Step 5 
         for (j = 0; j < numCenters; j++)
-            newcdist[j] = DatumGetFloat8(FunctionCall2Coll(procinfo, collation,
-                                                           PointerGetDatum(VectorArrayGet(centers, j)),
-                                                           PointerGetDatum(VectorArrayGet(newCenters, j))));
+            newcdist[j] = DatumGetFloat8(FunctionCall2Coll(procinfo, collation, PointerGetDatum(VectorArrayGet(centers, j)), PointerGetDatum(VectorArrayGet(newCenters, j))));
 
         for (j = 0; j < numSamples; j++)
         {
@@ -447,12 +420,12 @@ ElkanKmeans(Relation index, VectorArray samples, VectorArray centers)
             }
         }
 
-        /* Step 6 */
-        /* We reset r(x) before Step 3 in the next iteration */
+        // Step 6 
+        // We reset r(x) before Step 3 in the next iteration 
         for (j = 0; j < numSamples; j++)
             upperBound[j] += newcdist[closestCenters[j]];
 
-        /* Step 7 */
+        // Step 7 
         for (j = 0; j < numCenters; j++)
             memcpy(VectorArrayGet(centers, j), VectorArrayGet(newCenters, j), VECTOR_SIZE(dimensions));
 
@@ -476,21 +449,20 @@ ElkanKmeans(Relation index, VectorArray samples, VectorArray centers)
 static void
 CheckCenters(Relation index, VectorArray centers)
 {
-    FmgrInfo   *normprocinfo;
-    Oid            collation;
+    FmgrInfo *normprocinfo;
+    Oid collation;
     gtype *vec;
-    double        norm;
+    double norm;
 
     if (centers->length != centers->maxlen)
         elog(ERROR, "Not enough centers. Please report a bug.");
 
-    /* Ensure no NaN or infinite values */
+    // Ensure no NaN or infinite values 
     for (int i = 0; i < centers->length; i++)
     {
         vec = VectorArrayGet(centers, i);
 
-        for (int j = 0; j < AGT_ROOT_COUNT(vec); j++)
-        {
+        for (int j = 0; j < AGT_ROOT_COUNT(vec); j++) {
             if (isnan((double) vec->root.children[1 + (j * sizeof(float8))]))
                 elog(ERROR, "NaN detected. Please report a bug.");
 
@@ -499,8 +471,8 @@ CheckCenters(Relation index, VectorArray centers)
         }
     }
 
-    /* Ensure no duplicate centers */
-    /* Fine to sort in-place */
+    // Ensure no duplicate centers 
+    // Fine to sort in-place 
     qsort(centers->items, centers->length, VECTOR_SIZE(centers->dim), CompareVectors);
     for (int i = 1; i < centers->length; i++)
     {
@@ -508,8 +480,8 @@ CheckCenters(Relation index, VectorArray centers)
             elog(ERROR, "Duplicate centers detected. Please report a bug.");
     }
 
-    /* Ensure no zero vectors for cosine distance */
-    /* Check NORM_PROC instead of KMEANS_NORM_PROC */
+    // Ensure no zero vectors for cosine distance 
+    // Check NORM_PROC instead of KMEANS_NORM_PROC 
     normprocinfo = IvfflatOptionalProcInfo(index, IVFFLAT_NORM_PROC);
     if (normprocinfo != NULL)
     {
@@ -517,8 +489,7 @@ CheckCenters(Relation index, VectorArray centers)
 
         for (int i = 0; i < centers->length; i++)
         {
-            norm = DatumGetFloat8(FunctionCall1Coll(normprocinfo, collation,
-                                    PointerGetDatum(VectorArrayGet(centers, i))));
+            norm = DatumGetFloat8(FunctionCall1Coll(normprocinfo, collation, PointerGetDatum(VectorArrayGet(centers, i))));
             if (norm == 0)
                 elog(ERROR, "Zero norm detected. Please report a bug.");
         }

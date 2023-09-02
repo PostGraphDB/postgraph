@@ -10,43 +10,43 @@
 #include "storage/bufmgr.h"
 #include "utils/vector.h"
 #include "utils/gtype.h"
-//DefElem *makeDefElem(char *name, Node *arg, int location);
-//extern Value *makeInteger(int i);
+
 /* makeRoleSpec
  * Create a RoleSpec with the given type
  */
 static RoleSpec *
 makeRoleSpec(RoleSpecType type, int location)
 {
-        RoleSpec *spec = makeNode(RoleSpec);
+    RoleSpec *spec = makeNode(RoleSpec);
 
-        spec->roletype = type;
-        spec->location = location;
+    spec->roletype = type;
+    spec->location = location;
 
-        return spec;
+    return spec;
 }
 
 static Node *
 makeTypeCast(Node *arg, TypeName *typename, int location)
 {
-        TypeCast *n = makeNode(TypeCast);
-        n->arg = arg;
-        n->typeName = typename;
-        n->location = location;
-        return (Node *) n;
+    TypeCast *n = makeNode(TypeCast);
+    n->arg = arg;
+    n->typeName = typename;
+    n->location = location;
+
+    return (Node *) n;
 }
 
                     
 static Node *                           
 makeStringConst(char *str, int location)
 {                               
-        A_Const *n = makeNode(A_Const);
+    A_Const *n = makeNode(A_Const);
 
-        n->val.type = T_String;       
-        n->val.val.str = str;   
-        n->location = location;
+    n->val.type = T_String;       
+    n->val.val.str = str;   
+    n->location = location;
 
-        return (Node *)n;               
+    return (Node *)n;               
 }                                       
                                         
 static Node *                   
@@ -92,37 +92,20 @@ Datum create_ivfflat_l2_ops_index(PG_FUNCTION_ARGS)
     char *property_name_str;
 
 
-    // checking if user has not provided the graph name
     if (PG_ARGISNULL(0))
-    {
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                errmsg("graph name must not be NULL")));
-    }
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("graph name must not be NULL")));
 
-    // checking if user has not provided the label name
     if (PG_ARGISNULL(1))
-    {
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                errmsg("label name must not be NULL")));
-    }
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("label name must not be NULL")));
 
     if (PG_ARGISNULL(2))
-    {
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                errmsg("property name must not be NULL")));
-    }
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("property name must not be NULL")));
 
     if (PG_ARGISNULL(3))
-    {
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                errmsg("dims must not be NULL")));
-    }
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("dims must not be NULL")));
 
     if (PG_ARGISNULL(4))
-    {
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                errmsg("lists must not be NULL")));
-    }
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("lists must not be NULL")));
 
 
     graph_name = PG_GETARG_NAME(0);
@@ -135,18 +118,13 @@ Datum create_ivfflat_l2_ops_index(PG_FUNCTION_ARGS)
 
     // Check if graph does not exist
     if (!graph_exists(graph_name_str))
-        ereport(ERROR,
-                (errcode(ERRCODE_UNDEFINED_SCHEMA),
-                        errmsg("graph \"%s\" does not exist.", graph_name_str)));
+        ereport(ERROR, (errcode(ERRCODE_UNDEFINED_SCHEMA), errmsg("graph \"%s\" does not exist.", graph_name_str)));
 
     graph_oid = get_graph_oid(graph_name_str);
 
-
     // Check if label with the input name already exists
     if (!label_exists(label_name_str, graph_oid))
-        ereport(ERROR,
-                (errcode(ERRCODE_UNDEFINED_SCHEMA),
-                        errmsg("label \"%s\" does not exist", label_name_str)));
+        ereport(ERROR, (errcode(ERRCODE_UNDEFINED_SCHEMA), errmsg("label \"%s\" does not exist", label_name_str)));
 
     //Create the default label tables
     graph = graph_name->data;
@@ -157,15 +135,12 @@ Datum create_ivfflat_l2_ops_index(PG_FUNCTION_ARGS)
     DefElem *dims = makeDefElem("dimensions", makeInteger(PG_GETARG_INT32(3)), -1);
     DefElem *lst = makeDefElem("lists", makeInteger(PG_GETARG_INT32(4)), -1);
 
-
     ColumnRef  *c = makeNode(ColumnRef);
     c->fields = list_make1(makeString("properties"));
     c->location = -1;
 
-
     IndexElem *idx_elem = makeNode(IndexElem);
     idx_elem->name = NULL;
-    //idx_elem->expr = c;
     idx_elem->expr = makeSimpleA_Expr(AEXPR_OP, "->", c, makeStringConstCast(make_property_alias_for_index(property), -1, makeTypeName("gtype")), -1);
     idx_elem->indexcolname = NULL;
     idx_elem->collation = NIL;
@@ -199,8 +174,6 @@ Datum create_ivfflat_l2_ops_index(PG_FUNCTION_ARGS)
     idx->if_not_exists = false;
     idx->reset_default_tblspc = false;
 
-
-
     wrapper = makeNode(PlannedStmt);
     wrapper->commandType = CMD_UTILITY;
     wrapper->canSetTag = false;
@@ -209,11 +182,7 @@ Datum create_ivfflat_l2_ops_index(PG_FUNCTION_ARGS)
     wrapper->stmt_len = 0;
 
 
-    ProcessUtility(wrapper, "(generated ALTER TABLE ADD CONSTRAINT command)", false,
-                   PROCESS_UTILITY_SUBCOMMAND, NULL, NULL, None_Receiver,
-                   NULL);
- //   index_dims = -1;
- //   index_lists = -1;
+    ProcessUtility(wrapper, "(generated ALTER TABLE ADD CONSTRAINT command)", false, PROCESS_UTILITY_SUBCOMMAND, NULL, NULL, None_Receiver, NULL);
 
     PG_RETURN_VOID();
 }
@@ -224,25 +193,24 @@ Datum create_ivfflat_l2_ops_index(PG_FUNCTION_ARGS)
  * Allocate a vector array
  */
 VectorArray
-VectorArrayInit(int maxlen, int dimensions)
-{
+VectorArrayInit(int maxlen, int dimensions) {
     VectorArray res = palloc0(sizeof(VectorArrayData));
 
     res->length = 0;
     res->maxlen = maxlen;
     res->dim = dimensions;
     int gtype_size = VECTOR_SIZE(dimensions) * maxlen;
-    //int gtype_size = sizeof(int32) + sizeof(uint32) + sizeof(agtentry) + (dimensions * sizeof(float8));
-    //res->items = palloc_extended(maxlen * gtype_size, MCXT_ALLOC_ZERO | MCXT_ALLOC_HUGE);
-    res->items = palloc_extended(gtype_size  *2, MCXT_ALLOC_ZERO | MCXT_ALLOC_HUGE);
+
+    res->items = palloc_extended(gtype_size * 2, MCXT_ALLOC_ZERO | MCXT_ALLOC_HUGE);
 
     for (int i = 0; i < dimensions; i++) {
         gtype *vec = VectorArrayGet(res, i);
 
-	SET_VARSIZE(vec, VECTOR_SIZE(dimensions));
+        SET_VARSIZE(vec, VECTOR_SIZE(dimensions));
         vec->root.header = dimensions | AGT_FEXTENDED_COMPOSITE;
         vec->root.children[0] = AGT_HEADER_VECTOR;
     }
+
     return res;
 }
 
@@ -260,8 +228,7 @@ VectorArrayFree(VectorArray arr)
  * Get the number of lists in the index
  */
 int
-IvfflatGetLists(Relation index)
-{
+IvfflatGetLists(Relation index) {
     IvfflatOptions *opts = (IvfflatOptions *) index->rd_options;
 
     if (opts)
@@ -278,7 +245,6 @@ IvfflatGetDimensions(Relation index)
     if (opts)
         return opts->dimensions;
 
-
     return IVFFLAT_DEFAULT_ELEMENTS;
 }
 
@@ -287,8 +253,7 @@ IvfflatGetDimensions(Relation index)
  * Get proc
  */
 FmgrInfo *
-IvfflatOptionalProcInfo(Relation rel, uint16 procnum)
-{
+IvfflatOptionalProcInfo(Relation rel, uint16 procnum) {
      if (!OidIsValid(index_getprocid(rel, 1, procnum)))
           return NULL;
 
@@ -304,20 +269,17 @@ IvfflatOptionalProcInfo(Relation rel, uint16 procnum)
  * if it's different than the original value
  */
 bool
-IvfflatNormValue(FmgrInfo *procinfo, Oid collation, Datum *value, gtype *result)
-{
+IvfflatNormValue(FmgrInfo *procinfo, Oid collation, Datum *value, gtype *result) {
     double norm = DatumGetFloat8(FunctionCall1Coll(procinfo, collation, *value));
 
-    if (norm > 0)
-    {
+    if (norm > 0) {
          gtype *v = DatumGetVector(*value);
 
          if (result == NULL)
              result = gtype_value_to_gtype(InitVectorGType(AGT_ROOT_COUNT(v)));
 
          for (int i = 0; i < AGT_ROOT_COUNT(v); i++)
-             result->root.children[1 + (i * sizeof(float8))] =
-		     v->root.children[1 + (i * sizeof(float8))] / norm;
+             result->root.children[1 + (i * sizeof(float8))] = v->root.children[1 + (i * sizeof(float8))] / norm;
 
          *value = PointerGetDatum(result);
 
@@ -378,24 +340,23 @@ IvfflatCommitBuffer(Buffer buf, GenericXLogState *state)
  * The order is very important!!
  */
 void
-IvfflatAppendPage(Relation index, Buffer *buf, Page *page, GenericXLogState **state, ForkNumber forkNum)
-{
-    /* Get new buffer */
+IvfflatAppendPage(Relation index, Buffer *buf, Page *page, GenericXLogState **state, ForkNumber forkNum) {
+    // Get new buffer 
     Buffer newbuf = IvfflatNewBuffer(index, forkNum);
     Page newpage = GenericXLogRegisterBuffer(*state, newbuf, GENERIC_XLOG_FULL_IMAGE);
 
-    /* Update the previous buffer */
+    // Update the previous buffer 
     IvfflatPageGetOpaque(*page)->nextblkno = BufferGetBlockNumber(newbuf);
 
-    /* Init new page */
+    // Init new page 
     IvfflatInitPage(newbuf, newpage);
 
-    /* Commit */
+    // Commit 
     MarkBufferDirty(*buf);
     MarkBufferDirty(newbuf);
     GenericXLogFinish(*state);
 
-    /* Unlock */
+    // Unlock 
     UnlockReleaseBuffer(*buf);
 
     *state = GenericXLogStart(index);
@@ -407,10 +368,7 @@ IvfflatAppendPage(Relation index, Buffer *buf, Page *page, GenericXLogState **st
  * Update the start or insert page of a list
  */
 void
-IvfflatUpdateList(Relation index, ListInfo listInfo,
-                  BlockNumber insertPage, BlockNumber originalInsertPage,
-                  BlockNumber startPage, ForkNumber forkNum)
-{
+IvfflatUpdateList(Relation index, ListInfo listInfo, BlockNumber insertPage, BlockNumber originalInsertPage, BlockNumber startPage, ForkNumber forkNum) {
     Buffer buf;
     Page page;
     GenericXLogState *state;
@@ -425,8 +383,8 @@ IvfflatUpdateList(Relation index, ListInfo listInfo,
 
     if (BlockNumberIsValid(insertPage) && insertPage != list->insertPage)
     {
-        /* Skip update if insert page is lower than original insert page  */
-        /* This is needed to prevent insert from overwriting vacuum */
+        // Skip update if insert page is lower than original insert page  
+        // This is needed to prevent insert from overwriting vacuum 
         if (!BlockNumberIsValid(originalInsertPage) || insertPage >= originalInsertPage)
         {
             list->insertPage = insertPage;
@@ -440,11 +398,10 @@ IvfflatUpdateList(Relation index, ListInfo listInfo,
         changed = true;
     }
 
-    /* Only commit if changed */
-    if (changed)
+    // Only commit if changed 
+    if (changed) {
          IvfflatCommitBuffer(buf, state);
-    else
-    {
+    } else {
          GenericXLogAbort(state);
          UnlockReleaseBuffer(buf);
     }

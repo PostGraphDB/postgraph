@@ -54,10 +54,10 @@
 #include "pgstat.h"
 #endif
 
-#define PARALLEL_KEY_IVFFLAT_SHARED		UINT64CONST(0xA000000000000001)
-#define PARALLEL_KEY_TUPLESORT			UINT64CONST(0xA000000000000002)
-#define PARALLEL_KEY_IVFFLAT_CENTERS	UINT64CONST(0xA000000000000003)
-#define PARALLEL_KEY_QUERY_TEXT			UINT64CONST(0xA000000000000004)
+#define PARALLEL_KEY_IVFFLAT_SHARED  UINT64CONST(0xA000000000000001)
+#define PARALLEL_KEY_TUPLESORT       UINT64CONST(0xA000000000000002)
+#define PARALLEL_KEY_IVFFLAT_CENTERS UINT64CONST(0xA000000000000003)
+#define PARALLEL_KEY_QUERY_TEXT      UINT64CONST(0xA000000000000004)
 
 /*
  * Add sample
@@ -68,7 +68,7 @@ AddSample(Datum *values, IvfflatBuildState * buildstate)
     VectorArray samples = buildstate->samples;
     int targsamples = samples->maxlen;
 
-    /* Detoast once for all calls */
+    // Detoast once for all calls 
     Datum value = PointerGetDatum(PG_DETOAST_DATUM(values[0]));
 
     /*
@@ -112,24 +112,24 @@ AddSample(Datum *values, IvfflatBuildState * buildstate)
  */
 static void
 SampleCallback(Relation index, CALLBACK_ITEM_POINTER, Datum *values,
-			   bool *isnull, bool tupleIsAlive, void *state)
+               bool *isnull, bool tupleIsAlive, void *state)
 {
-	IvfflatBuildState *buildstate = (IvfflatBuildState *) state;
-	MemoryContext oldCtx;
+    IvfflatBuildState *buildstate = (IvfflatBuildState *) state;
+    MemoryContext oldCtx;
 
-	/* Skip nulls */
-	if (isnull[0])
-		return;
+    // Skip nulls 
+    if (isnull[0])
+        return;
 
-	/* Use memory context since detoast can allocate */
-	oldCtx = MemoryContextSwitchTo(buildstate->tmpCtx);
+    // Use memory context since detoast can allocate 
+    oldCtx = MemoryContextSwitchTo(buildstate->tmpCtx);
 
-	/* Add sample */
-	AddSample(values, state);
+    // Add sample 
+    AddSample(values, state);
 
-	/* Reset memory context */
-	MemoryContextSwitchTo(oldCtx);
-	MemoryContextReset(buildstate->tmpCtx);
+    // Reset memory context 
+    MemoryContextSwitchTo(oldCtx);
+    MemoryContextReset(buildstate->tmpCtx);
 }
 
 /*
@@ -138,26 +138,26 @@ SampleCallback(Relation index, CALLBACK_ITEM_POINTER, Datum *values,
 static void
 SampleRows(IvfflatBuildState * buildstate)
 {
-	int			targsamples = buildstate->samples->maxlen;
-	BlockNumber totalblocks = RelationGetNumberOfBlocks(buildstate->heap);
+    int targsamples = buildstate->samples->maxlen;
+    BlockNumber totalblocks = RelationGetNumberOfBlocks(buildstate->heap);
 
-	buildstate->rowstoskip = -1;
+    buildstate->rowstoskip = -1;
 
-	BlockSampler_Init(&buildstate->bs, totalblocks, targsamples, RandomInt());
+    BlockSampler_Init(&buildstate->bs, totalblocks, targsamples, RandomInt());
 
-	reservoir_init_selection_state(&buildstate->rstate, targsamples);
-	while (BlockSampler_HasMore(&buildstate->bs))
-	{
-		BlockNumber targblock = BlockSampler_Next(&buildstate->bs);
+    reservoir_init_selection_state(&buildstate->rstate, targsamples);
+    while (BlockSampler_HasMore(&buildstate->bs))
+    {
+        BlockNumber targblock = BlockSampler_Next(&buildstate->bs);
 
 #if PG_VERSION_NUM >= 120000
-		table_index_build_range_scan(buildstate->heap, buildstate->index, buildstate->indexInfo,
-									 false, true, false, targblock, 1, SampleCallback, (void *) buildstate, NULL);
+        table_index_build_range_scan(buildstate->heap, buildstate->index, buildstate->indexInfo,
+                                     false, true, false, targblock, 1, SampleCallback, (void *) buildstate, NULL);
 #else
-		IndexBuildHeapRangeScan(buildstate->heap, buildstate->index, buildstate->indexInfo,
-								false, true, targblock, 1, SampleCallback, (void *) buildstate, NULL);
+        IndexBuildHeapRangeScan(buildstate->heap, buildstate->index, buildstate->indexInfo,
+                                false, true, targblock, 1, SampleCallback, (void *) buildstate, NULL);
 #endif
-	}
+    }
 }
 
 /*
@@ -166,88 +166,87 @@ SampleRows(IvfflatBuildState * buildstate)
 static void
 AddTupleToSort(Relation index, ItemPointer tid, Datum *values, IvfflatBuildState * buildstate)
 {
-	double		distance;
-	double		minDistance = DBL_MAX;
-	int			closestCenter = 0;
-	VectorArray centers = buildstate->centers;
-	TupleTableSlot *slot = buildstate->slot;
+    double        distance;
+    double        minDistance = DBL_MAX;
+    int            closestCenter = 0;
+    VectorArray centers = buildstate->centers;
+    TupleTableSlot *slot = buildstate->slot;
 
-	/* Detoast once for all calls */
-	Datum		value = PointerGetDatum(PG_DETOAST_DATUM(values[0]));
+    // Detoast once for all calls 
+    Datum value = PointerGetDatum(PG_DETOAST_DATUM(values[0]));
 
-	/* Normalize if needed */
-	if (buildstate->normprocinfo != NULL)
-	{
-		if (!IvfflatNormValue(buildstate->normprocinfo, buildstate->collation, &value, buildstate->normvec))
-			return;
-	}
+    // Normalize if needed 
+    if (buildstate->normprocinfo != NULL)
+    {
+        if (!IvfflatNormValue(buildstate->normprocinfo, buildstate->collation, &value, buildstate->normvec))
+            return;
+    }
 
-	/* Find the list that minimizes the distance */
-	for (int i = 0; i < centers->length; i++)
-	{
-		distance = DatumGetFloat8(FunctionCall2Coll(buildstate->procinfo, buildstate->collation, value, PointerGetDatum(VectorArrayGet(centers, i))));
+    // Find the list that minimizes the distance 
+    for (int i = 0; i < centers->length; i++)
+    {
+        distance = DatumGetFloat8(FunctionCall2Coll(buildstate->procinfo, buildstate->collation, value, PointerGetDatum(VectorArrayGet(centers, i))));
 
-		if (distance < minDistance)
-		{
-			minDistance = distance;
-			closestCenter = i;
-		}
-	}
+        if (distance < minDistance)
+        {
+            minDistance = distance;
+            closestCenter = i;
+        }
+    }
 
 #ifdef IVFFLAT_KMEANS_DEBUG
-	buildstate->inertia += minDistance;
-	buildstate->listSums[closestCenter] += minDistance;
-	buildstate->listCounts[closestCenter]++;
+    buildstate->inertia += minDistance;
+    buildstate->listSums[closestCenter] += minDistance;
+    buildstate->listCounts[closestCenter]++;
 #endif
 
-	/* Create a virtual tuple */
-	ExecClearTuple(slot);
-	slot->tts_values[0] = Int32GetDatum(closestCenter);
-	slot->tts_isnull[0] = false;
-	slot->tts_values[1] = PointerGetDatum(tid);
-	slot->tts_isnull[1] = false;
-	slot->tts_values[2] = value;
-	slot->tts_isnull[2] = false;
-	ExecStoreVirtualTuple(slot);
+    // Create a virtual tuple 
+    ExecClearTuple(slot);
+    slot->tts_values[0] = Int32GetDatum(closestCenter);
+    slot->tts_isnull[0] = false;
+    slot->tts_values[1] = PointerGetDatum(tid);
+    slot->tts_isnull[1] = false;
+    slot->tts_values[2] = value;
+    slot->tts_isnull[2] = false;
+    ExecStoreVirtualTuple(slot);
 
-	/*
-	 * Add tuple to sort
-	 *
-	 * tuplesort_puttupleslot comment: Input data is always copied; the caller
-	 * need not save it.
-	 */
-	tuplesort_puttupleslot(buildstate->sortstate, slot);
+    /*
+     * Add tuple to sort
+     *
+     * tuplesort_puttupleslot comment: Input data is always copied; the caller
+     * need not save it.
+     */
+    tuplesort_puttupleslot(buildstate->sortstate, slot);
 
-	buildstate->indtuples++;
+    buildstate->indtuples++;
 }
 
 /*
  * Callback for table_index_build_scan
  */
 static void
-BuildCallback(Relation index, CALLBACK_ITEM_POINTER, Datum *values,
-			  bool *isnull, bool tupleIsAlive, void *state)
+BuildCallback(Relation index, CALLBACK_ITEM_POINTER, Datum *values, bool *isnull, bool tupleIsAlive, void *state)
 {
-	IvfflatBuildState *buildstate = (IvfflatBuildState *) state;
-	MemoryContext oldCtx;
+    IvfflatBuildState *buildstate = (IvfflatBuildState *) state;
+    MemoryContext oldCtx;
 
 #if PG_VERSION_NUM < 130000
-	ItemPointer tid = &hup->t_self;
+    ItemPointer tid = &hup->t_self;
 #endif
 
-	/* Skip nulls */
-	if (isnull[0])
-		return;
+    // Skip nulls 
+    if (isnull[0])
+        return;
 
-	/* Use memory context since detoast can allocate */
-	oldCtx = MemoryContextSwitchTo(buildstate->tmpCtx);
+    // Use memory context since detoast can allocate 
+    oldCtx = MemoryContextSwitchTo(buildstate->tmpCtx);
 
-	/* Add tuple to sort */
-	AddTupleToSort(index, tid, values, buildstate);
+    // Add tuple to sort 
+    AddTupleToSort(index, tid, values, buildstate);
 
-	/* Reset memory context */
-	MemoryContextSwitchTo(oldCtx);
-	MemoryContextReset(buildstate->tmpCtx);
+    // Reset memory context 
+    MemoryContextSwitchTo(oldCtx);
+    MemoryContextReset(buildstate->tmpCtx);
 }
 
 /*
@@ -256,20 +255,20 @@ BuildCallback(Relation index, CALLBACK_ITEM_POINTER, Datum *values,
 static inline void
 GetNextTuple(Tuplesortstate *sortstate, TupleDesc tupdesc, TupleTableSlot *slot, IndexTuple *itup, int *list)
 {
-	Datum		value;
-	bool		isnull;
+    Datum value;
+    bool isnull;
 
-	if (tuplesort_gettupleslot(sortstate, true, false, slot, NULL))
-	{
-		*list = DatumGetInt32(slot_getattr(slot, 1, &isnull));
-		value = slot_getattr(slot, 3, &isnull);
+    if (tuplesort_gettupleslot(sortstate, true, false, slot, NULL)) {
+        *list = DatumGetInt32(slot_getattr(slot, 1, &isnull));
+        value = slot_getattr(slot, 3, &isnull);
 
-		/* Form the index tuple */
-		*itup = index_form_tuple(tupdesc, &value, &isnull);
-		(*itup)->t_tid = *((ItemPointer) DatumGetPointer(slot_getattr(slot, 2, &isnull)));
-	}
-	else
-		*list = -1;
+        // Form the index tuple 
+        *itup = index_form_tuple(tupdesc, &value, &isnull);
+        (*itup)->t_tid = *((ItemPointer) DatumGetPointer(slot_getattr(slot, 2, &isnull)));
+    }
+    else {
+        *list = -1;
+    }
 }
 
 /*
@@ -278,67 +277,65 @@ GetNextTuple(Tuplesortstate *sortstate, TupleDesc tupdesc, TupleTableSlot *slot,
 static void
 InsertTuples(Relation index, IvfflatBuildState * buildstate, ForkNumber forkNum)
 {
-	int			list;
-	IndexTuple	itup = NULL;	/* silence compiler warning */
-	int64		inserted = 0;
+    int list;
+    IndexTuple itup = NULL;    // silence compiler warning 
+    int64 inserted = 0;
 
 #if PG_VERSION_NUM >= 120000
-	TupleTableSlot *slot = MakeSingleTupleTableSlot(buildstate->tupdesc, &TTSOpsMinimalTuple);
+    TupleTableSlot *slot = MakeSingleTupleTableSlot(buildstate->tupdesc, &TTSOpsMinimalTuple);
 #else
-	TupleTableSlot *slot = MakeSingleTupleTableSlot(buildstate->tupdesc);
+    TupleTableSlot *slot = MakeSingleTupleTableSlot(buildstate->tupdesc);
 #endif
-	TupleDesc	tupdesc = RelationGetDescr(index);
+    TupleDesc tupdesc = RelationGetDescr(index);
 
-	UpdateProgress(PROGRESS_CREATEIDX_SUBPHASE, PROGRESS_IVFFLAT_PHASE_LOAD);
+    UpdateProgress(PROGRESS_CREATEIDX_SUBPHASE, PROGRESS_IVFFLAT_PHASE_LOAD);
 
-	UpdateProgress(PROGRESS_CREATEIDX_TUPLES_TOTAL, buildstate->indtuples);
+    UpdateProgress(PROGRESS_CREATEIDX_TUPLES_TOTAL, buildstate->indtuples);
 
-	GetNextTuple(buildstate->sortstate, tupdesc, slot, &itup, &list);
+    GetNextTuple(buildstate->sortstate, tupdesc, slot, &itup, &list);
 
-	for (int i = 0; i < buildstate->centers->length; i++)
-	{
-		Buffer		buf;
-		Page		page;
-		GenericXLogState *state;
-		BlockNumber startPage;
-		BlockNumber insertPage;
+    for (int i = 0; i < buildstate->centers->length; i++) {
+        Buffer buf;
+        Page page;
+        GenericXLogState *state;
+        BlockNumber startPage;
+        BlockNumber insertPage;
 
-		/* Can take a while, so ensure we can interrupt */
-		/* Needs to be called when no buffer locks are held */
-		CHECK_FOR_INTERRUPTS();
+        // Can take a while, so ensure we can interrupt 
+        // Needs to be called when no buffer locks are held 
+        CHECK_FOR_INTERRUPTS();
 
-		buf = IvfflatNewBuffer(index, forkNum);
-		IvfflatInitRegisterPage(index, &buf, &page, &state);
+        buf = IvfflatNewBuffer(index, forkNum);
+        IvfflatInitRegisterPage(index, &buf, &page, &state);
 
-		startPage = BufferGetBlockNumber(buf);
+        startPage = BufferGetBlockNumber(buf);
 
-		/* Get all tuples for list */
-		while (list == i)
-		{
-			/* Check for free space */
-			Size		itemsz = MAXALIGN(IndexTupleSize(itup));
+        // Get all tuples for list 
+        while (list == i) {
+            // Check for free space 
+            Size itemsz = MAXALIGN(IndexTupleSize(itup));
 
-			if (PageGetFreeSpace(page) < itemsz)
-				IvfflatAppendPage(index, &buf, &page, &state, forkNum);
+            if (PageGetFreeSpace(page) < itemsz)
+                IvfflatAppendPage(index, &buf, &page, &state, forkNum);
 
-			/* Add the item */
-			if (PageAddItem(page, (Item) itup, itemsz, InvalidOffsetNumber, false, false) == InvalidOffsetNumber)
-				elog(ERROR, "failed to add index item to \"%s\"", RelationGetRelationName(index));
+            // Add the item 
+            if (PageAddItem(page, (Item) itup, itemsz, InvalidOffsetNumber, false, false) == InvalidOffsetNumber)
+                elog(ERROR, "failed to add index item to \"%s\"", RelationGetRelationName(index));
 
-			pfree(itup);
+            pfree(itup);
 
-			UpdateProgress(PROGRESS_CREATEIDX_TUPLES_DONE, ++inserted);
+            UpdateProgress(PROGRESS_CREATEIDX_TUPLES_DONE, ++inserted);
 
-			GetNextTuple(buildstate->sortstate, tupdesc, slot, &itup, &list);
-		}
+            GetNextTuple(buildstate->sortstate, tupdesc, slot, &itup, &list);
+        }
 
-		insertPage = BufferGetBlockNumber(buf);
+        insertPage = BufferGetBlockNumber(buf);
 
-		IvfflatCommitBuffer(buf, state);
+        IvfflatCommitBuffer(buf, state);
 
-		/* Set the start and insert pages */
-		IvfflatUpdateList(index, buildstate->listInfo[i], insertPage, InvalidBlockNumber, startPage, forkNum);
-	}
+        // Set the start and insert pages 
+        IvfflatUpdateList(index, buildstate->listInfo[i], insertPage, InvalidBlockNumber, startPage, forkNum);
+    }
 }
 
 /*
@@ -347,68 +344,65 @@ InsertTuples(Relation index, IvfflatBuildState * buildstate, ForkNumber forkNum)
 static void
 InitBuildState(IvfflatBuildState * buildstate, Relation heap, Relation index, IndexInfo *indexInfo)
 {
-	buildstate->heap = heap;
-	buildstate->index = index;
-	buildstate->indexInfo = indexInfo;
+    buildstate->heap = heap;
+    buildstate->index = index;
+    buildstate->indexInfo = indexInfo;
 
-	buildstate->lists = IvfflatGetLists(index);
+    buildstate->lists = IvfflatGetLists(index);
 
-	//buildstate->dimensions = TupleDescAttr(index->rd_att, 0)->atttypmod;
-        buildstate->dimensions = IvfflatGetDimensions(index);
+    buildstate->dimensions = IvfflatGetDimensions(index);
 
-	/* Require column to have dimensions to be indexed */
-	if (buildstate->dimensions <= 0)
-		elog(ERROR, "column does not have dimensions, %i", buildstate->dimensions);
+    // Require column to have dimensions to be indexed 
+    if (buildstate->dimensions <= 0)
+        elog(ERROR, "column does not have dimensions, %i", buildstate->dimensions);
 
-	if (buildstate->dimensions > IVFFLAT_MAX_DIM)
-		elog(ERROR, "column cannot have more than %d dimensions for ivfflat index", IVFFLAT_MAX_DIM);
+    if (buildstate->dimensions > IVFFLAT_MAX_DIM)
+        elog(ERROR, "column cannot have more than %d dimensions for ivfflat index", IVFFLAT_MAX_DIM);
 
-	buildstate->reltuples = 0;
-	buildstate->indtuples = 0;
+    buildstate->reltuples = 0;
+    buildstate->indtuples = 0;
 
-	/* Get support functions */
-	buildstate->procinfo = index_getprocinfo(index, 1, IVFFLAT_DISTANCE_PROC);
-	buildstate->normprocinfo = IvfflatOptionalProcInfo(index, IVFFLAT_NORM_PROC);
-	buildstate->kmeansnormprocinfo = IvfflatOptionalProcInfo(index, IVFFLAT_KMEANS_NORM_PROC);
-	buildstate->collation = index->rd_indcollation[0];
+    // Get support functions 
+    buildstate->procinfo = index_getprocinfo(index, 1, IVFFLAT_DISTANCE_PROC);
+    buildstate->normprocinfo = IvfflatOptionalProcInfo(index, IVFFLAT_NORM_PROC);
+    buildstate->kmeansnormprocinfo = IvfflatOptionalProcInfo(index, IVFFLAT_KMEANS_NORM_PROC);
+    buildstate->collation = index->rd_indcollation[0];
 
-	/* Require more than one dimension for spherical k-means */
-	if (buildstate->kmeansnormprocinfo != NULL && buildstate->dimensions == 1)
-		elog(ERROR, "dimensions must be greater than one for this opclass");
+    // Require more than one dimension for spherical k-means 
+    if (buildstate->kmeansnormprocinfo != NULL && buildstate->dimensions == 1)
+        elog(ERROR, "dimensions must be greater than one for this opclass");
 
-	/* Create tuple description for sorting */
+    // Create tuple description for sorting 
 #if PG_VERSION_NUM >= 120000
-	buildstate->tupdesc = CreateTemplateTupleDesc(3);
+    buildstate->tupdesc = CreateTemplateTupleDesc(3);
 #else
-	buildstate->tupdesc = CreateTemplateTupleDesc(3, false);
+    buildstate->tupdesc = CreateTemplateTupleDesc(3, false);
 #endif
-	TupleDescInitEntry(buildstate->tupdesc, (AttrNumber) 1, "list", INT4OID, -1, 0);
-	TupleDescInitEntry(buildstate->tupdesc, (AttrNumber) 2, "tid", TIDOID, -1, 0);
-	TupleDescInitEntry(buildstate->tupdesc, (AttrNumber) 3, "vector", RelationGetDescr(index)->attrs[0].atttypid, -1, 0);
+    TupleDescInitEntry(buildstate->tupdesc, (AttrNumber) 1, "list", INT4OID, -1, 0);
+    TupleDescInitEntry(buildstate->tupdesc, (AttrNumber) 2, "tid", TIDOID, -1, 0);
+    TupleDescInitEntry(buildstate->tupdesc, (AttrNumber) 3, "vector", RelationGetDescr(index)->attrs[0].atttypid, -1, 0);
 
 #if PG_VERSION_NUM >= 120000
-	buildstate->slot = MakeSingleTupleTableSlot(buildstate->tupdesc, &TTSOpsVirtual);
+    buildstate->slot = MakeSingleTupleTableSlot(buildstate->tupdesc, &TTSOpsVirtual);
 #else
-	buildstate->slot = MakeSingleTupleTableSlot(buildstate->tupdesc);
+    buildstate->slot = MakeSingleTupleTableSlot(buildstate->tupdesc);
 #endif
 
-	buildstate->centers = VectorArrayInit(buildstate->lists, buildstate->dimensions);
-	buildstate->listInfo = palloc(sizeof(ListInfo) * buildstate->lists);
+    buildstate->centers = VectorArrayInit(buildstate->lists, buildstate->dimensions);
+    buildstate->listInfo = palloc(sizeof(ListInfo) * buildstate->lists);
 
-	/* Reuse for each tuple */
-	buildstate->normvec = gtype_value_to_gtype(InitVectorGType(buildstate->dimensions));
+    // Reuse for each tuple 
+    buildstate->normvec = gtype_value_to_gtype(InitVectorGType(buildstate->dimensions));
 
-	buildstate->tmpCtx = AllocSetContextCreate(CurrentMemoryContext,
-                                                   "Ivfflat build temporary context",
-                                                   ALLOCSET_DEFAULT_SIZES);
+    buildstate->tmpCtx = AllocSetContextCreate(CurrentMemoryContext, "Ivfflat build temporary context", ALLOCSET_DEFAULT_SIZES);
 
 #ifdef IVFFLAT_KMEANS_DEBUG
-	buildstate->inertia = 0;
-	buildstate->listSums = palloc0(sizeof(double) * buildstate->lists);
-	buildstate->listCounts = palloc0(sizeof(int) * buildstate->lists);
+    buildstate->inertia = 0;
+    buildstate->listSums = palloc0(sizeof(double) * buildstate->lists);
+    buildstate->listCounts = palloc0(sizeof(int) * buildstate->lists);
 #endif
 
-	buildstate->ivfleader = NULL;
+    buildstate->ivfleader = NULL;
 }
 
 /*
@@ -417,16 +411,16 @@ InitBuildState(IvfflatBuildState * buildstate, Relation heap, Relation index, In
 static void
 FreeBuildState(IvfflatBuildState * buildstate)
 {
-	VectorArrayFree(buildstate->centers);
-	pfree(buildstate->listInfo);
-	pfree(buildstate->normvec);
+    VectorArrayFree(buildstate->centers);
+    pfree(buildstate->listInfo);
+    pfree(buildstate->normvec);
 
 #ifdef IVFFLAT_KMEANS_DEBUG
-	pfree(buildstate->listSums);
-	pfree(buildstate->listCounts);
+    pfree(buildstate->listSums);
+    pfree(buildstate->listCounts);
 #endif
 
-	MemoryContextDelete(buildstate->tmpCtx);
+    MemoryContextDelete(buildstate->tmpCtx);
 }
 
 /*
@@ -435,41 +429,38 @@ FreeBuildState(IvfflatBuildState * buildstate)
 static void
 ComputeCenters(IvfflatBuildState * buildstate)
 {
-	int			numSamples;
+    int numSamples;
 
-	UpdateProgress(PROGRESS_CREATEIDX_SUBPHASE, PROGRESS_IVFFLAT_PHASE_KMEANS);
+    UpdateProgress(PROGRESS_CREATEIDX_SUBPHASE, PROGRESS_IVFFLAT_PHASE_KMEANS);
 
-	/* Target 50 samples per list, with at least 10000 samples */
-	/* The number of samples has a large effect on index build time */
-	numSamples = buildstate->lists * 50;
-	if (numSamples < 10000)
-		numSamples = 10000;
+    // Target 50 samples per list, with at least 10000 samples 
+    // The number of samples has a large effect on index build time 
+    numSamples = buildstate->lists * 50;
+    if (numSamples < 10000)
+        numSamples = 10000;
 
-	/* Skip samples for unlogged table */
-	if (buildstate->heap == NULL)
-		numSamples = 1;
+    // Skip samples for unlogged table 
+    if (buildstate->heap == NULL)
+        numSamples = 1;
 
-	/* Sample rows */
-	/* TODO Ensure within maintenance_work_mem */
-	buildstate->samples = VectorArrayInit(numSamples, buildstate->dimensions);
-	if (buildstate->heap != NULL)
-	{
-		SampleRows(buildstate);
+    // Sample rows 
+    // TODO Ensure within maintenance_work_mem 
+    buildstate->samples = VectorArrayInit(numSamples, buildstate->dimensions);
+    if (buildstate->heap != NULL) {
+        SampleRows(buildstate);
 
-		if (buildstate->samples->length < buildstate->lists)
-		{
-			ereport(NOTICE,
-					(errmsg("ivfflat index created with little data"),
-					 errdetail("This will cause low recall."),
-					 errhint("Drop the index until the table has more data.")));
-		}
-	}
+        if (buildstate->samples->length < buildstate->lists) {
+            ereport(NOTICE, (errmsg("ivfflat index created with little data"),
+                     errdetail("This will cause low recall."),
+                     errhint("Drop the index until the table has more data.")));
+        }
+    }
 
-	/* Calculate centers */
-	IvfflatBench("k-means", IvfflatKmeans(buildstate->index, buildstate->samples, buildstate->centers));
+    // Calculate centers 
+    IvfflatBench("k-means", IvfflatKmeans(buildstate->index, buildstate->samples, buildstate->centers));
 
-	/* Free samples before we allocate more memory */
-	VectorArrayFree(buildstate->samples);
+    // Free samples before we allocate more memory 
+    VectorArrayFree(buildstate->samples);
 }
 
 /*
@@ -478,70 +469,66 @@ ComputeCenters(IvfflatBuildState * buildstate)
 static void
 CreateMetaPage(Relation index, int dimensions, int lists, ForkNumber forkNum)
 {
-	Buffer		buf;
-	Page		page;
-	GenericXLogState *state;
-	IvfflatMetaPage metap;
+    Buffer buf;
+    Page page;
+    GenericXLogState *state;
+    IvfflatMetaPage metap;
 
-	buf = IvfflatNewBuffer(index, forkNum);
-	IvfflatInitRegisterPage(index, &buf, &page, &state);
+    buf = IvfflatNewBuffer(index, forkNum);
+    IvfflatInitRegisterPage(index, &buf, &page, &state);
 
-	/* Set metapage data */
-	metap = IvfflatPageGetMeta(page);
-	metap->magicNumber = IVFFLAT_MAGIC_NUMBER;
-	metap->version = IVFFLAT_VERSION;
-	metap->dimensions = dimensions;
-	metap->lists = lists;
-	((PageHeader) page)->pd_lower =
-		((char *) metap + sizeof(IvfflatMetaPageData)) - (char *) page;
+    // Set metapage data 
+    metap = IvfflatPageGetMeta(page);
+    metap->magicNumber = IVFFLAT_MAGIC_NUMBER;
+    metap->version = IVFFLAT_VERSION;
+    metap->dimensions = dimensions;
+    metap->lists = lists;
+    ((PageHeader) page)->pd_lower = ((char *) metap + sizeof(IvfflatMetaPageData)) - (char *) page;
 
-	IvfflatCommitBuffer(buf, state);
+    IvfflatCommitBuffer(buf, state);
 }
 
 /*
  * Create list pages
  */
 static void
-CreateListPages(Relation index, VectorArray centers, int dimensions,
-				int lists, ForkNumber forkNum, ListInfo * *listInfo)
-{
-	Buffer		buf;
-	Page		page;
-	GenericXLogState *state;
-	OffsetNumber offno;
-	Size		itemsz;
-	IvfflatList list;
+CreateListPages(Relation index, VectorArray centers, int dimensions, int lists, ForkNumber forkNum, ListInfo * *listInfo) {
+    Buffer buf;
+    Page page;
+    GenericXLogState *state;
+    OffsetNumber offno;
+    Size itemsz;
+    IvfflatList list;
 
-	itemsz = MAXALIGN(IVFFLAT_LIST_SIZE(dimensions));
-	list = palloc(itemsz);
+    itemsz = MAXALIGN(IVFFLAT_LIST_SIZE(dimensions));
+    list = palloc(itemsz);
 
-	buf = IvfflatNewBuffer(index, forkNum);
-	IvfflatInitRegisterPage(index, &buf, &page, &state);
+    buf = IvfflatNewBuffer(index, forkNum);
+    IvfflatInitRegisterPage(index, &buf, &page, &state);
 
-	for (int i = 0; i < lists; i++)
-	{
-		/* Load list */
-		list->startPage = InvalidBlockNumber;
-		list->insertPage = InvalidBlockNumber;
-		memcpy(&list->center, VectorArrayGet(centers, i), VECTOR_SIZE(dimensions));
+    for (int i = 0; i < lists; i++) {
+        // Load list 
+        list->startPage = InvalidBlockNumber;
+        list->insertPage = InvalidBlockNumber;
+        memcpy(&list->center, VectorArrayGet(centers, i), VECTOR_SIZE(dimensions));
 
-		/* Ensure free space */
-		if (PageGetFreeSpace(page) < itemsz)
-			IvfflatAppendPage(index, &buf, &page, &state, forkNum);
+        // Ensure free space 
+        if (PageGetFreeSpace(page) < itemsz)
+            IvfflatAppendPage(index, &buf, &page, &state, forkNum);
 
-		/* Add the item */
-		offno = PageAddItem(page, (Item) list, itemsz, InvalidOffsetNumber, false, false);
-		if (offno == InvalidOffsetNumber)
-			elog(ERROR, "failed to add index item to \"%s\"", RelationGetRelationName(index));
+        // Add the item 
+        offno = PageAddItem(page, (Item) list, itemsz, InvalidOffsetNumber, false, false);
+        if (offno == InvalidOffsetNumber)
+            elog(ERROR, "failed to add index item to \"%s\"", RelationGetRelationName(index));
 
-		/* Save location info */
-		(*listInfo)[i].blkno = BufferGetBlockNumber(buf);
-		(*listInfo)[i].offno = offno;
-	}
+        // Save location info 
+        (*listInfo)[i].blkno = BufferGetBlockNumber(buf);
+        (*listInfo)[i].offno = offno;
+    }
 
-	IvfflatCommitBuffer(buf, state);
+    IvfflatCommitBuffer(buf, state);
 
-	pfree(list);
+    pfree(list);
 }
 
 /*
@@ -549,43 +536,41 @@ CreateListPages(Relation index, VectorArray centers, int dimensions,
  */
 #ifdef IVFFLAT_KMEANS_DEBUG
 static void
-PrintKmeansMetrics(IvfflatBuildState * buildstate)
-{
-	elog(INFO, "inertia: %.3e", buildstate->inertia);
+PrintKmeansMetrics(IvfflatBuildState * buildstate) {
+    elog(INFO, "inertia: %.3e", buildstate->inertia);
 
-	/* Calculate Davies-Bouldin index */
-	if (buildstate->lists > 1 && !buildstate->ivfleader)
-	{
-		double		db = 0.0;
+    // Calculate Davies-Bouldin index 
+    if (buildstate->lists > 1 && !buildstate->ivfleader) {
+        double db = 0.0;
 
-		/* Calculate average distance */
-		for (int i = 0; i < buildstate->lists; i++)
-		{
-			if (buildstate->listCounts[i] > 0)
-				buildstate->listSums[i] /= buildstate->listCounts[i];
-		}
+        // Calculate average distance 
+        for (int i = 0; i < buildstate->lists; i++)
+        {
+            if (buildstate->listCounts[i] > 0)
+                buildstate->listSums[i] /= buildstate->listCounts[i];
+        }
 
-		for (int i = 0; i < buildstate->lists; i++)
-		{
-			double		max = 0.0;
-			double		distance;
+        for (int i = 0; i < buildstate->lists; i++)
+        {
+            double max = 0.0;
+            double distance;
 
-			for (int j = 0; j < buildstate->lists; j++)
-			{
-				if (j == i)
-					continue;
+            for (int j = 0; j < buildstate->lists; j++)
+            {
+                if (j == i)
+                    continue;
 
-				distance = DatumGetFloat8(FunctionCall2Coll(buildstate->procinfo, buildstate->collation, PointerGetDatum(VectorArrayGet(buildstate->centers, i)), PointerGetDatum(VectorArrayGet(buildstate->centers, j))));
-				distance = (buildstate->listSums[i] + buildstate->listSums[j]) / distance;
+                distance = DatumGetFloat8(FunctionCall2Coll(buildstate->procinfo, buildstate->collation, PointerGetDatum(VectorArrayGet(buildstate->centers, i)), PointerGetDatum(VectorArrayGet(buildstate->centers, j))));
+                distance = (buildstate->listSums[i] + buildstate->listSums[j]) / distance;
 
-				if (distance > max)
-					max = distance;
-			}
-			db += max;
-		}
-		db /= buildstate->lists;
-		elog(INFO, "davies-bouldin: %.3f", db);
-	}
+                if (distance > max)
+                    max = distance;
+            }
+            db += max;
+        }
+        db /= buildstate->lists;
+        elog(INFO, "davies-bouldin: %.3f", db);
+    }
 }
 #endif
 
@@ -595,110 +580,101 @@ PrintKmeansMetrics(IvfflatBuildState * buildstate)
 static double
 ParallelHeapScan(IvfflatBuildState * buildstate)
 {
-	IvfflatShared *ivfshared = buildstate->ivfleader->ivfshared;
-	int			nparticipanttuplesorts;
-	double		reltuples;
+    IvfflatShared *ivfshared = buildstate->ivfleader->ivfshared;
+    int nparticipanttuplesorts;
+    double reltuples;
 
-	nparticipanttuplesorts = buildstate->ivfleader->nparticipanttuplesorts;
-	for (;;)
-	{
-		SpinLockAcquire(&ivfshared->mutex);
-		if (ivfshared->nparticipantsdone == nparticipanttuplesorts)
-		{
-			buildstate->indtuples = ivfshared->indtuples;
-			reltuples = ivfshared->reltuples;
+    nparticipanttuplesorts = buildstate->ivfleader->nparticipanttuplesorts;
+    for (;;) {
+        SpinLockAcquire(&ivfshared->mutex);
+        if (ivfshared->nparticipantsdone == nparticipanttuplesorts) {
+            buildstate->indtuples = ivfshared->indtuples;
+            reltuples = ivfshared->reltuples;
 #ifdef IVFFLAT_KMEANS_DEBUG
-			buildstate->inertia = ivfshared->inertia;
+            buildstate->inertia = ivfshared->inertia;
 #endif
-			SpinLockRelease(&ivfshared->mutex);
-			break;
-		}
-		SpinLockRelease(&ivfshared->mutex);
+            SpinLockRelease(&ivfshared->mutex);
+            break;
+        }
+        SpinLockRelease(&ivfshared->mutex);
 
-		ConditionVariableSleep(&ivfshared->workersdonecv,
-							   WAIT_EVENT_PARALLEL_CREATE_INDEX_SCAN);
-	}
+        ConditionVariableSleep(&ivfshared->workersdonecv, WAIT_EVENT_PARALLEL_CREATE_INDEX_SCAN);
+    }
 
-	ConditionVariableCancelSleep();
+    ConditionVariableCancelSleep();
 
-	return reltuples;
+    return reltuples;
 }
 
 /*
  * Perform a worker's portion of a parallel sort
  */
 static void
-IvfflatParallelScanAndSort(IvfflatSpool * ivfspool, IvfflatShared * ivfshared, Sharedsort *sharedsort, gtype * ivfcenters, int sortmem, bool progress)
-{
-	SortCoordinate coordinate;
-	IvfflatBuildState buildstate;
+IvfflatParallelScanAndSort(IvfflatSpool * ivfspool, IvfflatShared * ivfshared, Sharedsort *sharedsort, gtype * ivfcenters, int sortmem, bool progress) {
+    SortCoordinate coordinate;
+    IvfflatBuildState buildstate;
 #if PG_VERSION_NUM >= 120000
-	TableScanDesc scan;
+    TableScanDesc scan;
 #else
-	HeapScanDesc scan;
+    HeapScanDesc scan;
 #endif
-	double		reltuples;
-	IndexInfo  *indexInfo;
+    double reltuples;
+    IndexInfo *indexInfo;
 
-	/* Sort options, which must match AssignTuples */
-	AttrNumber	attNums[] = {1};
-	Oid			sortOperators[] = {Int4LessOperator};
-	Oid			sortCollations[] = {InvalidOid};
-	bool		nullsFirstFlags[] = {false};
+    // Sort options, which must match AssignTuples 
+    AttrNumber attNums[] = {1};
+    Oid sortOperators[] = {Int4LessOperator};
+    Oid sortCollations[] = {InvalidOid};
+    bool nullsFirstFlags[] = {false};
 
-	/* Initialize local tuplesort coordination state */
-	coordinate = palloc0(sizeof(SortCoordinateData));
-	coordinate->isWorker = true;
-	coordinate->nParticipants = -1;
-	coordinate->sharedsort = sharedsort;
+    // Initialize local tuplesort coordination state 
+    coordinate = palloc0(sizeof(SortCoordinateData));
+    coordinate->isWorker = true;
+    coordinate->nParticipants = -1;
+    coordinate->sharedsort = sharedsort;
 
-	/* Join parallel scan */
-	indexInfo = BuildIndexInfo(ivfspool->index);
-	indexInfo->ii_Concurrent = ivfshared->isconcurrent;
-	InitBuildState(&buildstate, ivfspool->heap, ivfspool->index, indexInfo);
-	memcpy(buildstate.centers->items, ivfcenters, VECTOR_SIZE(buildstate.centers->dim) * buildstate.centers->maxlen);
-	buildstate.centers->length = buildstate.centers->maxlen;
-	ivfspool->sortstate = tuplesort_begin_heap(buildstate.tupdesc, 1, attNums, sortOperators, sortCollations, nullsFirstFlags, sortmem, coordinate, false);
-	buildstate.sortstate = ivfspool->sortstate;
+    // Join parallel scan 
+    indexInfo = BuildIndexInfo(ivfspool->index);
+    indexInfo->ii_Concurrent = ivfshared->isconcurrent;
+    InitBuildState(&buildstate, ivfspool->heap, ivfspool->index, indexInfo);
+    memcpy(buildstate.centers->items, ivfcenters, VECTOR_SIZE(buildstate.centers->dim) * buildstate.centers->maxlen);
+    buildstate.centers->length = buildstate.centers->maxlen;
+    ivfspool->sortstate = tuplesort_begin_heap(buildstate.tupdesc, 1, attNums, sortOperators, sortCollations, nullsFirstFlags, sortmem, coordinate, false);
+    buildstate.sortstate = ivfspool->sortstate;
 #if PG_VERSION_NUM >= 120000
-	scan = table_beginscan_parallel(ivfspool->heap,
-									ParallelTableScanFromIvfflatShared(ivfshared));
-	reltuples = table_index_build_scan(ivfspool->heap, ivfspool->index, indexInfo,
-									   true, progress, BuildCallback,
-									   (void *) &buildstate, scan);
+    scan = table_beginscan_parallel(ivfspool->heap, ParallelTableScanFromIvfflatShared(ivfshared));
+    reltuples = table_index_build_scan(ivfspool->heap, ivfspool->index, indexInfo, true, progress, BuildCallback, (void *) &buildstate, scan);
 #else
-	scan = heap_beginscan_parallel(ivfspool->heap, &ivfshared->heapdesc);
-	reltuples = IndexBuildHeapScan(ivfspool->heap, ivfspool->index, indexInfo,
-								   true, BuildCallback,
-								   (void *) &buildstate, scan);
+    scan = heap_beginscan_parallel(ivfspool->heap, &ivfshared->heapdesc);
+    reltuples = IndexBuildHeapScan(ivfspool->heap, ivfspool->index, indexInfo, true, BuildCallback, (void *) &buildstate, scan);
 #endif
 
-	/* Execute this worker's part of the sort */
-	tuplesort_performsort(ivfspool->sortstate);
+    // Execute this worker's part of the sort 
+    tuplesort_performsort(ivfspool->sortstate);
 
-	/* Record statistics */
-	SpinLockAcquire(&ivfshared->mutex);
-	ivfshared->nparticipantsdone++;
-	ivfshared->reltuples += reltuples;
-	ivfshared->indtuples += buildstate.indtuples;
+    // Record statistics 
+    SpinLockAcquire(&ivfshared->mutex);
+    ivfshared->nparticipantsdone++;
+    ivfshared->reltuples += reltuples;
+    ivfshared->indtuples += buildstate.indtuples;
 #ifdef IVFFLAT_KMEANS_DEBUG
-	ivfshared->inertia += buildstate.inertia;
+    ivfshared->inertia += buildstate.inertia;
 #endif
-	SpinLockRelease(&ivfshared->mutex);
+    SpinLockRelease(&ivfshared->mutex);
 
-	/* Log statistics */
-	if (progress)
-		ereport(DEBUG1, (errmsg("leader processed " INT64_FORMAT " tuples", (int64) reltuples)));
-	else
-		ereport(DEBUG1, (errmsg("worker processed " INT64_FORMAT " tuples", (int64) reltuples)));
+    // Log statistics 
+    if (progress)
+        ereport(DEBUG1, (errmsg("leader processed " INT64_FORMAT " tuples", (int64) reltuples)));
+    else
+        ereport(DEBUG1, (errmsg("worker processed " INT64_FORMAT " tuples", (int64) reltuples)));
 
-	/* Notify leader */
-	ConditionVariableSignal(&ivfshared->workersdonecv);
+    // Notify leader 
+    ConditionVariableSignal(&ivfshared->workersdonecv);
 
-	/* We can end tuplesorts immediately */
-	tuplesort_end(ivfspool->sortstate);
+    // We can end tuplesorts immediately 
+    tuplesort_end(ivfspool->sortstate);
 
-	FreeBuildState(&buildstate);
+    FreeBuildState(&buildstate);
 }
 
 /*
@@ -707,68 +683,65 @@ IvfflatParallelScanAndSort(IvfflatSpool * ivfspool, IvfflatShared * ivfshared, S
 void
 IvfflatParallelBuildMain(dsm_segment *seg, shm_toc *toc)
 {
-	char	   *sharedquery;
-	IvfflatSpool *ivfspool;
-	IvfflatShared *ivfshared;
-	Sharedsort *sharedsort;
-	Vector	   *ivfcenters;
-	Relation	heapRel;
-	Relation	indexRel;
-	LOCKMODE	heapLockmode;
-	LOCKMODE	indexLockmode;
-	int			sortmem;
+    char *sharedquery;
+    IvfflatSpool *ivfspool;
+    IvfflatShared *ivfshared;
+    Sharedsort *sharedsort;
+    Vector *ivfcenters;
+    Relation heapRel;
+    Relation indexRel;
+    LOCKMODE heapLockmode;
+    LOCKMODE indexLockmode;
+    int sortmem;
 
-	/* Set debug_query_string for individual workers first */
-	sharedquery = shm_toc_lookup(toc, PARALLEL_KEY_QUERY_TEXT, true);
-	debug_query_string = sharedquery;
+    // Set debug_query_string for individual workers first 
+    sharedquery = shm_toc_lookup(toc, PARALLEL_KEY_QUERY_TEXT, true);
+    debug_query_string = sharedquery;
 
-	/* Report the query string from leader */
-	pgstat_report_activity(STATE_RUNNING, debug_query_string);
+    // Report the query string from leader 
+    pgstat_report_activity(STATE_RUNNING, debug_query_string);
 
-	/* Look up shared state */
-	ivfshared = shm_toc_lookup(toc, PARALLEL_KEY_IVFFLAT_SHARED, false);
+    // Look up shared state 
+    ivfshared = shm_toc_lookup(toc, PARALLEL_KEY_IVFFLAT_SHARED, false);
 
-	/* Open relations using lock modes known to be obtained by index.c */
-	if (!ivfshared->isconcurrent)
-	{
-		heapLockmode = ShareLock;
-		indexLockmode = AccessExclusiveLock;
-	}
-	else
-	{
-		heapLockmode = ShareUpdateExclusiveLock;
-		indexLockmode = RowExclusiveLock;
-	}
+    // Open relations using lock modes known to be obtained by index.c 
+    if (!ivfshared->isconcurrent) {
+        heapLockmode = ShareLock;
+        indexLockmode = AccessExclusiveLock;
+    } else {
+        heapLockmode = ShareUpdateExclusiveLock;
+        indexLockmode = RowExclusiveLock;
+    }
 
-	/* Open relations within worker */
+    // Open relations within worker 
 #if PG_VERSION_NUM >= 120000
-	heapRel = table_open(ivfshared->heaprelid, heapLockmode);
+    heapRel = table_open(ivfshared->heaprelid, heapLockmode);
 #else
-	heapRel = heap_open(ivfshared->heaprelid, heapLockmode);
+    heapRel = heap_open(ivfshared->heaprelid, heapLockmode);
 #endif
-	indexRel = index_open(ivfshared->indexrelid, indexLockmode);
+    indexRel = index_open(ivfshared->indexrelid, indexLockmode);
 
-	/* Initialize worker's own spool */
-	ivfspool = (IvfflatSpool *) palloc0(sizeof(IvfflatSpool));
-	ivfspool->heap = heapRel;
-	ivfspool->index = indexRel;
+    // Initialize worker's own spool 
+    ivfspool = (IvfflatSpool *) palloc0(sizeof(IvfflatSpool));
+    ivfspool->heap = heapRel;
+    ivfspool->index = indexRel;
 
-	/* Look up shared state private to tuplesort.c */
-	sharedsort = shm_toc_lookup(toc, PARALLEL_KEY_TUPLESORT, false);
-	tuplesort_attach_shared(sharedsort, seg);
+    // Look up shared state private to tuplesort.c 
+    sharedsort = shm_toc_lookup(toc, PARALLEL_KEY_TUPLESORT, false);
+    tuplesort_attach_shared(sharedsort, seg);
 
-	ivfcenters = shm_toc_lookup(toc, PARALLEL_KEY_IVFFLAT_CENTERS, false);
+    ivfcenters = shm_toc_lookup(toc, PARALLEL_KEY_IVFFLAT_CENTERS, false);
 
-	/* Perform sorting */
-	sortmem = maintenance_work_mem / ivfshared->scantuplesortstates;
-	IvfflatParallelScanAndSort(ivfspool, ivfshared, sharedsort, ivfcenters, sortmem, false);
+    // Perform sorting 
+    sortmem = maintenance_work_mem / ivfshared->scantuplesortstates;
+    IvfflatParallelScanAndSort(ivfspool, ivfshared, sharedsort, ivfcenters, sortmem, false);
 
-	/* Close relations within worker */
-	index_close(indexRel, indexLockmode);
+    // Close relations within worker 
+    index_close(indexRel, indexLockmode);
 #if PG_VERSION_NUM >= 120000
-	table_close(heapRel, heapLockmode);
+    table_close(heapRel, heapLockmode);
 #else
-	heap_close(heapRel, heapLockmode);
+    heap_close(heapRel, heapLockmode);
 #endif
 }
 
@@ -776,16 +749,15 @@ IvfflatParallelBuildMain(dsm_segment *seg, shm_toc *toc)
  * End parallel build
  */
 static void
-IvfflatEndParallel(IvfflatLeader * ivfleader)
-{
-	/* Shutdown worker processes */
-	WaitForParallelWorkersToFinish(ivfleader->pcxt);
+IvfflatEndParallel(IvfflatLeader *ivfleader) {
+    // Shutdown worker processes 
+    WaitForParallelWorkersToFinish(ivfleader->pcxt);
 
-	/* Free last reference to MVCC snapshot, if one was used */
-	if (IsMVCCSnapshot(ivfleader->snapshot))
-		UnregisterSnapshot(ivfleader->snapshot);
-	DestroyParallelContext(ivfleader->pcxt);
-	ExitParallelMode();
+    // Free last reference to MVCC snapshot, if one was used 
+    if (IsMVCCSnapshot(ivfleader->snapshot))
+        UnregisterSnapshot(ivfleader->snapshot);
+    DestroyParallelContext(ivfleader->pcxt);
+    ExitParallelMode();
 }
 
 /*
@@ -795,17 +767,17 @@ static Size
 ParallelEstimateShared(Relation heap, Snapshot snapshot)
 {
 #if PG_VERSION_NUM >= 120000
-	return add_size(BUFFERALIGN(sizeof(IvfflatShared)), table_parallelscan_estimate(heap, snapshot));
+    return add_size(BUFFERALIGN(sizeof(IvfflatShared)), table_parallelscan_estimate(heap, snapshot));
 #else
-	if (!IsMVCCSnapshot(snapshot))
-	{
-		Assert(snapshot == SnapshotAny);
-		return sizeof(IvfflatShared);
-	}
+    if (!IsMVCCSnapshot(snapshot))
+    {
+        Assert(snapshot == SnapshotAny);
+        return sizeof(IvfflatShared);
+    }
 
-	return add_size(offsetof(IvfflatShared, heapdesc) +
-					offsetof(ParallelHeapScanDescData, phs_snapshot_data),
-					EstimateSnapshotSpace(snapshot));
+    return add_size(offsetof(IvfflatShared, heapdesc) +
+                    offsetof(ParallelHeapScanDescData, phs_snapshot_data),
+                    EstimateSnapshotSpace(snapshot));
 #endif
 }
 
@@ -815,20 +787,18 @@ ParallelEstimateShared(Relation heap, Snapshot snapshot)
 static void
 IvfflatLeaderParticipateAsWorker(IvfflatBuildState * buildstate)
 {
-	IvfflatLeader *ivfleader = buildstate->ivfleader;
-	IvfflatSpool *leaderworker;
-	int			sortmem;
+    IvfflatLeader *ivfleader = buildstate->ivfleader;
+    IvfflatSpool *leaderworker;
+    int sortmem;
 
-	/* Allocate memory and initialize private spool */
-	leaderworker = (IvfflatSpool *) palloc0(sizeof(IvfflatSpool));
-	leaderworker->heap = buildstate->heap;
-	leaderworker->index = buildstate->index;
+    // Allocate memory and initialize private spool 
+    leaderworker = (IvfflatSpool *) palloc0(sizeof(IvfflatSpool));
+    leaderworker->heap = buildstate->heap;
+    leaderworker->index = buildstate->index;
 
-	/* Perform work common to all participants */
-	sortmem = maintenance_work_mem / ivfleader->nparticipanttuplesorts;
-	IvfflatParallelScanAndSort(leaderworker, ivfleader->ivfshared,
-							   ivfleader->sharedsort, ivfleader->ivfcenters,
-							   sortmem, true);
+    // Perform work common to all participants 
+    sortmem = maintenance_work_mem / ivfleader->nparticipanttuplesorts;
+    IvfflatParallelScanAndSort(leaderworker, ivfleader->ivfshared, ivfleader->sharedsort, ivfleader->ivfcenters, sortmem, true);
 }
 
 /*
@@ -837,148 +807,146 @@ IvfflatLeaderParticipateAsWorker(IvfflatBuildState * buildstate)
 static void
 IvfflatBeginParallel(IvfflatBuildState * buildstate, bool isconcurrent, int request)
 {
-	ParallelContext *pcxt;
-	int			scantuplesortstates;
-	Snapshot	snapshot;
-	Size		estivfshared;
-	Size		estsort;
-	Size		estcenters;
-	IvfflatShared *ivfshared;
-	Sharedsort *sharedsort;
-	gtype	   *ivfcenters;
-	IvfflatLeader *ivfleader = (IvfflatLeader *) palloc0(sizeof(IvfflatLeader));
-	bool		leaderparticipates = true;
-	int			querylen;
+    ParallelContext *pcxt;
+    int scantuplesortstates;
+    Snapshot snapshot;
+    Size estivfshared;
+    Size estsort;
+    Size estcenters;
+    IvfflatShared *ivfshared;
+    Sharedsort *sharedsort;
+    gtype *ivfcenters;
+    IvfflatLeader *ivfleader = (IvfflatLeader *) palloc0(sizeof(IvfflatLeader));
+    bool leaderparticipates = true;
+    int querylen;
 
 #ifdef DISABLE_LEADER_PARTICIPATION
-	leaderparticipates = false;
+    leaderparticipates = false;
 #endif
 
-	/* Enter parallel mode and create context */
-	EnterParallelMode();
-	Assert(request > 0);
+    // Enter parallel mode and create context 
+    EnterParallelMode();
+    Assert(request > 0);
 #if PG_VERSION_NUM >= 120000
-	pcxt = CreateParallelContext("vector", "IvfflatParallelBuildMain", request);
+    pcxt = CreateParallelContext("vector", "IvfflatParallelBuildMain", request);
 #else
-	pcxt = CreateParallelContext("vector", "IvfflatParallelBuildMain", request, true);
+    pcxt = CreateParallelContext("vector", "IvfflatParallelBuildMain", request, true);
 #endif
 
-	scantuplesortstates = leaderparticipates ? request + 1 : request;
+    scantuplesortstates = leaderparticipates ? request + 1 : request;
 
-	/* Get snapshot for table scan */
-	if (!isconcurrent)
-		snapshot = SnapshotAny;
-	else
-		snapshot = RegisterSnapshot(GetTransactionSnapshot());
+    // Get snapshot for table scan 
+    if (!isconcurrent)
+        snapshot = SnapshotAny;
+    else
+        snapshot = RegisterSnapshot(GetTransactionSnapshot());
 
-	/* Estimate size of workspaces */
-	estivfshared = ParallelEstimateShared(buildstate->heap, snapshot);
-	shm_toc_estimate_chunk(&pcxt->estimator, estivfshared);
-	estsort = tuplesort_estimate_shared(scantuplesortstates);
-	shm_toc_estimate_chunk(&pcxt->estimator, estsort);
-	estcenters = VECTOR_SIZE(buildstate->dimensions) * buildstate->lists;
-	shm_toc_estimate_chunk(&pcxt->estimator, estcenters);
-	shm_toc_estimate_keys(&pcxt->estimator, 3);
+    // Estimate size of workspaces 
+    estivfshared = ParallelEstimateShared(buildstate->heap, snapshot);
+    shm_toc_estimate_chunk(&pcxt->estimator, estivfshared);
+    estsort = tuplesort_estimate_shared(scantuplesortstates);
+    shm_toc_estimate_chunk(&pcxt->estimator, estsort);
+    estcenters = VECTOR_SIZE(buildstate->dimensions) * buildstate->lists;
+    shm_toc_estimate_chunk(&pcxt->estimator, estcenters);
+    shm_toc_estimate_keys(&pcxt->estimator, 3);
 
-	/* Finally, estimate PARALLEL_KEY_QUERY_TEXT space */
-	if (debug_query_string)
-	{
-		querylen = strlen(debug_query_string);
-		shm_toc_estimate_chunk(&pcxt->estimator, querylen + 1);
-		shm_toc_estimate_keys(&pcxt->estimator, 1);
-	}
-	else
-		querylen = 0;			/* keep compiler quiet */
+    // Finally, estimate PARALLEL_KEY_QUERY_TEXT space 
+    if (debug_query_string)
+    {
+        querylen = strlen(debug_query_string);
+        shm_toc_estimate_chunk(&pcxt->estimator, querylen + 1);
+        shm_toc_estimate_keys(&pcxt->estimator, 1);
+    }
+    else
+        querylen = 0;            // keep compiler quiet 
 
-	/* Everyone's had a chance to ask for space, so now create the DSM */
-	InitializeParallelDSM(pcxt);
+    // Everyone's had a chance to ask for space, so now create the DSM 
+    InitializeParallelDSM(pcxt);
 
-	/* If no DSM segment was available, back out (do serial build) */
-	if (pcxt->seg == NULL)
-	{
-		if (IsMVCCSnapshot(snapshot))
-			UnregisterSnapshot(snapshot);
-		DestroyParallelContext(pcxt);
-		ExitParallelMode();
-		return;
-	}
+    // If no DSM segment was available, back out (do serial build) 
+    if (pcxt->seg == NULL)
+    {
+        if (IsMVCCSnapshot(snapshot))
+            UnregisterSnapshot(snapshot);
+        DestroyParallelContext(pcxt);
+        ExitParallelMode();
+        return;
+    }
 
-	/* Store shared build state, for which we reserved space */
-	ivfshared = (IvfflatShared *) shm_toc_allocate(pcxt->toc, estivfshared);
-	/* Initialize immutable state */
-	ivfshared->heaprelid = RelationGetRelid(buildstate->heap);
-	ivfshared->indexrelid = RelationGetRelid(buildstate->index);
-	ivfshared->isconcurrent = isconcurrent;
-	ivfshared->scantuplesortstates = scantuplesortstates;
-	ConditionVariableInit(&ivfshared->workersdonecv);
-	SpinLockInit(&ivfshared->mutex);
-	/* Initialize mutable state */
-	ivfshared->nparticipantsdone = 0;
-	ivfshared->reltuples = 0;
-	ivfshared->indtuples = 0;
+    // Store shared build state, for which we reserved space 
+    ivfshared = (IvfflatShared *) shm_toc_allocate(pcxt->toc, estivfshared);
+    // Initialize immutable state 
+    ivfshared->heaprelid = RelationGetRelid(buildstate->heap);
+    ivfshared->indexrelid = RelationGetRelid(buildstate->index);
+    ivfshared->isconcurrent = isconcurrent;
+    ivfshared->scantuplesortstates = scantuplesortstates;
+    ConditionVariableInit(&ivfshared->workersdonecv);
+    SpinLockInit(&ivfshared->mutex);
+    // Initialize mutable state 
+    ivfshared->nparticipantsdone = 0;
+    ivfshared->reltuples = 0;
+    ivfshared->indtuples = 0;
 #ifdef IVFFLAT_KMEANS_DEBUG
-	ivfshared->inertia = 0;
+    ivfshared->inertia = 0;
 #endif
 #if PG_VERSION_NUM >= 120000
-	table_parallelscan_initialize(buildstate->heap,
-								  ParallelTableScanFromIvfflatShared(ivfshared),
-								  snapshot);
+    table_parallelscan_initialize(buildstate->heap, ParallelTableScanFromIvfflatShared(ivfshared), snapshot);
 #else
-	heap_parallelscan_initialize(&ivfshared->heapdesc, buildstate->heap, snapshot);
+    heap_parallelscan_initialize(&ivfshared->heapdesc, buildstate->heap, snapshot);
 #endif
 
-	/* Store shared tuplesort-private state, for which we reserved space */
-	sharedsort = (Sharedsort *) shm_toc_allocate(pcxt->toc, estsort);
-	tuplesort_initialize_shared(sharedsort, scantuplesortstates,
-								pcxt->seg);
+    // Store shared tuplesort-private state, for which we reserved space 
+    sharedsort = (Sharedsort *) shm_toc_allocate(pcxt->toc, estsort);
+    tuplesort_initialize_shared(sharedsort, scantuplesortstates,
+                                pcxt->seg);
 
-	ivfcenters = (gtype *) shm_toc_allocate(pcxt->toc, estcenters);
-	memcpy(ivfcenters, buildstate->centers->items, estcenters);
+    ivfcenters = (gtype *) shm_toc_allocate(pcxt->toc, estcenters);
+    memcpy(ivfcenters, buildstate->centers->items, estcenters);
 
-	shm_toc_insert(pcxt->toc, PARALLEL_KEY_IVFFLAT_SHARED, ivfshared);
-	shm_toc_insert(pcxt->toc, PARALLEL_KEY_TUPLESORT, sharedsort);
-	shm_toc_insert(pcxt->toc, PARALLEL_KEY_IVFFLAT_CENTERS, ivfcenters);
+    shm_toc_insert(pcxt->toc, PARALLEL_KEY_IVFFLAT_SHARED, ivfshared);
+    shm_toc_insert(pcxt->toc, PARALLEL_KEY_TUPLESORT, sharedsort);
+    shm_toc_insert(pcxt->toc, PARALLEL_KEY_IVFFLAT_CENTERS, ivfcenters);
 
-	/* Store query string for workers */
-	if (debug_query_string)
-	{
-		char	   *sharedquery;
+    // Store query string for workers 
+    if (debug_query_string)
+    {
+        char       *sharedquery;
 
-		sharedquery = (char *) shm_toc_allocate(pcxt->toc, querylen + 1);
-		memcpy(sharedquery, debug_query_string, querylen + 1);
-		shm_toc_insert(pcxt->toc, PARALLEL_KEY_QUERY_TEXT, sharedquery);
-	}
+        sharedquery = (char *) shm_toc_allocate(pcxt->toc, querylen + 1);
+        memcpy(sharedquery, debug_query_string, querylen + 1);
+        shm_toc_insert(pcxt->toc, PARALLEL_KEY_QUERY_TEXT, sharedquery);
+    }
 
-	/* Launch workers, saving status for leader/caller */
-	LaunchParallelWorkers(pcxt);
-	ivfleader->pcxt = pcxt;
-	ivfleader->nparticipanttuplesorts = pcxt->nworkers_launched;
-	if (leaderparticipates)
-		ivfleader->nparticipanttuplesorts++;
-	ivfleader->ivfshared = ivfshared;
-	ivfleader->sharedsort = sharedsort;
-	ivfleader->snapshot = snapshot;
-	ivfleader->ivfcenters = ivfcenters;
+    // Launch workers, saving status for leader/caller 
+    LaunchParallelWorkers(pcxt);
+    ivfleader->pcxt = pcxt;
+    ivfleader->nparticipanttuplesorts = pcxt->nworkers_launched;
+    if (leaderparticipates)
+        ivfleader->nparticipanttuplesorts++;
+    ivfleader->ivfshared = ivfshared;
+    ivfleader->sharedsort = sharedsort;
+    ivfleader->snapshot = snapshot;
+    ivfleader->ivfcenters = ivfcenters;
 
-	/* If no workers were successfully launched, back out (do serial build) */
-	if (pcxt->nworkers_launched == 0)
-	{
-		IvfflatEndParallel(ivfleader);
-		return;
-	}
+    // If no workers were successfully launched, back out (do serial build) 
+    if (pcxt->nworkers_launched == 0)
+    {
+        IvfflatEndParallel(ivfleader);
+        return;
+    }
 
-	/* Log participants */
-	ereport(DEBUG1, (errmsg("using %d parallel workers", pcxt->nworkers_launched)));
+    // Log participants 
+    ereport(DEBUG1, (errmsg("using %d parallel workers", pcxt->nworkers_launched)));
 
-	/* Save leader state now that it's clear build will be parallel */
-	buildstate->ivfleader = ivfleader;
+    // Save leader state now that it's clear build will be parallel 
+    buildstate->ivfleader = ivfleader;
 
-	/* Join heap scan ourselves */
-	if (leaderparticipates)
-		IvfflatLeaderParticipateAsWorker(buildstate);
+    // Join heap scan ourselves 
+    if (leaderparticipates)
+        IvfflatLeaderParticipateAsWorker(buildstate);
 
-	/* Wait for all launched workers */
-	WaitForParallelWorkersToAttach(pcxt);
+    // Wait for all launched workers 
+    WaitForParallelWorkersToAttach(pcxt);
 }
 
 /*
@@ -987,62 +955,55 @@ IvfflatBeginParallel(IvfflatBuildState * buildstate, bool isconcurrent, int requ
 static void
 AssignTuples(IvfflatBuildState * buildstate)
 {
-	int parallel_workers = 0;
-	SortCoordinate coordinate = NULL;
+    int parallel_workers = 0;
+    SortCoordinate coordinate = NULL;
 
-	/* Sort options, which must match IvfflatParallelScanAndSort */
-	AttrNumber attNums[] = {1};
-	Oid sortOperators[] = {Int4LessOperator};
-	Oid sortCollations[] = {InvalidOid};
-	bool nullsFirstFlags[] = {false};
+    // Sort options, which must match IvfflatParallelScanAndSort 
+    AttrNumber attNums[] = {1};
+    Oid sortOperators[] = {Int4LessOperator};
+    Oid sortCollations[] = {InvalidOid};
+    bool nullsFirstFlags[] = {false};
 
-	UpdateProgress(PROGRESS_CREATEIDX_SUBPHASE, PROGRESS_IVFFLAT_PHASE_ASSIGN);
+    UpdateProgress(PROGRESS_CREATEIDX_SUBPHASE, PROGRESS_IVFFLAT_PHASE_ASSIGN);
 
-	/* Calculate parallel workers */
-	if (buildstate->heap != NULL)
-		parallel_workers = plan_create_index_workers(RelationGetRelid(buildstate->heap),
-				                             RelationGetRelid(buildstate->index));
+    // Calculate parallel workers 
+    if (buildstate->heap != NULL)
+        parallel_workers = plan_create_index_workers(RelationGetRelid(buildstate->heap), RelationGetRelid(buildstate->index));
 
-	/* Attempt to launch parallel worker scan when required */
-	if (parallel_workers > 0)
-		IvfflatBeginParallel(buildstate, buildstate->indexInfo->ii_Concurrent, parallel_workers);
+    // Attempt to launch parallel worker scan when required 
+    if (parallel_workers > 0)
+        IvfflatBeginParallel(buildstate, buildstate->indexInfo->ii_Concurrent, parallel_workers);
 
-	/* Set up coordination state if at least one worker launched */
-	if (buildstate->ivfleader)
-	{
-		coordinate = (SortCoordinate) palloc0(sizeof(SortCoordinateData));
-		coordinate->isWorker = false;
-		coordinate->nParticipants = buildstate->ivfleader->nparticipanttuplesorts;
-		coordinate->sharedsort = buildstate->ivfleader->sharedsort;
-	}
+    // Set up coordination state if at least one worker launched 
+    if (buildstate->ivfleader)
+    {
+        coordinate = (SortCoordinate) palloc0(sizeof(SortCoordinateData));
+        coordinate->isWorker = false;
+        coordinate->nParticipants = buildstate->ivfleader->nparticipanttuplesorts;
+        coordinate->sharedsort = buildstate->ivfleader->sharedsort;
+    }
 
-	/* Begin serial/leader tuplesort */
-	buildstate->sortstate = tuplesort_begin_heap(buildstate->tupdesc, 1, attNums, sortOperators, sortCollations,
-			                             nullsFirstFlags, maintenance_work_mem, coordinate, false);
+    // Begin serial/leader tuplesort 
+    buildstate->sortstate = tuplesort_begin_heap(buildstate->tupdesc, 1, attNums, sortOperators, sortCollations, nullsFirstFlags, maintenance_work_mem, coordinate, false);
 
-	/* Add tuples to sort */
-	if (buildstate->heap != NULL)
-	{
-		if (buildstate->ivfleader)
-			buildstate->reltuples = ParallelHeapScan(buildstate);
-		else
-		{
+    // Add tuples to sort 
+    if (buildstate->heap != NULL)
+    {
+        if (buildstate->ivfleader)
+            buildstate->reltuples = ParallelHeapScan(buildstate);
+        else
+        {
 #if PG_VERSION_NUM >= 120000
-			buildstate->reltuples = table_index_build_scan(buildstate->heap,
-					                               buildstate->index, buildstate->indexInfo,
-								       true, true, BuildCallback,
-								       (void *) buildstate, NULL);
+            buildstate->reltuples = table_index_build_scan(buildstate->heap, buildstate->index, buildstate->indexInfo, true, true, BuildCallback, (void *) buildstate, NULL);
 #else
-			buildstate->reltuples = IndexBuildHeapScan(buildstate->heap, buildstate->index,
-					                           buildstate->indexInfo, true, BuildCallback,
-								   (void *) buildstate, NULL);
+            buildstate->reltuples = IndexBuildHeapScan(buildstate->heap, buildstate->index, buildstate->indexInfo, true, BuildCallback, (void *) buildstate, NULL);
 #endif
-		}
+        }
 
 #ifdef IVFFLAT_KMEANS_DEBUG
-		PrintKmeansMetrics(buildstate);
+        PrintKmeansMetrics(buildstate);
 #endif
-	}
+    }
 }
 
 /*
@@ -1051,68 +1012,64 @@ AssignTuples(IvfflatBuildState * buildstate)
 static void
 CreateEntryPages(IvfflatBuildState * buildstate, ForkNumber forkNum)
 {
-	/* Assign */
-	IvfflatBench("assign tuples", AssignTuples(buildstate));
+    // Assign 
+    IvfflatBench("assign tuples", AssignTuples(buildstate));
 
-	/* Sort */
-	IvfflatBench("sort tuples", tuplesort_performsort(buildstate->sortstate));
+    // Sort 
+    IvfflatBench("sort tuples", tuplesort_performsort(buildstate->sortstate));
 
-	/* Load */
-	IvfflatBench("load tuples", InsertTuples(buildstate->index, buildstate, forkNum));
+    // Load 
+    IvfflatBench("load tuples", InsertTuples(buildstate->index, buildstate, forkNum));
 
-	/* End sort */
-	tuplesort_end(buildstate->sortstate);
+    // End sort 
+    tuplesort_end(buildstate->sortstate);
 
-	/* End parallel build */
-	if (buildstate->ivfleader)
-		IvfflatEndParallel(buildstate->ivfleader);
+    // End parallel build 
+    if (buildstate->ivfleader)
+        IvfflatEndParallel(buildstate->ivfleader);
 }
 
 /*
  * Build the index
  */
 static void
-BuildIndex(Relation heap, Relation index, IndexInfo *indexInfo,
-		   IvfflatBuildState * buildstate, ForkNumber forkNum)
-{
-	InitBuildState(buildstate, heap, index, indexInfo);
+BuildIndex(Relation heap, Relation index, IndexInfo *indexInfo, IvfflatBuildState * buildstate, ForkNumber forkNum) {
+    InitBuildState(buildstate, heap, index, indexInfo);
 
-	ComputeCenters(buildstate);
+    ComputeCenters(buildstate);
 
-	/* Create pages */
-	CreateMetaPage(index, buildstate->dimensions, buildstate->lists, forkNum);
-	CreateListPages(index, buildstate->centers, buildstate->dimensions, buildstate->lists, forkNum, &buildstate->listInfo);
-	CreateEntryPages(buildstate, forkNum);
+    // Create pages 
+    CreateMetaPage(index, buildstate->dimensions, buildstate->lists, forkNum);
+    CreateListPages(index, buildstate->centers, buildstate->dimensions, buildstate->lists, forkNum, &buildstate->listInfo);
+    CreateEntryPages(buildstate, forkNum);
 
-	FreeBuildState(buildstate);
+    FreeBuildState(buildstate);
 }
 
 /*
  * Build the index for a logged table
  */
 IndexBuildResult *
-ivfflatbuild(Relation heap, Relation index, IndexInfo *indexInfo)
-{
-	IndexBuildResult *result;
-	IvfflatBuildState buildstate;
+ivfflatbuild(Relation heap, Relation index, IndexInfo *indexInfo) {
+    IndexBuildResult *result;
+    IvfflatBuildState buildstate;
 
-	BuildIndex(heap, index, indexInfo, &buildstate, MAIN_FORKNUM);
+    BuildIndex(heap, index, indexInfo, &buildstate, MAIN_FORKNUM);
 
-	result = (IndexBuildResult *) palloc(sizeof(IndexBuildResult));
-	result->heap_tuples = buildstate.reltuples;
-	result->index_tuples = buildstate.indtuples;
+    result = (IndexBuildResult *) palloc(sizeof(IndexBuildResult));
+    result->heap_tuples = buildstate.reltuples;
+    result->index_tuples = buildstate.indtuples;
 
-	return result;
+    return result;
 }
 
 /*
  * Build the index for an unlogged table
  */
 void
-ivfflatbuildempty(Relation index)
-{
-	IndexInfo  *indexInfo = BuildIndexInfo(index);
-	IvfflatBuildState buildstate;
+ivfflatbuildempty(Relation index) {
+    IndexInfo  *indexInfo = BuildIndexInfo(index);
+    IvfflatBuildState buildstate;
 
-	BuildIndex(NULL, index, indexInfo, &buildstate, INIT_FORKNUM);
+    BuildIndex(NULL, index, indexInfo, &buildstate, INIT_FORKNUM);
 }
