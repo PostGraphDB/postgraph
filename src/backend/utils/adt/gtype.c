@@ -32,10 +32,6 @@
 #include <math.h>
 
 #include "access/genam.h"
-//#include "access/heapam.h"
-//#include "access/skey.h"
-//#include "access/table.h"
-//#include "access/tableam.h"
 #include "access/htup_details.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_collation.h"
@@ -100,6 +96,7 @@ typedef enum /* type categories for datum_to_gtype */
     AGT_TYPE_TIMETZ,
     AGT_TYPE_INTERVAL,
     AGT_TYPE_VECTOR,
+    AGT_TYPE_INET,
     AGT_TYPE_GTYPE, /* GTYPE */
     AGT_TYPE_JSON, /* JSON */
     AGT_TYPE_JSONB, /* JSONB */
@@ -370,28 +367,27 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
 	appendStringInfoString(out, numstr);
 	break;
     case AGTV_TIMESTAMPTZ:
-        numstr = DatumGetCString(DirectFunctionCall1(
-            timestamptz_out, TimestampGetDatum(scalar_val->val.int_value)));
+        numstr = DatumGetCString(DirectFunctionCall1(timestamptz_out, TimestampGetDatum(scalar_val->val.int_value)));
         appendStringInfoString(out, numstr);
         break;
     case AGTV_DATE:
-        numstr = DatumGetCString(DirectFunctionCall1(
-            date_out, DateADTGetDatum(scalar_val->val.date)));
+        numstr = DatumGetCString(DirectFunctionCall1(date_out, DateADTGetDatum(scalar_val->val.date)));
         appendStringInfoString(out, numstr);
         break;
     case AGTV_TIME:
-        numstr = DatumGetCString(DirectFunctionCall1(
-            time_out, TimeADTGetDatum(scalar_val->val.int_value)));
+        numstr = DatumGetCString(DirectFunctionCall1(time_out, TimeADTGetDatum(scalar_val->val.int_value)));
         appendStringInfoString(out, numstr);
         break;
     case AGTV_TIMETZ:
-        numstr = DatumGetCString(DirectFunctionCall1(
-            timetz_out, DatumGetTimeTzADTP(&scalar_val->val.timetz)));
+        numstr = DatumGetCString(DirectFunctionCall1(timetz_out, DatumGetTimeTzADTP(&scalar_val->val.timetz)));
         appendStringInfoString(out, numstr);
         break;
     case AGTV_INTERVAL:
-        numstr = DatumGetCString(DirectFunctionCall1(
-            interval_out, IntervalPGetDatum(&scalar_val->val.interval)));
+        numstr = DatumGetCString(DirectFunctionCall1(interval_out, IntervalPGetDatum(&scalar_val->val.interval)));
+        appendStringInfoString(out, numstr);
+        break;
+    case AGTV_INET:
+        numstr = DatumGetCString(DirectFunctionCall1(inet_out, InetPGetDatum(&scalar_val->val.inet)));
         appendStringInfoString(out, numstr);
         break;
     case AGTV_BOOL:
@@ -498,6 +494,8 @@ static void gtype_in_scalar(void *pstate, char *token, gtype_token_type tokentyp
             tokentype = GTYPE_TOKEN_TIMETZ;
 	else if (len == 8 && pg_strcasecmp(annotation, "interval") == 0)
             tokentype = GTYPE_TOKEN_INTERVAL;
+        else if (len == 4 && pg_strcasecmp(annotation, "inet") == 0)
+            tokentype = GTYPE_TOKEN_INET;
 	else
             ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                      errmsg("invalid annotation value for scalar")));
@@ -580,6 +578,18 @@ static void gtype_in_scalar(void *pstate, char *token, gtype_token_type tokentyp
         v.val.interval.time = interval->time;
         v.val.interval.day = interval->day;
         v.val.interval.month = interval->month;
+        break;
+        }
+    case GTYPE_TOKEN_INET:
+        {
+        inet *i;
+
+        Assert(token != NULL);
+
+        v.type = AGTV_INET;
+        i = DatumGetInetPP(DirectFunctionCall1(inet_in, CStringGetDatum(token)));
+
+	memcpy(&v.val.inet, i, sizeof(char) * 22);
         break;
         }
     case GTYPE_TOKEN_TRUE:
@@ -944,6 +954,10 @@ static void gtype_categorize_type(Oid typoid, agt_type_category *tcategory, Oid 
         *tcategory = AGT_TYPE_INTERVAL;
         break;
 
+    case INETOID:
+        *tcategory = AGT_TYPE_INET;
+        break;
+
     case JSONBOID:
         *tcategory = AGT_TYPE_JSONB;
         break;
@@ -1125,6 +1139,14 @@ static void datum_to_gtype(Datum val, bool is_null, gtype_in_state *result, agt_
                 agtv.val.interval.month = i->month;
             }
             break;
+	case AGT_TYPE_INET:
+	{
+           inet *i = DatumGetInetPP(val);
+	   agtv.val.inet.inet_data.family = i->inet_data.family;
+	   agtv.val.inet.inet_data.bits = i->inet_data.bits;
+	   memcpy(&agtv.val.inet.inet_data.ipaddr, &i->inet_data.ipaddr, 16 * sizeof(char));
+           memcpy(&agtv.val.inet.vl_len_, &i->vl_len_, 4 * sizeof(char));
+	}
         case AGT_TYPE_JSONCAST:
         case AGT_TYPE_JSON:
         {

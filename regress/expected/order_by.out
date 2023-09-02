@@ -1,0 +1,118 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information 
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance 
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an 
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+LOAD 'postgraph';
+SET search_path TO postgraph;
+SELECT create_graph('order_by');
+NOTICE:  graph "order_by" has been created
+ create_graph 
+--------------
+ 
+(1 row)
+
+SELECT * FROM cypher('order_by', $$CREATE ()$$) AS (result gtype);
+ result 
+--------
+(0 rows)
+
+SELECT * FROM cypher('order_by', $$CREATE ({i: '1'})$$) AS (result gtype);
+ result 
+--------
+(0 rows)
+
+SELECT * FROM cypher('order_by', $$CREATE ({i: 1})$$) AS (result gtype);
+ result 
+--------
+(0 rows)
+
+SELECT * FROM cypher('order_by', $$CREATE ({i: 1.0})$$) AS (result gtype);
+ result 
+--------
+(0 rows)
+
+SELECT * FROM cypher('order_by', $$CREATE ({i: 1::numeric})$$) AS (result gtype);
+ result 
+--------
+(0 rows)
+
+SELECT * FROM cypher('order_by', $$CREATE ({i: true})$$) AS (result gtype);
+ result 
+--------
+(0 rows)
+
+SELECT * FROM cypher('order_by', $$CREATE ({i: false})$$) AS (result gtype);
+ result 
+--------
+(0 rows)
+
+SELECT * FROM cypher('order_by', $$CREATE ({i: {key: 'value'}})$$) AS (result gtype);
+ result 
+--------
+(0 rows)
+
+SELECT * FROM cypher('order_by', $$CREATE ({i: [1]})$$) AS (result gtype);
+ result 
+--------
+(0 rows)
+
+SELECT * FROM cypher('order_by', $$
+        MATCH (u)
+        RETURN u.i
+        ORDER BY u.i
+$$) AS (i gtype);
+        i         
+------------------
+ {"key": "value"}
+ [1]
+ "1"
+ false
+ true
+ 1::numeric
+ 1
+ 1.0
+ 
+(9 rows)
+
+SELECT * FROM cypher('order_by', $$
+        MATCH (u)
+        RETURN u.i
+        ORDER BY u.i DESC
+$$) AS (i gtype);
+        i         
+------------------
+ 
+ 1
+ 1.0
+ 1::numeric
+ true
+ false
+ "1"
+ [1]
+ {"key": "value"}
+(9 rows)
+
+SELECT drop_graph('order_by', true);
+NOTICE:  drop cascades to 2 other objects
+DETAIL:  drop cascades to table order_by._ag_label_vertex
+drop cascades to table order_by._ag_label_edge
+NOTICE:  graph "order_by" has been dropped
+ drop_graph 
+------------
+ 
+(1 row)
+

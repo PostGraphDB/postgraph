@@ -79,6 +79,9 @@ INSERT INTO gtype_table VALUES ('interval', '"40 Days Ago"::interval');
 INSERT INTO gtype_table VALUES ('interval', '"10 Weeks Ago"::interval');
 INSERT INTO gtype_table VALUES ('interval', '"10 Months Ago"::interval');
 INSERT INTO gtype_table VALUES ('interval', '"3 Years Ago"::interval');
+INSERT INTO gtype_table VALUES ('inet', '"192.168.1.5"::inet');
+INSERT INTO gtype_table VALUES ('inet', '"192.168.1/24"::inet');
+INSERT INTO gtype_table VALUES ('inet', '"::ffff:fff0:1"::inet');
 INSERT INTO gtype_table VALUES ('integer array',
 	'[-9223372036854775808, -1, 0, 1, 9223372036854775807]');
 INSERT INTO gtype_table VALUES('float array',
@@ -144,6 +147,9 @@ SELECT * FROM gtype_table;
  interval        | @ 70 days ago
  interval        | @ 10 mons ago
  interval        | @ 3 years ago
+ inet            | 192.168.1.5
+ inet            | 192.168.1.0/24
+ inet            | ::ffff:255.240.0.1
  integer array   | [-9223372036854775808, -1, 0, 1, 9223372036854775807]
  float array     | [-1.2345e-16, -100000000.000001, -1.0, 0.0, 1.0, 100000000.000001, 1.2345e-16]
  mixed array     | [true, false, null, "string", 1, 1.0, {"bool": true}, -1::numeric, [1, 3, 5]]
@@ -154,7 +160,7 @@ SELECT * FROM gtype_table;
  float -Infinity | -Infinity
  float  inf      | Infinity
  float -inf      | -Infinity
-(56 rows)
+(59 rows)
 
 --
 -- These should fail

@@ -97,6 +97,9 @@ INSERT INTO gtype_table VALUES ('interval', '"10 Weeks Ago"::interval');
 INSERT INTO gtype_table VALUES ('interval', '"10 Months Ago"::interval');
 INSERT INTO gtype_table VALUES ('interval', '"3 Years Ago"::interval');
 
+INSERT INTO gtype_table VALUES ('inet', '"192.168.1.5"::inet');
+INSERT INTO gtype_table VALUES ('inet', '"192.168.1/24"::inet');
+INSERT INTO gtype_table VALUES ('inet', '"::ffff:fff0:1"::inet');
 
 INSERT INTO gtype_table VALUES ('integer array',
 	'[-9223372036854775808, -1, 0, 1, 9223372036854775807]');

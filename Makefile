@@ -83,6 +83,7 @@ DATA = postgraph--0.1.0.sql
 REGRESS = scan \
           graphid \
           gtype \
+	  network \
           vertex \
           edge \
           variable_edge \

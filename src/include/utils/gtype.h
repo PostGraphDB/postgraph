@@ -42,6 +42,7 @@
 #include "nodes/pg_list.h"
 #include "utils/array.h"
 #include "utils/date.h"
+#include "utils/inet.h"
 #include "utils/numeric.h"
 #include "utils/syscache.h"
 
@@ -291,15 +292,16 @@ typedef struct
     (*(uint32 *)VARDATA(agtp_) & AGT_FBINARY_MASK)
 
 // values for the GTYPE header field to denote the stored data type
-#define AGT_HEADER_INTEGER 0x00000000
-#define AGT_HEADER_FLOAT   0x00000001
-#define AGT_HEADER_TIMESTAMP 0x00000002
+#define AGT_HEADER_INTEGER     0x00000000
+#define AGT_HEADER_FLOAT       0x00000001
+#define AGT_HEADER_TIMESTAMP   0x00000002
 #define AGT_HEADER_TIMESTAMPTZ 0x00000003
-#define AGT_HEADER_DATE 0x00000004
-#define AGT_HEADER_TIME 0x00000005
-#define AGT_HEADER_TIMETZ 0x00000006
-#define AGT_HEADER_INTERVAL 0x00000007
-#define AGT_HEADER_VECTOR 0x00000008
+#define AGT_HEADER_DATE        0x00000004
+#define AGT_HEADER_TIME        0x00000005
+#define AGT_HEADER_TIMETZ      0x00000006
+#define AGT_HEADER_INTERVAL    0x00000007
+#define AGT_HEADER_VECTOR      0x00000008
+#define AGT_HEADER_INET        0x00000009
 
 #define AGT_IS_INTEGER(agte_) \
     (((agte_) == AGT_HEADER_INTEGER))
@@ -331,6 +333,7 @@ enum gtype_value_type
     AGTV_TIME,
     AGTV_TIMETZ,
     AGTV_INTERVAL,
+    AGTV_INET,
     /* Composite types */
     AGTV_ARRAY = 0x20,
     AGTV_OBJECT,
@@ -360,6 +363,7 @@ struct gtype_value
         struct { int num_elems; gtype_value *elems; bool raw_scalar; } array;       // Array container type
 	struct { int num_pairs; gtype_pair *pairs; } object;                        // Associative container type
         Vector vector;
+	inet inet;
 	struct { int len; gtype_container *data; } binary;                          // Array or object, in on-disk format
     } val;
 };

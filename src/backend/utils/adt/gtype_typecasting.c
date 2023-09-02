@@ -68,6 +68,8 @@ typedef Datum (*coearce_function) (gtype_value *);
 static Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
 static ArrayType *gtype_to_array(coearce_function func, gtype *agt, char *type); 
 
+Datum gtype_to_inet_internal(gtype_value *agtv);
+
 static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqltype);
 
 Datum convert_to_scalar(coearce_function func, gtype *agt, char *type) {
@@ -314,6 +316,48 @@ Datum tovector(PG_FUNCTION_ARGS)
 
     PG_RETURN_POINTER(gtype_value_to_gtype(agtv));
 }
+
+PG_FUNCTION_INFO_V1(gtype_toinet);
+/*                  
+ * Execute function to typecast an agtype to an agtype timestamp
+ */                 
+Datum gtype_toinet(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    inet *i = DatumGetInetPP(convert_to_scalar(gtype_to_inet_internal, agt, "inet"));
+
+    gtype_value agtv;
+    agtv.type = AGTV_INET;
+    agtv.val.inet.vl_len_[0] = i->vl_len_[0];
+    agtv.val.inet.vl_len_[1] = i->vl_len_[1];
+    agtv.val.inet.vl_len_[2] = i->vl_len_[2];
+    agtv.val.inet.vl_len_[3] = i->vl_len_[3];
+    agtv.val.inet.inet_data.family = i->inet_data.family;
+    agtv.val.inet.inet_data.bits = i->inet_data.bits;
+    agtv.val.inet.inet_data.ipaddr[0] = i->inet_data.ipaddr[0];
+    agtv.val.inet.inet_data.ipaddr[1] = i->inet_data.ipaddr[1];
+    agtv.val.inet.inet_data.ipaddr[2] = i->inet_data.ipaddr[2];
+    agtv.val.inet.inet_data.ipaddr[3] = i->inet_data.ipaddr[3];
+    agtv.val.inet.inet_data.ipaddr[4] = i->inet_data.ipaddr[4];
+    agtv.val.inet.inet_data.ipaddr[5] = i->inet_data.ipaddr[5];
+    agtv.val.inet.inet_data.ipaddr[6] = i->inet_data.ipaddr[6];
+    agtv.val.inet.inet_data.ipaddr[7] = i->inet_data.ipaddr[7];
+    agtv.val.inet.inet_data.ipaddr[8] = i->inet_data.ipaddr[8];
+    agtv.val.inet.inet_data.ipaddr[9] = i->inet_data.ipaddr[9];
+    agtv.val.inet.inet_data.ipaddr[10] = i->inet_data.ipaddr[10];
+    agtv.val.inet.inet_data.ipaddr[11] = i->inet_data.ipaddr[11];
+    agtv.val.inet.inet_data.ipaddr[12] = i->inet_data.ipaddr[12];
+    agtv.val.inet.inet_data.ipaddr[13] = i->inet_data.ipaddr[13];
+    agtv.val.inet.inet_data.ipaddr[14] = i->inet_data.ipaddr[14];
+    agtv.val.inet.inet_data.ipaddr[15] = i->inet_data.ipaddr[15];
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+}
+
 
 /*
  * gtype to postgres functions
@@ -744,6 +788,18 @@ gtype_to_timetz_internal(gtype_value *agtv) {
     // unreachable
     return CStringGetDatum("");
 }  
+
+Datum
+gtype_to_inet_internal(gtype_value *agtv) {
+    if (agtv->type == AGTV_STRING)
+        return DirectFunctionCall1(inet_in, CStringGetDatum(agtv->val.string.val));
+    else
+        cannot_cast_gtype_value(agtv->type, "inet");
+
+    // unreachable
+    return CStringGetDatum("");
+}
+
 
 /*
  * Emit correct, translatable cast error message
