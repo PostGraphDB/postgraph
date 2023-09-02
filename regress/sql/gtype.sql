@@ -101,6 +101,11 @@ INSERT INTO gtype_table VALUES ('inet', '"192.168.1.5"::inet');
 INSERT INTO gtype_table VALUES ('inet', '"192.168.1/24"::inet');
 INSERT INTO gtype_table VALUES ('inet', '"::ffff:fff0:1"::inet');
 
+INSERT INTO gtype_table VALUES ('inet', '"192.168.1.5"::cidr');
+INSERT INTO gtype_table VALUES ('inet', '"192.168.1/24"::cidr');
+INSERT INTO gtype_table VALUES ('inet', '"::ffff:fff0:1"::cidr');
+
+
 INSERT INTO gtype_table VALUES ('integer array',
 	'[-9223372036854775808, -1, 0, 1, 9223372036854775807]');
 INSERT INTO gtype_table VALUES('float array',

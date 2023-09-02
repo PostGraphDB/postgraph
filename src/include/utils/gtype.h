@@ -302,6 +302,7 @@ typedef struct
 #define AGT_HEADER_INTERVAL    0x00000007
 #define AGT_HEADER_VECTOR      0x00000008
 #define AGT_HEADER_INET        0x00000009
+#define AGT_HEADER_CIDR        0x00000010
 
 #define AGT_IS_INTEGER(agte_) \
     (((agte_) == AGT_HEADER_INTEGER))
@@ -334,6 +335,7 @@ enum gtype_value_type
     AGTV_TIMETZ,
     AGTV_INTERVAL,
     AGTV_INET,
+    AGTV_CIDR,
     /* Composite types */
     AGTV_ARRAY = 0x20,
     AGTV_OBJECT,

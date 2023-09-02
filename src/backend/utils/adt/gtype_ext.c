@@ -29,9 +29,6 @@
 #define AGT_HEADER_TYPE uint32
 #define AGT_HEADER_SIZE sizeof(AGT_HEADER_TYPE)
 
-static void ag_deserialize_composite(char *base, enum gtype_value_type type,
-                                     gtype_value *result);
-
 static short ag_serialize_header(StringInfo buffer, uint32 type)
 {
     short padlen;
@@ -146,6 +143,16 @@ bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
 
         *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
 	break;
+    case AGTV_CIDR:
+        padlen = ag_serialize_header(buffer, AGT_HEADER_CIDR);
+
+        numlen = sizeof(char) * 22;
+        offset = reserve_from_buffer(buffer, numlen);
+        memcpy(buffer->data + offset, &scalar_val->val.inet, numlen);
+
+        *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
+        break;
+
     default:
         return false;
     }
@@ -204,32 +211,11 @@ void ag_deserialize_extended_type(char *base_addr, uint32 offset, gtype_value *r
 	result->type = AGTV_INET;
 	memcpy(&result->val.inet, base + AGT_HEADER_SIZE, sizeof(char) * 22);
         break;
+    case AGT_HEADER_CIDR:
+        result->type = AGTV_CIDR;
+        memcpy(&result->val.inet, base + AGT_HEADER_SIZE, sizeof(char) * 22);
+        break;
     default:
         elog(ERROR, "Invalid AGT header value.");
     }
-}
-
-/*
- * Deserializes a composite type.
- */
-static void ag_deserialize_composite(char *base, enum gtype_value_type type, gtype_value *result) {
-    gtype_iterator *it = NULL;
-    gtype_iterator_token tok;
-    gtype_parse_state *parse_state = NULL;
-    gtype_value *r = NULL;
-    gtype_value *parsed_gtype_value = NULL;
-    //offset container by the extended type header
-    char *container_base = base + AGT_HEADER_SIZE;
-
-    r = palloc(sizeof(gtype_value));
-
-    it = gtype_iterator_init((gtype_container *)container_base);
-    while ((tok = gtype_iterator_next(&it, r, true)) != WAGT_DONE)
-    {
-        parsed_gtype_value = push_gtype_value(
-            &parse_state, tok, tok < WAGT_BEGIN_ARRAY ? r : NULL);
-    }
-
-    result->type = type;
-    result->val = parsed_gtype_value->val;
 }

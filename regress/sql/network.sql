@@ -20,17 +20,27 @@ SET search_path TO postgraph;
 
 SELECT create_graph('network');
 
-
+--
+-- inet
+--
 SELECT * FROM cypher('network', $$ RETURN toinet('192.168.1.5') $$) as (i gtype);
-
 SELECT * FROM cypher('network', $$ RETURN toinet('192.168.1/24') $$) as (i gtype);
-
 SELECT * FROM cypher('network', $$ RETURN toinet('::ffff:fff0:1') $$) as (i gtype);
-
 SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet $$) as (i gtype);
-
 SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::inet $$) as (i gtype);
-
 SELECT * FROM cypher('network', $$ RETURN '::ffff:fff0:1'::inet $$) as (i gtype);
+
+
+--
+-- cidr
+--
+SELECT * FROM cypher('network', $$ RETURN tocidr('192.168.1.5') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN tocidr('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN tocidr('::ffff:fff0:1') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::cidr $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::cidr $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN '::ffff:fff0:1'::cidr $$) as (i gtype);
+
+
 
 SELECT drop_graph('network', true);
