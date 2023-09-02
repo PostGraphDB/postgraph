@@ -44,6 +44,9 @@
 #define IVFFLAT_METAPAGE_BLKNO	0
 #define IVFFLAT_HEAD_BLKNO		1	/* first list page */
 
+#define IVFFLAT_DEFAULT_ELEMENTS   0
+
+
 #define IVFFLAT_DEFAULT_LISTS	100
 #define IVFFLAT_MAX_LISTS		32768
 
@@ -83,6 +86,9 @@
 
 /* Variables */
 extern int	ivfflat_probes;
+static int index_dims;
+static int index_lists;
+static relopt_kind ivfflat_relopt_kind;
 
 typedef struct VectorArrayData
 {
@@ -103,8 +109,9 @@ typedef struct ListInfo
 /* IVFFlat index options */
 typedef struct IvfflatOptions
 {
-	int32		vl_len_;		/* varlena header (do not touch directly!) */
-	int			lists;			/* number of lists */
+	int32 vl_len_;		/* varlena header (do not touch directly!) */
+	int lists;			/* number of lists */
+	int dimensions;
 }			IvfflatOptions;
 
 typedef struct IvfflatSpool
@@ -285,6 +292,7 @@ void IvfflatKmeans(Relation index, VectorArray samples, VectorArray centers);
 FmgrInfo *IvfflatOptionalProcInfo(Relation rel, uint16 procnum);
 bool IvfflatNormValue(FmgrInfo *procinfo, Oid collation, Datum *value, gtype *result);
 int IvfflatGetLists(Relation index);
+int IvfflatGetDimensions(Relation index);
 void IvfflatUpdateList(Relation index, ListInfo listInfo, BlockNumber insertPage, BlockNumber originalInsertPage,
 		       BlockNumber startPage, ForkNumber forkNum);
 void IvfflatCommitBuffer(Buffer buf, GenericXLogState *state);

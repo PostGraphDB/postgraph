@@ -127,6 +127,12 @@ RETURNS void
 LANGUAGE c 
 AS 'MODULE_PATHNAME';
 
+CREATE FUNCTION create_ivfflat_l2_ops_index(graph_name name, label_name name, property_name name, dimensions int, lists int)
+RETURNS void
+LANGUAGE c
+AS 'MODULE_PATHNAME';
+
+
 --
 -- graphid type
 --

@@ -351,18 +351,18 @@ InitBuildState(IvfflatBuildState * buildstate, Relation heap, Relation index, In
 	buildstate->index = index;
 	buildstate->indexInfo = indexInfo;
 
-	buildstate->lists = 100;//IvfflatGetLists(index);
+	buildstate->lists = IvfflatGetLists(index);
 
 	//buildstate->dimensions = TupleDescAttr(index->rd_att, 0)->atttypmod;
-        buildstate->dimensions = 3;
+        buildstate->dimensions = IvfflatGetDimensions(index);
 
 	/* Require column to have dimensions to be indexed */
-/*	if (buildstate->dimensions < 0)
-		elog(ERROR, "column does not have dimensions");
+	if (buildstate->dimensions <= 0)
+		elog(ERROR, "column does not have dimensions, %i", buildstate->dimensions);
 
 	if (buildstate->dimensions > IVFFLAT_MAX_DIM)
 		elog(ERROR, "column cannot have more than %d dimensions for ivfflat index", IVFFLAT_MAX_DIM);
-*/
+
 	buildstate->reltuples = 0;
 	buildstate->indtuples = 0;
 

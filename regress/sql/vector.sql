@@ -370,7 +370,7 @@ CREATE TABLE ivfflat (v gtype);
 
 INSERT INTO ivfflat (v) VALUES (tovector('"[0, 0, 0]"'::gtype));
 
-CREATE INDEX ON ivfflat USING ivfflat (v gtype_l2_ops);
+CREATE INDEX ON ivfflat USING ivfflat (v gtype_l2_ops)  WITH (lists = 1, dimensions = 3);
 
 EXPLAIN SELECT * FROM ivfflat ORDER BY v <-> '[1, 2, 3]';
 
@@ -382,7 +382,8 @@ SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[0, 0, 0]')}) $$) as (
 SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[1, 2, 3]')}) $$) as (i gtype);
 SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[1, 1, 1]')}) $$) as (i gtype);
 
-CREATE INDEX ON ivfflat."_ag_label_vertex" USING ivfflat ((properties->'"i"'::gtype) gtype_l2_ops);-- WITH (lists = 1);
+--CREATE INDEX ON ivfflat."_ag_label_vertex" USING ivfflat ((properties->'"i"'::gtype) gtype_l2_ops) WITH (lists = 1, dimensions = 3);
+SELECT create_ivfflat_l2_ops_index('ivfflat', '_ag_label_vertex', 'i', 3 , 1);
 
 EXPLAIN SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n ORDER BY n.i <-> toVector('[3,3,3]') $$) as (i vertex);
 
@@ -398,8 +399,7 @@ $$) as (i vertex);
 
 SELECT *
 FROM cypher('ivfflat', $$
-    MATCH (n), (m)
-    WHERE n <> m
+    MATCH (n), (m) WHERE n <> m
     WITH n, m
     ORDER BY n.i <-> m.i LIMIT 1
     WITH n, collect(m) 

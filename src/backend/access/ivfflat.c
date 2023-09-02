@@ -8,6 +8,7 @@
 #include "utils/guc.h"
 #include "utils/selfuncs.h"
 #include "utils/spccache.h"
+#include "utils/vector.h"
 
 #if PG_VERSION_NUM >= 120000
 #include "commands/progress.h"
@@ -23,16 +24,13 @@ void
 IvfflatInit(void)
 {
 	ivfflat_relopt_kind = add_reloption_kind();
-	add_int_reloption(ivfflat_relopt_kind, "lists", "Number of inverted lists",
-					  IVFFLAT_DEFAULT_LISTS, 1, IVFFLAT_MAX_LISTS
-#if PG_VERSION_NUM >= 130000
-					  ,AccessExclusiveLock
-#endif
-		);
+	add_int_reloption(ivfflat_relopt_kind, "lists", "Number of inverted lists", IVFFLAT_DEFAULT_LISTS, 1, IVFFLAT_MAX_LISTS ,AccessExclusiveLock);
 
-	DefineCustomIntVariable("ivfflat.probes", "Sets the number of probes",
-							"Valid range is 1..lists.", &ivfflat_probes,
-							1, 1, IVFFLAT_MAX_LISTS, PGC_USERSET, 0, NULL, NULL, NULL);
+
+       add_int_reloption(ivfflat_relopt_kind, "dimensions", "Number of dimensions in the index", IVFFLAT_DEFAULT_ELEMENTS, -1, VECTOR_MAX_DIM ,AccessExclusiveLock);
+
+
+	DefineCustomIntVariable("ivfflat.probes", "Sets the number of probes", "Valid range is 1..lists.", &ivfflat_probes, 1, 1, IVFFLAT_MAX_LISTS, PGC_USERSET, 0, NULL, NULL, NULL);
 }
 
 /*
@@ -152,22 +150,19 @@ ivfflatoptions(Datum reloptions, bool validate)
 {
 	static const relopt_parse_elt tab[] = {
 		{"lists", RELOPT_TYPE_INT, offsetof(IvfflatOptions, lists)},
+		{"dimensions", RELOPT_TYPE_INT, offsetof(IvfflatOptions, dimensions)},
 	};
 
 #if PG_VERSION_NUM >= 130000
-	return (bytea *) build_reloptions(reloptions, validate,
-									  ivfflat_relopt_kind,
-									  sizeof(IvfflatOptions),
-									  tab, lengthof(tab));
+	return (bytea *) build_reloptions(reloptions, validate, ivfflat_relopt_kind, 2 * sizeof(IvfflatOptions), tab, 2 * lengthof(tab));
 #else
 	relopt_value *options;
-	int			numoptions;
+	int numoptions;
 	IvfflatOptions *rdopts;
 
 	options = parseRelOptions(reloptions, validate, ivfflat_relopt_kind, &numoptions);
 	rdopts = allocateReloptStruct(sizeof(IvfflatOptions), options, numoptions);
-	fillRelOptions((void *) rdopts, sizeof(IvfflatOptions), options, numoptions,
-				   validate, tab, lengthof(tab));
+	fillRelOptions((void *) rdopts, sizeof(IvfflatOptions), options, numoptions, validate, tab, lengthof(tab));
 
 	return (bytea *) rdopts;
 #endif
@@ -179,7 +174,7 @@ ivfflatoptions(Datum reloptions, bool validate)
 static bool
 ivfflatvalidate(Oid opclassoid)
 {
-	return true;
+    return true;
 }
 
 /*

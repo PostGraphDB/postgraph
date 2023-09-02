@@ -606,10 +606,8 @@ SET enable_seqscan = false;
 -- SQL
 CREATE TABLE ivfflat (v gtype);
 INSERT INTO ivfflat (v) VALUES (tovector('"[0, 0, 0]"'::gtype));
-CREATE INDEX ON ivfflat USING ivfflat (v gtype_l2_ops);
-NOTICE:  ivfflat index created with little data
-DETAIL:  This will cause low recall.
-HINT:  Drop the index until the table has more data.
+CREATE INDEX ON ivfflat USING ivfflat (v gtype_l2_ops)  WITH (lists = 1, dimensions = 3);
+WARNING:  detected write past chunk end in PortalContext 0x25cf870
 EXPLAIN SELECT * FROM ivfflat ORDER BY v <-> '[1, 2, 3]';
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
@@ -640,16 +638,21 @@ SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[1, 1, 1]')}) $$) as (
 ---
 (0 rows)
 
-CREATE INDEX ON ivfflat."_ag_label_vertex" USING ivfflat ((properties->'"i"'::gtype) gtype_l2_ops);-- WITH (lists = 1);
-NOTICE:  ivfflat index created with little data
-DETAIL:  This will cause low recall.
-HINT:  Drop the index until the table has more data.
+--CREATE INDEX ON ivfflat."_ag_label_vertex" USING ivfflat ((properties->'"i"'::gtype) gtype_l2_ops) WITH (lists = 1, dimensions = 3);
+SELECT create_ivfflat_l2_ops_index('ivfflat', '_ag_label_vertex', 'i', 3 , 1);
+WARNING:  detected write past chunk end in ExprContext 0x2649a98
+WARNING:  detected write past chunk end in ExprContext 0x25fce10
+ create_ivfflat_l2_ops_index 
+-----------------------------
+ 
+(1 row)
+
 EXPLAIN SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n ORDER BY n.i <-> toVector('[3,3,3]') $$) as (i vertex);
                                                      QUERY PLAN                                                      
 ---------------------------------------------------------------------------------------------------------------------
  Subquery Scan on _  (cost=10000000001.08..10000000001.12 rows=3 width=32)
    ->  Sort  (cost=10000000001.08..10000000001.09 rows=3 width=64)
-         Sort Key: (((build_vertex(n.id, '17941'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
+         Sort Key: (((build_vertex(n.id, '17943'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
          ->  Seq Scan on _ag_label_vertex n  (cost=10000000000.00..10000000001.06 rows=3 width=64)
 (4 rows)
 
@@ -659,7 +662,7 @@ EXPLAIN SELECT * FROM cypher('ivfflat', $$ MATCH (n) WITH n as n, n.i as i ORDER
  Limit  (cost=10000000001.08..10000000001.10 rows=1 width=32)
    ->  Subquery Scan on _  (cost=10000000001.08..10000000001.12 rows=3 width=32)
          ->  Sort  (cost=10000000001.08..10000000001.09 rows=3 width=96)
-               Sort Key: (((build_vertex(n.id, '17941'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
+               Sort Key: (((build_vertex(n.id, '17943'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
                ->  Seq Scan on _ag_label_vertex n  (cost=10000000000.00..10000000001.06 rows=3 width=96)
 (5 rows)
 
@@ -668,7 +671,7 @@ EXPLAIN SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n ORDER BY n.i <-> t
 ---------------------------------------------------------------------------------------------------------------------
  Subquery Scan on _  (cost=10000000001.08..10000000001.12 rows=3 width=32)
    ->  Sort  (cost=10000000001.08..10000000001.09 rows=3 width=64)
-         Sort Key: (((build_vertex(n.id, '17941'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
+         Sort Key: (((build_vertex(n.id, '17943'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
          ->  Seq Scan on _ag_label_vertex n  (cost=10000000000.00..10000000001.06 rows=3 width=64)
 (4 rows)
 
@@ -676,23 +679,22 @@ EXPLAIN SELECT * FROM cypher('ivfflat', $$
     MATCH (n) ORDER BY n.i <-> toVector('[3,3,3]') 
     RETURN n 
 $$) as (i vertex);
-                                                QUERY PLAN                                                 
------------------------------------------------------------------------------------------------------------
- Subquery Scan on _  (cost=1.02..5.08 rows=3 width=32)
-   ->  Index Scan using _ag_label_vertex_expr_idx on _ag_label_vertex n  (cost=1.02..5.05 rows=3 width=96)
+                                                 QUERY PLAN                                                 
+------------------------------------------------------------------------------------------------------------
+ Subquery Scan on _  (cost=7.52..11.61 rows=3 width=32)
+   ->  Index Scan using _ag_label_vertex_expr_idx on _ag_label_vertex n  (cost=7.52..11.58 rows=3 width=96)
          Order By: ((properties -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype)
 (3 rows)
 
 SELECT *
 FROM cypher('ivfflat', $$
-    MATCH (n), (m)
-    WHERE n <> m
+    MATCH (n), (m) WHERE n <> m
     WITH n, m
     ORDER BY n.i <-> m.i LIMIT 1
     WITH n, collect(m) 
 $$) as (n vertex, neighbors vertex[]);
 ERROR:  expression item must be aliased
-LINE 7:     WITH n, collect(m) 
+LINE 6:     WITH n, collect(m) 
                     ^
 HINT:  Items can be aliased by using AS.
 SELECT *
