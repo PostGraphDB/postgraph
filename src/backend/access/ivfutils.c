@@ -71,6 +71,121 @@ static char *make_property_alias_for_index(char *var_name) {
     return str;
 }
 
+PG_FUNCTION_INFO_V1(create_ivfflat_ip_ops_index);
+Datum create_ivfflat_ip_ops_index(PG_FUNCTION_ARGS)
+{
+    char *graph;
+    Name graph_name;
+    char *graph_name_str;
+    Oid graph_oid;
+    List *parent;
+
+    RangeVar *rv;
+
+    char *label;
+    Name label_name;
+    char *label_name_str;
+
+    char *property;
+    Name property_name;
+    char *property_name_str;
+
+
+    if (PG_ARGISNULL(0))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("graph name must not be NULL")));
+
+    if (PG_ARGISNULL(1))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("label name must not be NULL")));
+
+    if (PG_ARGISNULL(2))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("property name must not be NULL")));
+
+    if (PG_ARGISNULL(3))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("dims must not be NULL")));
+
+    if (PG_ARGISNULL(4))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("lists must not be NULL")));
+
+
+    graph_name = PG_GETARG_NAME(0);
+    label_name = PG_GETARG_NAME(1);
+    property_name = PG_GETARG_NAME(2);
+
+    graph_name_str = NameStr(*graph_name);
+    label_name_str = NameStr(*label_name);
+    property_name_str = NameStr(*property_name);
+
+    // Check if graph does not exist
+    if (!graph_exists(graph_name_str))
+        ereport(ERROR, (errcode(ERRCODE_UNDEFINED_SCHEMA), errmsg("graph \"%s\" does not exist.", graph_name_str)));
+
+    graph_oid = get_graph_oid(graph_name_str);
+
+    // Check if label with the input name already exists
+    if (!label_exists(label_name_str, graph_oid))
+        ereport(ERROR, (errcode(ERRCODE_UNDEFINED_SCHEMA), errmsg("label \"%s\" does not exist", label_name_str)));
+
+    //Create the default label tables
+    graph = graph_name->data;
+    label = label_name->data;
+    property = property_name->data;
+    PlannedStmt *wrapper;
+
+    DefElem *dims = makeDefElem("dimensions", makeInteger(PG_GETARG_INT32(3)), -1);
+    DefElem *lst = makeDefElem("lists", makeInteger(PG_GETARG_INT32(4)), -1);
+
+    ColumnRef  *c = makeNode(ColumnRef);
+    c->fields = list_make1(makeString("properties"));
+    c->location = -1;
+
+    IndexElem *idx_elem = makeNode(IndexElem);
+    idx_elem->name = NULL;
+    idx_elem->expr = makeSimpleA_Expr(AEXPR_OP, "->", c, makeStringConstCast(make_property_alias_for_index(property), -1, makeTypeName("gtype")), -1);
+    idx_elem->indexcolname = NULL;
+    idx_elem->collation = NIL;
+    idx_elem->opclass = list_make1(makeString("gtype_ip_ops"));
+    idx_elem->opclassopts = NIL;
+    idx_elem->ordering = SORTBY_NULLS_DEFAULT;
+    idx_elem->nulls_ordering = SORTBY_DEFAULT;
+
+    IndexStmt *idx = makeNode(IndexStmt);
+    idx->unique = false;
+    idx->concurrent = false;
+    idx->idxname = NULL;
+    idx->relation = makeRangeVar(graph_name, label_name, -1);
+    idx->accessMethod = "ivfflat";
+    idx->indexParams = list_make1(idx_elem);
+    idx->indexIncludingParams = NULL;
+    idx->options = list_make2(dims, lst);
+    idx->tableSpace = NULL;
+    idx->whereClause = NULL;
+    idx->excludeOpNames = NIL;
+    idx->idxcomment = NULL;
+    idx->indexOid = InvalidOid;
+    idx->oldNode = InvalidOid;
+    idx->oldCreateSubid = InvalidSubTransactionId;
+    idx->oldFirstRelfilenodeSubid = InvalidSubTransactionId;
+    idx->primary = false;
+    idx->isconstraint = false;
+    idx->deferrable = false;
+    idx->initdeferred = false;
+    idx->transformed = false;
+    idx->if_not_exists = false;
+    idx->reset_default_tblspc = false;
+
+    wrapper = makeNode(PlannedStmt);
+    wrapper->commandType = CMD_UTILITY;
+    wrapper->canSetTag = false;
+    wrapper->utilityStmt = (Node *)idx;
+    wrapper->stmt_location = -1;
+    wrapper->stmt_len = 0;
+
+
+    ProcessUtility(wrapper, "(generated ALTER TABLE ADD CONSTRAINT command)", false, PROCESS_UTILITY_SUBCOMMAND, NULL, NULL, None_Receiver, NULL);
+
+    PG_RETURN_VOID();
+}
+
 
 PG_FUNCTION_INFO_V1(create_ivfflat_l2_ops_index);
 Datum create_ivfflat_l2_ops_index(PG_FUNCTION_ARGS)
@@ -144,7 +259,7 @@ Datum create_ivfflat_l2_ops_index(PG_FUNCTION_ARGS)
     idx_elem->expr = makeSimpleA_Expr(AEXPR_OP, "->", c, makeStringConstCast(make_property_alias_for_index(property), -1, makeTypeName("gtype")), -1);
     idx_elem->indexcolname = NULL;
     idx_elem->collation = NIL;
-    idx_elem->opclass = NIL;
+    idx_elem->opclass = list_make1(makeString("gtype_l2_ops"));
     idx_elem->opclassopts = NIL;
     idx_elem->ordering = SORTBY_NULLS_DEFAULT;
     idx_elem->nulls_ordering = SORTBY_DEFAULT;

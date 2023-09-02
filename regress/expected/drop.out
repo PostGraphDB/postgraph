@@ -30,6 +30,10 @@ NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table drop._ag_label_vertex
 drop cascades to table drop._ag_label_edge
 NOTICE:  graph "drop" has been dropped
+NOTICE:  drop cascades to 2 other objects
+DETAIL:  drop cascades to table ivfflat_ip._ag_label_vertex
+drop cascades to table ivfflat_ip._ag_label_edge
+NOTICE:  graph "ivfflat_ip" has been dropped
 SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname = 'drop';
  nspname 
 ---------

@@ -607,7 +607,7 @@ SET enable_seqscan = false;
 CREATE TABLE ivfflat (v gtype);
 INSERT INTO ivfflat (v) VALUES (tovector('"[0, 0, 0]"'::gtype));
 CREATE INDEX ON ivfflat USING ivfflat (v gtype_l2_ops)  WITH (lists = 1, dimensions = 3);
-WARNING:  detected write past chunk end in PortalContext 0x25cf870
+WARNING:  detected write past chunk end in PortalContext 0x205b870
 EXPLAIN SELECT * FROM ivfflat ORDER BY v <-> '[1, 2, 3]';
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
@@ -616,66 +616,65 @@ EXPLAIN SELECT * FROM ivfflat ORDER BY v <-> '[1, 2, 3]';
 (2 rows)
 
 -- CYPHER XXX: Not Done
-SELECT create_graph('ivfflat');
-NOTICE:  graph "ivfflat" has been created
+SELECT create_graph('ivfflat_l2');
+NOTICE:  graph "ivfflat_l2" has been created
  create_graph 
 --------------
  
 (1 row)
 
-SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[0, 0, 0]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_l2', $$ CREATE ( {i: tovector('[0, 0, 0]')}) $$) as (i gtype);
  i 
 ---
 (0 rows)
 
-SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[1, 2, 3]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_l2', $$ CREATE ( {i: tovector('[1, 2, 3]')}) $$) as (i gtype);
  i 
 ---
 (0 rows)
 
-SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[1, 1, 1]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_l2', $$ CREATE ( {i: tovector('[1, 1, 1]')}) $$) as (i gtype);
  i 
 ---
 (0 rows)
 
---CREATE INDEX ON ivfflat."_ag_label_vertex" USING ivfflat ((properties->'"i"'::gtype) gtype_l2_ops) WITH (lists = 1, dimensions = 3);
-SELECT create_ivfflat_l2_ops_index('ivfflat', '_ag_label_vertex', 'i', 3 , 1);
-WARNING:  detected write past chunk end in ExprContext 0x2649a98
-WARNING:  detected write past chunk end in ExprContext 0x25fce10
+SELECT create_ivfflat_l2_ops_index('ivfflat_l2', '_ag_label_vertex', 'i', 3 , 1);
+WARNING:  detected write past chunk end in ExprContext 0x20d5b20
+WARNING:  detected write past chunk end in ExprContext 0x2088e70
  create_ivfflat_l2_ops_index 
 -----------------------------
  
 (1 row)
 
-EXPLAIN SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n ORDER BY n.i <-> toVector('[3,3,3]') $$) as (i vertex);
+EXPLAIN SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) RETURN n ORDER BY n.i <-> toVector('[3,3,3]') $$) as (i vertex);
                                                      QUERY PLAN                                                      
 ---------------------------------------------------------------------------------------------------------------------
  Subquery Scan on _  (cost=10000000001.08..10000000001.12 rows=3 width=32)
    ->  Sort  (cost=10000000001.08..10000000001.09 rows=3 width=64)
-         Sort Key: (((build_vertex(n.id, '17943'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
+         Sort Key: (((build_vertex(n.id, '17945'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
          ->  Seq Scan on _ag_label_vertex n  (cost=10000000000.00..10000000001.06 rows=3 width=64)
 (4 rows)
 
-EXPLAIN SELECT * FROM cypher('ivfflat', $$ MATCH (n) WITH n as n, n.i as i ORDER BY n.i <-> toVector('[3,3,3]') RETURN n LIMIT 1 $$) as (i vertex);
+EXPLAIN SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) WITH n as n, n.i as i ORDER BY n.i <-> toVector('[3,3,3]') RETURN n LIMIT 1 $$) as (i vertex);
                                                         QUERY PLAN                                                         
 ---------------------------------------------------------------------------------------------------------------------------
  Limit  (cost=10000000001.08..10000000001.10 rows=1 width=32)
    ->  Subquery Scan on _  (cost=10000000001.08..10000000001.12 rows=3 width=32)
          ->  Sort  (cost=10000000001.08..10000000001.09 rows=3 width=96)
-               Sort Key: (((build_vertex(n.id, '17943'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
+               Sort Key: (((build_vertex(n.id, '17945'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
                ->  Seq Scan on _ag_label_vertex n  (cost=10000000000.00..10000000001.06 rows=3 width=96)
 (5 rows)
 
-EXPLAIN SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n ORDER BY n.i <-> toVector('[3,3,3]') $$) as (i vertex);
+EXPLAIN SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) RETURN n ORDER BY n.i <-> toVector('[3,3,3]') $$) as (i vertex);
                                                      QUERY PLAN                                                      
 ---------------------------------------------------------------------------------------------------------------------
  Subquery Scan on _  (cost=10000000001.08..10000000001.12 rows=3 width=32)
    ->  Sort  (cost=10000000001.08..10000000001.09 rows=3 width=64)
-         Sort Key: (((build_vertex(n.id, '17943'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
+         Sort Key: (((build_vertex(n.id, '17945'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
          ->  Seq Scan on _ag_label_vertex n  (cost=10000000000.00..10000000001.06 rows=3 width=64)
 (4 rows)
 
-EXPLAIN SELECT * FROM cypher('ivfflat', $$ 
+EXPLAIN SELECT * FROM cypher('ivfflat_l2', $$ 
     MATCH (n) ORDER BY n.i <-> toVector('[3,3,3]') 
     RETURN n 
 $$) as (i vertex);
@@ -687,7 +686,7 @@ $$) as (i vertex);
 (3 rows)
 
 SELECT *
-FROM cypher('ivfflat', $$
+FROM cypher('ivfflat_l2', $$
     MATCH (n), (m) WHERE n <> m
     WITH n, m
     ORDER BY n.i <-> m.i LIMIT 1
@@ -698,7 +697,7 @@ LINE 6:     WITH n, collect(m)
                     ^
 HINT:  Items can be aliased by using AS.
 SELECT *
-FROM cypher('ivfflat', $$
+FROM cypher('ivfflat_l2', $$
     MATCH (n), (m) WHERE n <> m
     WITH n, m
     ORDER BY n.i <-> m.i
@@ -715,7 +714,7 @@ $$) as (n vertex, neighbors vertex[]);
 (6 rows)
 
 SELECT *
-FROM cypher('ivfflat', $$
+FROM cypher('ivfflat_l2', $$
     MATCH (n), (m) WHERE n <> m
     WITH n, m
     ORDER BY n.i <-> m.i
@@ -727,7 +726,7 @@ $$) as (n gtype);
 ---
 (0 rows)
 
-SELECT * FROM cypher('ivfflat', $$ MATCH ()-[e]->() RETURN e $$) as (e edge);
+SELECT * FROM cypher('ivfflat_l2', $$ MATCH ()-[e]->() RETURN e $$) as (e edge);
                                                                          e                                                                          
 ----------------------------------------------------------------------------------------------------------------------------------------------------
  {"id": 844424930131969, "start_id": 281474976710660, "end_id": 281474976710661, "label": "NEIGHBOR", "properties": {"distance": 1.73205080756888}}
@@ -738,13 +737,13 @@ SELECT * FROM cypher('ivfflat', $$ MATCH ()-[e]->() RETURN e $$) as (e edge);
  {"id": 844424930131974, "start_id": 281474976710670, "end_id": 281474976710671, "label": "NEIGHBOR", "properties": {"distance": 3.74165738677394}}
 (6 rows)
 
-SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN count(*) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) RETURN count(*) $$) as (i gtype);
  i  
 ----
  15
 (1 row)
 
-SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n $$) as (i vertex);
+SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) RETURN n $$) as (i vertex);
                                      i                                      
 ----------------------------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {"i": [0.0, 0.0, 0.0]}}
@@ -764,19 +763,19 @@ SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n $$) as (i vertex);
  {"id": 281474976710671, "label": "", "properties": {}}
 (15 rows)
 
-SELECT * FROM cypher('ivfflat', $$ CREATE ( {j: tovector('[1, 1, 1]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_l2', $$ CREATE ( {j: tovector('[1, 1, 1]')}) $$) as (i gtype);
  i 
 ---
 (0 rows)
 
-SELECT * FROM cypher('ivfflat', $$ CREATE ( {j: tovector('[1]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_l2', $$ CREATE ( {j: tovector('[1]')}) $$) as (i gtype);
  i 
 ---
 (0 rows)
 
-SELECT * FROM cypher('ivfflat', $$ CREATE ( {j: tovector('[]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_l2', $$ CREATE ( {j: tovector('[]')}) $$) as (i gtype);
 ERROR:  vector must have at least 1 dimension
-SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n.j $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) RETURN n.j $$) as (i gtype);
         i        
 -----------------
  
@@ -799,11 +798,51 @@ SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n.j $$) as (i gtype);
 (17 rows)
 
 --
+-- ivfflat 
+--
+SELECT create_graph('ivfflat_ip');
+NOTICE:  graph "ivfflat_ip" has been created
+ create_graph 
+--------------
+ 
+(1 row)
+
+SELECT * FROM cypher('ivfflat_ip', $$ CREATE ( {i: tovector('[0, 0, 0]')}) $$) as (i gtype);
+ i 
+---
+(0 rows)
+
+SELECT * FROM cypher('ivfflat_ip', $$ CREATE ( {i: tovector('[1, 2, 3]')}) $$) as (i gtype);
+ i 
+---
+(0 rows)
+
+SELECT * FROM cypher('ivfflat_ip', $$ CREATE ( {i: tovector('[1, 1, 1]')}) $$) as (i gtype);
+ i 
+---
+(0 rows)
+
+SELECT create_ivfflat_ip_ops_index('ivfflat_ip', '_ag_label_vertex', 'i', 3 , 1);
+WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x2114620, chunk 0x2115948
+WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x205a7b0, chunk 0x205ae00
+WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x2114620, chunk 0x2115948
+WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x205a7b0, chunk 0x205ae00
+ERROR:  <-> requires vector arguments
+EXPLAIN SELECT * FROM cypher('ivfflat_ip', $$ MATCH (n) ORDER BY n.i <#> toVector('[3,3,3]') RETURN n$$) as (i vertex);
+                                              QUERY PLAN                                              
+------------------------------------------------------------------------------------------------------
+ Subquery Scan on _  (cost=10000000092.37..10000000107.37 rows=1200 width=32)
+   ->  Sort  (cost=10000000092.37..10000000095.37 rows=1200 width=96)
+         Sort Key: (((n.properties -> '"i"'::gtype) <#> '[3.0, 3.0, 3.0]'::gtype))
+         ->  Seq Scan on _ag_label_vertex n  (cost=10000000000.00..10000000031.00 rows=1200 width=96)
+(4 rows)
+
+--
 -- Index Errors
 --
-SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[1, 1 ]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_l2', $$ CREATE ( {i: tovector('[1, 1 ]')}) $$) as (i gtype);
 ERROR:  different vector dimensions 2 and 3
-SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: 'Hello World'}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_l2', $$ CREATE ( {i: 'Hello World'}) $$) as (i gtype);
 ERROR:  <-> requires vector arguments
 --
 -- cleanup
@@ -819,12 +858,12 @@ NOTICE:  graph "vector" has been dropped
  
 (1 row)
 
-SELECT drop_graph('ivfflat', true);
+SELECT drop_graph('ivfflat_l2', true);
 NOTICE:  drop cascades to 3 other objects
-DETAIL:  drop cascades to table ivfflat._ag_label_vertex
-drop cascades to table ivfflat._ag_label_edge
-drop cascades to table ivfflat."NEIGHBOR"
-NOTICE:  graph "ivfflat" has been dropped
+DETAIL:  drop cascades to table ivfflat_l2._ag_label_vertex
+drop cascades to table ivfflat_l2._ag_label_edge
+drop cascades to table ivfflat_l2."NEIGHBOR"
+NOTICE:  graph "ivfflat_l2" has been dropped
  drop_graph 
 ------------
  

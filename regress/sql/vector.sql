@@ -376,29 +376,28 @@ EXPLAIN SELECT * FROM ivfflat ORDER BY v <-> '[1, 2, 3]';
 
 
 -- CYPHER XXX: Not Done
-SELECT create_graph('ivfflat');
+SELECT create_graph('ivfflat_l2');
 
-SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[0, 0, 0]')}) $$) as (i gtype);
-SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[1, 2, 3]')}) $$) as (i gtype);
-SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[1, 1, 1]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_l2', $$ CREATE ( {i: tovector('[0, 0, 0]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_l2', $$ CREATE ( {i: tovector('[1, 2, 3]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_l2', $$ CREATE ( {i: tovector('[1, 1, 1]')}) $$) as (i gtype);
 
---CREATE INDEX ON ivfflat."_ag_label_vertex" USING ivfflat ((properties->'"i"'::gtype) gtype_l2_ops) WITH (lists = 1, dimensions = 3);
-SELECT create_ivfflat_l2_ops_index('ivfflat', '_ag_label_vertex', 'i', 3 , 1);
+SELECT create_ivfflat_l2_ops_index('ivfflat_l2', '_ag_label_vertex', 'i', 3 , 1);
 
-EXPLAIN SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n ORDER BY n.i <-> toVector('[3,3,3]') $$) as (i vertex);
+EXPLAIN SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) RETURN n ORDER BY n.i <-> toVector('[3,3,3]') $$) as (i vertex);
 
-EXPLAIN SELECT * FROM cypher('ivfflat', $$ MATCH (n) WITH n as n, n.i as i ORDER BY n.i <-> toVector('[3,3,3]') RETURN n LIMIT 1 $$) as (i vertex);
+EXPLAIN SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) WITH n as n, n.i as i ORDER BY n.i <-> toVector('[3,3,3]') RETURN n LIMIT 1 $$) as (i vertex);
 
-EXPLAIN SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n ORDER BY n.i <-> toVector('[3,3,3]') $$) as (i vertex);
+EXPLAIN SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) RETURN n ORDER BY n.i <-> toVector('[3,3,3]') $$) as (i vertex);
 
-EXPLAIN SELECT * FROM cypher('ivfflat', $$ 
+EXPLAIN SELECT * FROM cypher('ivfflat_l2', $$ 
     MATCH (n) ORDER BY n.i <-> toVector('[3,3,3]') 
     RETURN n 
 $$) as (i vertex);
 
 
 SELECT *
-FROM cypher('ivfflat', $$
+FROM cypher('ivfflat_l2', $$
     MATCH (n), (m) WHERE n <> m
     WITH n, m
     ORDER BY n.i <-> m.i LIMIT 1
@@ -406,7 +405,7 @@ FROM cypher('ivfflat', $$
 $$) as (n vertex, neighbors vertex[]);
 
 SELECT *
-FROM cypher('ivfflat', $$
+FROM cypher('ivfflat_l2', $$
     MATCH (n), (m) WHERE n <> m
     WITH n, m
     ORDER BY n.i <-> m.i
@@ -414,7 +413,7 @@ FROM cypher('ivfflat', $$
 $$) as (n vertex, neighbors vertex[]);
 
 SELECT *
-FROM cypher('ivfflat', $$
+FROM cypher('ivfflat_l2', $$
     MATCH (n), (m) WHERE n <> m
     WITH n, m
     ORDER BY n.i <-> m.i
@@ -423,22 +422,36 @@ FROM cypher('ivfflat', $$
     CREATE (n)-[:NEIGHBOR { distance: n.i <-> m_nearest.i}]->(m_nearest)
 $$) as (n gtype);
 
-SELECT * FROM cypher('ivfflat', $$ MATCH ()-[e]->() RETURN e $$) as (e edge);
+SELECT * FROM cypher('ivfflat_l2', $$ MATCH ()-[e]->() RETURN e $$) as (e edge);
 
-SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN count(*) $$) as (i gtype);
-SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n $$) as (i vertex);
+SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) RETURN count(*) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) RETURN n $$) as (i vertex);
 
-SELECT * FROM cypher('ivfflat', $$ CREATE ( {j: tovector('[1, 1, 1]')}) $$) as (i gtype);
-SELECT * FROM cypher('ivfflat', $$ CREATE ( {j: tovector('[1]')}) $$) as (i gtype);
-SELECT * FROM cypher('ivfflat', $$ CREATE ( {j: tovector('[]')}) $$) as (i gtype);
-SELECT * FROM cypher('ivfflat', $$ MATCH (n) RETURN n.j $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_l2', $$ CREATE ( {j: tovector('[1, 1, 1]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_l2', $$ CREATE ( {j: tovector('[1]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_l2', $$ CREATE ( {j: tovector('[]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) RETURN n.j $$) as (i gtype);
+
+--
+-- ivfflat 
+--
+SELECT create_graph('ivfflat_ip');
+
+SELECT * FROM cypher('ivfflat_ip', $$ CREATE ( {i: tovector('[0, 0, 0]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_ip', $$ CREATE ( {i: tovector('[1, 2, 3]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_ip', $$ CREATE ( {i: tovector('[1, 1, 1]')}) $$) as (i gtype);
+
+SELECT create_ivfflat_ip_ops_index('ivfflat_ip', '_ag_label_vertex', 'i', 3 , 1);
+
+EXPLAIN SELECT * FROM cypher('ivfflat_ip', $$ MATCH (n) ORDER BY n.i <#> toVector('[3,3,3]') RETURN n$$) as (i vertex);
+
 
 --
 -- Index Errors
 --
-SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: tovector('[1, 1 ]')}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_l2', $$ CREATE ( {i: tovector('[1, 1 ]')}) $$) as (i gtype);
 
-SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: 'Hello World'}) $$) as (i gtype);
+SELECT * FROM cypher('ivfflat_l2', $$ CREATE ( {i: 'Hello World'}) $$) as (i gtype);
 
 
 --
@@ -446,4 +459,4 @@ SELECT * FROM cypher('ivfflat', $$ CREATE ( {i: 'Hello World'}) $$) as (i gtype)
 --
 DROP TABLE ivfflat;
 SELECT drop_graph('vector', true);
-SELECT drop_graph('ivfflat', true);
+SELECT drop_graph('ivfflat_l2', true);
