@@ -347,6 +347,39 @@ SELECT * FROM cypher('network', $$ RETURN masklen('10.1.0.0/32'::inet) $$) as (i
  4
 (1 row)
 
+--
+-- netmask
+--
+SELECT * FROM cypher('network', $$ RETURN netmask('192.168.1.5'::inet) $$) as (i gtype);
+        i        
+-----------------
+ 255.255.255.255
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN netmask('192.168.1/24'::inet) $$) as (i gtype);
+       i       
+---------------
+ 255.255.255.0
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN netmask('::ffff:fff0:1'::inet) $$) as (i gtype);
+                    i                    
+-----------------------------------------
+ ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN netmask('10.1.0.0/32'::inet) $$) as (i gtype);
+        i        
+-----------------
+ 255.255.255.255
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN netmask('192.168.1/8'::inet) $$) as (i gtype);
+     i     
+-----------
+ 255.0.0.0
+(1 row)
+
 SELECT drop_graph('network', true);
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table network._ag_label_vertex
