@@ -91,5 +91,12 @@ SELECT * FROM cypher('network', $$ RETURN host('192.168.1/24'::inet) $$) as (i g
 SELECT * FROM cypher('network', $$ RETURN host('::ffff:fff0:1'::inet) $$) as (i gtype);
 SELECT * FROM cypher('network', $$ RETURN host('10.1.0.0/32'::inet) $$) as (i gtype);
 
+--
+-- hostmask
+--
+SELECT * FROM cypher('network', $$ RETURN hostmask('192.168.1.5'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN hostmask('192.168.1/24'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN hostmask('::ffff:fff0:1'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN hostmask('10.1.0.0/32'::inet) $$) as (i gtype);
 
 SELECT drop_graph('network', true);
