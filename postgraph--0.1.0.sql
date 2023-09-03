@@ -2315,6 +2315,13 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 AS 'MODULE_PATHNAME', 'gtype_inet_merge';
 
+CREATE FUNCTION inet_same_family(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_inet_same_family';
 
 --
 -- Scalar Functions

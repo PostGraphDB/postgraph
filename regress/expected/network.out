@@ -305,6 +305,21 @@ SELECT * FROM cypher('network', $$ RETURN inet_merge('192.168.1.5/24'::inet, '19
  192.168.0.0/22
 (1 row)
 
+--
+-- inet_same_family
+--
+SELECT * FROM cypher('network', $$ RETURN inet_same_family('192.168.1.5/24'::inet, '192.168.2.5/24'::inet) $$) as (i gtype);
+  i   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN inet_same_family('192.168.1.5/24'::inet, '::1'::inet) $$) as (i gtype);
+   i   
+-------
+ false
+(1 row)
+
 SELECT drop_graph('network', true);
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table network._ag_label_vertex

@@ -104,5 +104,11 @@ SELECT * FROM cypher('network', $$ RETURN hostmask('10.1.0.0/32'::inet) $$) as (
 --
 SELECT * FROM cypher('network', $$ RETURN inet_merge('192.168.1.5/24'::inet, '192.168.2.5/24'::inet) $$) as (i gtype);
 
+--
+-- inet_same_family
+--
+SELECT * FROM cypher('network', $$ RETURN inet_same_family('192.168.1.5/24'::inet, '192.168.2.5/24'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN inet_same_family('192.168.1.5/24'::inet, '::1'::inet) $$) as (i gtype);
+
 
 SELECT drop_graph('network', true);
