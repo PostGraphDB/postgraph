@@ -303,6 +303,7 @@ typedef struct
 #define AGT_HEADER_VECTOR      0x00000008
 #define AGT_HEADER_INET        0x00000009
 #define AGT_HEADER_CIDR        0x00000010
+#define AGT_HEADER_MAC         0x00000011
 
 #define AGT_IS_INTEGER(agte_) \
     (((agte_) == AGT_HEADER_INTEGER))
@@ -336,8 +337,9 @@ enum gtype_value_type
     AGTV_INTERVAL,
     AGTV_INET,
     AGTV_CIDR,
+    AGTV_MAC,
     /* Composite types */
-    AGTV_ARRAY = 0x20,
+    AGTV_ARRAY = 0x100,
     AGTV_OBJECT,
     AGTV_VECTOR,
     /* Binary (i.e. struct gtype) AGTV_ARRAY/AGTV_OBJECT */
@@ -366,6 +368,7 @@ struct gtype_value
 	struct { int num_pairs; gtype_pair *pairs; } object;                        // Associative container type
         Vector vector;
 	inet inet;
+	macaddr mac;
 	struct { int len; gtype_container *data; } binary;                          // Array or object, in on-disk format
     } val;
 };

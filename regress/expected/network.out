@@ -101,6 +101,21 @@ SELECT * FROM cypher('network', $$ RETURN '::ffff:fff0:1'::cidr $$) as (i gtype)
  ::ffff:255.240.0.1/128
 (1 row)
 
+--
+-- macaddr
+--
+SELECT * FROM cypher('network', $$ RETURN tomacaddr('12:34:56:78:90:ab') $$) as (i gtype);
+         i         
+-------------------
+ 12:34:56:78:90:ab
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN '12:34:56:78:90:ab'::macaddr $$) as (i gtype);
+         i         
+-------------------
+ 12:34:56:78:90:ab
+(1 row)
+
 SELECT drop_graph('network', true);
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table network._ag_label_vertex

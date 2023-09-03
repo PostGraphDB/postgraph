@@ -152,6 +152,15 @@ bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
 
         *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
         break;
+    case AGTV_MAC:
+        padlen = ag_serialize_header(buffer, AGT_HEADER_MAC);
+
+        numlen = sizeof(char) * 6;
+        offset = reserve_from_buffer(buffer, numlen);
+        memcpy(buffer->data + offset, &scalar_val->val.mac, numlen);
+
+        *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
+        break;
 
     default:
         return false;
@@ -215,6 +224,11 @@ void ag_deserialize_extended_type(char *base_addr, uint32 offset, gtype_value *r
         result->type = AGTV_CIDR;
         memcpy(&result->val.inet, base + AGT_HEADER_SIZE, sizeof(char) * 22);
         break;
+    case AGT_HEADER_MAC:
+        result->type = AGTV_MAC;
+        memcpy(&result->val.mac, base + AGT_HEADER_SIZE, sizeof(char) * 6);
+        break;
+
     default:
         elog(ERROR, "Invalid AGT header value.");
     }

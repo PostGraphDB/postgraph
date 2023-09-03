@@ -70,6 +70,7 @@ static ArrayType *gtype_to_array(coearce_function func, gtype *agt, char *type);
 
 Datum gtype_to_inet_internal(gtype_value *agtv);
 Datum gtype_to_cidr_internal(gtype_value *agtv);
+Datum gtype_to_macaddr_internal(gtype_value *agtv);
 
 static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqltype);
 
@@ -399,6 +400,33 @@ Datum gtype_tocidr(PG_FUNCTION_ARGS)
 
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
 }
+
+PG_FUNCTION_INFO_V1(gtype_tomacaddr);
+/*
+ * Execute function to typecast an agtype to an agtype timestamp
+ */
+Datum gtype_tomacaddr(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    macaddr *mac = DatumGetMacaddrP(convert_to_scalar(gtype_to_macaddr_internal, agt, "cidr"));
+
+    gtype_value agtv;
+    agtv.type = AGTV_MAC;
+    agtv.val.mac.a = mac->a;
+    agtv.val.mac.b = mac->b;
+    agtv.val.mac.c = mac->c;
+    agtv.val.mac.d = mac->d;
+    agtv.val.mac.e = mac->e;
+    agtv.val.mac.f = mac->f;
+
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+}
+
 
 
 /*
@@ -852,6 +880,18 @@ gtype_to_cidr_internal(gtype_value *agtv) {
     // unreachable
     return CStringGetDatum("");
 }   
+
+Datum
+gtype_to_macaddr_internal(gtype_value *agtv) {
+    if (agtv->type == AGTV_STRING)
+        return DirectFunctionCall1(macaddr_in, CStringGetDatum(agtv->val.string.val));
+    else
+        cannot_cast_gtype_value(agtv->type, "macaddr");
+
+    // unreachable
+    return CStringGetDatum("");
+}
+
 
 /*
  * Emit correct, translatable cast error message

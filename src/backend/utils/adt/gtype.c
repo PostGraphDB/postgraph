@@ -98,6 +98,7 @@ typedef enum /* type categories for datum_to_gtype */
     AGT_TYPE_VECTOR,
     AGT_TYPE_INET,
     AGT_TYPE_CIDR,
+    AGT_TYPE_MAC,
     AGT_TYPE_GTYPE, /* GTYPE */
     AGT_TYPE_JSON, /* JSON */
     AGT_TYPE_JSONB, /* JSONB */
@@ -395,6 +396,10 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
         numstr = DatumGetCString(DirectFunctionCall1(cidr_out, InetPGetDatum(&scalar_val->val.inet)));
         appendStringInfoString(out, numstr);
         break;
+    case AGTV_MAC:
+        numstr = DatumGetCString(DirectFunctionCall1(macaddr_out, MacaddrPGetDatum(&scalar_val->val.mac)));
+        appendStringInfoString(out, numstr);
+        break;
     case AGTV_BOOL:
         if (scalar_val->val.boolean)
             appendBinaryStringInfo(out, "true", 4);
@@ -503,6 +508,8 @@ static void gtype_in_scalar(void *pstate, char *token, gtype_token_type tokentyp
             tokentype = GTYPE_TOKEN_INET;
         else if (len == 4 && pg_strcasecmp(annotation, "cidr") == 0)
             tokentype = GTYPE_TOKEN_CIDR;
+        else if (len == 7 && pg_strcasecmp(annotation, "macaddr") == 0)
+            tokentype = GTYPE_TOKEN_MACADDR;
 	else
             ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                      errmsg("invalid annotation value for scalar")));
@@ -609,6 +616,18 @@ static void gtype_in_scalar(void *pstate, char *token, gtype_token_type tokentyp
         i = DatumGetInetPP(DirectFunctionCall1(cidr_in, CStringGetDatum(token)));
 
         memcpy(&v.val.inet, i, sizeof(char) * 22);
+        break;
+        }
+    case GTYPE_TOKEN_MACADDR:
+        {
+        macaddr *mac;
+
+        Assert(token != NULL);
+
+        v.type = AGTV_MAC;
+        mac = DatumGetMacaddrP(DirectFunctionCall1(macaddr_in, CStringGetDatum(token)));
+
+        memcpy(&v.val.mac, mac, sizeof(char) * 6);
         break;
         }
     case GTYPE_TOKEN_TRUE:
@@ -979,6 +998,10 @@ static void gtype_categorize_type(Oid typoid, agt_type_category *tcategory, Oid 
 
     case CIDROID:
         *tcategory = AGT_TYPE_CIDR;
+        break;
+
+    case MACADDROID:
+        *tcategory = AGT_TYPE_MAC;
         break;
 
     case JSONBOID:
