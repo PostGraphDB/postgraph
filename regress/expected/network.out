@@ -500,6 +500,21 @@ SELECT * FROM cypher('network', $$ RETURN trunc('12:34:56:78:90:ab:cd:ef'::macad
  12:34:56:00:00:00:00:00
 (1 row)
 
+--
+-- macaddr8_set7bit
+--
+SELECT * FROM cypher('network', $$ RETURN macaddr8_set7bit('12:34:56:78:90:ab:cd:ef'::macaddr8) $$) as (i gtype);
+            i            
+-------------------------
+ 12:34:56:78:90:ab:cd:ef
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN macaddr8_set7bit('00:34:56:ab:cd:ef'::macaddr8) $$) as (i gtype);
+            i            
+-------------------------
+ 02:34:56:ff:fe:ab:cd:ef
+(1 row)
+
 SELECT drop_graph('network', true);
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table network._ag_label_vertex

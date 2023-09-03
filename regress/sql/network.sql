@@ -161,7 +161,10 @@ SELECT * FROM cypher('network', $$ RETURN trunc('12:34:56:78:90:ab'::macaddr) $$
 
 SELECT * FROM cypher('network', $$ RETURN trunc('12:34:56:78:90:ab:cd:ef'::macaddr8) $$) as (i gtype);
 
-
-
+--
+-- macaddr8_set7bit
+--
+SELECT * FROM cypher('network', $$ RETURN macaddr8_set7bit('12:34:56:78:90:ab:cd:ef'::macaddr8) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN macaddr8_set7bit('00:34:56:ab:cd:ef'::macaddr8) $$) as (i gtype);
 
 SELECT drop_graph('network', true);
