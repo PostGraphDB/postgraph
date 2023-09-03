@@ -2347,6 +2347,15 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 AS 'MODULE_PATHNAME', 'gtype_network';
 
+
+CREATE FUNCTION set_masklen(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_set_masklen';
+
 --
 -- Scalar Functions
 --

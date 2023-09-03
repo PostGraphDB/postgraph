@@ -136,4 +136,23 @@ SELECT * FROM cypher('network', $$ RETURN network('::ffff:fff0:1'::inet) $$) as 
 SELECT * FROM cypher('network', $$ RETURN network('10.1.0.0/32'::inet) $$) as (i gtype);
 SELECT * FROM cypher('network', $$ RETURN network('192.168.1/8'::inet) $$) as (i gtype);
 
+
+--
+-- set_masklen
+--
+SELECT * FROM cypher('network', $$ RETURN set_masklen('192.168.1.5'::inet, 24) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN set_masklen('192.168.1/24'::inet, 16) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN set_masklen('::ffff:fff0:1'::inet, 24) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN set_masklen('10.1.0.0/32'::inet, 8) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN set_masklen('192.168.1/8'::inet, 24) $$) as (i gtype);
+
+SELECT * FROM cypher('network', $$ RETURN set_masklen('192.168.1.5'::cidr, 24) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN set_masklen('192.168.1/24'::cidr, 16) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN set_masklen('::ffff:fff0:1'::cidr, 24) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN set_masklen('10.1.0.0/32'::cidr, 8) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN set_masklen('192.168.1/8'::cidr, 24) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN set_masklen('192.168.1.0/24'::cidr, 16) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN set_masklen('10.1.0.0/32'::cidr, 4) $$) as (i gtype);
+
+
 SELECT drop_graph('network', true);
