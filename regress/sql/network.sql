@@ -154,5 +154,14 @@ SELECT * FROM cypher('network', $$ RETURN set_masklen('192.168.1/8'::cidr, 24) $
 SELECT * FROM cypher('network', $$ RETURN set_masklen('192.168.1.0/24'::cidr, 16) $$) as (i gtype);
 SELECT * FROM cypher('network', $$ RETURN set_masklen('10.1.0.0/32'::cidr, 4) $$) as (i gtype);
 
+--
+-- abbrev
+--
+SELECT * FROM cypher('network', $$ RETURN trunc('12:34:56:78:90:ab'::macaddr) $$) as (i gtype);
+
+SELECT * FROM cypher('network', $$ RETURN trunc('12:34:56:78:90:ab:cd:ef'::macaddr8) $$) as (i gtype);
+
+
+
 
 SELECT drop_graph('network', true);
