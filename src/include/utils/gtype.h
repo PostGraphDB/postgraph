@@ -315,6 +315,19 @@ typedef struct
 #define AGT_IS_TIMESTAMP(agt) \
     (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_TIMESTAMP)
 
+
+#define AGT_IS_INET(agt) \
+    (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_INET)
+
+#define AGT_IS_CIDR(agt) \
+    (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_CIDR)
+
+#define AGT_IS_MACADDR(agt) \
+    (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_MAC)
+
+#define AGT_IS_MACADDR8(agt) \
+    (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_MAC8)
+
 #define AGT_IS_VECTOR(agt) \
     ((((agt)->root.header & AGT_FEXTENDED_COMPOSITE) != 0 ) && (((agt)->root.children[0] & AGT_HEADER_VECTOR) != 0))
 

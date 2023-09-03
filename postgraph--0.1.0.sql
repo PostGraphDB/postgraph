@@ -2263,6 +2263,18 @@ STABLE
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME','gtype_make_timestamptz_wtimezone';
 
+
+--
+-- Temporal Functions
+--
+CREATE FUNCTION abbrev(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_abbrev';
+
 --
 -- Scalar Functions
 --

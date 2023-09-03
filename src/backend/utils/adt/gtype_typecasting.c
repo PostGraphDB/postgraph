@@ -456,8 +456,6 @@ Datum gtype_tomacaddr8(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
 }
 
-
-
 /*
  * gtype to postgres functions
  */

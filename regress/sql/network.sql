@@ -53,4 +53,18 @@ SELECT * FROM cypher('network', $$ RETURN '12:34:56:78:90:ab'::macaddr $$) as (i
 SELECT * FROM cypher('network', $$ RETURN tomacaddr8('12:34:56:78:90:ab:cd:ef') $$) as (i gtype);
 SELECT * FROM cypher('network', $$ RETURN '12:34:56:78:90:ab:cd:ef'::macaddr8 $$) as (i gtype);
 
+--
+-- abbrev
+--
+SELECT * FROM cypher('network', $$ RETURN abbrev('192.168.1.5'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN abbrev('192.168.1/24'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN abbrev('::ffff:fff0:1'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN abbrev('10.1.0.0/32'::inet) $$) as (i gtype);
+
+SELECT * FROM cypher('network', $$ RETURN abbrev('192.168.1.5'::cidr) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN abbrev('192.168.1/24'::cidr) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN abbrev('::ffff:fff0:1'::cidr) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN abbrev('10.1.0.0/32'::cidr) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN abbrev('10.1.0.0/16'::cidr) $$) as (i gtype);
+
 SELECT drop_graph('network', true);
