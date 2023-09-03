@@ -127,4 +127,13 @@ SELECT * FROM cypher('network', $$ RETURN netmask('::ffff:fff0:1'::inet) $$) as 
 SELECT * FROM cypher('network', $$ RETURN netmask('10.1.0.0/32'::inet) $$) as (i gtype);
 SELECT * FROM cypher('network', $$ RETURN netmask('192.168.1/8'::inet) $$) as (i gtype);
 
+--
+-- network
+--
+SELECT * FROM cypher('network', $$ RETURN network('192.168.1.5'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN network('192.168.1/24'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN network('::ffff:fff0:1'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN network('10.1.0.0/32'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN network('192.168.1/8'::inet) $$) as (i gtype);
+
 SELECT drop_graph('network', true);
