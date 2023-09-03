@@ -71,7 +71,8 @@ static ArrayType *gtype_to_array(coearce_function func, gtype *agt, char *type);
 Datum gtype_to_inet_internal(gtype_value *agtv);
 Datum gtype_to_cidr_internal(gtype_value *agtv);
 Datum gtype_to_macaddr_internal(gtype_value *agtv);
-
+Datum gtype_to_macaddr8_internal(gtype_value *agtv);
+	
 static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqltype);
 
 Datum convert_to_scalar(coearce_function func, gtype *agt, char *type) {
@@ -422,6 +423,34 @@ Datum gtype_tomacaddr(PG_FUNCTION_ARGS)
     agtv.val.mac.d = mac->d;
     agtv.val.mac.e = mac->e;
     agtv.val.mac.f = mac->f;
+
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+}
+
+PG_FUNCTION_INFO_V1(gtype_tomacaddr8);
+/*
+ * Execute function to typecast an agtype to an agtype timestamp
+ */
+Datum gtype_tomacaddr8(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    macaddr8 *mac = DatumGetMacaddrP(convert_to_scalar(gtype_to_macaddr8_internal, agt, "macaddr8"));
+
+    gtype_value agtv;
+    agtv.type = AGTV_MAC8;
+    agtv.val.mac8.a = mac->a;
+    agtv.val.mac8.b = mac->b;
+    agtv.val.mac8.c = mac->c;
+    agtv.val.mac8.d = mac->d;
+    agtv.val.mac8.e = mac->e;
+    agtv.val.mac8.f = mac->f;
+    agtv.val.mac8.g = mac->g;
+    agtv.val.mac8.h = mac->h;
 
 
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
@@ -885,6 +914,17 @@ Datum
 gtype_to_macaddr_internal(gtype_value *agtv) {
     if (agtv->type == AGTV_STRING)
         return DirectFunctionCall1(macaddr_in, CStringGetDatum(agtv->val.string.val));
+    else
+        cannot_cast_gtype_value(agtv->type, "macaddr");
+
+    // unreachable
+    return CStringGetDatum("");
+}
+
+Datum
+gtype_to_macaddr8_internal(gtype_value *agtv) {
+    if (agtv->type == AGTV_STRING)
+        return DirectFunctionCall1(macaddr8_in, CStringGetDatum(agtv->val.string.val));
     else
         cannot_cast_gtype_value(agtv->type, "macaddr");
 

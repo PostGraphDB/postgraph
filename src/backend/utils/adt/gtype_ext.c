@@ -161,6 +161,15 @@ bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
 
         *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
         break;
+    case AGTV_MAC8:
+        padlen = ag_serialize_header(buffer, AGT_HEADER_MAC8);
+
+        numlen = sizeof(char) * 8;
+        offset = reserve_from_buffer(buffer, numlen);
+        memcpy(buffer->data + offset, &scalar_val->val.mac, numlen);
+
+        *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
+        break;
 
     default:
         return false;
@@ -227,6 +236,10 @@ void ag_deserialize_extended_type(char *base_addr, uint32 offset, gtype_value *r
     case AGT_HEADER_MAC:
         result->type = AGTV_MAC;
         memcpy(&result->val.mac, base + AGT_HEADER_SIZE, sizeof(char) * 6);
+        break;
+    case AGT_HEADER_MAC8:
+        result->type = AGTV_MAC8;
+        memcpy(&result->val.mac, base + AGT_HEADER_SIZE, sizeof(char) * 8);
         break;
 
     default:

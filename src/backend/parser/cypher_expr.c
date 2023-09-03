@@ -683,6 +683,8 @@ transform_cypher_typecast(cypher_parsestate *cpstate, cypher_typecast *ctypecast
         fname = lappend(fname, makeString("tocidr"));
     else if (pg_strcasecmp(ctypecast->typecast, "macaddr") == 0)
         fname = lappend(fname, makeString("tomacaddr"));
+    else if (pg_strcasecmp(ctypecast->typecast, "macaddr8") == 0)
+        fname = lappend(fname, makeString("tomacaddr8"));
     else
         ereport(ERROR, (errmsg_internal("typecast \'%s\' not supported", ctypecast->typecast)));
 

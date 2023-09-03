@@ -2015,6 +2015,13 @@ PARALLEL SAFE
 RETURNS NULL ON NULL INPUT
 AS 'MODULE_PATHNAME', 'gtype_tomacaddr';
 
+CREATE FUNCTION tomacaddr8(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME', 'gtype_tomacaddr8';
 
 --
 -- gtype - access operators

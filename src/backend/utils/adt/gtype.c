@@ -99,6 +99,7 @@ typedef enum /* type categories for datum_to_gtype */
     AGT_TYPE_INET,
     AGT_TYPE_CIDR,
     AGT_TYPE_MAC,
+    AGT_TYPE_MAC8,
     AGT_TYPE_GTYPE, /* GTYPE */
     AGT_TYPE_JSON, /* JSON */
     AGT_TYPE_JSONB, /* JSONB */
@@ -400,6 +401,10 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
         numstr = DatumGetCString(DirectFunctionCall1(macaddr_out, MacaddrPGetDatum(&scalar_val->val.mac)));
         appendStringInfoString(out, numstr);
         break;
+    case AGTV_MAC8:
+        numstr = DatumGetCString(DirectFunctionCall1(macaddr8_out, MacaddrPGetDatum(&scalar_val->val.mac)));
+        appendStringInfoString(out, numstr);
+        break;
     case AGTV_BOOL:
         if (scalar_val->val.boolean)
             appendBinaryStringInfo(out, "true", 4);
@@ -509,6 +514,8 @@ static void gtype_in_scalar(void *pstate, char *token, gtype_token_type tokentyp
         else if (len == 4 && pg_strcasecmp(annotation, "cidr") == 0)
             tokentype = GTYPE_TOKEN_CIDR;
         else if (len == 7 && pg_strcasecmp(annotation, "macaddr") == 0)
+            tokentype = GTYPE_TOKEN_MACADDR;
+        else if (len == 8 && pg_strcasecmp(annotation, "macaddr8") == 0)
             tokentype = GTYPE_TOKEN_MACADDR;
 	else
             ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
@@ -628,6 +635,18 @@ static void gtype_in_scalar(void *pstate, char *token, gtype_token_type tokentyp
         mac = DatumGetMacaddrP(DirectFunctionCall1(macaddr_in, CStringGetDatum(token)));
 
         memcpy(&v.val.mac, mac, sizeof(char) * 6);
+        break;
+        }
+    case GTYPE_TOKEN_MACADDR8:
+        {
+        macaddr8 *mac;
+
+        Assert(token != NULL);
+
+        v.type = AGTV_MAC8;
+        mac = DatumGetMacaddrP(DirectFunctionCall1(macaddr8_in, CStringGetDatum(token)));
+
+        memcpy(&v.val.mac, mac, sizeof(char) * 8);
         break;
         }
     case GTYPE_TOKEN_TRUE:
@@ -1002,6 +1021,10 @@ static void gtype_categorize_type(Oid typoid, agt_type_category *tcategory, Oid 
 
     case MACADDROID:
         *tcategory = AGT_TYPE_MAC;
+        break;
+
+    case MACADDR8OID:
+        *tcategory = AGT_TYPE_MAC8;
         break;
 
     case JSONBOID:
