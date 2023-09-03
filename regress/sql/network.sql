@@ -110,5 +110,12 @@ SELECT * FROM cypher('network', $$ RETURN inet_merge('192.168.1.5/24'::inet, '19
 SELECT * FROM cypher('network', $$ RETURN inet_same_family('192.168.1.5/24'::inet, '192.168.2.5/24'::inet) $$) as (i gtype);
 SELECT * FROM cypher('network', $$ RETURN inet_same_family('192.168.1.5/24'::inet, '::1'::inet) $$) as (i gtype);
 
+--
+-- masklen
+--
+SELECT * FROM cypher('network', $$ RETURN masklen('192.168.1.5'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN masklen('192.168.1/24'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN masklen('::ffff:fff0:1'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN masklen('10.1.0.0/32'::inet) $$) as (i gtype);
 
 SELECT drop_graph('network', true);

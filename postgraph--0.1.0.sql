@@ -2323,6 +2323,15 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 AS 'MODULE_PATHNAME', 'gtype_inet_same_family';
 
+CREATE FUNCTION masklen(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_masklen';
+
+
 --
 -- Scalar Functions
 --

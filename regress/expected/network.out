@@ -320,6 +320,33 @@ SELECT * FROM cypher('network', $$ RETURN inet_same_family('192.168.1.5/24'::ine
  false
 (1 row)
 
+--
+-- masklen
+--
+SELECT * FROM cypher('network', $$ RETURN masklen('192.168.1.5'::inet) $$) as (i gtype);
+ i 
+---
+ 4
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN masklen('192.168.1/24'::inet) $$) as (i gtype);
+ i 
+---
+ 4
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN masklen('::ffff:fff0:1'::inet) $$) as (i gtype);
+ i 
+---
+ 6
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN masklen('10.1.0.0/32'::inet) $$) as (i gtype);
+ i 
+---
+ 4
+(1 row)
+
 SELECT drop_graph('network', true);
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table network._ag_label_vertex
