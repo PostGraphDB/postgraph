@@ -174,7 +174,7 @@
 %left AND
 %left XOR
 %right NOT
-%left '=' NOT_EQ '<' LT_EQ '>' GT_EQ
+%left '=' NOT_EQ '<' LT_EQ '>' GT_EQ '~'
 %left '+' '-'
 %left '*' '/' '%'
 %left '^'
@@ -1232,8 +1232,11 @@ expr:
         }
     | expr EQ_TILDE expr
         {
-            $$ = (Node *)makeFuncCall(list_make1(makeString("eq_tilde")),
-                                    list_make2($1, $3), COERCE_SQL_SYNTAX, @2);
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~", $1, $3, @2);
+        }
+    | expr '~' expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~", $1, $3, @2);
         }
     | expr '[' expr ']'  %prec '.'
         {

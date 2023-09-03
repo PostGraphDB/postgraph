@@ -208,9 +208,9 @@ $$) AS t(a gtype, b gtype);
 SELECT * FROM cypher('scan', $$
 RETURN 0xF~
 $$) AS t(a int);
-ERROR:  unexpected character at or near "~"
-LINE 2: RETURN 0xF~
-                  ^
+ERROR:  syntax error at end of input
+LINE 3: $$) AS t(a int);
+        ^
 -- an invalid character after the leading "0x"
 SELECT * FROM cypher('scan', $$
 RETURN 0x~

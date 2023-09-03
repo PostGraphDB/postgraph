@@ -1128,33 +1128,6 @@ RETURN "abcdefghijklmnopqrstuvwxyz" CONTAINS NULL
 $$) AS r(result gtype);
 
 --
--- Test =~ aka regular expression comparisons
---
-SELECT create_graph('regex');
-SELECT * FROM cypher('regex', $$
-CREATE (n:Person {name: 'John'}) RETURN n
-$$) AS r(result vertex);
-SELECT * FROM cypher('regex', $$
-CREATE (n:Person {name: 'Jeff'}) RETURN n
-$$) AS r(result vertex);
-SELECT * FROM cypher('regex', $$
-CREATE (n:Person {name: 'Joan'}) RETURN n
-$$) AS r(result vertex);
-
-SELECT * FROM cypher('regex', $$
-MATCH (n:Person) WHERE n.name =~ 'JoHn' RETURN n
-$$) AS r(result vertex);
-SELECT * FROM cypher('regex', $$
-MATCH (n:Person) WHERE n.name =~ '(?i)JoHn' RETURN n
-$$) AS r(result vertex);
-SELECT * FROM cypher('regex', $$
-MATCH (n:Person) WHERE n.name =~ 'Jo.n' RETURN n
-$$) AS r(result vertex);
-SELECT * FROM cypher('regex', $$
-MATCH (n:Person) WHERE n.name =~ 'J.*' RETURN n
-$$) AS r(result vertex);
-
---
 --Coearce to Postgres 3 int types (smallint, int, bigint)
 --
 SELECT create_graph('type_coercion');

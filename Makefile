@@ -105,6 +105,7 @@ REGRESS = scan \
           cypher_union \
           cypher_merge \
 	  order_by \
+	  regex \
 	  aggregation \
           traversal_functions \
           index \

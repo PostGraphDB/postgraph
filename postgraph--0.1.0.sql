@@ -2094,13 +2094,22 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME';
 
-CREATE FUNCTION eq_tilde (gtype, gtype) 
+CREATE FUNCTION regex_match_case_sensitive (gtype, gtype) 
 RETURNS gtype 
 LANGUAGE c 
 IMMUTABLE 
 PARALLEL SAFE 
 RETURNS NULL ON NULL INPUT
 AS 'MODULE_PATHNAME', 'gtype_eq_tilde';
+
+CREATE OPERATOR ~ (
+    FUNCTION = regex_match_case_sensitive, 
+    LEFTARG = gtype,  
+    RIGHTARG = gtype
+);
+
+
+
 
 --
 -- functions for updating clauses

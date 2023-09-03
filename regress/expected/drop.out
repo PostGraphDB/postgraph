@@ -34,6 +34,11 @@ NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table ivfflat_ip._ag_label_vertex
 drop cascades to table ivfflat_ip._ag_label_edge
 NOTICE:  graph "ivfflat_ip" has been dropped
+NOTICE:  drop cascades to 3 other objects
+DETAIL:  drop cascades to table regex._ag_label_vertex
+drop cascades to table regex._ag_label_edge
+drop cascades to table regex."Person"
+NOTICE:  graph "regex" has been dropped
 SELECT nspname FROM pg_catalog.pg_namespace WHERE nspname = 'drop';
  nspname 
 ---------
