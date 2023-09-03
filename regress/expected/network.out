@@ -131,6 +131,90 @@ SELECT * FROM cypher('network', $$ RETURN '12:34:56:78:90:ab:cd:ef'::macaddr8 $$
  12:34:56:78:90:ab:cd:ef
 (1 row)
 
+--
+-- abbrev
+--
+SELECT * FROM cypher('network', $$ RETURN abbrev('192.168.1.5'::inet) $$) as (i gtype);
+       i       
+---------------
+ "192.168.1.5"
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN abbrev('192.168.1/24'::inet) $$) as (i gtype);
+        i         
+------------------
+ "192.168.1.0/24"
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN abbrev('::ffff:fff0:1'::inet) $$) as (i gtype);
+          i           
+----------------------
+ "::ffff:255.240.0.1"
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN abbrev('10.1.0.0/32'::inet) $$) as (i gtype);
+     i      
+------------
+ "10.1.0.0"
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN abbrev('192.168.1.5'::cidr) $$) as (i gtype);
+        i         
+------------------
+ "192.168.1.5/32"
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN abbrev('192.168.1/24'::cidr) $$) as (i gtype);
+       i        
+----------------
+ "192.168.1/24"
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN abbrev('::ffff:fff0:1'::cidr) $$) as (i gtype);
+            i             
+--------------------------
+ "::ffff:255.240.0.1/128"
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN abbrev('10.1.0.0/32'::cidr) $$) as (i gtype);
+       i       
+---------------
+ "10.1.0.0/32"
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN abbrev('10.1.0.0/16'::cidr) $$) as (i gtype);
+     i     
+-----------
+ "10.1/16"
+(1 row)
+
+--
+-- broadcast
+--
+SELECT * FROM cypher('network', $$ RETURN broadcast('192.168.1.5'::inet) $$) as (i gtype);
+      i      
+-------------
+ 192.168.1.5
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN broadcast('192.168.1/24'::inet) $$) as (i gtype);
+        i         
+------------------
+ 192.168.1.255/24
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN broadcast('::ffff:fff0:1'::inet) $$) as (i gtype);
+         i          
+--------------------
+ ::ffff:255.240.0.1
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN broadcast('10.1.0.0/32'::inet) $$) as (i gtype);
+    i     
+----------
+ 10.1.0.0
+(1 row)
+
 SELECT drop_graph('network', true);
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table network._ag_label_vertex

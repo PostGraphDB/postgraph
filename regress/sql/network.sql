@@ -67,4 +67,13 @@ SELECT * FROM cypher('network', $$ RETURN abbrev('::ffff:fff0:1'::cidr) $$) as (
 SELECT * FROM cypher('network', $$ RETURN abbrev('10.1.0.0/32'::cidr) $$) as (i gtype);
 SELECT * FROM cypher('network', $$ RETURN abbrev('10.1.0.0/16'::cidr) $$) as (i gtype);
 
+--
+-- broadcast
+--
+SELECT * FROM cypher('network', $$ RETURN broadcast('192.168.1.5'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN broadcast('192.168.1/24'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN broadcast('::ffff:fff0:1'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN broadcast('10.1.0.0/32'::inet) $$) as (i gtype);
+
+
 SELECT drop_graph('network', true);

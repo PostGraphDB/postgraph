@@ -1,7 +1,5 @@
 # PostGraph
 
-[![discord badge](https://img.shields.io/discord/1036610864071053413?label=discord&logo=discord&style=plastic)](https://discord.gg/KDTTx2vz2m)
-
 You can view the full manual [here](https://postgraphdb.github.io/docs/intro)
 
 PostGraph is the first PostGres based graph extension that supports:
@@ -13,6 +11,7 @@ PostGraph is the first PostGres based graph extension that supports:
  - JsonB Style Key existance operators
  - Intersect and Union Clauses
  - Property Constraints
+ - Network Datatypes - Support Data types for MAC and IP Addresses
 
 PostGraph is a fork of the Apache AGE project. The goal of PostGraph is to go beyond AGE's stated goal of implementing the openCypher query language. PostGraph's internals have been greatly overhauled with the expressed goal of improving performance and allowing for new and powerful features.
 
@@ -21,8 +20,6 @@ PostGraph is a fork of the Apache AGE project. The goal of PostGraph is to go be
 ## 2023
 
 PostGraph plans to offer its first stable release between December 2023 and March 2024.
-
- - Network Datatypes - Support Data types for MAC and IP Addresses
  - uri datatypes - Support holding uris in Postgraph.
  - English Full Text Search - Support to perform Full Text Search in English
  - Regex Support - Robust Regular Expression Support
