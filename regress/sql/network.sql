@@ -83,5 +83,13 @@ SELECT * FROM cypher('network', $$ RETURN family('192.168.1/24'::inet) $$) as (i
 SELECT * FROM cypher('network', $$ RETURN family('::ffff:fff0:1'::inet) $$) as (i gtype);
 SELECT * FROM cypher('network', $$ RETURN family('10.1.0.0/32'::inet) $$) as (i gtype);
 
+--
+-- host
+--
+SELECT * FROM cypher('network', $$ RETURN host('192.168.1.5'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN host('192.168.1/24'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN host('::ffff:fff0:1'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN host('10.1.0.0/32'::inet) $$) as (i gtype);
+
 
 SELECT drop_graph('network', true);
