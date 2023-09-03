@@ -2307,6 +2307,15 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 AS 'MODULE_PATHNAME', 'gtype_hostmask';
 
+CREATE FUNCTION inet_merge(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_inet_merge';
+
+
 --
 -- Scalar Functions
 --
