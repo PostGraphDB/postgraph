@@ -2094,8 +2094,8 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME';
 
-CREATE FUNCTION regex_match_case_sensitive (gtype, gtype) 
-RETURNS gtype 
+CREATE FUNCTION regex_match_case_sensitive(gtype, gtype) 
+RETURNS boolean 
 LANGUAGE c 
 IMMUTABLE 
 PARALLEL SAFE 
@@ -2108,8 +2108,19 @@ CREATE OPERATOR ~ (
     RIGHTARG = gtype
 );
 
+CREATE FUNCTION regex_match_case_insensitive(gtype, gtype)
+RETURNS boolean  
+LANGUAGE c  
+IMMUTABLE 
+PARALLEL SAFE  
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME', 'gtype_match_case_insensitive';
 
-
+CREATE OPERATOR ~* (
+    FUNCTION = regex_match_case_insensitive,
+    LEFTARG = gtype, 
+    RIGHTARG = gtype
+);
 
 --
 -- functions for updating clauses

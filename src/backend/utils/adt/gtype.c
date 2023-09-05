@@ -4819,21 +4819,51 @@ Datum gtype_eq_tilde(PG_FUNCTION_ARGS)
 
         /* only strings can be compared, all others are errors */
         if (agtv_string->type == AGTV_STRING && agtv_pattern->type == AGTV_STRING) {
-            text *string = cstring_to_text_with_len(agtv_string->val.string.val,
-                                                    agtv_string->val.string.len);
-            text *pattern = cstring_to_text_with_len(agtv_pattern->val.string.val,
-                                                     agtv_pattern->val.string.len);
+            text *string = cstring_to_text_with_len(agtv_string->val.string.val, agtv_string->val.string.len);
+            text *pattern = cstring_to_text_with_len(agtv_pattern->val.string.val, agtv_pattern->val.string.len);
 
-            Datum result = (DirectFunctionCall2Coll(textregexeq, C_COLLATION_OID,
-                                                    PointerGetDatum(string),
-                                                    PointerGetDatum(pattern)));
-            return boolean_to_gtype(DatumGetBool(result));
+            Datum result = (DirectFunctionCall2Coll(textregexeq, C_COLLATION_OID, PointerGetDatum(string), PointerGetDatum(pattern)));
+            PG_RETURN_BOOL(DatumGetBool(result));
         }
     }
 
     ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                     errmsg("gtype string values expected")));
 }
+
+PG_FUNCTION_INFO_V1(gtype_match_case_insensitive);
+/*
+ * ~* Operator
+ */
+Datum gtype_match_case_insensitive(PG_FUNCTION_ARGS) 
+{   
+    gtype *agt_string = AG_GET_ARG_GTYPE_P(0);
+    gtype *agt_pattern = AG_GET_ARG_GTYPE_P(1);
+
+    if (AGT_ROOT_IS_SCALAR(agt_string) && AGT_ROOT_IS_SCALAR(agt_pattern)) {
+        gtype_value *agtv_string;
+        gtype_value *agtv_pattern;
+    
+        agtv_string = get_ith_gtype_value_from_container(&agt_string->root, 0);
+        agtv_pattern = get_ith_gtype_value_from_container(&agt_pattern->root, 0);
+
+        if (agtv_string->type == AGTV_NULL || agtv_pattern->type == AGTV_NULL)
+            PG_RETURN_NULL();
+
+        /* only strings can be compared, all others are errors */
+        if (agtv_string->type == AGTV_STRING && agtv_pattern->type == AGTV_STRING) {
+            text *string = cstring_to_text_with_len(agtv_string->val.string.val, agtv_string->val.string.len);
+            text *pattern = cstring_to_text_with_len(agtv_pattern->val.string.val, agtv_pattern->val.string.len);
+
+            Datum result = (DirectFunctionCall2Coll(texticregexeq, C_COLLATION_OID, PointerGetDatum(string), PointerGetDatum(pattern)));
+            PG_RETURN_BOOL(DatumGetBool(result));
+	}
+    }
+
+    ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                    errmsg("gtype string values expected")));
+}
+
 
 /*
  * Helper function to step through and retrieve keys from an object.
