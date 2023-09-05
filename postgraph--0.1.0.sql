@@ -2139,6 +2139,19 @@ CREATE OPERATOR !~ (
     RIGHTARG = gtype
 );
 
+CREATE FUNCTION regex_not_ci(gtype, gtype)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME', 'gtype_regex_not_ci';
+
+CREATE OPERATOR !~* (
+    FUNCTION = regex_not_ci,
+    LEFTARG = gtype,
+    RIGHTARG = gtype
+);
 
 --
 -- functions for updating clauses
