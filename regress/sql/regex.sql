@@ -81,3 +81,27 @@ SELECT * FROM cypher('regex', $$
     MATCH (n:Person) WHERE n.name ~* 'JOHN' RETURN n
 $$) AS r(result vertex);
 
+
+--
+-- !~ POSIX case sensitive regular expression not match
+--
+SELECT * FROM cypher('regex', $$
+    MATCH (n:Person) WHERE n.name !~ 'john' RETURN n
+$$) AS r(result vertex);
+SELECT * FROM cypher('regex', $$
+    MATCH (n:Person) WHERE n.name !~ '(?i)john' RETURN n
+$$) AS r(result vertex);
+SELECT * FROM cypher('regex', $$
+    MATCH (n:Person) WHERE n.name !~ 'jo.n' RETURN n
+$$) AS r(result vertex);
+SELECT * FROM cypher('regex', $$
+    MATCH (n:Person) WHERE n.name !~ 'j.*' RETURN n
+$$) AS r(result vertex);
+SELECT * FROM cypher('regex', $$
+    MATCH (n:Person) WHERE n.name !~ '.*' RETURN n
+$$) AS r(result vertex);
+SELECT * FROM cypher('regex', $$
+    MATCH (n:Person) WHERE n.name !~ 'JOHN' RETURN n
+$$) AS r(result vertex);
+
+
