@@ -607,7 +607,7 @@ SET enable_seqscan = false;
 CREATE TABLE ivfflat (v gtype);
 INSERT INTO ivfflat (v) VALUES (tovector('"[0, 0, 0]"'::gtype));
 CREATE INDEX ON ivfflat USING ivfflat (v gtype_l2_ops)  WITH (lists = 1, dimensions = 3);
-WARNING:  detected write past chunk end in PortalContext 0x25b0870
+WARNING:  detected write past chunk end in PortalContext 0x2b25870
 EXPLAIN SELECT * FROM ivfflat ORDER BY v <-> '[1, 2, 3]';
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
@@ -639,8 +639,8 @@ SELECT * FROM cypher('ivfflat_l2', $$ CREATE ( {i: tovector('[1, 1, 1]')}) $$) a
 (0 rows)
 
 SELECT create_ivfflat_l2_ops_index('ivfflat_l2', '_ag_label_vertex', 'i', 3 , 1);
-WARNING:  detected write past chunk end in ExprContext 0x261ab10
-WARNING:  detected write past chunk end in ExprContext 0x25dde70
+WARNING:  detected write past chunk end in ExprContext 0x2b8fb10
+WARNING:  detected write past chunk end in ExprContext 0x2b52e70
  create_ivfflat_l2_ops_index 
 -----------------------------
  
@@ -823,10 +823,10 @@ SELECT * FROM cypher('ivfflat_ip', $$ CREATE ( {i: tovector('[1, 1, 1]')}) $$) a
 (0 rows)
 
 SELECT create_ivfflat_ip_ops_index('ivfflat_ip', '_ag_label_vertex', 'i', 3 , 1);
-WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x26df800, chunk 0x26e0b28
-WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x25af7b0, chunk 0x25afe00
-WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x26df800, chunk 0x26e0b28
-WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x25af7b0, chunk 0x25afe00
+WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x2c54800, chunk 0x2c55b28
+WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x2b247b0, chunk 0x2b24e00
+WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x2c54800, chunk 0x2c55b28
+WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x2b247b0, chunk 0x2b24e00
 ERROR:  <-> requires vector arguments
 EXPLAIN SELECT * FROM cypher('ivfflat_ip', $$ MATCH (n) ORDER BY n.i <#> toVector('[3,3,3]') RETURN n$$) as (i vertex);
                                               QUERY PLAN                                              
