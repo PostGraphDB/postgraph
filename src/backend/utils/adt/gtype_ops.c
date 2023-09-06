@@ -276,9 +276,22 @@ Datum gtype_add(PG_FUNCTION_ARGS)
        agtv_result.val.interval.time = interval->time;
        agtv_result.val.interval.day = interval->day;
        agtv_result.val.interval.month = interval->month;
+    }
+    else if (agtv_lhs->type == AGTV_INET && agtv_rhs->type == AGTV_INTEGER)
+    {
+        agtv_result.type = AGTV_INET;
+        inet *i = DatumGetInetPP(DirectFunctionCall2(inetpl, InetPGetDatum(&agtv_lhs->val.inet), Int64GetDatum(agtv_rhs->val.int_value)));
+
+        memcpy(&agtv_result.val.inet, i, sizeof(char) * 22);
+    }
+    else if (agtv_rhs->type == AGTV_INET && agtv_lhs->type == AGTV_INTEGER)
+    {
+        agtv_result.type = AGTV_INET;
+        inet *i = DatumGetInetPP(DirectFunctionCall2(inetpl, InetPGetDatum(&agtv_rhs->val.inet), Int64GetDatum(agtv_lhs->val.int_value)));
+
+        memcpy(&agtv_result.val.inet, i, sizeof(char) * 22);
     } 
     else
-        /* Not a covered case, error out */
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("Invalid input parameter types for gtype_add")));
 

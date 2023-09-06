@@ -1066,32 +1066,7 @@ IMMUTABLE
 RETURNS NULL ON NULL INPUT
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME', 'gtype_l2_squared_distance';
-/*
-CREATE FUNCTION ivfflathandler(internal) RETURNS index_am_handler AS 'MODULE_PATHNAME' LANGUAGE C;
 
-CREATE ACCESS METHOD ivfflat TYPE INDEX HANDLER ivfflathandler;
-
-COMMENT ON ACCESS METHOD ivfflat IS 'ivfflat index access method';
-
-CREATE OPERATOR CLASS gtype_ops_btree
-DEFAULT FOR TYPE gtype
-USING btree
-FAMILY gtype_ops_btree
-AS 
-    OPERATOR 1 <,
-    OPERATOR 2 <=,
-    OPERATOR 3 =,
-    OPERATOR 4 >, 
-    OPERATOR 5 >=,
-    FUNCTION 1 gtype_btree_cmp(gtype, gtype);
-*/
-/*
-CREATE FUNCTION ivfflathandler(internal) RETURNS index_am_handler AS 'MODULE_PATHNAME' LANGUAGE C;
-
-CREATE ACCESS METHOD ivfflat TYPE INDEX HANDLER ivfflathandler;
-
-COMMENT ON ACCESS METHOD ivfflat IS 'ivfflat index access method';
-*/
 CREATE FUNCTION gtype_lt(gtype, gtype) 
 RETURNS boolean 
 LANGUAGE c 
@@ -1108,9 +1083,6 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME';
 
-
-
-
 CREATE FUNCTION gtype_le(gtype, gtype) 
 RETURNS boolean 
 LANGUAGE c 
@@ -1118,8 +1090,6 @@ IMMUTABLE
 RETURNS NULL ON NULL INPUT 
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME';
-
-
 
 CREATE FUNCTION gtype_ge(gtype, gtype) 
 RETURNS boolean 
@@ -1341,30 +1311,6 @@ AS
     OPERATOR 1 =, 
     FUNCTION 1 graphid_hash_cmp(graphid);
 
-
-
-/*
-CREATE FUNCTION ivfflathandler(internal) RETURNS index_am_handler AS 'MODULE_PATHNAME' LANGUAGE C;
-
-CREATE ACCESS METHOD ivfflat TYPE INDEX HANDLER ivfflathandler;
-
-COMMENT ON ACCESS METHOD ivfflat IS 'ivfflat index access method';
-
-
---
--- gtype - btree operator class
---
-CREATE OPERATOR CLASS gtype_ops_btree 
-DEFAULT FOR TYPE gtype 
-USING btree
-AS 
-    OPERATOR 1 <, 
-    OPERATOR 2 <=, 
-    OPERATOR 3 =, 
-    OPERATOR 4 >, 
-    OPERATOR 5 >=, 
-    FUNCTION 1 gtype_btree_cmp(gtype, gtype);
-*/
 --
 -- gtype - hash operator class
 --

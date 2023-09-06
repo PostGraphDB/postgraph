@@ -54,6 +54,16 @@ SELECT * FROM cypher('network', $$ RETURN tomacaddr8('12:34:56:78:90:ab:cd:ef') 
 SELECT * FROM cypher('network', $$ RETURN '12:34:56:78:90:ab:cd:ef'::macaddr8 $$) as (i gtype);
 
 --
+-- inet + integer
+--
+SELECT * FROM cypher('network', $$ RETURN toinet('192.168.1.5') + 10 $$) as (i gtype);
+
+--
+-- integer + inet
+--
+SELECT * FROM cypher('network', $$ RETURN 10 + toinet('192.168.1.5') $$) as (i gtype);
+
+--
 -- abbrev
 --
 SELECT * FROM cypher('network', $$ RETURN abbrev('192.168.1.5'::inet) $$) as (i gtype);
