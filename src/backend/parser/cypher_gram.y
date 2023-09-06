@@ -174,7 +174,7 @@
 %left AND
 %left XOR
 %right NOT
-%left '=' NOT_EQ '<' LT_EQ '>' GT_EQ '~' '!'
+%left '=' NOT_EQ '<' LT_EQ '>' GT_EQ '~' '!' '?'
 %left '+' '-'
 %left '*' '/' '%'
 %left '^' '&' '|'
@@ -1226,6 +1226,10 @@ expr:
     | expr '&' '&' expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "&&", $1, $4, @2);
+        }
+    | expr '?' expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "?", $1, $3, @2);
         }
     | expr STARTS WITH expr %prec STARTS
         {

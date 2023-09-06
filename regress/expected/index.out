@@ -351,6 +351,16 @@ $$) as (n vertex);
  {"id": 1407374883553281, "label": "Country", "properties": {"gdp": 20.94::numeric, "name": "United States", "country_code": "US", "life_expectancy": 78.79}}
 (1 row)
 
+EXPLAIN SELECT * FROM cypher('cypher_index', $$
+    MATCH (c:Country) WHERE properties(c) ? 'gdp'
+    RETURN c
+$$) as (n vertex);
+                                     QUERY PLAN                                      
+-------------------------------------------------------------------------------------
+ Seq Scan on "Country" c  (cost=10000000000.00..10000000001.06 rows=1 width=32)
+   Filter: (properties(build_vertex(id, '19274'::oid, properties)) ? '"gdp"'::gtype)
+(2 rows)
+
 DROP INDEX cypher_index.load_city_gin_idx;
 DROP INDEX cypher_index.load_country_gin_idx;
 --

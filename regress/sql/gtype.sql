@@ -442,11 +442,11 @@ SELECT gtype_contains('{"id": 1}','{"id": 2}');
 SELECT '{"id": 1}'::gtype @> '{"id": 1}';
 SELECT '{"id": 1}'::gtype @> '{"id": 2}';
 
-SELECT gtype_exists('{"id": 1}','id');
-SELECT gtype_exists('{"id": 1}','not_id');
+SELECT gtype_exists('{"id": 1}','"id"');
+SELECT gtype_exists('{"id": 1}','"not_id"');
 
-SELECT '{"id": 1}'::gtype ? 'id';
-SELECT '{"id": 1}'::gtype ? 'not_id';
+SELECT '{"id": 1}'::gtype ? '"id"';
+SELECT '{"id": 1}'::gtype ? '"not_id"';
 
 SELECT gtype_exists_any('{"id": 1}', array['id']);
 SELECT gtype_exists_any('{"id": 1}', array['not_id']);

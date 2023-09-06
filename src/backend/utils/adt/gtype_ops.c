@@ -1201,7 +1201,7 @@ PG_FUNCTION_INFO_V1(gtype_exists);
 Datum gtype_exists(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    text *key = PG_GETARG_TEXT_PP(1);
+    gtype *key = AG_GET_ARG_GTYPE_P(1);
     gtype_value aval;
     gtype_value *v = NULL;
 
@@ -1214,8 +1214,15 @@ Datum gtype_exists(PG_FUNCTION_ARGS)
     aval.type = AGTV_STRING;
     aval.val.string.val = VARDATA_ANY(key);
     aval.val.string.len = VARSIZE_ANY_EXHDR(key);
+    if (!(AGT_ROOT_IS_SCALAR(key)))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("gtype ? gtype arg 2 must be a string")));
 
-    v = find_gtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, &aval);
+    v = get_ith_gtype_value_from_container(&key->root, 0);
+
+    if (v->type != AGTV_STRING)
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("gtype ? gtype arg 2 must be a string")));
+
+    v = find_gtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, v);
 
     PG_RETURN_BOOL(v != NULL);
 }

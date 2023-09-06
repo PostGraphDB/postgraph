@@ -1029,7 +1029,6 @@ AS 'MODULE_PATHNAME';
 
 CREATE OPERATOR && (FUNCTION = gtype_inet_subnet_contain_both, LEFTARG = gtype, RIGHTARG = gtype);
 
-
 CREATE FUNCTION gtype_mul(gtype, gtype) 
 RETURNS gtype 
 LANGUAGE c 
@@ -1493,7 +1492,7 @@ CREATE OPERATOR <@ (
 --
 -- Key Existence Operators (?, ?|, ?&)
 --
-CREATE FUNCTION gtype_exists(gtype, text) 
+CREATE FUNCTION gtype_exists(gtype, gtype) 
 RETURNS boolean 
 LANGUAGE c 
 IMMUTABLE 
@@ -1503,7 +1502,7 @@ AS 'MODULE_PATHNAME';
 
 CREATE OPERATOR ? (
     LEFTARG = gtype, 
-    RIGHTARG = text, 
+    RIGHTARG = gtype, 
     FUNCTION = gtype_exists, 
     COMMUTATOR = '?', 
     RESTRICT = contsel, 
@@ -1588,7 +1587,7 @@ DEFAULT FOR TYPE gtype
 USING gin 
 AS
     OPERATOR 7 @>,
-    OPERATOR 9 ?(gtype, text),
+    OPERATOR 9 ?(gtype, gtype),
     OPERATOR 10 ?|(gtype, text[]),
     OPERATOR 11 ?&(gtype, text[]),
     FUNCTION 1 gin_compare_gtype,

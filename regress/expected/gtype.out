@@ -1453,25 +1453,25 @@ SELECT '{"id": 1}'::gtype @> '{"id": 2}';
  f
 (1 row)
 
-SELECT gtype_exists('{"id": 1}','id');
+SELECT gtype_exists('{"id": 1}','"id"');
  gtype_exists 
 --------------
  t
 (1 row)
 
-SELECT gtype_exists('{"id": 1}','not_id');
+SELECT gtype_exists('{"id": 1}','"not_id"');
  gtype_exists 
 --------------
  f
 (1 row)
 
-SELECT '{"id": 1}'::gtype ? 'id';
+SELECT '{"id": 1}'::gtype ? '"id"';
  ?column? 
 ----------
  t
 (1 row)
 
-SELECT '{"id": 1}'::gtype ? 'not_id';
+SELECT '{"id": 1}'::gtype ? '"not_id"';
  ?column? 
 ----------
  f
