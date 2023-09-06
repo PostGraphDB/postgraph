@@ -92,6 +92,41 @@ SELECT * FROM cypher('network', $$ RETURN '10.1.0.0/32'::inet | toinet('192.168.
 SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet | toinet('192.168.1.5') $$) as (i gtype);
 
 --
+-- inet << inet
+--
+SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet << toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN '192.168.0.5'::inet << toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::inet << toinet('192.168.1/24') $$) as (i gtype);
+
+--
+-- inet <<= inet
+--
+SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet <<= toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN '192.168.0.5'::inet <<= toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::inet <<= toinet('192.168.1/24') $$) as (i gtype);
+
+--
+-- inet >> inet
+--
+SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet >> toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN '192.168.0.5'::inet >> toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::inet >> toinet('192.168.1/24') $$) as (i gtype);
+
+--
+-- inet >>= inet
+--
+SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet >>= toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN '192.168.0.5'::inet >>= toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::inet >>= toinet('192.168.1/24') $$) as (i gtype);
+
+--
+-- inet && inet
+--
+SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet && toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN '192.168.0.5'::inet && toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::inet && toinet('192.168.1/24') $$) as (i gtype);
+
+--
 -- abbrev
 --
 SELECT * FROM cypher('network', $$ RETURN abbrev('192.168.1.5'::inet) $$) as (i gtype);

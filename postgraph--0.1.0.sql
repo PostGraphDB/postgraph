@@ -978,6 +978,58 @@ AS 'MODULE_PATHNAME';
 
 CREATE OPERATOR | (FUNCTION = gtype_bitwise_or, LEFTARG = gtype, RIGHTARG = gtype);
 
+CREATE FUNCTION gtype_inet_subnet_strict_contains(gtype, gtype)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR << (FUNCTION = gtype_inet_subnet_strict_contains, LEFTARG = gtype, RIGHTARG = gtype);
+
+CREATE FUNCTION gtype_inet_subnet_contains(gtype, gtype)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <<= (FUNCTION = gtype_inet_subnet_contains, LEFTARG = gtype, RIGHTARG = gtype);
+
+CREATE FUNCTION gtype_inet_subnet_strict_contained_by(gtype, gtype)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR >> (FUNCTION = gtype_inet_subnet_strict_contained_by, LEFTARG = gtype, RIGHTARG = gtype);
+
+
+CREATE FUNCTION gtype_inet_subnet_contained_by(gtype, gtype)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR >>= (FUNCTION = gtype_inet_subnet_contained_by, LEFTARG = gtype, RIGHTARG = gtype);
+
+CREATE FUNCTION gtype_inet_subnet_contain_both(gtype, gtype)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR && (FUNCTION = gtype_inet_subnet_contain_both, LEFTARG = gtype, RIGHTARG = gtype);
+
+
 CREATE FUNCTION gtype_mul(gtype, gtype) 
 RETURNS gtype 
 LANGUAGE c 
