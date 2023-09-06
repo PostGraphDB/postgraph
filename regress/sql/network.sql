@@ -74,6 +74,22 @@ SELECT * FROM cypher('network', $$ RETURN 10 + toinet('192.168.1.5') $$) as (i g
 --
 SELECT * FROM cypher('network', $$ RETURN toinet('192.168.1.5') - toinet('192.168.1.0') $$) as (i gtype);
 
+--
+-- ~ inet
+--
+SELECT * FROM cypher('network', $$ RETURN ~ toinet('192.168.1.5') $$) as (i gtype);
+
+--
+-- inet & inet
+--
+SELECT * FROM cypher('network', $$ RETURN '10.1.0.0/32'::inet & toinet('192.168.1.5') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet & toinet('192.168.1.5') $$) as (i gtype);
+
+--
+-- inet | inet
+--
+SELECT * FROM cypher('network', $$ RETURN '10.1.0.0/32'::inet | toinet('192.168.1.5') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet | toinet('192.168.1.5') $$) as (i gtype);
 
 --
 -- abbrev

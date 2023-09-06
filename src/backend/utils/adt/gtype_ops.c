@@ -724,12 +724,7 @@ Datum gtype_mod(PG_FUNCTION_ARGS)
     gtype_value agtv_result;
 
     if (!(AGT_ROOT_IS_SCALAR(lhs)) || !(AGT_ROOT_IS_SCALAR(rhs)))
-    {
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("must be scalar value, not array or object")));
-
-        PG_RETURN_NULL();
-    }
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("must be scalar value, not array or object")));
 
     agtv_lhs = get_ith_gtype_value_from_container(&lhs->root, 0);
     agtv_rhs = get_ith_gtype_value_from_container(&rhs->root, 0);
@@ -835,6 +830,93 @@ Datum gtype_pow(PG_FUNCTION_ARGS)
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
+
+
+PG_FUNCTION_INFO_V1(gtype_bitwise_not);
+Datum gtype_bitwise_not(PG_FUNCTION_ARGS)
+{
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+    gtype_value *agtv;
+    gtype_value agtv_result;
+
+    if (!(AGT_ROOT_IS_SCALAR(gt)))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("Invalid type for ~ gtype")));
+
+
+    agtv = get_ith_gtype_value_from_container(&gt->root, 0);
+
+    if (agtv->type == AGTV_INET)
+    {
+        agtv_result.type = AGTV_INET;
+        inet *i = DatumGetInetPP(DirectFunctionCall1(inetnot, InetPGetDatum(&agtv->val.inet)));
+
+        memcpy(&agtv_result.val.inet, i, sizeof(char) * 22);
+    }
+    else
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("Invalid type for ~ gtype")));
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+}
+
+
+PG_FUNCTION_INFO_V1(gtype_bitwise_and);
+Datum gtype_bitwise_and(PG_FUNCTION_ARGS)
+{
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+    gtype_value *agtv_lhs;
+    gtype_value *agtv_rhs;
+    gtype_value agtv_result;
+
+    if (!(AGT_ROOT_IS_SCALAR(lhs)) || !(AGT_ROOT_IS_SCALAR(rhs)))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("must be scalar value, not array or object")));
+
+
+    agtv_lhs = get_ith_gtype_value_from_container(&lhs->root, 0);
+    agtv_rhs = get_ith_gtype_value_from_container(&rhs->root, 0);
+
+    if (agtv_lhs->type == AGTV_INET && agtv_rhs->type == AGTV_INET)
+    {
+        agtv_result.type = AGTV_INET;
+        inet *i = DatumGetInetPP(DirectFunctionCall2(inetand, InetPGetDatum(&agtv_lhs->val.inet), Int64GetDatum(&agtv_rhs->val.inet)));
+
+        memcpy(&agtv_result.val.inet, i, sizeof(char) * 22);
+    }
+    else
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("Invalid type for & gtype")));
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+}
+
+PG_FUNCTION_INFO_V1(gtype_bitwise_or);
+Datum gtype_bitwise_or(PG_FUNCTION_ARGS)
+{   
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+    gtype_value *agtv_lhs;
+    gtype_value *agtv_rhs;
+    gtype_value agtv_result;
+
+    if (!(AGT_ROOT_IS_SCALAR(lhs)) || !(AGT_ROOT_IS_SCALAR(rhs)))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("must be scalar value, not array or object")));
+    
+
+    agtv_lhs = get_ith_gtype_value_from_container(&lhs->root, 0);
+    agtv_rhs = get_ith_gtype_value_from_container(&rhs->root, 0);
+
+    if (agtv_lhs->type == AGTV_INET && agtv_rhs->type == AGTV_INET)
+    {
+        agtv_result.type = AGTV_INET;
+        inet *i = DatumGetInetPP(DirectFunctionCall2(inetor, InetPGetDatum(&agtv_lhs->val.inet), Int64GetDatum(&agtv_rhs->val.inet)));
+
+        memcpy(&agtv_result.val.inet, i, sizeof(char) * 22);
+    }
+    else
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("Invalid type for & gtype")));
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+}
+
 
 PG_FUNCTION_INFO_V1(gtype_eq);
 
@@ -1213,6 +1295,8 @@ static gtype_value *iterator_concat(gtype_iterator **it1, gtype_iterator **it2, 
 
     return res;
 }
+
+
 
 static void ereport_op_str(const char *op, gtype *lhs, gtype *rhs)
 {

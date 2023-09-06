@@ -168,6 +168,45 @@ SELECT * FROM cypher('network', $$ RETURN toinet('192.168.1.5') - toinet('192.16
 (1 row)
 
 --
+-- ~ inet
+--
+SELECT * FROM cypher('network', $$ RETURN ~ toinet('192.168.1.5') $$) as (i gtype);
+       i       
+---------------
+ 63.87.254.250
+(1 row)
+
+--
+-- inet & inet
+--
+SELECT * FROM cypher('network', $$ RETURN '10.1.0.0/32'::inet & toinet('192.168.1.5') $$) as (i gtype);
+    i    
+---------
+ 0.0.0.0
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet & toinet('192.168.1.5') $$) as (i gtype);
+      i      
+-------------
+ 192.168.1.5
+(1 row)
+
+--
+-- inet | inet
+--
+SELECT * FROM cypher('network', $$ RETURN '10.1.0.0/32'::inet | toinet('192.168.1.5') $$) as (i gtype);
+      i      
+-------------
+ 202.169.1.5
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet | toinet('192.168.1.5') $$) as (i gtype);
+      i      
+-------------
+ 192.168.1.5
+(1 row)
+
+--
 -- abbrev
 --
 SELECT * FROM cypher('network', $$ RETURN abbrev('192.168.1.5'::inet) $$) as (i gtype);

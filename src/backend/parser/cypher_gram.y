@@ -177,7 +177,7 @@
 %left '=' NOT_EQ '<' LT_EQ '>' GT_EQ '~' '!'
 %left '+' '-'
 %left '*' '/' '%'
-%left '^'
+%left '^' '&' '|'
 %nonassoc IN IS
 %right UNARY_MINUS
 %nonassoc CONTAINS ENDS EQ_TILDE STARTS
@@ -1193,6 +1193,19 @@ expr:
     | '-' expr %prec UNARY_MINUS
         {
             $$ = do_negate($2, @1);
+        
+        }
+    | '~' expr %prec UNARY_MINUS
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~", NULL, $2, @1);
+        }
+    | expr '&' expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "&", $1, $3, @2);
+        }
+    | expr '|' expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "|", $1, $3, @2);
         }
     | expr STARTS WITH expr %prec STARTS
         {
