@@ -18,7 +18,7 @@
  */
 
 --
--- AGTYPE data type regression tests
+-- gtype data type regression tests
 --
 
 --
@@ -448,18 +448,18 @@ SELECT gtype_exists('{"id": 1}','"not_id"');
 SELECT '{"id": 1}'::gtype ? '"id"';
 SELECT '{"id": 1}'::gtype ? '"not_id"';
 
-SELECT gtype_exists_any('{"id": 1}', array['id']);
-SELECT gtype_exists_any('{"id": 1}', array['not_id']);
+SELECT gtype_exists_any('{"id": 1}'::gtype, '["id"]'::gtype);
+SELECT gtype_exists_any('{"id": 1}'::gtype, '["not_id"]'::gtype);
 
-SELECT '{"id": 1}'::gtype ?| array['id'];
-SELECT '{"id": 1}'::gtype ?| array['not_id'];
+SELECT '{"id": 1}'::gtype ?| '["id"]'::gtype;
+SELECT '{"id": 1}'::gtype ?| '["not_id"]'::gtype;
 
 
-SELECT gtype_exists_all('{"id": 1}', array['id']);
-SELECT gtype_exists_all('{"id": 1}', array['not_id']);
+SELECT gtype_exists_all('{"id": 1}', '["id"]');
+SELECT gtype_exists_all('{"id": 1}', '["not_id"]');
 
-SELECT '{"id": 1}'::gtype ?& array['id'];
-SELECT '{"id": 1}'::gtype ?& array['not_id'];
+SELECT '{"id": 1}'::gtype ?& '["id"]';
+SELECT '{"id": 1}'::gtype ?& '["not_id"]';
 
 --
 -- Test STARTS WITH, ENDS WITH, and CONTAINS

@@ -232,6 +232,22 @@ SELECT * FROM cypher('cypher_index', $$
     RETURN c
 $$) as (n vertex);
 
+EXPLAIN SELECT * FROM cypher('cypher_index', $$
+    MATCH (c:Country) WHERE c ? 'gdp' 
+    RETURN c
+$$) as (n vertex);
+
+EXPLAIN SELECT * FROM cypher('cypher_index', $$
+    MATCH (c:Country) WHERE c ?| ['gdp' ]
+    RETURN c
+$$) as (n vertex);
+
+EXPLAIN SELECT * FROM cypher('cypher_index', $$
+    MATCH (c:Country) WHERE c ?& ['gdp'] 
+    RETURN c
+$$) as (n vertex);
+
+
 DROP INDEX cypher_index.load_city_gin_idx;
 DROP INDEX cypher_index.load_country_gin_idx;
 --

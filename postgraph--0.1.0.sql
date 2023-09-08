@@ -1509,7 +1509,7 @@ CREATE OPERATOR ? (
     JOIN = contjoinsel
 );
 
-CREATE FUNCTION gtype_exists_any(gtype, text[]) 
+CREATE FUNCTION gtype_exists_any(gtype, gtype) 
 RETURNS boolean 
 LANGUAGE c 
 IMMUTABLE 
@@ -1519,13 +1519,13 @@ AS 'MODULE_PATHNAME';
 
 CREATE OPERATOR ?| (
     LEFTARG = gtype, 
-    RIGHTARG = text[], 
+    RIGHTARG = gtype, 
     FUNCTION = gtype_exists_any, 
     RESTRICT = contsel, 
     JOIN = contjoinsel
 );
 
-CREATE FUNCTION gtype_exists_all(gtype, text[]) 
+CREATE FUNCTION gtype_exists_all(gtype, gtype) 
 RETURNS boolean 
 LANGUAGE c 
 IMMUTABLE 
@@ -1535,7 +1535,7 @@ AS 'MODULE_PATHNAME';
 
 CREATE OPERATOR ?& (
     LEFTARG = gtype, 
-    RIGHTARG = text[], 
+    RIGHTARG = gtype, 
     FUNCTION = gtype_exists_all, 
     RESTRICT = contsel, 
     JOIN = contjoinsel
@@ -1588,8 +1588,8 @@ USING gin
 AS
     OPERATOR 7 @>,
     OPERATOR 9 ?(gtype, gtype),
-    OPERATOR 10 ?|(gtype, text[]),
-    OPERATOR 11 ?&(gtype, text[]),
+    /*OPERATOR 10 ?|(gtype, gtype),
+    OPERATOR 11 ?&(gtype, gtype),*/
     FUNCTION 1 gin_compare_gtype,
     FUNCTION 2 gin_extract_gtype,
     FUNCTION 3 gin_extract_gtype_query,

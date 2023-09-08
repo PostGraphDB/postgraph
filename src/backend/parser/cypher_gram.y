@@ -1231,6 +1231,14 @@ expr:
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "?", $1, $3, @2);
         }
+    | expr '?' '|' expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "?|", $1, $4, @2);
+        }
+    | expr '?' '&' expr
+        { 
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "?&", $1, $4, @2);
+        } 
     | expr STARTS WITH expr %prec STARTS
         {
             cypher_string_match *n;

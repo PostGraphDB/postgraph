@@ -81,6 +81,26 @@ static Node *transform_column_ref_for_indirection(cypher_parsestate *cpstate, Co
 static Node *transformSQLValueFunction(cypher_parsestate *cpstate, SQLValueFunction *svf);
 static List *make_qualified_function_name(cypher_parsestate *cpstate, List *lst, List *targs);
 
+static char *make_property_alias(char *var_name) {
+    char *str = palloc(strlen(var_name) + 8);
+
+    str[0] = '_';
+    str[1] = 'p';
+    str[2] = 'r';
+    str[3] = '_';
+
+    int i = 0;
+    for (; i < strlen(var_name); i++)
+        str[i + 4] = var_name[i];
+
+    str[i + 5] = '_';
+    str[i + 6] = '_';
+    str[i + 7] = '\n';
+
+    return str;
+}
+
+
 Node *
 transform_cypher_expr(cypher_parsestate *cpstate, Node *expr, ParseExprKind expr_kind) {
     ParseState *pstate = (ParseState *)cpstate;
@@ -322,13 +342,57 @@ transform_column_ref(cypher_parsestate *cpstate, ColumnRef *cref) {
     return node;
 }
 
+/*
+ * There are some operators where the result of referencing
+ * the verties's or edge's properties or referencing the
+ * vertex or edge itself will yield the same results, at the
+ * cost of longer runtine and loss of index visibility for the
+ * later way. For those operators, we wanna just reference the 
+ * vertex or edge properties directly, when its possible.
+ */
+static bool
+is_a_valid_operator(List *lst) {
+    if (list_length(lst) != 1)
+        return false;
+
+    if (!IsA(linitial(lst), String))
+        return false;
+
+    Value *str = linitial(lst);
+
+    if (!strcmp(str->val.str, "?") || !strcmp(str->val.str, "?|") || !strcmp(str->val.str, "?&"))
+        return true;
+
+    return false;
+}
+
 static Node *
 transform_a_expr_op(cypher_parsestate *cpstate, A_Expr *a) {
     ParseState *pstate = (ParseState *)cpstate;
+    Node *lexpr = NULL;
 
     Node *last_srf = pstate->p_last_srf;
 
-    Node *lexpr = transform_cypher_expr_recurse(cpstate, a->lexpr);
+    if (is_a_valid_operator(a->name) && IsA(a->lexpr, ColumnRef)) {
+        ColumnRef *cr = a->lexpr;
+        ParseNamespaceItem *pnsi;
+        Node *field1 = linitial(cr->fields);
+        char *relname;
+        int levels_up = 0;
+
+        field1 = linitial(cr->fields);
+        Assert(IsA(field1, String));
+        relname = strVal(field1);
+
+        // locate the referenced RTE
+        pnsi = refnameNamespaceItem(pstate, NULL, relname, cr->location, &levels_up);
+        if (pnsi)
+            lexpr = scanNSItemForColumn(pstate, pnsi, 0, "properties", cr->location);
+    }
+
+    if (lexpr == NULL)
+         lexpr = transform_cypher_expr_recurse(cpstate, a->lexpr);
+
     Node *rexpr = transform_cypher_expr_recurse(cpstate, a->rexpr);
 
     return (Node *)make_op(pstate, a->name, lexpr, rexpr, last_srf, a->location);
@@ -465,25 +529,6 @@ transform_cypher_list(cypher_parsestate *cpstate, cypher_list *cl) {
     expr->location = cl->location;
 
     return (Node *)expr;
-}
-
-static char *make_property_alias(char *var_name) {
-    char *str = palloc(strlen(var_name) + 8);
-
-    str[0] = '_';
-    str[1] = 'p';
-    str[2] = 'r';
-    str[3] = '_';
-
-    int i = 0;
-    for (; i < strlen(var_name); i++)
-        str[i + 4] = var_name[i];
-
-    str[i + 5] = '_';
-    str[i + 6] = '_';
-    str[i + 7] = '\n';
-
-    return str;
 }
 
 /*

@@ -1235,29 +1235,30 @@ PG_FUNCTION_INFO_V1(gtype_exists_any);
 Datum gtype_exists_any(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    ArrayType *keys = PG_GETARG_ARRAYTYPE_P(1);
-    int i;
-    Datum *key_datums;
-    bool *key_nulls;
-    int elem_count;
+    gtype *keys = AG_GET_ARG_GTYPE_P(1);
+    gtype_value agtv_elem;
 
-    deconstruct_array(keys, TEXTOID, -1, false, 'i', &key_datums, &key_nulls, &elem_count);
+    if (!AGT_ROOT_IS_ARRAY(keys) || AGT_ROOT_IS_SCALAR(keys))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("gtype ?| gtype rhs must be a list of strings")));
 
-    for (i = 0; i < elem_count; i++)
-    {
-        gtype_value strVal;
+    gtype_iterator *it_array = gtype_iterator_init(&keys->root);
+    gtype_iterator_next(&it_array, &agtv_elem, false);
 
-        if (key_nulls[i])
+    while (gtype_iterator_next(&it_array, &agtv_elem, false) != WAGT_END_ARRAY)
+    {           
+
+	if (agtv_elem.type == AGTV_NULL)
             continue;
 
-        strVal.type = AGTV_STRING;
-        strVal.val.string.val = VARDATA(key_datums[i]);
-        strVal.val.string.len = VARSIZE(key_datums[i]) - VARHDRSZ;
-
-        if (find_gtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, &strVal) != NULL)
+        if (agtv_elem.type != AGTV_STRING)
+            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                            errmsg("All keys of ?| Operator must be strings")));
+        
+        if (find_gtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, &agtv_elem) != NULL)
             PG_RETURN_BOOL(true);
     }
-
+    
     PG_RETURN_BOOL(false);
 }
 
@@ -1269,28 +1270,30 @@ PG_FUNCTION_INFO_V1(gtype_exists_all);
 Datum gtype_exists_all(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    ArrayType  *keys = PG_GETARG_ARRAYTYPE_P(1);
-    int i;
-    Datum *key_datums;
-    bool *key_nulls;
-    int elem_count;
+    gtype *keys = AG_GET_ARG_GTYPE_P(1);
+    gtype_value agtv_elem;
 
-    deconstruct_array(keys, TEXTOID, -1, false, 'i', &key_datums, &key_nulls, &elem_count);
+    if (!AGT_ROOT_IS_ARRAY(keys) || AGT_ROOT_IS_SCALAR(keys))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("gtype ?| gtype rhs must be a list of strings")));
 
-    for (i = 0; i < elem_count; i++) {
-        gtype_value strVal;
+    gtype_iterator *it_array = gtype_iterator_init(&keys->root);
+    gtype_iterator_next(&it_array, &agtv_elem, false);
 
-        if (key_nulls[i])
+    while (gtype_iterator_next(&it_array, &agtv_elem, false) != WAGT_END_ARRAY)
+    {
+
+        if (agtv_elem.type == AGTV_NULL)
             continue;
 
-        strVal.type = AGTV_STRING;
-        strVal.val.string.val = VARDATA(key_datums[i]);
-        strVal.val.string.len = VARSIZE(key_datums[i]) - VARHDRSZ;
+        if (agtv_elem.type != AGTV_STRING)
+            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                            errmsg("All keys of ?& Operator must be strings")));
 
-        if (find_gtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, &strVal) == NULL)
+        if (find_gtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, &agtv_elem) == NULL)
             PG_RETURN_BOOL(false);
     }
-
+  
     PG_RETURN_BOOL(true);
 }
 

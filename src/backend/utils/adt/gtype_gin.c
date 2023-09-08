@@ -81,7 +81,7 @@ Datum gin_compare_gtype(PG_FUNCTION_ARGS)
     len1 = VARSIZE_ANY_EXHDR(arg1);
     len2 = VARSIZE_ANY_EXHDR(arg2);
 
-    /* Compare text as bttextcmp does, but always using C collation */
+    // Compare text as bttextcmp does, but always using C collation 
     result = varstr_cmp(a1p, len1, a2p, len2, C_COLLATION_OID);
 
     PG_FREE_IF_COPY(arg1, 0);
@@ -116,21 +116,21 @@ Datum gin_extract_gtype(PG_FUNCTION_ARGS)
     nentries = (int32 *) PG_GETARG_POINTER(1);
     total = 2 * AGT_ROOT_COUNT(agt);
 
-    /* If the root level is empty, we certainly have no keys */
+    // If the root level is empty, we certainly have no keys 
     if (total == 0)
     {
         *nentries = 0;
         PG_RETURN_POINTER(NULL);
     }
 
-    /* Otherwise, use 2 * root count as initial estimate of result size */
+    // Otherwise, use 2 * root count as initial estimate of result size 
     entries = (Datum *) palloc(sizeof(Datum) * total);
 
     it = gtype_iterator_init(&agt->root);
 
     while ((r = gtype_iterator_next(&it, &v, false)) != WAGT_DONE)
     {
-        /* Since we recurse into the object, we might need more space */
+        // Since we recurse into the object, we might need more space 
         if (i >= total)
         {
             total *= 2;
@@ -143,14 +143,14 @@ Datum gin_extract_gtype(PG_FUNCTION_ARGS)
                 entries[i++] = make_scalar_key(&v, true);
                 break;
             case WAGT_ELEM:
-                /* Pretend string array elements are keys */
+                // Pretend string array elements are keys 
                 entries[i++] = make_scalar_key(&v, (v.type == AGTV_STRING));
                 break;
             case WAGT_VALUE:
                 entries[i++] = make_scalar_key(&v, false);
                 break;
             default:
-                /* we can ignore structural items */
+                // we can ignore structural items 
                 break;
         }
     }
@@ -198,12 +198,12 @@ Datum gin_extract_gtype_query(PG_FUNCTION_ARGS)
 
     if (strategy == GTYPE_CONTAINS_STRATEGY_NUMBER)
     {
-        /* Query is a gtype, so just apply gin_extract_gtype... */
+        // Query is a gtype, so just apply gin_extract_gtype... 
         entries = (Datum *)
             DatumGetPointer(DirectFunctionCall2(gin_extract_gtype,
                                                 PG_GETARG_DATUM(0),
                                                 PointerGetDatum(nentries)));
-        /* ...although "contains {}" requires a full index scan */
+        // ...although "contains {}" requires a full index scan 
         if (*nentries == 0)
         {
             *searchMode = GIN_SEARCH_MODE_ALL;
@@ -211,18 +211,17 @@ Datum gin_extract_gtype_query(PG_FUNCTION_ARGS)
     }
     else if (strategy == GTYPE_EXISTS_STRATEGY_NUMBER)
     {
-        /* Query is a text string, which we treat as a key */
+        // Query is a text string, which we treat as a key 
         text *query = PG_GETARG_TEXT_PP(0);
 
         *nentries = 1;
         entries = (Datum *)palloc(sizeof(Datum));
-        entries[0] = make_text_key(AGT_GIN_FLAG_KEY, VARDATA_ANY(query),
-                                   VARSIZE_ANY_EXHDR(query));
+        entries[0] = make_text_key(AGT_GIN_FLAG_KEY, VARDATA_ANY(query), VARSIZE_ANY_EXHDR(query));
     }
     else if (strategy == GTYPE_EXISTS_ANY_STRATEGY_NUMBER ||
              strategy == GTYPE_EXISTS_ALL_STRATEGY_NUMBER)
     {
-        /* Query is a text array; each element is treated as a key */
+        // Query is a text array; each element is treated as a key 
         ArrayType *query = PG_GETARG_ARRAYTYPE_P(0);
         Datum *key_datums;
         bool *key_nulls;
@@ -236,7 +235,7 @@ Datum gin_extract_gtype_query(PG_FUNCTION_ARGS)
 
         for (i = 0, j = 0; i < key_count; i++)
         {
-            /* Nulls in the array are ignored */
+            // Nulls in the array are ignored 
             if (key_nulls[i])
             {
                 continue;
@@ -248,7 +247,7 @@ Datum gin_extract_gtype_query(PG_FUNCTION_ARGS)
         }
 
         *nentries = j;
-        /* ExistsAll with no keys should match everything */
+        // ExistsAll with no keys should match everything 
         if (j == 0 && strategy == GTYPE_EXISTS_ALL_STRATEGY_NUMBER)
         {
             *searchMode = GIN_SEARCH_MODE_ALL;
@@ -257,7 +256,7 @@ Datum gin_extract_gtype_query(PG_FUNCTION_ARGS)
     else
     {
         elog(ERROR, "unrecognized strategy number: %d", strategy);
-        entries = NULL;            /* keep compiler quiet */
+        entries = NULL;            // keep compiler quiet 
     }
 
     PG_RETURN_POINTER(entries);
@@ -348,15 +347,15 @@ Datum gin_consistent_gtype(PG_FUNCTION_ARGS)
     }
     else if (strategy == GTYPE_EXISTS_ANY_STRATEGY_NUMBER)
     {
-        /* As for plain exists, we must recheck */
+        // As for plain exists, we must recheck 
         *recheck = true;
         res = true;
     }
     else if (strategy == GTYPE_EXISTS_ALL_STRATEGY_NUMBER)
     {
-        /* As for plain exists, we must recheck */
+        // As for plain exists, we must recheck 
         *recheck = true;
-        /* ... but unless all the keys are present, we can say "false" */
+        // ... but unless all the keys are present, we can say "false" 
         for (i = 0; i < nkeys; i++)
         {
             if (!check[i])
@@ -417,7 +416,7 @@ Datum gin_triconsistent_gtype(PG_FUNCTION_ARGS)
     if (strategy == GTYPE_CONTAINS_STRATEGY_NUMBER ||
         strategy == GTYPE_EXISTS_ALL_STRATEGY_NUMBER)
     {
-        /* All extracted keys must be present */
+        // All extracted keys must be present 
         for (i = 0; i < nkeys; i++)
         {
             if (check[i] == GIN_FALSE)
@@ -430,7 +429,7 @@ Datum gin_triconsistent_gtype(PG_FUNCTION_ARGS)
     else if (strategy == GTYPE_EXISTS_STRATEGY_NUMBER ||
              strategy == GTYPE_EXISTS_ANY_STRATEGY_NUMBER)
     {
-        /* At least one extracted key must be present */
+        // At least one extracted key must be present 
         res = GIN_FALSE;
         for (i = 0; i < nkeys; i++)
         {
