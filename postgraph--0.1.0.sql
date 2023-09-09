@@ -1104,8 +1104,6 @@ USING btree AS
     FUNCTION 1 traversal_btree_cmp (traversal, traversal),
     FUNCTION 2 traversal_btree_sort (internal);
 
-
-
 --
 -- traversal functions
 --
@@ -1303,6 +1301,23 @@ USING btree AS
     OPERATOR 5 >,
     FUNCTION 1 variable_edge_btree_cmp (variable_edge, variable_edge),
     FUNCTION 2 variable_edge_btree_sort (internal);
+
+--
+-- variable_edge functions
+--
+CREATE FUNCTION nodes(variable_edge) RETURNS vertex[]
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'variable_edge_nodes';
+
+CREATE FUNCTION relationships(variable_edge) RETURNS edge[]
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'variable_edge_edges';
 
 --
 -- gtype - mathematical operators (+, -, *, /, %, ^)

@@ -246,6 +246,48 @@ PG_RETURN_BOOL(left_start == right_start || left_end == right_start ||
 		left_start == right_end || left_end == right_end);
 }
 
+/*
+ * Functions
+ */
+PG_FUNCTION_INFO_V1(variable_edge_edges);
+Datum variable_edge_edges(PG_FUNCTION_ARGS) {
+    VariableEdge *v = AG_GET_ARG_VARIABLE_EDGE(0);
+
+    int size = (v->children[0] + 1) / 2;
+    Datum *array_value = (Datum *) palloc(sizeof(Datum) * size);
+
+    char *ptr = &v->children[1];
+    for (int i = 0; i < v->children[0]; i++, ptr = ptr + VARSIZE(ptr)) {
+        if (i % 2 == 1) {
+            continue;
+        } else {
+            array_value[i/2] = EDGE_GET_DATUM((edge *)ptr);
+        }
+    }
+
+    PG_RETURN_ARRAYTYPE_P(construct_array(array_value, size, EDGEOID, -1, false, TYPALIGN_INT));
+}
+
+
+PG_FUNCTION_INFO_V1(variable_edge_nodes);
+Datum variable_edge_nodes(PG_FUNCTION_ARGS) {
+    VariableEdge *v = AG_GET_ARG_VARIABLE_EDGE(0);
+
+    int size = (v->children[0] - 1) / 2;
+    Datum *array_value = (Datum *) palloc(sizeof(Datum) * size);
+
+    char *ptr = &v->children[1];
+    for (int i = 0; i < v->children[0]; i++, ptr = ptr + VARSIZE(ptr)) {
+        if (i % 2 == 1) {
+            array_value[i/2] = VERTEX_GET_DATUM((vertex *)ptr);
+        } else {
+            continue;
+        }
+    }
+
+    PG_RETURN_ARRAYTYPE_P(construct_array(array_value, size, VERTEXOID, -1, false, TYPALIGN_INT));
+}
+
 
 static void
 append_to_buffer(StringInfo buffer, const char *data, int len) {

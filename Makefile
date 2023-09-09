@@ -108,6 +108,7 @@ REGRESS = scan \
 	  regex \
 	  aggregation \
           traversal_functions \
+          variable_edge_functions \
           index \
           drop
 
