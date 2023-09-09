@@ -271,6 +271,10 @@ $$) as (n vertex);
                Index Cond: ((properties -> '"city_id"'::gtype) < '5'::gtype)
 (8 rows)
 
+-- Will Fail
+SELECT create_property_index('cypher_index', 'City', 'west_coast', true);
+ERROR:  could not create unique index "City_expr_idx1"
+DETAIL:  Key ((properties -> '"west_coast"'::gtype))=(true) is duplicated.
 ALTER TABLE cypher_index."Country"  CLUSTER ON cntry_id_idx;
 ALTER TABLE cypher_index."City" ADD PRIMARY KEY (id);
 CREATE UNIQUE INDEX city_id_idx ON cypher_index."City" (id);

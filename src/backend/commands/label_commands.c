@@ -439,6 +439,7 @@ Datum create_property_index(PG_FUNCTION_ARGS)
     Name property_name;
     char *property_name_str;
 
+    bool is_unique;
 
     if (PG_ARGISNULL(0))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("graph name must not be NULL")));
@@ -448,6 +449,12 @@ Datum create_property_index(PG_FUNCTION_ARGS)
 
     if (PG_ARGISNULL(2))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("property name must not be NULL")));
+
+    if (PG_ARGISNULL(3))
+        is_unique = false;
+    else
+        is_unique = PG_GETARG_BOOL(3);
+
 
     graph_name = PG_GETARG_NAME(0);
     label_name = PG_GETARG_NAME(1);
@@ -487,7 +494,7 @@ Datum create_property_index(PG_FUNCTION_ARGS)
     idx_elem->nulls_ordering = SORTBY_DEFAULT;
 
     IndexStmt *idx = makeNode(IndexStmt);
-    idx->unique = false;
+    idx->unique = is_unique;
     idx->concurrent = false;
     idx->idxname = NULL;
     idx->relation = makeRangeVar(graph_name, label_name, -1);

@@ -155,6 +155,9 @@ EXPLAIN SELECT * FROM cypher('cypher_index', $$
     RETURN c
 $$) as (n vertex);
 
+-- Will Fail
+SELECT create_property_index('cypher_index', 'City', 'west_coast', true);
+
 
 ALTER TABLE cypher_index."Country"  CLUSTER ON cntry_id_idx;
 
