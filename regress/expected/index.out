@@ -22,7 +22,12 @@ NOTICE:  VLabel "idx" has been created
  
 (1 row)
 
-CREATE UNIQUE INDEX cypher_index_idx_props_uq ON cypher_index.idx(properties);
+SELECT create_unique_properties_constraint('cypher_index', 'idx');
+ create_unique_properties_constraint 
+-------------------------------------
+ 
+(1 row)
+
 --Test 1
 SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a gtype);
  a 
@@ -30,7 +35,7 @@ SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a gtype);
 (0 rows)
 
 SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a gtype);
-ERROR:  duplicate key value violates unique constraint "cypher_index_idx_props_uq"
+ERROR:  duplicate key value violates unique constraint "idx_properties_key"
 DETAIL:  Key (properties)=({"i": 1}) already exists.
 --Clean Up
 SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a gtype);
@@ -40,7 +45,7 @@ SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a gtype
 
 --Test 2
 SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}), (:idx {i: 1}) $$) AS (a gtype);
-ERROR:  duplicate key value violates unique constraint "cypher_index_idx_props_uq"
+ERROR:  duplicate key value violates unique constraint "idx_properties_key"
 DETAIL:  Key (properties)=({"i": 1}) already exists.
 --Clean Up
 SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a gtype);
@@ -62,7 +67,7 @@ SELECT * FROM cypher('cypher_index', $$ CREATE (:idx) $$) AS (a gtype);
 
 --Query
 SELECT * FROM cypher('cypher_index', $$ MATCH(n) SET n.i = 1$$) AS (a gtype);
-ERROR:  duplicate key value violates unique constraint "cypher_index_idx_props_uq"
+ERROR:  duplicate key value violates unique constraint "idx_properties_key"
 DETAIL:  Key (properties)=({"i": 1}) already exists.
 --Clean Up
 SELECT * FROM cypher('cypher_index', $$ MATCH(n) DETACH DELETE n $$) AS (a gtype);

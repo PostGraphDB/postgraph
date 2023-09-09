@@ -13,7 +13,7 @@ SELECT create_graph('cypher_index');
  */
 --Section 1 Setup
 SELECT create_vlabel('cypher_index', 'idx');
-CREATE UNIQUE INDEX cypher_index_idx_props_uq ON cypher_index.idx(properties);
+SELECT create_unique_properties_constraint('cypher_index', 'idx');
 
 --Test 1
 SELECT * FROM cypher('cypher_index', $$ CREATE (:idx {i: 1}) $$) AS (a gtype);

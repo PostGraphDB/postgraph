@@ -254,6 +254,126 @@ Datum create_elabel(PG_FUNCTION_ARGS)
     PG_RETURN_VOID();
 }
 
+/* makeRoleSpec
+ * Create a RoleSpec with the given type
+ */
+static RoleSpec *
+makeRoleSpec(RoleSpecType type, int location)
+{
+        RoleSpec *spec = makeNode(RoleSpec);
+
+        spec->roletype = type;
+        spec->location = location;
+
+        return spec;
+}
+
+PG_FUNCTION_INFO_V1(create_unique_properties_constraint);
+Datum create_unique_properties_constraint(PG_FUNCTION_ARGS)
+{
+    char *graph;
+    Name graph_name;
+    char *graph_name_str;
+    Oid graph_oid;
+    List *parent;
+
+    RangeVar *rv;
+
+    char *label;
+    Name label_name;
+    char *label_name_str;
+
+    // checking if user has not provided the graph name
+    if (PG_ARGISNULL(0))
+    {
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                errmsg("graph name must not be NULL")));
+    }
+
+    // checking if user has not provided the label name
+    if (PG_ARGISNULL(1))
+    {
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                errmsg("label name must not be NULL")));
+    }
+
+    graph_name = PG_GETARG_NAME(0);
+    label_name = PG_GETARG_NAME(1);
+
+    graph_name_str = NameStr(*graph_name);
+    label_name_str = NameStr(*label_name);
+
+    // Check if graph does not exist
+    if (!graph_exists(graph_name_str))
+    {
+        ereport(ERROR,
+                (errcode(ERRCODE_UNDEFINED_SCHEMA),
+                        errmsg("graph \"%s\" does not exist.", graph_name_str)));
+    }
+
+    graph_oid = get_graph_oid(graph_name_str);
+
+
+    // Check if label with the input name already exists
+    if (!label_exists(label_name_str, graph_oid))
+    {
+        ereport(ERROR,
+                (errcode(ERRCODE_UNDEFINED_SCHEMA),
+                        errmsg("label \"%s\" does not exist", label_name_str)));
+    }
+
+    //Create the default label tables
+    graph = graph_name->data;
+    label = label_name->data;
+
+    AlterTableCmd *alter_tbl_cmd;
+    PlannedStmt *wrapper;
+
+    alter_tbl_cmd = makeNode(AlterTableCmd);
+    alter_tbl_cmd->subtype = AT_AddConstraint;
+    alter_tbl_cmd->name = NULL;
+    alter_tbl_cmd->num = 1;
+    alter_tbl_cmd->newowner = makeRoleSpec(ROLESPEC_CURRENT_USER, -1);
+
+
+    Constraint *n = makeNode(Constraint);
+    n->conname = NULL;
+    n->location = -1;
+    n->contype = CONSTR_UNIQUE;
+    n->keys = (Node *) list_make1(makeString("properties"));
+    n->including = NULL;
+    n->options = NULL;
+    n->indexname = NULL;
+    n->indexspace = NULL;
+
+    alter_tbl_cmd->def = n;
+
+    alter_tbl_cmd->behavior = DROP_RESTRICT;
+    alter_tbl_cmd->missing_ok = false;
+    alter_tbl_cmd->recurse = false;
+
+    AlterTableStmt *alter_tbl_stmt = makeNode(AlterTableStmt);
+    alter_tbl_stmt->relation = makeRangeVar(graph_name, label_name, -1);
+    alter_tbl_stmt->cmds = list_make1(alter_tbl_cmd);
+    alter_tbl_stmt->objtype = OBJECT_TABLE;
+    alter_tbl_stmt->missing_ok = false;
+
+
+    wrapper = makeNode(PlannedStmt);
+    wrapper->commandType = CMD_UTILITY;
+    wrapper->canSetTag = false;
+    wrapper->utilityStmt = (Node *)alter_tbl_stmt;
+    wrapper->stmt_location = -1;
+    wrapper->stmt_len = 0;
+
+
+    ProcessUtility(wrapper, "(generated ALTER TABLE ADD CONSTRAINT command)", false,
+                   PROCESS_UTILITY_SUBCOMMAND, NULL, NULL, None_Receiver,
+                   NULL);
+
+    PG_RETURN_VOID();
+}
+
 /*
  * For the new label, create an entry in CATALOG_SCHEMA.ag_label, create a
  * new table and sequence. Returns the oid from the new tuple in
