@@ -142,6 +142,12 @@ RETURNS void
 LANGUAGE c
 AS 'MODULE_PATHNAME';
 
+
+CREATE FUNCTION create_property_index(graph_name name, label_name name, proerty_name name)
+RETURNS void
+LANGUAGE c
+AS 'MODULE_PATHNAME';
+
 --
 -- graphid type
 --

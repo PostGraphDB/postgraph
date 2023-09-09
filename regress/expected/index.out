@@ -249,6 +249,28 @@ $$) as (n gtype);
 
 ALTER TABLE cypher_index."Country" ADD PRIMARY KEY (id);
 CREATE UNIQUE INDEX CONCURRENTLY cntry_id_idx ON cypher_index."Country" (id);
+SELECT create_property_index('cypher_index', 'City', 'city_id');
+ create_property_index 
+-----------------------
+ 
+(1 row)
+
+EXPLAIN SELECT * FROM cypher('cypher_index', $$
+    MATCH ()<-[]-(c:City) WHERE c.city_id < 5
+    RETURN c
+$$) as (n vertex);
+                                                     QUERY PLAN                                                      
+---------------------------------------------------------------------------------------------------------------------
+ Hash Join  (cost=10000000008.23..20000000036.61 rows=15 width=32)
+   Hash Cond: (_age_default_alias_0.start_id = c.id)
+   ->  Append  (cost=10000000000.00..20000000024.56 rows=971 width=8)
+         ->  Seq Scan on _ag_label_edge _age_default_alias_0_1  (cost=10000000000.00..10000000000.00 rows=1 width=8)
+         ->  Seq Scan on has_city _age_default_alias_0_2  (cost=10000000000.00..10000000019.70 rows=970 width=8)
+   ->  Hash  (cost=8.19..8.19 rows=3 width=40)
+         ->  Index Scan using "City_expr_idx" on "City" c  (cost=0.14..8.19 rows=3 width=40)
+               Index Cond: ((properties -> '"city_id"'::gtype) < '5'::gtype)
+(8 rows)
+
 ALTER TABLE cypher_index."Country"  CLUSTER ON cntry_id_idx;
 ALTER TABLE cypher_index."City" ADD PRIMARY KEY (id);
 CREATE UNIQUE INDEX city_id_idx ON cypher_index."City" (id);

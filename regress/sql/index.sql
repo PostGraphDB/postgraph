@@ -148,6 +148,14 @@ $$) as (n gtype);
 ALTER TABLE cypher_index."Country" ADD PRIMARY KEY (id);
 
 CREATE UNIQUE INDEX CONCURRENTLY cntry_id_idx ON cypher_index."Country" (id);
+SELECT create_property_index('cypher_index', 'City', 'city_id');
+
+EXPLAIN SELECT * FROM cypher('cypher_index', $$
+    MATCH ()<-[]-(c:City) WHERE c.city_id < 5
+    RETURN c
+$$) as (n vertex);
+
+
 ALTER TABLE cypher_index."Country"  CLUSTER ON cntry_id_idx;
 
 ALTER TABLE cypher_index."City" ADD PRIMARY KEY (id);
