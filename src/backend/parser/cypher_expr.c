@@ -554,7 +554,8 @@ transform_column_ref_for_indirection(cypher_parsestate *cpstate, ColumnRef *cr) 
 
     // This column ref is referencing something that was created in a previous query and is a variable.
     if (!pnsi) {
-/*        node = colNameToVar(pstate, make_property_alias(relname), false, -1);
+/*
+        node = colNameToVar(pstate, make_property_alias(relname), false, -1);
 
         pnsi = refnameNamespaceItem(pstate, NULL, "_", cr->location, &levels_up);
 

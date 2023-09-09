@@ -41,6 +41,8 @@
 #define AG_GET_ARG_TRAVERSAL(x) DATUM_GET_TRAVERSAL(PG_GETARG_DATUM(x))
 #define AG_RETURN_TRAVERSAL(x) PG_RETURN_POINTER(x)
 
+#define TRAVERSAL_GET_FIRST_ENTITY(ptr) \
+	(&((traversal *)lhs)->children[1])
 
 typedef uint32 pentry;
 

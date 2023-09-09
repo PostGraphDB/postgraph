@@ -17,7 +17,7 @@
  * under the License.
  */
 --
--- AGTYPE data type regression tests
+-- gtype data type regression tests
 --
 --
 -- Load extension and set path
@@ -1477,49 +1477,49 @@ SELECT '{"id": 1}'::gtype ? '"not_id"';
  f
 (1 row)
 
-SELECT gtype_exists_any('{"id": 1}', array['id']);
+SELECT gtype_exists_any('{"id": 1}'::gtype, '["id"]'::gtype);
  gtype_exists_any 
 ------------------
  t
 (1 row)
 
-SELECT gtype_exists_any('{"id": 1}', array['not_id']);
+SELECT gtype_exists_any('{"id": 1}'::gtype, '["not_id"]'::gtype);
  gtype_exists_any 
 ------------------
  f
 (1 row)
 
-SELECT '{"id": 1}'::gtype ?| array['id'];
+SELECT '{"id": 1}'::gtype ?| '["id"]'::gtype;
  ?column? 
 ----------
  t
 (1 row)
 
-SELECT '{"id": 1}'::gtype ?| array['not_id'];
+SELECT '{"id": 1}'::gtype ?| '["not_id"]'::gtype;
  ?column? 
 ----------
  f
 (1 row)
 
-SELECT gtype_exists_all('{"id": 1}', array['id']);
+SELECT gtype_exists_all('{"id": 1}', '["id"]');
  gtype_exists_all 
 ------------------
  t
 (1 row)
 
-SELECT gtype_exists_all('{"id": 1}', array['not_id']);
+SELECT gtype_exists_all('{"id": 1}', '["not_id"]');
  gtype_exists_all 
 ------------------
  f
 (1 row)
 
-SELECT '{"id": 1}'::gtype ?& array['id'];
+SELECT '{"id": 1}'::gtype ?& '["id"]';
  ?column? 
 ----------
  t
 (1 row)
 
-SELECT '{"id": 1}'::gtype ?& array['not_id'];
+SELECT '{"id": 1}'::gtype ?& '["not_id"]';
  ?column? 
 ----------
  f

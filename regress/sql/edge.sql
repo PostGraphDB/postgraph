@@ -49,6 +49,95 @@ SELECT build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid,  graphid, gtype_bu
 SELECT build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()) <>
        build_edge(_graphid(3, 4),  '2'::graphid, '3'::graphid, graphid, gtype_build_map()) FROM ag_graph;
 
+--
+-- Equality Operator
+--
+SELECT build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()) =
+       build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+FROM ag_graph;
+
+SELECT build_edge(_graphid(3, 2), '2'::graphid, '3'::graphid, graphid, gtype_build_map()) =
+       build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+FROM ag_graph;
+
+SELECT build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()) =
+       build_edge(_graphid(3, 2), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+FROM ag_graph;
+
+--
+-- Not Equals Operator
+--
+SELECT build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()) <>
+       build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+FROM ag_graph;
+
+SELECT build_edge(_graphid(3, 2), '2'::graphid, '3'::graphid, graphid, gtype_build_map()) <>
+       build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+FROM ag_graph;
+
+SELECT build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()) <>
+       build_edge(_graphid(3, 2), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+FROM ag_graph;
+
+--
+-- Greater than Operator
+--
+SELECT build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()) >
+       build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+FROM ag_graph;
+
+SELECT build_edge(_graphid(3, 2), '2'::graphid, '3'::graphid, graphid, gtype_build_map()) >
+       build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+FROM ag_graph;
+
+SELECT build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()) >
+       build_edge(_graphid(3, 2), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+FROM ag_graph;
+
+--
+-- Greater Than Or Equal To Operator
+--
+SELECT build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()) >=
+       build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+FROM ag_graph;
+
+SELECT build_edge(_graphid(3, 2), '2'::graphid, '3'::graphid, graphid, gtype_build_map()) >=
+       build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+FROM ag_graph;
+
+SELECT build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()) >=
+       build_edge(_graphid(3, 2), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+FROM ag_graph;
+
+--
+-- Less than Operator
+--
+SELECT build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()) <
+       build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+FROM ag_graph;
+
+SELECT build_edge(_graphid(3, 2), '2'::graphid, '3'::graphid, graphid, gtype_build_map()) <
+       build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+FROM ag_graph;
+
+SELECT build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()) <
+       build_edge(_graphid(3, 2), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+FROM ag_graph;
+
+--
+-- Less Than Or Equal To Operator
+--
+SELECT build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()) <=
+       build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+FROM ag_graph;
+
+SELECT build_edge(_graphid(3, 2), '2'::graphid, '3'::graphid, graphid, gtype_build_map()) <=
+       build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+FROM ag_graph;
+
+SELECT build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()) <=
+       build_edge(_graphid(3, 2), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+FROM ag_graph;
 
 -- id
 SELECT id(build_edge(_graphid(3, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())) FROM ag_graph;

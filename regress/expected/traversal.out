@@ -17,21 +17,21 @@
  */
 LOAD 'postgraph';
 SET search_path TO postgraph;
-SELECT create_graph('variable_edge');
-NOTICE:  graph "variable_edge" has been created
+SELECT create_graph('traversal');
+NOTICE:  graph "traversal" has been created
  create_graph 
 --------------
  
 (1 row)
 
-SELECT create_vlabel('variable_edge', 'vlabel');
+SELECT create_vlabel('traversal', 'vlabel');
 NOTICE:  VLabel "vlabel" has been created
  create_vlabel 
 ---------------
  
 (1 row)
 
-SELECT create_vlabel('variable_edge', 'elabel');
+SELECT create_vlabel('traversal', 'elabel');
 NOTICE:  VLabel "elabel" has been created
  create_vlabel 
 ---------------
@@ -94,20 +94,16 @@ FROM ag_graph;
 
 SELECT build_traversal(
         build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
-        build_variable_edge(
+        build_traversal(
 		build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map())
 	),
         build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
 )
 FROM ag_graph;
-                                                                                                     build_traversal                                                                                                     
--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 844424930131970, "label": "vlabel", "properties": {}}, {"id": 1125899906842625, "start_id": 2, "end_id": 3, "label": "elabel", "properties": {}}, {"id": 844424930131971, "label": "vlabel", "properties": {}}]
-(1 row)
-
+ERROR:  arguement 0 build_traversal() must be a vertex
 SELECT build_traversal(
         build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
-        build_variable_edge(
+        build_traversal(
             build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
             build_vertex(_graphid(3, 3), graphid, gtype_build_map()),
             build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid,  graphid, gtype_build_map())
@@ -115,18 +111,620 @@ SELECT build_traversal(
         build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
 )
 FROM ag_graph;
-                                                                                                                                                                                 build_traversal                                                                                                                                                                                  
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 844424930131970, "label": "vlabel", "properties": {}}, {"id": 1125899906842625, "start_id": 2, "end_id": 3, "label": "elabel", "properties": {}}, {"id": 844424930131971, "label": "vlabel", "properties": {}}, {"id": 1125899906842628, "start_id": 3, "end_id": 5, "label": "elabel", "properties": {}}, {"id": 844424930131971, "label": "vlabel", "properties": {}}]
+ERROR:  arguement 0 build_traversal() must be a vertex
+--
+-- Equals Operator
+--
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) =
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ t
 (1 row)
 
-SELECT drop_graph('variable_edge', true);
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) =
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map()),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 5),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 4), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) =
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) =
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 2), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 5),  graphid, gtype_build_map())
+) =
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) =
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ t
+(1 row)
+
+--
+-- Not Equals Operator
+--
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) <>
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) <>
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map()),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 5),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 4), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) <>
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) <>
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 2), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 5),  graphid, gtype_build_map())
+) <>
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) <>
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ f
+(1 row)
+
+--
+-- Greater Than Operator
+--
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) >
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) >
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map()),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 5),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 4), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) >
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) >
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 2), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 5),  graphid, gtype_build_map())
+) >
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) >
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ f
+(1 row)
+
+--
+-- Greater Than Or Equals To Operator
+--
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) >=
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) >=
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map()),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 5),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 4), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) >=
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) >=
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 2), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 5),  graphid, gtype_build_map())
+) >=
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) >=
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ t
+(1 row)
+
+--
+-- Less Than Operator
+--
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) <
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) < 
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map()),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 5),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 4), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) <
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) < 
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 2), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 5),  graphid, gtype_build_map())
+) <
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) <
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ f
+(1 row)
+
+--
+-- Less Than Or Equals To Operator
+--
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) <=
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) <=
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map()),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 5),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 4), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) <=
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) <=
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 2), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 5),  graphid, gtype_build_map())
+) <=
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+) <=
+build_traversal(
+        build_vertex(_graphid(3, 2), graphid, gtype_build_map()),
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid,  graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3),  graphid, gtype_build_map())
+)
+FROM ag_graph;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT drop_graph('traversal', true);
 NOTICE:  drop cascades to 4 other objects
-DETAIL:  drop cascades to table variable_edge._ag_label_vertex
-drop cascades to table variable_edge._ag_label_edge
-drop cascades to table variable_edge.vlabel
-drop cascades to table variable_edge.elabel
-NOTICE:  graph "variable_edge" has been dropped
+DETAIL:  drop cascades to table traversal._ag_label_vertex
+drop cascades to table traversal._ag_label_edge
+drop cascades to table traversal.vlabel
+drop cascades to table traversal.elabel
+NOTICE:  graph "traversal" has been dropped
  drop_graph 
 ------------
  

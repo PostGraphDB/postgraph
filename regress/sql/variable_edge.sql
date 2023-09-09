@@ -63,4 +63,378 @@ SELECT build_traversal(
 )
 FROM ag_graph;
 
+--
+-- Equals Operator
+--
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) = 
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+) =
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 2765), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) =
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) =
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 5), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) =
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 2), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+--
+-- Not Equals Operator
+--
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) <>
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+) <>
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 2765), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) <>
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) <>
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 5), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) <>
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 2), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+--
+-- Greater Than Operator
+--
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) >
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+) >
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 2765), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) >
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) >
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 5), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) >
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 2), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+--
+-- Greater Than Or Equal To Operator
+--
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) >=
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+) >=
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 2765), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) >=
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) >=
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 5), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) >=
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 2), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+--
+-- Less Than Operator
+--
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) <
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+) <
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 2765), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) <
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) <
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 5), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) <
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 2), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+--
+-- Less Than Or Equal To Operator
+--
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) <=
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map())
+) <=
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 2765), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) <=
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) <=
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 5), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+
+SELECT build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 4), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+) <=
+build_variable_edge(
+        build_edge(_graphid(4, 1), '2'::graphid, '3'::graphid, graphid, gtype_build_map()),
+        build_vertex(_graphid(3, 3), graphid, gtype_build_map('id', '2')),
+        build_edge(_graphid(4, 2), '3'::graphid, '5'::graphid, graphid, gtype_build_map('id', 3))
+)
+FROM ag_graph;
+
+
 SELECT drop_graph('variable_edge', true);

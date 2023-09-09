@@ -25,6 +25,7 @@
 #include "utils/vertex.h"
 
 static void append_to_buffer(StringInfo buffer, const char *data, int len);
+static int variable_edge_btree_fast_cmp(Datum x, Datum y, SortSupport ssup);
 
 /*
  * I/O routines for vertex type
@@ -42,9 +43,6 @@ Datum variable_edge_out(PG_FUNCTION_ARGS) {
     StringInfo str = makeStringInfo();
 
     appendStringInfoString(str, "[");
- //      ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-   //                 errmsg("%i", v->children[0])));
-
 
     char *ptr = &v->children[1];
     for (int i = 0; i < v->children[0]; i++, ptr = ptr + VARSIZE(ptr)) {
@@ -108,6 +106,123 @@ build_variable_edge(PG_FUNCTION_ARGS) {
 /*
  * Comparison Operators
  */
+static int32 compare_variable_edge_orderability(VariableEdge *lhs, VariableEdge *rhs) {
+
+    char *lhs_ptr = &lhs->children[1];
+    char *rhs_ptr = &rhs->children[1];
+
+    for (int i = 0; i < lhs->children[0] && i < rhs->children[0]; i++) {
+
+        if (i % 2 == 0) {
+            graphid left_id = EXTRACT_EDGE_ID(lhs_ptr);
+            graphid right_id = EXTRACT_EDGE_ID(rhs_ptr);
+
+            if (left_id > right_id)
+                return 1;
+             else if (left_id < right_id)
+                return -1;
+        } else {
+            graphid left_id = EXTRACT_VERTEX_ID(lhs_ptr);
+            graphid right_id = EXTRACT_VERTEX_ID(rhs_ptr);
+
+            if (left_id > right_id)
+                return 1;
+             else if (left_id < right_id)
+                return -1;
+        }
+
+        lhs_ptr = lhs_ptr + VARSIZE(lhs_ptr);
+        rhs_ptr = rhs_ptr + VARSIZE(rhs_ptr);
+    }
+
+    if (lhs->children[0] > rhs->children[0])
+        return 1;
+    else if (lhs->children[0] == rhs->children[0])
+        return 0;
+    return -1;
+}
+
+
+
+PG_FUNCTION_INFO_V1(variable_edge_eq);
+Datum variable_edge_eq(PG_FUNCTION_ARGS) {
+    VariableEdge *lhs = AG_GET_ARG_VARIABLE_EDGE(0);
+    VariableEdge *rhs = AG_GET_ARG_VARIABLE_EDGE(1);
+
+    if (rhs->children[0] != lhs->children[0])
+         PG_RETURN_BOOL(false);
+
+    PG_RETURN_BOOL(compare_variable_edge_orderability(lhs, rhs) == 0);
+}
+
+PG_FUNCTION_INFO_V1(variable_edge_ne);
+Datum variable_edge_ne(PG_FUNCTION_ARGS) {
+    VariableEdge *lhs = AG_GET_ARG_VARIABLE_EDGE(0);
+    VariableEdge *rhs = AG_GET_ARG_VARIABLE_EDGE(1);
+
+    if (rhs->children[0] != lhs->children[0])
+         PG_RETURN_BOOL(true);
+
+    PG_RETURN_BOOL(compare_variable_edge_orderability(lhs, rhs) != 0);
+}
+
+PG_FUNCTION_INFO_V1(variable_edge_gt);
+Datum variable_edge_gt(PG_FUNCTION_ARGS) {
+    VariableEdge *lhs = AG_GET_ARG_VARIABLE_EDGE(0);
+    VariableEdge *rhs = AG_GET_ARG_VARIABLE_EDGE(1);
+
+    PG_RETURN_BOOL(compare_variable_edge_orderability(lhs, rhs) > 0);
+}
+
+PG_FUNCTION_INFO_V1(variable_edge_ge);
+Datum variable_edge_ge(PG_FUNCTION_ARGS) {
+    VariableEdge *lhs = AG_GET_ARG_VARIABLE_EDGE(0);
+    VariableEdge *rhs = AG_GET_ARG_VARIABLE_EDGE(1);
+
+    PG_RETURN_BOOL(compare_variable_edge_orderability(lhs, rhs) >= 0);
+}
+
+PG_FUNCTION_INFO_V1(variable_edge_lt);
+Datum variable_edge_lt(PG_FUNCTION_ARGS) {
+    VariableEdge *lhs = AG_GET_ARG_VARIABLE_EDGE(0);
+    VariableEdge *rhs = AG_GET_ARG_VARIABLE_EDGE(1);
+
+    PG_RETURN_BOOL(compare_variable_edge_orderability(lhs, rhs) < 0);
+}
+
+PG_FUNCTION_INFO_V1(variable_edge_le);
+Datum variable_edge_le(PG_FUNCTION_ARGS) {
+    VariableEdge *lhs = AG_GET_ARG_VARIABLE_EDGE(0);
+    VariableEdge *rhs = AG_GET_ARG_VARIABLE_EDGE(1);
+
+    PG_RETURN_BOOL(compare_variable_edge_orderability(lhs, rhs) <= 0);
+}
+
+/*
+ * B-Tree Support
+ */
+PG_FUNCTION_INFO_V1(variable_edge_btree_cmp);
+Datum variable_edge_btree_cmp(PG_FUNCTION_ARGS) {
+    VariableEdge *lhs = AG_GET_ARG_VARIABLE_EDGE(0);
+    VariableEdge *rhs = AG_GET_ARG_VARIABLE_EDGE(1);
+
+    PG_RETURN_INT32(compare_variable_edge_orderability(lhs, rhs));
+}
+
+PG_FUNCTION_INFO_V1(variable_edge_btree_sort);
+Datum variable_edge_btree_sort(PG_FUNCTION_ARGS) {
+    SortSupport ssup = (SortSupport)PG_GETARG_POINTER(0);
+
+    ssup->comparator = variable_edge_btree_fast_cmp;
+    PG_RETURN_VOID();
+}
+
+static int variable_edge_btree_fast_cmp(Datum x, Datum y, SortSupport ssup) {
+    VariableEdge *lhs = DATUM_GET_VARIABLE_EDGE(x);
+    VariableEdge *rhs = DATUM_GET_VARIABLE_EDGE(y);
+
+    return compare_variable_edge_orderability(lhs, rhs);
+}
 
 // match 2 VLE edges 
 PG_FUNCTION_INFO_V1(match_vles);

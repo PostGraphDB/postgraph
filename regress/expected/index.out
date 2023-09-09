@@ -352,13 +352,35 @@ $$) as (n vertex);
 (1 row)
 
 EXPLAIN SELECT * FROM cypher('cypher_index', $$
-    MATCH (c:Country) WHERE properties(c) ? 'gdp'
+    MATCH (c:Country) WHERE c ? 'gdp' 
     RETURN c
 $$) as (n vertex);
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
- Seq Scan on "Country" c  (cost=10000000000.00..10000000001.06 rows=1 width=32)
-   Filter: (properties(build_vertex(id, '19274'::oid, properties)) ? '"gdp"'::gtype)
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ Bitmap Heap Scan on "Country" c  (cost=8.00..12.02 rows=1 width=32)
+   Recheck Cond: (properties ? '"gdp"'::gtype)
+   ->  Bitmap Index Scan on load_country_gin_idx  (cost=0.00..8.00 rows=1 width=0)
+         Index Cond: (properties ? '"gdp"'::gtype)
+(4 rows)
+
+EXPLAIN SELECT * FROM cypher('cypher_index', $$
+    MATCH (c:Country) WHERE c ?| ['gdp' ]
+    RETURN c
+$$) as (n vertex);
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
+ Seq Scan on "Country" c  (cost=10000000000.00..10000000001.04 rows=1 width=32)
+   Filter: (properties ?| '["gdp"]'::gtype)
+(2 rows)
+
+EXPLAIN SELECT * FROM cypher('cypher_index', $$
+    MATCH (c:Country) WHERE c ?& ['gdp'] 
+    RETURN c
+$$) as (n vertex);
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
+ Seq Scan on "Country" c  (cost=10000000000.00..10000000001.04 rows=1 width=32)
+   Filter: (properties ?& '["gdp"]'::gtype)
 (2 rows)
 
 DROP INDEX cypher_index.load_city_gin_idx;

@@ -731,9 +731,11 @@ SELECT * FROM cypher('cypher_match', $$
 	MATCH p=(:duplicate)-[]-(:other_v)
 	RETURN DISTINCT p
 $$) AS (i traversal);
-ERROR:  could not identify an equality operator for type traversal
-LINE 3:  RETURN DISTINCT p
-                         ^
+                                                                                                                                  i                                                                                                                                   
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 3377699720527873, "label": "duplicate", "properties": {}}, {"id": 3659174697238529, "start_id": 3377699720527873, "end_id": 3940649673949185, "label": "dup_edge", "properties": {"id": 1}}, {"id": 3940649673949185, "label": "other_v", "properties": {}}]
+(1 row)
+
 --
 -- Limit
 --
@@ -824,10 +826,14 @@ SELECT * FROM cypher('cypher_match', $$
     RETURN u.name as u, type(m), l.name as l
     ORDER BY u, m, l
 $$) AS (u gtype, m gtype, l gtype);
-ERROR:  could not identify an ordering operator for type edge
-LINE 5:     ORDER BY u, m, l
-                        ^
-HINT:  Use an explicit ordering operator or modify the query.
+     u      |       m       |     l      
+------------+---------------+------------
+ "someone"  | "opt_match_e" | "somebody"
+ "somebody" | "opt_match_e" | "someone"
+ "anybody"  | "opt_match_e" | "nobody"
+ "nobody"   | "opt_match_e" | "anybody"
+(4 rows)
+
 SELECT * FROM cypher('cypher_match', $$
     OPTIONAL MATCH (n:opt_match_v)-[r]->(p), (m:opt_match_v)-[s]->(q)
     WHERE id(n) <> id(m)

@@ -51,6 +51,7 @@
 
 static void append_to_buffer(StringInfo buffer, const char *data, int len);
 static Datum get_vertex(Oid graph_oid, int64 graphid);
+static int edge_btree_fast_cmp(Datum x, Datum y, SortSupport ssup);
 
 /*
  * I/O routines for vertex type
@@ -215,6 +216,86 @@ edge_ne(PG_FUNCTION_ARGS) {
 
     PG_RETURN_BOOL((int64)lhs->children[0] != (int64)rhs->children[0]);
 }
+
+PG_FUNCTION_INFO_V1(edge_lt);
+Datum
+edge_lt(PG_FUNCTION_ARGS) {
+    edge *lhs = AG_GET_ARG_EDGE(0);
+    edge *rhs = AG_GET_ARG_EDGE(1);
+
+    PG_RETURN_BOOL((int64)lhs->children[0] < (int64)rhs->children[0]);
+}
+
+PG_FUNCTION_INFO_V1(edge_le);
+Datum
+edge_le(PG_FUNCTION_ARGS) {
+    edge *lhs = AG_GET_ARG_EDGE(0);
+    edge *rhs = AG_GET_ARG_EDGE(1);
+
+    PG_RETURN_BOOL((int64)lhs->children[0] <= (int64)rhs->children[0]);
+}
+
+PG_FUNCTION_INFO_V1(edge_gt);
+Datum
+edge_gt(PG_FUNCTION_ARGS) {
+    edge *lhs = AG_GET_ARG_EDGE(0);
+    edge *rhs = AG_GET_ARG_EDGE(1);
+
+    PG_RETURN_BOOL((int64)lhs->children[0] > (int64)rhs->children[0]);
+}
+
+PG_FUNCTION_INFO_V1(edge_ge);
+Datum
+edge_ge(PG_FUNCTION_ARGS) {
+    edge *lhs = AG_GET_ARG_EDGE(0);
+    edge *rhs = AG_GET_ARG_EDGE(1);
+
+    PG_RETURN_BOOL((int64)lhs->children[0] >= (int64)rhs->children[0]);
+}
+
+/*
+ * B-Tree Support
+ */
+PG_FUNCTION_INFO_V1(edge_btree_cmp);
+Datum edge_btree_cmp(PG_FUNCTION_ARGS) {
+    edge *lhs = AG_GET_ARG_EDGE(0);
+    edge *rhs = AG_GET_ARG_EDGE(1);
+
+    graphid lgid = (int64)lhs->children[0];
+    graphid rgid = (int64)rhs->children[0];
+
+    if (lgid > rgid)
+        PG_RETURN_INT32(1);
+    else if (lgid == rgid)
+        PG_RETURN_INT32(0);
+    else
+        PG_RETURN_INT32(-1);
+}
+
+PG_FUNCTION_INFO_V1(edge_btree_sort);
+Datum edge_btree_sort(PG_FUNCTION_ARGS) {
+    SortSupport ssup = (SortSupport)PG_GETARG_POINTER(0);
+
+    ssup->comparator = edge_btree_fast_cmp;
+    PG_RETURN_VOID();
+}
+
+static int edge_btree_fast_cmp(Datum x, Datum y, SortSupport ssup) {
+    edge *lhs = DATUM_GET_EDGE(x);
+    edge *rhs = DATUM_GET_EDGE(y);
+
+    graphid lgid = (int64)lhs->children[0];
+    graphid rgid = (int64)rhs->children[0];
+
+    if (lgid > rgid)
+        return 1;
+    else if (lgid == rgid)
+        return 0;
+    else
+        return -1;
+}
+
+
 
 
 /*

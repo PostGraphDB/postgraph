@@ -26,6 +26,7 @@
 #include "utils/vertex.h"
 
 static void append_to_buffer(StringInfo buffer, const char *data, int len);
+static int traversal_btree_fast_cmp(Datum x, Datum y, SortSupport ssup);
 
 /*
  * I/O routines for vertex type
@@ -172,6 +173,126 @@ Datum traversal_size(PG_FUNCTION_ARGS) {
     gtype_value gtv = { .type = AGTV_INTEGER, .val = { .int_value = v->children[0] } };
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+static int32 compare_traversal_orderability(traversal *lhs, traversal *rhs) {
+    char *lhs_ptr = TRAVERSAL_GET_FIRST_ENTITY(lhs);
+    char *rhs_ptr = TRAVERSAL_GET_FIRST_ENTITY(rhs);
+
+    for (int i = 0; i < lhs->children[0] && i < rhs->children[0]; i++) {
+
+        if (i % 2 == 1) {
+            graphid left_id = EXTRACT_EDGE_ID(lhs_ptr);
+            graphid right_id = EXTRACT_EDGE_ID(rhs_ptr);
+
+            if (left_id > right_id)
+                return 1; 
+             else if (left_id < right_id)
+                return -1;
+
+        } else {
+            graphid left_id = EXTRACT_VERTEX_ID(lhs_ptr);
+            graphid right_id = EXTRACT_VERTEX_ID(rhs_ptr);
+
+            if (left_id > right_id)
+                return 1;
+             else if (left_id < right_id)
+                return -1;
+        }
+
+        lhs_ptr = lhs_ptr + VARSIZE(lhs_ptr);
+        rhs_ptr = rhs_ptr + VARSIZE(rhs_ptr);
+    }
+
+    if (lhs->children[0] > rhs->children[0])
+        return 1;
+    else if (lhs->children[0] == rhs->children[0])
+        return 0;
+
+    return -1;
+}
+
+/*
+ * Comparison Operators
+ */
+PG_FUNCTION_INFO_V1(traversal_eq);
+Datum traversal_eq(PG_FUNCTION_ARGS) {
+    traversal *lhs = AG_GET_ARG_TRAVERSAL(0);
+    traversal *rhs = AG_GET_ARG_TRAVERSAL(1);
+
+    if (rhs->children[0] != lhs->children[0])
+         PG_RETURN_BOOL(false);
+
+    PG_RETURN_BOOL(compare_traversal_orderability(lhs, rhs) == 0);
+}
+
+PG_FUNCTION_INFO_V1(traversal_ne);
+Datum traversal_ne(PG_FUNCTION_ARGS) {
+    traversal *lhs = AG_GET_ARG_TRAVERSAL(0);
+    traversal *rhs = AG_GET_ARG_TRAVERSAL(1);
+
+    if (rhs->children[0] != lhs->children[0])
+         PG_RETURN_BOOL(true);
+
+    PG_RETURN_BOOL(compare_traversal_orderability(lhs, rhs) != 0);
+}
+
+PG_FUNCTION_INFO_V1(traversal_gt);
+Datum traversal_gt(PG_FUNCTION_ARGS) {
+    traversal *lhs = AG_GET_ARG_TRAVERSAL(0);
+    traversal *rhs = AG_GET_ARG_TRAVERSAL(1);
+
+    PG_RETURN_BOOL(compare_traversal_orderability(lhs, rhs) > 0);
+}
+
+PG_FUNCTION_INFO_V1(traversal_ge);
+Datum traversal_ge(PG_FUNCTION_ARGS) {
+    traversal *lhs = AG_GET_ARG_TRAVERSAL(0);
+    traversal *rhs = AG_GET_ARG_TRAVERSAL(1);
+
+    PG_RETURN_BOOL(compare_traversal_orderability(lhs, rhs) >= 0);
+}
+
+PG_FUNCTION_INFO_V1(traversal_lt);
+Datum traversal_lt(PG_FUNCTION_ARGS) {
+    traversal *lhs = AG_GET_ARG_TRAVERSAL(0);
+    traversal *rhs = AG_GET_ARG_TRAVERSAL(1);
+
+    PG_RETURN_BOOL(compare_traversal_orderability(lhs, rhs) < 0);
+}
+
+PG_FUNCTION_INFO_V1(traversal_le);
+Datum traversal_le(PG_FUNCTION_ARGS) {
+    traversal *lhs = AG_GET_ARG_TRAVERSAL(0);
+    traversal *rhs = AG_GET_ARG_TRAVERSAL(1);
+
+    PG_RETURN_BOOL(compare_traversal_orderability(lhs, rhs) <= 0);
+}
+
+/*
+ * B-Tree Support
+ */
+PG_FUNCTION_INFO_V1(traversal_btree_cmp);
+Datum traversal_btree_cmp(PG_FUNCTION_ARGS) {
+    traversal *lhs = AG_GET_ARG_TRAVERSAL(0);
+    traversal *rhs = AG_GET_ARG_TRAVERSAL(1);
+
+    PG_RETURN_INT32(compare_traversal_orderability(lhs, rhs));
+}
+
+PG_FUNCTION_INFO_V1(traversal_btree_sort);
+Datum traversal_btree_sort(PG_FUNCTION_ARGS) {
+    SortSupport ssup = (SortSupport)PG_GETARG_POINTER(0);
+
+    ssup->comparator = traversal_btree_fast_cmp;
+    PG_RETURN_VOID();
+}
+
+static int traversal_btree_fast_cmp(Datum x, Datum y, SortSupport ssup) {
+    traversal *lhs = DATUM_GET_TRAVERSAL(x);
+    traversal *rhs = DATUM_GET_TRAVERSAL(y);
+
+    return compare_traversal_orderability(lhs, rhs);
 }
 
 

@@ -776,6 +776,109 @@ CREATE OPERATOR <> (
     JOIN = neqjoinsel
 );
 
+CREATE FUNCTION edge_gt(edge, edge) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR > (
+  FUNCTION = edge_gt,
+  LEFTARG = edge,
+  RIGHTARG = edge,
+  COMMUTATOR = >,
+  NEGATOR = <=,
+  RESTRICT = scalargtsel,
+  JOIN = scalargtjoinsel
+);
+
+CREATE FUNCTION edge_ge(edge, edge) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR >= (
+  FUNCTION = edge_ge,
+  LEFTARG = edge,
+  RIGHTARG = edge,
+  COMMUTATOR = >=,
+  NEGATOR = <,
+  RESTRICT = scalargesel,
+  JOIN = scalargejoinsel
+);
+
+
+CREATE FUNCTION edge_lt(edge, edge) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR < (
+  FUNCTION = edge_lt,
+  LEFTARG = edge,
+  RIGHTARG = edge,
+  COMMUTATOR = <,
+  NEGATOR = >=,
+  RESTRICT = scalarltsel,
+  JOIN = scalarltjoinsel
+);
+
+CREATE FUNCTION edge_le(edge, edge) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <= (
+  FUNCTION = edge_le,
+  LEFTARG = edge,
+  RIGHTARG = edge,
+  COMMUTATOR = <=,
+  NEGATOR = >,
+  RESTRICT = scalarlesel,
+  JOIN = scalarlejoinsel
+);
+
+--
+-- edge - B-tree support functions
+--
+-- comparison support
+CREATE FUNCTION edge_btree_cmp(edge, edge)
+RETURNS int
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+-- sort support
+CREATE FUNCTION edge_btree_sort(internal)
+RETURNS void
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE AS 'MODULE_PATHNAME';
+
+--
+-- define operator classes for graphid
+--
+CREATE OPERATOR CLASS edge_ops
+DEFAULT FOR TYPE edge
+USING btree AS
+    OPERATOR 1 <,
+    OPERATOR 2 <=,
+    OPERATOR 3 =,
+    OPERATOR 4 >=,
+    OPERATOR 5 >,
+    FUNCTION 1 edge_btree_cmp (edge, edge),
+    FUNCTION 2 edge_btree_sort (internal);
+
 --
 -- edge functions
 --
@@ -860,6 +963,150 @@ AS 'MODULE_PATHNAME';
 CREATE TYPE traversal (INPUT = traversal_in, OUTPUT = traversal_out, LIKE = jsonb);
 
 --
+-- traversal - equality operators (=, <>, >)
+--
+CREATE FUNCTION traversal_eq(traversal, traversal) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR = (
+  FUNCTION = traversal_eq,
+  LEFTARG = traversal,
+  RIGHTARG = traversal,
+  COMMUTATOR = =,
+  NEGATOR = <>,
+  RESTRICT = eqsel,
+  JOIN = eqjoinsel,
+  HASHES
+);
+
+CREATE FUNCTION traversal_ne(traversal, traversal) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <> (
+  FUNCTION = traversal_ne,
+  LEFTARG = traversal,
+  RIGHTARG = traversal,
+  COMMUTATOR = <>,
+  NEGATOR = =,
+  RESTRICT = neqsel,
+  JOIN = neqjoinsel,
+  HASHES
+);
+
+CREATE FUNCTION traversal_gt(traversal, traversal) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR > (
+  FUNCTION = traversal_gt,
+  LEFTARG = traversal,
+  RIGHTARG = traversal,
+  COMMUTATOR = >,
+  NEGATOR = <=,
+  RESTRICT = scalargtsel,
+  JOIN = scalargtjoinsel
+);
+
+CREATE FUNCTION traversal_ge(traversal, traversal) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR >= (
+  FUNCTION = traversal_ge,
+  LEFTARG = traversal,
+  RIGHTARG = traversal,
+  COMMUTATOR = >=,
+  NEGATOR = <,
+  RESTRICT = scalargesel,
+  JOIN = scalargejoinsel
+);
+
+
+CREATE FUNCTION traversal_lt(traversal, traversal) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR < (
+  FUNCTION = traversal_lt,
+  LEFTARG = traversal,
+  RIGHTARG = traversal,
+  COMMUTATOR = <,
+  NEGATOR = >=,
+  RESTRICT = scalarltsel,
+  JOIN = scalarltjoinsel
+);
+
+CREATE FUNCTION traversal_le(traversal, traversal) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <= (
+  FUNCTION = traversal_le,
+  LEFTARG = traversal,
+  RIGHTARG = traversal,
+  COMMUTATOR = <=,
+  NEGATOR = >,
+  RESTRICT = scalarlesel,
+  JOIN = scalarlejoinsel
+);
+
+--
+-- traversal - B-tree support functions
+--
+-- comparison support
+CREATE FUNCTION traversal_btree_cmp(traversal, traversal)
+RETURNS int
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+-- sort support
+CREATE FUNCTION traversal_btree_sort(internal)
+RETURNS void
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE AS 'MODULE_PATHNAME';
+
+--
+-- define operator classes for graphid
+--
+CREATE OPERATOR CLASS traversal_ops
+DEFAULT FOR TYPE traversal
+USING btree AS
+    OPERATOR 1 <,
+    OPERATOR 2 <=,
+    OPERATOR 3 =,
+    OPERATOR 4 >=,
+    OPERATOR 5 >,
+    FUNCTION 1 traversal_btree_cmp (traversal, traversal),
+    FUNCTION 2 traversal_btree_sort (internal);
+
+
+
+--
 -- traversal functions
 --
 CREATE FUNCTION relationships(traversal) RETURNS edge[]
@@ -914,6 +1161,148 @@ PARALLEL SAFE
 AS 'MODULE_PATHNAME';
 
 CREATE TYPE variable_edge (INPUT = variable_edge_in, OUTPUT = variable_edge_out, LIKE = jsonb);
+
+--
+-- variable edge - equality operators (=, <>, >)
+--
+CREATE FUNCTION variable_edge_eq(variable_edge, variable_edge) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR = (
+  FUNCTION = variable_edge_eq,
+  LEFTARG = variable_edge,
+  RIGHTARG = variable_edge,
+  COMMUTATOR = =,
+  NEGATOR = <>,
+  RESTRICT = eqsel,
+  JOIN = eqjoinsel,
+  HASHES
+);
+
+CREATE FUNCTION variable_edge_ne(variable_edge, variable_edge) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <> (
+  FUNCTION = variable_edge_ne,
+  LEFTARG = variable_edge,
+  RIGHTARG = variable_edge,
+  COMMUTATOR = <>,
+  NEGATOR = =,
+  RESTRICT = neqsel,
+  JOIN = neqjoinsel,
+  HASHES
+);
+
+CREATE FUNCTION variable_edge_gt(variable_edge, variable_edge) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR > (
+  FUNCTION = variable_edge_gt,
+  LEFTARG = variable_edge,
+  RIGHTARG = variable_edge,
+  COMMUTATOR = >,
+  NEGATOR = <=,
+  RESTRICT = scalargtsel,
+  JOIN = scalargtjoinsel
+);
+
+CREATE FUNCTION variable_edge_ge(variable_edge, variable_edge) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR >= (
+  FUNCTION = variable_edge_ge,
+  LEFTARG = variable_edge,
+  RIGHTARG = variable_edge,
+  COMMUTATOR = >=,
+  NEGATOR = <,
+  RESTRICT = scalargesel,
+  JOIN = scalargejoinsel
+);
+
+
+CREATE FUNCTION variable_edge_lt(variable_edge, variable_edge) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR < (
+  FUNCTION = variable_edge_lt,
+  LEFTARG = variable_edge,
+  RIGHTARG = variable_edge,
+  COMMUTATOR = <,
+  NEGATOR = >=,
+  RESTRICT = scalarltsel,
+  JOIN = scalarltjoinsel
+);
+
+CREATE FUNCTION variable_edge_le(variable_edge, variable_edge) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <= (
+  FUNCTION = variable_edge_le,
+  LEFTARG = variable_edge,
+  RIGHTARG = variable_edge,
+  COMMUTATOR = <=,
+  NEGATOR = >,
+  RESTRICT = scalarlesel,
+  JOIN = scalarlejoinsel
+);
+
+--
+-- edge - B-tree support functions
+--
+-- comparison support
+CREATE FUNCTION variable_edge_btree_cmp(variable_edge, variable_edge)
+RETURNS int
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+-- sort support
+CREATE FUNCTION variable_edge_btree_sort(internal)
+RETURNS void
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE AS 'MODULE_PATHNAME';
+
+--
+-- define operator classes for graphid
+--
+CREATE OPERATOR CLASS variable_edge_ops
+DEFAULT FOR TYPE variable_edge
+USING btree AS
+    OPERATOR 1 <,
+    OPERATOR 2 <=,
+    OPERATOR 3 =,
+    OPERATOR 4 >=,
+    OPERATOR 5 >,
+    FUNCTION 1 variable_edge_btree_cmp (variable_edge, variable_edge),
+    FUNCTION 2 variable_edge_btree_sort (internal);
 
 --
 -- gtype - mathematical operators (+, -, *, /, %, ^)
