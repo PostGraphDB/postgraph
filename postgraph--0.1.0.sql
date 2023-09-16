@@ -2333,6 +2333,18 @@ AS 'MODULE_PATHNAME';
 CREATE CAST (gtype AS int[]) 
 WITH FUNCTION gtype_to_int4_array(gtype);
 
+-- inet -> gtype
+CREATE FUNCTION inet_to_gtype(inet)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (inet as gtype)
+WITH FUNCTION inet_to_gtype(inet);
+
 --
 -- gtype - typecasting to other gtype types
 --

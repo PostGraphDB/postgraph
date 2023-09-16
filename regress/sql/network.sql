@@ -30,6 +30,10 @@ SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet $$) as (i gtype);
 SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::inet $$) as (i gtype);
 SELECT * FROM cypher('network', $$ RETURN '::ffff:fff0:1'::inet $$) as (i gtype);
 
+--
+-- inet to gtype inet
+--
+SELECT '192.168.1.5'::inet::gtype;
 
 --
 -- cidr
