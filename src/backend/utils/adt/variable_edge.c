@@ -224,6 +224,26 @@ static int variable_edge_btree_fast_cmp(Datum x, Datum y, SortSupport ssup) {
     return compare_variable_edge_orderability(lhs, rhs);
 }
 
+PG_FUNCTION_INFO_V1(edge_contained_in_variable_edge);
+Datum edge_contained_in_variable_edge(PG_FUNCTION_ARGS) {
+    edge *e = AG_GET_ARG_EDGE(0);
+    VariableEdge *variable_edge = AG_GET_ARG_VARIABLE_EDGE(1);
+
+    graphid left_id = EXTRACT_EDGE_ID(e);
+
+    char *ptr = &variable_edge->children[1];
+    for (int i = 0; i < variable_edge->children[0] - 1; i++, ptr = ptr + VARSIZE(ptr)) {
+	 if (i % 2 == 0) {
+             edge *right_edge = (edge *)ptr;
+	     graphid right_id = EXTRACT_EDGE_ID(right_edge);
+	     if (left_id == right_id)
+                 PG_RETURN_BOOL(true);
+	 }
+    }
+
+    PG_RETURN_BOOL(false);
+}
+
 // match 2 VLE edges 
 PG_FUNCTION_INFO_V1(match_vles);
 Datum match_vles(PG_FUNCTION_ARGS) {

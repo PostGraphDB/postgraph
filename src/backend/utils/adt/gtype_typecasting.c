@@ -540,6 +540,23 @@ gtype_to_text(PG_FUNCTION_ARGS) {
     PG_RETURN_DATUM(d);
 }
 
+PG_FUNCTION_INFO_V1(gtype_to_inet);
+// gtype -> inet
+Datum
+gtype_to_inet(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    Datum d = convert_to_scalar(gtype_to_inet_internal, agt, "string");
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    PG_RETURN_DATUM(d);
+}
+
+
 /*
  * Postgres types to gtype
  */
@@ -901,7 +918,9 @@ gtype_to_timetz_internal(gtype_value *agtv) {
 
 Datum
 gtype_to_inet_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_STRING)
+    if (agtv->type == AGTV_INET)
+        return InetPGetDatum(&agtv->val.inet);
+    else if (agtv->type == AGTV_STRING)
         return DirectFunctionCall1(inet_in, CStringGetDatum(agtv->val.string.val));
     else
         cannot_cast_gtype_value(agtv->type, "inet");

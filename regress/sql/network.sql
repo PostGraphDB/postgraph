@@ -36,6 +36,23 @@ SELECT * FROM cypher('network', $$ RETURN '::ffff:fff0:1'::inet $$) as (i gtype)
 SELECT '192.168.1.5'::inet::gtype;
 
 --
+-- gtype inet to inet
+--
+SELECT toinet('"192.168.1.5"'::gtype)::inet;
+
+-- type coercion
+SELECT * FROM cypher('network', $$ RETURN toinet('192.168.1.5') $$) as (i inet);
+
+--
+-- gtype string to inet
+--
+SELECT '"192.168.1.5"'::gtype::inet;
+
+-- type coercion
+SELECT * FROM cypher('network', $$ RETURN '192.168.1.5' $$) as (i inet);
+
+
+--
 -- cidr
 --
 SELECT * FROM cypher('network', $$ RETURN tocidr('192.168.1.5') $$) as (i gtype);

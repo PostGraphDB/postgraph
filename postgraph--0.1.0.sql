@@ -1312,6 +1312,28 @@ USING btree AS
     FUNCTION 1 variable_edge_btree_cmp (variable_edge, variable_edge),
     FUNCTION 2 variable_edge_btree_sort (internal);
 
+--  
+-- variable_edge containment operators (@>, @<, @@)
+--  
+CREATE FUNCTION edge_contained_in_variable_edge(edge, variable_edge)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR @> (
+  FUNCTION = edge_contained_in_variable_edge,
+  LEFTARG = edge,
+  RIGHTARG = variable_edge,
+  --COMMUTATOR = '<@',
+  RESTRICT = contsel,  
+  JOIN = contjoinsel
+);  
+    
+
+
 --
 -- variable_edge functions
 --
@@ -1328,6 +1350,14 @@ IMMUTABLE
 RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 AS 'MODULE_PATHNAME', 'variable_edge_edges';
+
+CREATE FUNCTION edges(variable_edge) RETURNS edge[]
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'variable_edge_edges';
+
 
 --
 -- gtype - mathematical operators (+, -, *, /, %, ^)
@@ -2344,6 +2374,19 @@ AS 'MODULE_PATHNAME';
 
 CREATE CAST (inet as gtype)
 WITH FUNCTION inet_to_gtype(inet);
+
+-- gtype -> inet
+CREATE FUNCTION gtype_to_inet(gtype)
+RETURNS inet
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype as inet)
+WITH FUNCTION gtype_to_inet(gtype);
+
 
 --
 -- gtype - typecasting to other gtype types
