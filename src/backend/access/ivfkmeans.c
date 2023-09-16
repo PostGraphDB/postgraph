@@ -128,8 +128,8 @@ QuickCenters(Relation index, VectorArray samples, VectorArray centers) {
         vec = VectorArrayGet(centers, centers->length);
 
         SET_VARSIZE(vec, VECTOR_SIZE(dimensions));
-        vec->root.header = dimensions | AGT_FEXTENDED_COMPOSITE;
-        vec->root.children[0] = AGT_HEADER_VECTOR;
+        vec->root.header = dimensions | GT_FEXTENDED_COMPOSITE;
+        vec->root.children[0] = GT_HEADER_VECTOR;
                 
         for (int j = 0; j < dimensions; j++) {
              *((float8 *)(&vec->root.children[1 + (j * sizeof(float8))])) = RandomDouble();
@@ -225,8 +225,8 @@ ElkanKmeans(Relation index, VectorArray samples, VectorArray centers)
     for (j = 0; j < numCenters; j++) {
         vec = VectorArrayGet(newCenters, j);
         SET_VARSIZE(vec, VECTOR_SIZE(dimensions));
-        vec->root.header = dimensions | AGT_FEXTENDED_COMPOSITE;
-        vec->root.children[0] = AGT_HEADER_VECTOR;
+        vec->root.header = dimensions | GT_FEXTENDED_COMPOSITE;
+        vec->root.children[0] = GT_HEADER_VECTOR;
     }
  
     // Pick initial centers 

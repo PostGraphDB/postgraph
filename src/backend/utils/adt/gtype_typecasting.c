@@ -658,7 +658,7 @@ gtype_to_array(coearce_function func, gtype *agt, char *type) {
     array_value = (Datum *) palloc(sizeof(Datum) * AGT_ROOT_COUNT(agt));
 
     int i = 0;
-    while ((agtv_token = gtype_iterator_next(&gtype_iterator, &agtv, true)) != WAGT_END_ARRAY)
+    while ((agtv_token = gtype_iterator_next(&gtype_iterator, &agtv, true)) != WGT_END_ARRAY)
         array_value[i++] = func(&agtv);
 
     ArrayType *result = construct_array(array_value, AGT_ROOT_COUNT(agt), INT4OID, 4, true, 'i');

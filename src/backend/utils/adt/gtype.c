@@ -154,8 +154,8 @@ Datum gtype_build_map_noargs(PG_FUNCTION_ARGS)
     
     memset(&result, 0, sizeof(gtype_in_state));
                                           
-    push_gtype_value(&result.parse_state, WAGT_BEGIN_OBJECT, NULL);
-    result.res = push_gtype_value(&result.parse_state, WAGT_END_OBJECT, NULL); 
+    push_gtype_value(&result.parse_state, WGT_BEGIN_OBJECT, NULL);
+    result.res = push_gtype_value(&result.parse_state, WGT_END_OBJECT, NULL); 
                 
     PG_RETURN_POINTER(gtype_value_to_gtype(result.res));
 }    
@@ -165,26 +165,26 @@ bool is_gtype_null(gtype *agt_arg)
 {
     gtype_container *agtc = &agt_arg->root;
 
-    if (GTYPE_CONTAINER_IS_SCALAR(agtc) && AGTE_IS_NULL(agtc->children[0]))
+    if (GTYPE_CONTAINER_IS_SCALAR(agtc) && GTE_IS_NULL(agtc->children[0]))
         return true;
 
     return false;
 }
 
 bool is_gtype_integer(gtype *agt) {
-    return AGT_ROOT_IS_SCALAR(agt) && AGTE_IS_GTYPE(agt->root.children[0]) && AGT_IS_INTEGER(agt->root.children[1]);
+    return AGT_ROOT_IS_SCALAR(agt) && GTE_IS_GTYPE(agt->root.children[0]) && GT_IS_INTEGER(agt->root.children[1]);
 }
 
 bool is_gtype_float(gtype *agt) {
-    return AGT_ROOT_IS_SCALAR(agt) && AGTE_IS_GTYPE(agt->root.children[0]) && AGT_IS_FLOAT(agt->root.children[1]);
+    return AGT_ROOT_IS_SCALAR(agt) && GTE_IS_GTYPE(agt->root.children[0]) && GT_IS_FLOAT(agt->root.children[1]);
 }
 
 bool is_gtype_numeric(gtype *agt) {
-    return AGT_ROOT_IS_SCALAR(agt) && AGTE_IS_NUMERIC(agt->root.children[0]);
+    return AGT_ROOT_IS_SCALAR(agt) && GTE_IS_NUMERIC(agt->root.children[0]);
 }
 
 bool is_gtype_string(gtype *agt) {
-    return AGT_ROOT_IS_SCALAR(agt) && AGTE_IS_STRING(agt->root.children[0]);
+    return AGT_ROOT_IS_SCALAR(agt) && GTE_IS_STRING(agt->root.children[0]);
 }
 
 /*
@@ -294,9 +294,9 @@ Datum gtype_from_cstring(char *str, int len)
 }
 
 size_t check_string_length(size_t len) {
-    if (len > AGTENTRY_OFFLENMASK)
+    if (len > GTENTRY_OFFLENMASK)
         ereport(ERROR, (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED), errmsg("string too long to represent as gtype string"),
-                 errdetail("Due to an implementation restriction, gtype strings cannot exceed %d bytes.", AGTENTRY_OFFLENMASK)));
+                 errdetail("Due to an implementation restriction, gtype strings cannot exceed %d bytes.", GTENTRY_OFFLENMASK)));
 
     return len;
 }
@@ -304,25 +304,25 @@ size_t check_string_length(size_t len) {
 static void gtype_in_object_start(void *pstate) {
     gtype_in_state *_state = (gtype_in_state *)pstate;
 
-    _state->res = push_gtype_value(&_state->parse_state, WAGT_BEGIN_OBJECT, NULL);
+    _state->res = push_gtype_value(&_state->parse_state, WGT_BEGIN_OBJECT, NULL);
 }
 
 static void gtype_in_object_end(void *pstate) {
     gtype_in_state *_state = (gtype_in_state *)pstate;
 
-    _state->res = push_gtype_value(&_state->parse_state, WAGT_END_OBJECT, NULL);
+    _state->res = push_gtype_value(&_state->parse_state, WGT_END_OBJECT, NULL);
 }
 
 static void gtype_in_array_start(void *pstate) {
     gtype_in_state *_state = (gtype_in_state *)pstate;
 
-    _state->res = push_gtype_value(&_state->parse_state, WAGT_BEGIN_ARRAY, NULL);
+    _state->res = push_gtype_value(&_state->parse_state, WGT_BEGIN_ARRAY, NULL);
 }
 
 static void gtype_in_array_end(void *pstate) {
     gtype_in_state *_state = (gtype_in_state *)pstate;
 
-    _state->res = push_gtype_value(&_state->parse_state, WAGT_END_ARRAY, NULL);
+    _state->res = push_gtype_value(&_state->parse_state, WGT_END_ARRAY, NULL);
 }
 
 static void gtype_in_object_field_start(void *pstate, char *fname, bool isnull) {
@@ -334,7 +334,7 @@ static void gtype_in_object_field_start(void *pstate, char *fname, bool isnull) 
     v.val.string.len = check_string_length(strlen(fname));
     v.val.string.val = fname;
 
-    _state->res = push_gtype_value(&_state->parse_state, WAGT_KEY, &v);
+    _state->res = push_gtype_value(&_state->parse_state, WGT_KEY, &v);
 }
 
 void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
@@ -674,19 +674,19 @@ static void gtype_in_scalar(void *pstate, char *token, gtype_token_type tokentyp
         va.val.array.raw_scalar = true;
         va.val.array.num_elems = 1;
 
-        _state->res = push_gtype_value(&_state->parse_state, WAGT_BEGIN_ARRAY, &va);
-        _state->res = push_gtype_value(&_state->parse_state, WAGT_ELEM, &v);
-        _state->res = push_gtype_value(&_state->parse_state, WAGT_END_ARRAY, NULL);
+        _state->res = push_gtype_value(&_state->parse_state, WGT_BEGIN_ARRAY, &va);
+        _state->res = push_gtype_value(&_state->parse_state, WGT_ELEM, &v);
+        _state->res = push_gtype_value(&_state->parse_state, WGT_END_ARRAY, NULL);
     } else {
         gtype_value *o = &_state->parse_state->cont_val;
 
         switch (o->type)
         {
         case AGTV_ARRAY:
-            _state->res = push_gtype_value(&_state->parse_state, WAGT_ELEM, &v);
+            _state->res = push_gtype_value(&_state->parse_state, WGT_ELEM, &v);
             break;
         case AGTV_OBJECT:
-            _state->res = push_gtype_value(&_state->parse_state, WAGT_VALUE, &v);
+            _state->res = push_gtype_value(&_state->parse_state, WGT_VALUE, &v);
             break;
         default:
             elog(ERROR, "unexpected parent of nested structure");
@@ -724,7 +724,7 @@ static char *gtype_to_cstring_worker(StringInfo out, gtype_container *in, int es
     bool first = true;
     gtype_iterator *it;
     gtype_value v;
-    gtype_iterator_token type = WAGT_DONE;
+    gtype_iterator_token type = WGT_DONE;
     int level = 0;
     bool redo_switch = false;
 
@@ -747,12 +747,12 @@ static char *gtype_to_cstring_worker(StringInfo out, gtype_container *in, int es
     it = gtype_iterator_init(in);
 
     while (redo_switch ||
-           ((type = gtype_iterator_next(&it, &v, false)) != WAGT_DONE))
+           ((type = gtype_iterator_next(&it, &v, false)) != WGT_DONE))
     {
         redo_switch = false;
         switch (type)
         {
-        case WAGT_BEGIN_ARRAY:
+        case WGT_BEGIN_ARRAY:
             if (!first)
                 appendBinaryStringInfo(out, ", ", ispaces);
 
@@ -766,7 +766,7 @@ static char *gtype_to_cstring_worker(StringInfo out, gtype_container *in, int es
             first = true;
             level++;
             break;
-        case WAGT_BEGIN_VECTOR:
+        case WGT_BEGIN_VECTOR:
             if (!first)
                 appendBinaryStringInfo(out, ", ", ispaces);
 
@@ -777,7 +777,7 @@ static char *gtype_to_cstring_worker(StringInfo out, gtype_container *in, int es
             level++;
             break;
 
-        case WAGT_BEGIN_OBJECT:
+        case WGT_BEGIN_OBJECT:
             if (!first)
                 appendBinaryStringInfo(out, ", ", ispaces);
 
@@ -787,7 +787,7 @@ static char *gtype_to_cstring_worker(StringInfo out, gtype_container *in, int es
             first = true;
             level++;
             break;
-        case WAGT_KEY:
+        case WGT_KEY:
             if (!first)
                 appendBinaryStringInfo(out, ", ", ispaces);
             first = true;
@@ -799,11 +799,11 @@ static char *gtype_to_cstring_worker(StringInfo out, gtype_container *in, int es
             appendBinaryStringInfo(out, ": ", 2);
 
             type = gtype_iterator_next(&it, &v, false);
-            if (type == WAGT_VALUE) {
+            if (type == WGT_VALUE) {
                 first = false;
                 gtype_put_escaped_value(out, &v);
             } else {
-                Assert(type == WAGT_BEGIN_OBJECT || type == WAGT_BEGIN_ARRAY || type == WAGT_BEGIN_VECTOR);
+                Assert(type == WGT_BEGIN_OBJECT || type == WGT_BEGIN_ARRAY || type == WGT_BEGIN_VECTOR);
 
                 /*
                  * We need to rerun the current switch() since we need to
@@ -813,8 +813,8 @@ static char *gtype_to_cstring_worker(StringInfo out, gtype_container *in, int es
                 redo_switch = true;
             }
             break;
-	case WAGT_VECTOR_VALUE:
-        case WAGT_ELEM:
+	case WGT_VECTOR_VALUE:
+        case WGT_ELEM:
             if (!first)
                 appendBinaryStringInfo(out, ", ", ispaces);
             first = false;
@@ -823,7 +823,7 @@ static char *gtype_to_cstring_worker(StringInfo out, gtype_container *in, int es
                 add_indent(out, use_indent, level);
             gtype_put_escaped_value(out, &v);
             break;
-        case WAGT_END_ARRAY:
+        case WGT_END_ARRAY:
             level--;
             if (!raw_scalar) {
                 add_indent(out, use_indent, level);
@@ -831,13 +831,13 @@ static char *gtype_to_cstring_worker(StringInfo out, gtype_container *in, int es
             }
             first = false;
             break;
-        case WAGT_END_VECTOR:
+        case WGT_END_VECTOR:
             level--;
             add_indent(out, use_indent, level);
             appendStringInfoCharMacro(out, ']');
             first = false;
             break;
-        case WAGT_END_OBJECT:
+        case WGT_END_OBJECT:
             level--;
             add_indent(out, use_indent, level);
             appendStringInfoCharMacro(out, '}');
@@ -1250,7 +1250,7 @@ static void datum_to_gtype(Datum val, bool is_null, gtype_in_state *result, agt_
         case AGT_TYPE_JSONB:
         {
 		/*
-            if (AGT_IS_VECTOR(DATUM_GET_GTYPE_P(val))) {
+            if (GT_IS_VECTOR(DATUM_GET_GTYPE_P(val))) {
                 gtype_value *obj = &result->parse_state->cont_val;
 		gtype *vector = DATUM_GET_GTYPE_P(val);
                 int idx = obj->val.object.num_pairs;
@@ -1279,10 +1279,10 @@ static void datum_to_gtype(Datum val, bool is_null, gtype_in_state *result, agt_
             } else {
                 gtype_iterator_token type;
 
-                while ((type = gtype_iterator_next(&it, &agtv, false)) != WAGT_DONE) {
-                    if (type == WAGT_END_ARRAY || type == WAGT_END_OBJECT ||
-		        type == WAGT_END_VECTOR || type == WAGT_BEGIN_VECTOR ||
-   	  	        type == WAGT_BEGIN_ARRAY || type == WAGT_BEGIN_OBJECT) {
+                while ((type = gtype_iterator_next(&it, &agtv, false)) != WGT_DONE) {
+                    if (type == WGT_END_ARRAY || type == WGT_END_OBJECT ||
+		        type == WGT_END_VECTOR || type == WGT_BEGIN_VECTOR ||
+   	  	        type == WGT_BEGIN_ARRAY || type == WGT_BEGIN_OBJECT) {
                         result->res = push_gtype_value(&result->parse_state, type, NULL);
                     } else {
                         result->res = push_gtype_value(&result->parse_state, type, &agtv);
@@ -1312,18 +1312,18 @@ static void datum_to_gtype(Datum val, bool is_null, gtype_in_state *result, agt_
         va.val.array.raw_scalar = true;
         va.val.array.num_elems = 1;
 
-        result->res = push_gtype_value(&result->parse_state, WAGT_BEGIN_ARRAY, &va);
-        result->res = push_gtype_value(&result->parse_state, WAGT_ELEM, &agtv);
-        result->res = push_gtype_value(&result->parse_state, WAGT_END_ARRAY, NULL);
+        result->res = push_gtype_value(&result->parse_state, WGT_BEGIN_ARRAY, &va);
+        result->res = push_gtype_value(&result->parse_state, WGT_ELEM, &agtv);
+        result->res = push_gtype_value(&result->parse_state, WGT_END_ARRAY, NULL);
     } else {
         gtype_value *o = &result->parse_state->cont_val;
 
         switch (o->type) {
         case AGTV_ARRAY:
-            result->res = push_gtype_value(&result->parse_state, WAGT_ELEM, &agtv);
+            result->res = push_gtype_value(&result->parse_state, WGT_ELEM, &agtv);
             break;
         case AGTV_OBJECT:
-            result->res = push_gtype_value(&result->parse_state, key_scalar ? WAGT_KEY : WAGT_VALUE, &agtv);
+            result->res = push_gtype_value(&result->parse_state, key_scalar ? WGT_KEY : WGT_VALUE, &agtv);
             break;
         default:
             elog(ERROR, "unexpected parent of nested structure");
@@ -1344,7 +1344,7 @@ static void array_dim_to_gtype(gtype_in_state *result, int dim, int ndims,
 
     Assert(dim < ndims);
 
-    result->res = push_gtype_value(&result->parse_state, WAGT_BEGIN_ARRAY, NULL);
+    result->res = push_gtype_value(&result->parse_state, WGT_BEGIN_ARRAY, NULL);
 
     for (i = 1; i <= dims[dim]; i++)
     {
@@ -1356,7 +1356,7 @@ static void array_dim_to_gtype(gtype_in_state *result, int dim, int ndims,
         }
     }
 
-    result->res = push_gtype_value(&result->parse_state, WAGT_END_ARRAY, NULL);
+    result->res = push_gtype_value(&result->parse_state, WGT_END_ARRAY, NULL);
 }
 
 /*
@@ -1383,8 +1383,8 @@ static void array_to_gtype_internal(Datum array, gtype_in_state *result)
     nitems = ArrayGetNItems(ndim, dim);
 
     if (nitems <= 0) {
-        result->res = push_gtype_value(&result->parse_state, WAGT_BEGIN_ARRAY, NULL);
-        result->res = push_gtype_value(&result->parse_state, WAGT_END_ARRAY, NULL);
+        result->res = push_gtype_value(&result->parse_state, WGT_BEGIN_ARRAY, NULL);
+        result->res = push_gtype_value(&result->parse_state, WGT_END_ARRAY, NULL);
         return;
     }
 
@@ -1424,7 +1424,7 @@ static void composite_to_gtype(Datum composite, gtype_in_state *result)
     tmptup.t_data = td;
     tuple = &tmptup;
 
-    result->res = push_gtype_value(&result->parse_state, WAGT_BEGIN_OBJECT, NULL);
+    result->res = push_gtype_value(&result->parse_state, WGT_BEGIN_OBJECT, NULL);
 
     for (i = 0; i < tupdesc->natts; i++)
     {
@@ -1448,7 +1448,7 @@ static void composite_to_gtype(Datum composite, gtype_in_state *result)
         v.val.string.len = strlen(attname);
         v.val.string.val = attname;
 
-        result->res = push_gtype_value(&result->parse_state, WAGT_KEY, &v);
+        result->res = push_gtype_value(&result->parse_state, WGT_KEY, &v);
 
         val = heap_getattr(tuple, i + 1, tupdesc, &isnull);
 
@@ -1465,7 +1465,7 @@ static void composite_to_gtype(Datum composite, gtype_in_state *result)
         datum_to_gtype(val, isnull, result, tcategory, outfuncoid, false);
     }
 
-    result->res = push_gtype_value(&result->parse_state, WAGT_END_OBJECT,
+    result->res = push_gtype_value(&result->parse_state, WGT_END_OBJECT,
                                     NULL);
     ReleaseTupleDesc(tupdesc);
 }
@@ -1539,7 +1539,7 @@ Datum gtype_build_map(PG_FUNCTION_ARGS)
 
     memset(&result, 0, sizeof(gtype_in_state));
 
-    result.res = push_gtype_value(&result.parse_state, WAGT_BEGIN_OBJECT,
+    result.res = push_gtype_value(&result.parse_state, WGT_BEGIN_OBJECT,
                                    NULL);
 
     for (i = 0; i < nargs; i += 2)
@@ -1558,7 +1558,7 @@ Datum gtype_build_map(PG_FUNCTION_ARGS)
         add_gtype(args[i + 1], nulls[i + 1], &result, types[i + 1], false);
     }
 
-    result.res = push_gtype_value(&result.parse_state, WAGT_END_OBJECT, NULL);
+    result.res = push_gtype_value(&result.parse_state, WGT_END_OBJECT, NULL);
 
     PG_RETURN_POINTER(gtype_value_to_gtype(result.res));
 }
@@ -1585,13 +1585,13 @@ Datum gtype_build_list(PG_FUNCTION_ARGS)
 
     memset(&result, 0, sizeof(gtype_in_state));
 
-    result.res = push_gtype_value(&result.parse_state, WAGT_BEGIN_ARRAY,
+    result.res = push_gtype_value(&result.parse_state, WGT_BEGIN_ARRAY,
                                    NULL);
 
     for (i = 0; i < nargs; i++)
         add_gtype(args[i], nulls[i], &result, types[i], false);
 
-    result.res = push_gtype_value(&result.parse_state, WAGT_END_ARRAY, NULL);
+    result.res = push_gtype_value(&result.parse_state, WGT_END_ARRAY, NULL);
 
     PG_RETURN_POINTER(gtype_value_to_gtype(result.res));
 }
@@ -1607,8 +1607,8 @@ Datum gtype_build_list_noargs(PG_FUNCTION_ARGS)
 
     memset(&result, 0, sizeof(gtype_in_state));
 
-    push_gtype_value(&result.parse_state, WAGT_BEGIN_ARRAY, NULL);
-    result.res = push_gtype_value(&result.parse_state, WAGT_END_ARRAY, NULL);
+    push_gtype_value(&result.parse_state, WGT_BEGIN_ARRAY, NULL);
+    result.res = push_gtype_value(&result.parse_state, WGT_END_ARRAY, NULL);
 
     PG_RETURN_POINTER(gtype_value_to_gtype(result.res));
 }
@@ -1636,18 +1636,18 @@ static bool gtype_extract_scalar(gtype_container *agtc, gtype_value *res)
     it = gtype_iterator_init(agtc);
 
     tok = gtype_iterator_next(&it, &tmp, true);
-    Assert(tok == WAGT_BEGIN_ARRAY);
+    Assert(tok == WGT_BEGIN_ARRAY);
     Assert(tmp.val.array.num_elems == 1 && tmp.val.array.raw_scalar);
 
     tok = gtype_iterator_next(&it, res, true);
-    Assert(tok == WAGT_ELEM);
+    Assert(tok == WGT_ELEM);
     Assert(IS_A_GTYPE_SCALAR(res));
 
     tok = gtype_iterator_next(&it, &tmp, true);
-    Assert(tok == WAGT_END_ARRAY);
+    Assert(tok == WGT_END_ARRAY);
 
     tok = gtype_iterator_next(&it, &tmp, true);
-    Assert(tok == WAGT_DONE);
+    Assert(tok == WGT_DONE);
 
     return true;
 }
@@ -1814,7 +1814,7 @@ Datum gtype_object_field_impl(FunctionCallInfo fcinfo, gtype *gtype_in, char *ke
     if (!AGT_ROOT_IS_OBJECT(gtype_in))
         PG_RETURN_NULL();
 
-    v = find_gtype_value_from_container(agtc, AGT_FOBJECT, &new_key_value);
+    v = find_gtype_value_from_container(agtc, GT_FOBJECT, &new_key_value);
 
     return process_access_operator_result(fcinfo, v, as_text);
 }  
@@ -1961,17 +1961,17 @@ Datum gtype_access_slice(PG_FUNCTION_ARGS)
     /* build our result array */
     memset(&result, 0, sizeof(gtype_in_state));
 
-    result.res = push_gtype_value(&result.parse_state, WAGT_BEGIN_ARRAY,
+    result.res = push_gtype_value(&result.parse_state, WGT_BEGIN_ARRAY,
                                    NULL);
 
     /* get array elements */
     for (i = lower_index; i < upper_index; i++)
     {
-        result.res = push_gtype_value(&result.parse_state, WAGT_ELEM,
+        result.res = push_gtype_value(&result.parse_state, WGT_ELEM,
             get_ith_gtype_value_from_container(&array->root, i));
     }
 
-    result.res = push_gtype_value(&result.parse_state, WAGT_END_ARRAY, NULL);
+    result.res = push_gtype_value(&result.parse_state, WGT_END_ARRAY, NULL);
 
     PG_RETURN_POINTER(gtype_value_to_gtype(result.res));
 }
@@ -2186,17 +2186,17 @@ Datum gtype_hash_cmp(PG_FUNCTION_ARGS)
     r = palloc0(sizeof(gtype_value));
 
     it = gtype_iterator_init(&agt->root);
-    while ((tok = gtype_iterator_next(&it, r, false)) != WAGT_DONE)
+    while ((tok = gtype_iterator_next(&it, r, false)) != WGT_DONE)
     {
         if (IS_A_GTYPE_SCALAR(r) && GTYPE_ITERATOR_TOKEN_IS_HASHABLE(tok))
             gtype_hash_scalar_value_extended(r, &hash, seed);
-        else if (tok == WAGT_BEGIN_ARRAY && !r->val.array.raw_scalar)
+        else if (tok == WGT_BEGIN_ARRAY && !r->val.array.raw_scalar)
             seed = LEFT_ROTATE(seed, 4);
-        else if (tok == WAGT_BEGIN_OBJECT)
+        else if (tok == WGT_BEGIN_OBJECT)
             seed = LEFT_ROTATE(seed, 6);
-        else if (tok == WAGT_END_ARRAY && !r->val.array.raw_scalar)
+        else if (tok == WGT_END_ARRAY && !r->val.array.raw_scalar)
             seed = RIGHT_ROTATE(seed, 4);
-        else if (tok == WAGT_END_OBJECT)
+        else if (tok == WGT_END_OBJECT)
             seed = RIGHT_ROTATE(seed, 4);
 
         seed = LEFT_ROTATE(seed, 1);
@@ -2433,21 +2433,21 @@ static gtype_iterator *get_next_list_element(gtype_iterator *it,
         it = gtype_iterator_init(agtc);
         /* get the first token */
         itok = gtype_iterator_next(&it, &tmp, true);
-        /* it should be WAGT_BEGIN_ARRAY */
-        Assert(itok == WAGT_BEGIN_ARRAY);
+        /* it should be WGT_BEGIN_ARRAY */
+        Assert(itok == WGT_BEGIN_ARRAY);
     }
 
     /* the next token should be an element or the end of the array */
     itok = gtype_iterator_next(&it, &tmp, true);
-    Assert(itok == WAGT_ELEM || WAGT_END_ARRAY);
+    Assert(itok == WGT_ELEM || WGT_END_ARRAY);
 
     /* if this is the end of the array return NULL */
-    if (itok == WAGT_END_ARRAY) {
+    if (itok == WGT_END_ARRAY) {
         return NULL;
     }
 
     /* this should be the element, copy it */
-    if (itok == WAGT_ELEM) {
+    if (itok == WGT_ELEM) {
         memcpy(elem, &tmp, sizeof(gtype_value));
     }
 
@@ -2500,11 +2500,11 @@ Datum gtype_reverse(PG_FUNCTION_ARGS)
 
         if (!AGT_ROOT_IS_SCALAR(agt_arg))
         {
-            agtv_value = push_gtype_value(&parse_state, WAGT_BEGIN_ARRAY, NULL);
+            agtv_value = push_gtype_value(&parse_state, WGT_BEGIN_ARRAY, NULL);
 
             while ((it = get_next_list_element(it, &agt_arg->root, &elem)))
             {
-                agtv_value = push_gtype_value(&parse_state, WAGT_ELEM, &elem);
+                agtv_value = push_gtype_value(&parse_state, WGT_ELEM, &elem);
             }
 
             /* now reverse the list */
@@ -2521,7 +2521,7 @@ Datum gtype_reverse(PG_FUNCTION_ARGS)
 
             elems = NULL;
 
-            agtv_value = push_gtype_value(&parse_state, WAGT_END_ARRAY, NULL);
+            agtv_value = push_gtype_value(&parse_state, WGT_END_ARRAY, NULL);
 
             Assert(agtv_value != NULL);
             Assert(agtv_value->type = AGTV_ARRAY);
@@ -3919,7 +3919,7 @@ gtype_value *alter_property_value(gtype *properties, char *var_name,
                                    gtype *new_v, bool remove_property)
 {
     gtype_iterator *it;
-    gtype_iterator_token tok = WAGT_DONE;
+    gtype_iterator_token tok = WGT_DONE;
     gtype_parse_state *parse_state = NULL;
     gtype_value *r;
     gtype *prop_gtype;
@@ -3941,7 +3941,7 @@ gtype_value *alter_property_value(gtype *properties, char *var_name,
     it = gtype_iterator_init(&prop_gtype->root);
     tok = gtype_iterator_next(&it, r, true);
 
-    parsed_gtype_value = push_gtype_value(&parse_state, tok, tok < WAGT_BEGIN_ARRAY ? r : NULL);
+    parsed_gtype_value = push_gtype_value(&parse_state, tok, tok < WGT_BEGIN_ARRAY ? r : NULL);
 
     /*
      * If the new value is NULL, this is equivalent to the remove_property
@@ -3957,7 +3957,7 @@ gtype_value *alter_property_value(gtype *properties, char *var_name,
 
         tok = gtype_iterator_next(&it, r, true);
 
-        if (tok == WAGT_DONE || tok == WAGT_END_OBJECT)
+        if (tok == WGT_DONE || tok == WGT_END_OBJECT)
             break;
 
         str = pnstrdup(r->val.string.val, r->val.string.len);
@@ -3971,7 +3971,7 @@ gtype_value *alter_property_value(gtype *properties, char *var_name,
         if (strcmp(str, var_name))
         {
             // push the key
-            parsed_gtype_value = push_gtype_value(&parse_state, tok, tok < WAGT_BEGIN_ARRAY ? r : NULL);
+            parsed_gtype_value = push_gtype_value(&parse_state, tok, tok < WGT_BEGIN_ARRAY ? r : NULL);
 
             // get the value and push the value
             tok = gtype_iterator_next(&it, r, true);
@@ -3991,7 +3991,7 @@ gtype_value *alter_property_value(gtype *properties, char *var_name,
 
             // push the key
             parsed_gtype_value = push_gtype_value(
-                &parse_state, tok, tok < WAGT_BEGIN_ARRAY ? r : NULL);
+                &parse_state, tok, tok < WGT_BEGIN_ARRAY ? r : NULL);
 
             // skip the existing value for the key
             tok = gtype_iterator_next(&it, r, true);
@@ -4008,13 +4008,13 @@ gtype_value *alter_property_value(gtype *properties, char *var_name,
                 //get the scalar value and push as the value
                 new_gtype_value_v = get_ith_gtype_value_from_container(&new_v->root, 0);
 
-                parsed_gtype_value = push_gtype_value(&parse_state, WAGT_VALUE, new_gtype_value_v);
+                parsed_gtype_value = push_gtype_value(&parse_state, WGT_VALUE, new_gtype_value_v);
             }
             else
             {
                 gtype_value *result = gtype_composite_to_gtype_value_binary(new_v);
 
-                parsed_gtype_value = push_gtype_value(&parse_state, WAGT_VALUE, result);
+                parsed_gtype_value = push_gtype_value(&parse_state, WGT_VALUE, result);
             }
 
             found = true;
@@ -4031,7 +4031,7 @@ gtype_value *alter_property_value(gtype *properties, char *var_name,
         gtype_value *key = string_to_gtype_value(var_name);
 
         // push the new key
-        parsed_gtype_value = push_gtype_value(&parse_state, WAGT_KEY, key);
+        parsed_gtype_value = push_gtype_value(&parse_state, WGT_KEY, key);
 
         /*
          * If the the new gtype is scalar, push the gtype_value to the
@@ -4045,18 +4045,18 @@ gtype_value *alter_property_value(gtype *properties, char *var_name,
             new_gtype_value_v = get_ith_gtype_value_from_container(&new_v->root, 0);
 
             // convert the gtype array or object to a binary gtype_value
-            parsed_gtype_value = push_gtype_value(&parse_state, WAGT_VALUE, new_gtype_value_v);
+            parsed_gtype_value = push_gtype_value(&parse_state, WGT_VALUE, new_gtype_value_v);
         }
         else
         {
             gtype_value *result = gtype_composite_to_gtype_value_binary(new_v);
 
-            parsed_gtype_value = push_gtype_value(&parse_state, WAGT_VALUE, result);
+            parsed_gtype_value = push_gtype_value(&parse_state, WGT_VALUE, result);
         }
     }
 
     // push the end object token to parse state
-    parsed_gtype_value = push_gtype_value(&parse_state, WAGT_END_OBJECT, NULL);
+    parsed_gtype_value = push_gtype_value(&parse_state, WGT_END_OBJECT, NULL);
 
     return parsed_gtype_value;
 }
@@ -4103,7 +4103,7 @@ gtype *get_one_gtype_from_variadic_args(FunctionCallInfo fcinfo, int variadic_of
          * test for gtype NULL.
          */
         if (GTYPE_CONTAINER_IS_SCALAR(agtc) &&
-            AGTE_IS_NULL(agtc->children[0]))
+            GTE_IS_NULL(agtc->children[0]))
         {
             return NULL;
         }
@@ -4680,7 +4680,7 @@ Datum gtype_collect_aggtransfn(PG_FUNCTION_ARGS)
         castate = palloc0(sizeof(gtype_in_state));
         memset(castate, 0, sizeof(gtype_in_state));
 
-        castate->res = push_gtype_value(&castate->parse_state, WAGT_BEGIN_ARRAY, NULL);
+        castate->res = push_gtype_value(&castate->parse_state, WGT_BEGIN_ARRAY, NULL);
     } else {
         castate = (gtype_in_state *) PG_GETARG_POINTER(0);
     }
@@ -4743,14 +4743,14 @@ Datum gtype_collect_aggfinalfn(PG_FUNCTION_ARGS) {
         castate = palloc0(sizeof(gtype_in_state));
         memset(castate, 0, sizeof(gtype_in_state));
         /* start the array */
-        castate->res = push_gtype_value(&castate->parse_state, WAGT_BEGIN_ARRAY, NULL);
+        castate->res = push_gtype_value(&castate->parse_state, WGT_BEGIN_ARRAY, NULL);
     } else {
         castate = (gtype_in_state *) PG_GETARG_POINTER(0);
     }
 
     old_mcxt = MemoryContextSwitchTo(fcinfo->flinfo->fn_mcxt);
 
-    castate->res = push_gtype_value(&castate->parse_state, WAGT_END_ARRAY, NULL);
+    castate->res = push_gtype_value(&castate->parse_state, WGT_END_ARRAY, NULL);
 
     MemoryContextSwitchTo(old_mcxt);
 
@@ -4955,19 +4955,19 @@ static gtype_iterator *get_next_object_key(gtype_iterator *it, gtype_container *
         it = gtype_iterator_init(agtc);
         /* get the first token */
         itok = gtype_iterator_next(&it, &tmp, false);
-        /* it should be WAGT_BEGIN_OBJECT */
-        Assert(itok == WAGT_BEGIN_OBJECT);
+        /* it should be WGT_BEGIN_OBJECT */
+        Assert(itok == WGT_BEGIN_OBJECT);
     }
 
     /* the next token should be a key or the end of the object */
     itok = gtype_iterator_next(&it, &tmp, false);
-    Assert(itok == WAGT_KEY || WAGT_END_OBJECT);
+    Assert(itok == WGT_KEY || WGT_END_OBJECT);
     /* if this is the end of the object return NULL */
-    if (itok == WAGT_END_OBJECT)
+    if (itok == WGT_END_OBJECT)
         return NULL;
 
     /* this should be the key, copy it */
-    if (itok == WAGT_KEY)
+    if (itok == WGT_KEY)
         memcpy(key, &tmp, sizeof(gtype_value));
 
     /*
@@ -4975,7 +4975,7 @@ static gtype_iterator *get_next_object_key(gtype_iterator *it, gtype_container *
      * arrays or objects. For those we just return NULL to ignore them.
      */
     itok = gtype_iterator_next(&it, &tmp, true);
-    Assert(itok == WAGT_VALUE);
+    Assert(itok == WGT_VALUE);
 
     /* return the iterator */
     return it;
@@ -4992,13 +4992,13 @@ Datum vertex_keys(PG_FUNCTION_ARGS)
     vertex *v = AG_GET_ARG_VERTEX(0);
     	agt_arg = extract_vertex_properties(v);
 
-    agtv_result = push_gtype_value(&parse_state, WAGT_BEGIN_ARRAY, NULL);
+    agtv_result = push_gtype_value(&parse_state, WGT_BEGIN_ARRAY, NULL);
 
     while ((it = get_next_object_key(it, &agt_arg->root, &obj_key)))
-        agtv_result = push_gtype_value(&parse_state, WAGT_ELEM, &obj_key);
+        agtv_result = push_gtype_value(&parse_state, WGT_ELEM, &obj_key);
 
     /* push the end of the array*/
-    agtv_result = push_gtype_value(&parse_state, WAGT_END_ARRAY, NULL);
+    agtv_result = push_gtype_value(&parse_state, WGT_END_ARRAY, NULL);
 
     Assert(agtv_result != NULL);
     Assert(agtv_result->type == AGTV_ARRAY);
@@ -5018,13 +5018,13 @@ Datum edge_keys(PG_FUNCTION_ARGS)
     edge *v = AG_GET_ARG_EDGE(0);
         agt_arg = extract_edge_properties(v);
 
-    agtv_result = push_gtype_value(&parse_state, WAGT_BEGIN_ARRAY, NULL);
+    agtv_result = push_gtype_value(&parse_state, WGT_BEGIN_ARRAY, NULL);
 
     while ((it = get_next_object_key(it, &agt_arg->root, &obj_key)))
-        agtv_result = push_gtype_value(&parse_state, WAGT_ELEM, &obj_key);
+        agtv_result = push_gtype_value(&parse_state, WGT_ELEM, &obj_key);
 
     /* push the end of the array*/
-    agtv_result = push_gtype_value(&parse_state, WAGT_END_ARRAY, NULL);
+    agtv_result = push_gtype_value(&parse_state, WGT_END_ARRAY, NULL);
 
     Assert(agtv_result != NULL);
     Assert(agtv_result->type == AGTV_ARRAY);
@@ -5052,13 +5052,13 @@ Datum gtype_keys(PG_FUNCTION_ARGS)
                 errmsg("keys() argument must be an object")));
     }
 
-    agtv_result = push_gtype_value(&parse_state, WAGT_BEGIN_ARRAY, NULL);
+    agtv_result = push_gtype_value(&parse_state, WGT_BEGIN_ARRAY, NULL);
 
     while ((it = get_next_object_key(it, &agt_arg->root, &obj_key)))
-        agtv_result = push_gtype_value(&parse_state, WAGT_ELEM, &obj_key);
+        agtv_result = push_gtype_value(&parse_state, WGT_ELEM, &obj_key);
 
     /* push the end of the array*/
-    agtv_result = push_gtype_value(&parse_state, WAGT_END_ARRAY, NULL);
+    agtv_result = push_gtype_value(&parse_state, WGT_END_ARRAY, NULL);
 
     Assert(agtv_result != NULL);
     Assert(agtv_result->type == AGTV_ARRAY);
@@ -5093,7 +5093,7 @@ static int64 get_int64_from_int_datums(Datum d, Oid type, char *funcname, bool *
                      errmsg("%s() only supports scalar arguments", funcname)));
 
         agtc = &agt_arg->root;
-        if (AGTE_IS_NULL(agtc->children[0])) {
+        if (GTE_IS_NULL(agtc->children[0])) {
             *is_agnull = true;
             return 0;
         }
@@ -5175,7 +5175,7 @@ Datum gtype_range(PG_FUNCTION_ARGS)
 
     MemSet(&agis_result, 0, sizeof(gtype_in_state));
 
-    agis_result.res = push_gtype_value(&agis_result.parse_state, WAGT_BEGIN_ARRAY, NULL);
+    agis_result.res = push_gtype_value(&agis_result.parse_state, WGT_BEGIN_ARRAY, NULL);
 
     for (i = start_idx; (step > 0 && i <= end_idx) || (step < 0 && i >= end_idx); i += step) {
         gtype_value agtv;
@@ -5183,10 +5183,10 @@ Datum gtype_range(PG_FUNCTION_ARGS)
         agtv.type = AGTV_INTEGER;
         agtv.val.int_value = i;
 
-        agis_result.res = push_gtype_value(&agis_result.parse_state, WAGT_ELEM, &agtv);
+        agis_result.res = push_gtype_value(&agis_result.parse_state, WGT_ELEM, &agtv);
     }
 
-    agis_result.res = push_gtype_value(&agis_result.parse_state, WAGT_END_ARRAY, NULL);
+    agis_result.res = push_gtype_value(&agis_result.parse_state, WGT_END_ARRAY, NULL);
 
     PG_RETURN_POINTER(gtype_value_to_gtype(agis_result.res));
 }
@@ -5235,11 +5235,11 @@ Datum gtype_unnest(PG_FUNCTION_ARGS)
 
     it = gtype_iterator_init(&gtype_arg->root);
 
-    while ((r = gtype_iterator_next(&it, &v, skipNested)) != WAGT_DONE)
+    while ((r = gtype_iterator_next(&it, &v, skipNested)) != WGT_DONE)
     {
         skipNested = true;
 
-        if (r == WAGT_ELEM)
+        if (r == WGT_ELEM)
         {
             HeapTuple tuple;
             Datum values[1];

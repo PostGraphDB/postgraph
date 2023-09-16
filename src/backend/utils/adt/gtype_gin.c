@@ -128,7 +128,7 @@ Datum gin_extract_gtype(PG_FUNCTION_ARGS)
 
     it = gtype_iterator_init(&agt->root);
 
-    while ((r = gtype_iterator_next(&it, &v, false)) != WAGT_DONE)
+    while ((r = gtype_iterator_next(&it, &v, false)) != WGT_DONE)
     {
         // Since we recurse into the object, we might need more space 
         if (i >= total)
@@ -139,14 +139,14 @@ Datum gin_extract_gtype(PG_FUNCTION_ARGS)
 
         switch (r)
         {
-            case WAGT_KEY:
+            case WGT_KEY:
                 entries[i++] = make_scalar_key(&v, true);
                 break;
-            case WAGT_ELEM:
+            case WGT_ELEM:
                 // Pretend string array elements are keys 
                 entries[i++] = make_scalar_key(&v, (v.type == AGTV_STRING));
                 break;
-            case WAGT_VALUE:
+            case WGT_VALUE:
                 entries[i++] = make_scalar_key(&v, false);
                 break;
             default:
@@ -216,7 +216,7 @@ Datum gin_extract_gtype_query(PG_FUNCTION_ARGS)
 
         *nentries = 1;
         entries = (Datum *)palloc(sizeof(Datum));
-        entries[0] = make_text_key(AGT_GIN_FLAG_KEY, VARDATA_ANY(query), VARSIZE_ANY_EXHDR(query));
+        entries[0] = make_text_key(GT_GIN_FLAG_KEY, VARDATA_ANY(query), VARSIZE_ANY_EXHDR(query));
     }
     else if (strategy == GTYPE_EXISTS_ANY_STRATEGY_NUMBER ||
              strategy == GTYPE_EXISTS_ALL_STRATEGY_NUMBER)
@@ -241,7 +241,7 @@ Datum gin_extract_gtype_query(PG_FUNCTION_ARGS)
                 continue;
             }
 
-            entries[j++] = make_text_key(AGT_GIN_FLAG_KEY,
+            entries[j++] = make_text_key(GT_GIN_FLAG_KEY,
                                          VARDATA(key_datums[i]),
                                          VARSIZE(key_datums[i]) - VARHDRSZ);
         }
@@ -452,14 +452,14 @@ Datum gin_triconsistent_gtype(PG_FUNCTION_ARGS)
  * Construct a gtype_ops GIN key from a flag byte and a textual representation
  * (which need not be null-terminated).  This function is responsible
  * for hashing overlength text representations; it will add the
- * AGT_GIN_FLAG_HASHED bit to the flag value if it does that.
+ * GT_GIN_FLAG_HASHED bit to the flag value if it does that.
  */
 static Datum make_text_key(char flag, const char *str, int len)
 {
     text *item;
     char hashbuf[10];
 
-    if (len > AGT_GIN_MAX_LENGTH)
+    if (len > GT_GIN_MAX_LENGTH)
     {
         uint32 hashval;
 
@@ -467,7 +467,7 @@ static Datum make_text_key(char flag, const char *str, int len)
         snprintf(hashbuf, sizeof(hashbuf), "%08x", hashval);
         str = hashbuf;
         len = 8;
-        flag |= AGT_GIN_FLAG_HASHED;
+        flag |= GT_GIN_FLAG_HASHED;
     }
 
     /*
@@ -500,7 +500,7 @@ static Datum make_scalar_key(const gtype_value *scalarVal, bool is_key)
     {
     case AGTV_NULL:
         Assert(!is_key);
-        item = make_text_key(AGT_GIN_FLAG_NULL, "", 0);
+        item = make_text_key(GT_GIN_FLAG_NULL, "", 0);
         break;
     case AGTV_INTEGER:
     {
@@ -511,17 +511,17 @@ static Datum make_scalar_key(const gtype_value *scalarVal, bool is_key)
         pg_lltoa(scalarVal->val.int_value, buf);
 
         result = pstrdup(buf);
-        item = make_text_key(AGT_GIN_FLAG_NUM, result, strlen(result));
+        item = make_text_key(GT_GIN_FLAG_NUM, result, strlen(result));
         break;
     }
     case AGTV_FLOAT:
         Assert(!is_key);
         cstr = float8out_internal(scalarVal->val.float_value);
-        item = make_text_key(AGT_GIN_FLAG_NUM, cstr, strlen(cstr));
+        item = make_text_key(GT_GIN_FLAG_NUM, cstr, strlen(cstr));
         break;
     case AGTV_BOOL:
         Assert(!is_key);
-        item = make_text_key(AGT_GIN_FLAG_BOOL,
+        item = make_text_key(GT_GIN_FLAG_BOOL,
                              scalarVal->val.boolean ? "t" : "f", 1);
         break;
     case AGTV_NUMERIC:
@@ -537,11 +537,11 @@ static Datum make_scalar_key(const gtype_value *scalarVal, bool is_key)
          * strings takes precedence.
          */
         cstr = numeric_normalize(scalarVal->val.numeric);
-        item = make_text_key(AGT_GIN_FLAG_NUM, cstr, strlen(cstr));
+        item = make_text_key(GT_GIN_FLAG_NUM, cstr, strlen(cstr));
         pfree(cstr);
         break;
     case AGTV_STRING:
-        item = make_text_key(is_key ? AGT_GIN_FLAG_KEY : AGT_GIN_FLAG_STR,
+        item = make_text_key(is_key ? GT_GIN_FLAG_KEY : GT_GIN_FLAG_STR,
                              scalarVal->val.string.val,
                              scalarVal->val.string.len);
         break;

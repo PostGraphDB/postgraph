@@ -232,7 +232,7 @@ static bool check_path(gtype_value *path, graphid updated_id)
  */
 static gtype_value *replace_entity_in_path(gtype_value *path, graphid updated_id, gtype *updated_entity) {
     gtype_iterator *it;
-    gtype_iterator_token tok = WAGT_DONE;
+    gtype_iterator_token tok = WGT_DONE;
     gtype_parse_state *parse_state = NULL;
     gtype_value *r;
     gtype_value *parsed_gtype_value = NULL;
@@ -246,7 +246,7 @@ static gtype_value *replace_entity_in_path(gtype_value *path, graphid updated_id
     tok = gtype_iterator_next(&it, r, true);
 
     parsed_gtype_value = push_gtype_value(&parse_state, tok,
-                                            tok < WAGT_BEGIN_ARRAY ? r : NULL);
+                                            tok < WGT_BEGIN_ARRAY ? r : NULL);
 
     // Iterate through the path, replace entities as necessary.
     for (i = 0; i < path->val.array.num_elems; i++)
@@ -264,17 +264,17 @@ static gtype_value *replace_entity_in_path(gtype_value *path, graphid updated_id
          */
         if (updated_id == id->val.int_value)
         {
-            parsed_gtype_value = push_gtype_value(&parse_state, WAGT_ELEM,
+            parsed_gtype_value = push_gtype_value(&parse_state, WGT_ELEM,
                 get_ith_gtype_value_from_container(&updated_entity->root, 0));
         }
         else
         {
-            parsed_gtype_value = push_gtype_value(&parse_state, WAGT_ELEM,
+            parsed_gtype_value = push_gtype_value(&parse_state, WGT_ELEM,
                                                     elem);
         }
     }
 
-    parsed_gtype_value = push_gtype_value(&parse_state, WAGT_END_ARRAY, NULL);
+    parsed_gtype_value = push_gtype_value(&parse_state, WGT_END_ARRAY, NULL);
     //parsed_gtype_value->type = AGTV_PATH;
 
     return parsed_gtype_value;

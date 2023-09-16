@@ -322,8 +322,8 @@ VectorArrayInit(int maxlen, int dimensions) {
         gtype *vec = VectorArrayGet(res, i);
 
         SET_VARSIZE(vec, VECTOR_SIZE(dimensions));
-        vec->root.header = dimensions | AGT_FEXTENDED_COMPOSITE;
-        vec->root.children[0] = AGT_HEADER_VECTOR;
+        vec->root.header = dimensions | GT_FEXTENDED_COMPOSITE;
+        vec->root.children[0] = GT_HEADER_VECTOR;
     }
 
     return res;

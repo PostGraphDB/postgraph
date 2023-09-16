@@ -302,7 +302,7 @@ vertex_exists(PG_FUNCTION_ARGS) {
      */
     gtype_value agtv = { .type = AGTV_STRING, .val.string = {VARSIZE_ANY_EXHDR(key), VARDATA_ANY(key)} };
 
-    gtype_value *val = find_gtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, &agtv);
+    gtype_value *val = find_gtype_value_from_container(&agt->root, GT_FOBJECT | GT_FARRAY, &agtv);
 
     PG_RETURN_BOOL(val != NULL);
 }
@@ -326,7 +326,7 @@ vertex_exists_any(PG_FUNCTION_ARGS) {
 
         gtype_value agtv = { .type = AGTV_STRING, .val.string = { VARSIZE(key_datums[i]) - VARHDRSZ, VARDATA_ANY(key_datums[i]) } };
 
-        if (find_gtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, &agtv) != NULL)
+        if (find_gtype_value_from_container(&agt->root, GT_FOBJECT | GT_FARRAY, &agtv) != NULL)
             PG_RETURN_BOOL(true);
     }
 
@@ -352,7 +352,7 @@ vertex_exists_all(PG_FUNCTION_ARGS) {
 
         gtype_value agtv = { .type = AGTV_STRING, .val.string = { VARSIZE(key_datums[i]) - VARHDRSZ, VARDATA_ANY(key_datums[i]) } };
 
-        if (find_gtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, &agtv) == NULL)
+        if (find_gtype_value_from_container(&agt->root, GT_FOBJECT | GT_FARRAY, &agtv) == NULL)
             PG_RETURN_BOOL(false);
     }
 

@@ -156,7 +156,7 @@ Datum gtype_add(PG_FUNCTION_ARGS)
     {
         Datum agt;
 
-	if  (AGT_IS_VECTOR(lhs) && AGT_IS_VECTOR(rhs))
+	if  (GT_IS_VECTOR(lhs) && GT_IS_VECTOR(rhs))
             PG_RETURN_POINTER(gtype_value_to_gtype(gtype_vector_add(lhs, rhs)));
 
         /* It can't be a scalar and an object */
@@ -313,7 +313,7 @@ Datum gtype_sub(PG_FUNCTION_ARGS)
 
     if (!(AGT_ROOT_IS_SCALAR(lhs)) || !(AGT_ROOT_IS_SCALAR(rhs)))
     {
-        if  (AGT_IS_VECTOR(lhs) && AGT_IS_VECTOR(rhs))
+        if  (GT_IS_VECTOR(lhs) && GT_IS_VECTOR(rhs))
             PG_RETURN_POINTER(gtype_value_to_gtype(gtype_vector_sub(lhs, rhs)));
 
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
@@ -498,7 +498,7 @@ Datum gtype_mul(PG_FUNCTION_ARGS)
 
     if (!(AGT_ROOT_IS_SCALAR(lhs)) || !(AGT_ROOT_IS_SCALAR(rhs)))
     {
-        if  (AGT_IS_VECTOR(lhs) && AGT_IS_VECTOR(rhs))
+        if  (GT_IS_VECTOR(lhs) && GT_IS_VECTOR(rhs))
             PG_RETURN_POINTER(gtype_value_to_gtype(gtype_vector_mul(lhs, rhs)));
 
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
@@ -1050,7 +1050,7 @@ Datum gtype_eq(PG_FUNCTION_ARGS)
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    if (AGT_IS_VECTOR(lhs) && AGT_IS_VECTOR(rhs))
+    if (GT_IS_VECTOR(lhs) && GT_IS_VECTOR(rhs))
         PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) == 0);
 
 
@@ -1070,7 +1070,7 @@ Datum gtype_ne(PG_FUNCTION_ARGS)
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     bool result = true;
 
-    if (AGT_IS_VECTOR(lhs) && AGT_IS_VECTOR(rhs))
+    if (GT_IS_VECTOR(lhs) && GT_IS_VECTOR(rhs))
         PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) != 0);
 
     result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) != 0);
@@ -1089,7 +1089,7 @@ Datum gtype_lt(PG_FUNCTION_ARGS)
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    if (AGT_IS_VECTOR(lhs) && AGT_IS_VECTOR(rhs))
+    if (GT_IS_VECTOR(lhs) && GT_IS_VECTOR(rhs))
         PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) < 0);
 
 
@@ -1109,7 +1109,7 @@ Datum gtype_gt(PG_FUNCTION_ARGS)
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    if (AGT_IS_VECTOR(lhs) && AGT_IS_VECTOR(rhs))
+    if (GT_IS_VECTOR(lhs) && GT_IS_VECTOR(rhs))
         PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) > 0);
 
 
@@ -1129,7 +1129,7 @@ Datum gtype_le(PG_FUNCTION_ARGS)
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    if (AGT_IS_VECTOR(lhs) && AGT_IS_VECTOR(rhs))
+    if (GT_IS_VECTOR(lhs) && GT_IS_VECTOR(rhs))
         PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) <= 0);
 
 
@@ -1149,7 +1149,7 @@ Datum gtype_ge(PG_FUNCTION_ARGS)
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    if (AGT_IS_VECTOR(lhs) && AGT_IS_VECTOR(rhs))
+    if (GT_IS_VECTOR(lhs) && GT_IS_VECTOR(rhs))
         PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) >= 0);
 
 
@@ -1222,7 +1222,7 @@ Datum gtype_exists(PG_FUNCTION_ARGS)
     if (v->type != AGTV_STRING)
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("gtype ? gtype arg 2 must be a string")));
 
-    v = find_gtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, v);
+    v = find_gtype_value_from_container(&agt->root, GT_FOBJECT | GT_FARRAY, v);
 
     PG_RETURN_BOOL(v != NULL);
 }
@@ -1245,7 +1245,7 @@ Datum gtype_exists_any(PG_FUNCTION_ARGS)
     gtype_iterator *it_array = gtype_iterator_init(&keys->root);
     gtype_iterator_next(&it_array, &agtv_elem, false);
 
-    while (gtype_iterator_next(&it_array, &agtv_elem, false) != WAGT_END_ARRAY)
+    while (gtype_iterator_next(&it_array, &agtv_elem, false) != WGT_END_ARRAY)
     {           
 
 	if (agtv_elem.type == AGTV_NULL)
@@ -1255,7 +1255,7 @@ Datum gtype_exists_any(PG_FUNCTION_ARGS)
             ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                             errmsg("All keys of ?| Operator must be strings")));
         
-        if (find_gtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, &agtv_elem) != NULL)
+        if (find_gtype_value_from_container(&agt->root, GT_FOBJECT | GT_FARRAY, &agtv_elem) != NULL)
             PG_RETURN_BOOL(true);
     }
     
@@ -1280,7 +1280,7 @@ Datum gtype_exists_all(PG_FUNCTION_ARGS)
     gtype_iterator *it_array = gtype_iterator_init(&keys->root);
     gtype_iterator_next(&it_array, &agtv_elem, false);
 
-    while (gtype_iterator_next(&it_array, &agtv_elem, false) != WAGT_END_ARRAY)
+    while (gtype_iterator_next(&it_array, &agtv_elem, false) != WGT_END_ARRAY)
     {
 
         if (agtv_elem.type == AGTV_NULL)
@@ -1290,7 +1290,7 @@ Datum gtype_exists_all(PG_FUNCTION_ARGS)
             ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                             errmsg("All keys of ?& Operator must be strings")));
 
-        if (find_gtype_value_from_container(&agt->root, AGT_FOBJECT | AGT_FARRAY, &agtv_elem) == NULL)
+        if (find_gtype_value_from_container(&agt->root, GT_FOBJECT | GT_FARRAY, &agtv_elem) == NULL)
             PG_RETURN_BOOL(false);
     }
   
@@ -1345,76 +1345,76 @@ static gtype_value *iterator_concat(gtype_iterator **it1, gtype_iterator **it2, 
     /*
      * Both elements are objects.
      */
-    if (rk1 == WAGT_BEGIN_OBJECT && rk2 == WAGT_BEGIN_OBJECT)
+    if (rk1 == WGT_BEGIN_OBJECT && rk2 == WGT_BEGIN_OBJECT)
     {
         /*
-         * Append the all tokens from v1 to res, except last WAGT_END_OBJECT
+         * Append the all tokens from v1 to res, except last WGT_END_OBJECT
          * (because res will not be finished yet).
          */
         push_gtype_value(state, r1, NULL);
-        while ((r1 = gtype_iterator_next(it1, &v1, true)) != WAGT_END_OBJECT)
+        while ((r1 = gtype_iterator_next(it1, &v1, true)) != WGT_END_OBJECT)
             push_gtype_value(state, r1, &v1);
 
         /*
-         * Append the all tokens from v2 to res, include last WAGT_END_OBJECT
+         * Append the all tokens from v2 to res, include last WGT_END_OBJECT
          * (the concatenation will be completed).
          */
         while ((r2 = gtype_iterator_next(it2, &v2, true)) != 0)
-            res = push_gtype_value(state, r2, r2 != WAGT_END_OBJECT ? &v2 : NULL);
+            res = push_gtype_value(state, r2, r2 != WGT_END_OBJECT ? &v2 : NULL);
     }
 
     /*
      * Both elements are arrays (either can be scalar).
      */
-    else if (rk1 == WAGT_BEGIN_ARRAY && rk2 == WAGT_BEGIN_ARRAY)
+    else if (rk1 == WGT_BEGIN_ARRAY && rk2 == WGT_BEGIN_ARRAY)
     {
         push_gtype_value(state, r1, NULL);
 
-        while ((r1 = gtype_iterator_next(it1, &v1, true)) != WAGT_END_ARRAY)
+        while ((r1 = gtype_iterator_next(it1, &v1, true)) != WGT_END_ARRAY)
         {
-            Assert(r1 == WAGT_ELEM);
+            Assert(r1 == WGT_ELEM);
             push_gtype_value(state, r1, &v1);
         }
 
-        while ((r2 = gtype_iterator_next(it2, &v2, true)) != WAGT_END_ARRAY)
+        while ((r2 = gtype_iterator_next(it2, &v2, true)) != WGT_END_ARRAY)
         {
-            Assert(r2 == WAGT_ELEM);
-            push_gtype_value(state, WAGT_ELEM, &v2);
+            Assert(r2 == WGT_ELEM);
+            push_gtype_value(state, WGT_ELEM, &v2);
         }
 
-        res = push_gtype_value(state, WAGT_END_ARRAY,
+        res = push_gtype_value(state, WGT_END_ARRAY,
                                 NULL /* signal to sort */);
     }
     /* have we got array || object or object || array? */
-    else if (((rk1 == WAGT_BEGIN_ARRAY && !(*it1)->is_scalar) && rk2 == WAGT_BEGIN_OBJECT) ||
-             (rk1 == WAGT_BEGIN_OBJECT && (rk2 == WAGT_BEGIN_ARRAY && !(*it2)->is_scalar)))
+    else if (((rk1 == WGT_BEGIN_ARRAY && !(*it1)->is_scalar) && rk2 == WGT_BEGIN_OBJECT) ||
+             (rk1 == WGT_BEGIN_OBJECT && (rk2 == WGT_BEGIN_ARRAY && !(*it2)->is_scalar)))
     {
-        gtype_iterator **it_array = rk1 == WAGT_BEGIN_ARRAY ? it1 : it2;
-        gtype_iterator **it_object = rk1 == WAGT_BEGIN_OBJECT ? it1 : it2;
+        gtype_iterator **it_array = rk1 == WGT_BEGIN_ARRAY ? it1 : it2;
+        gtype_iterator **it_object = rk1 == WGT_BEGIN_OBJECT ? it1 : it2;
 
-        bool prepend = (rk1 == WAGT_BEGIN_OBJECT);
+        bool prepend = (rk1 == WGT_BEGIN_OBJECT);
 
-        push_gtype_value(state, WAGT_BEGIN_ARRAY, NULL);
+        push_gtype_value(state, WGT_BEGIN_ARRAY, NULL);
 
         if (prepend)
         {
-            push_gtype_value(state, WAGT_BEGIN_OBJECT, NULL);
+            push_gtype_value(state, WGT_BEGIN_OBJECT, NULL);
             while ((r1 = gtype_iterator_next(it_object, &v1, true)) != 0)
-                push_gtype_value(state, r1, r1 != WAGT_END_OBJECT ? &v1 : NULL);
+                push_gtype_value(state, r1, r1 != WGT_END_OBJECT ? &v1 : NULL);
 
             while ((r2 = gtype_iterator_next(it_array, &v2, true)) != 0)
-                res = push_gtype_value(state, r2, r2 != WAGT_END_ARRAY ? &v2 : NULL);
+                res = push_gtype_value(state, r2, r2 != WGT_END_ARRAY ? &v2 : NULL);
         }
         else
         {
-            while ((r1 = gtype_iterator_next(it_array, &v1, true)) != WAGT_END_ARRAY)
+            while ((r1 = gtype_iterator_next(it_array, &v1, true)) != WGT_END_ARRAY)
                 push_gtype_value(state, r1, &v1);
 
-            push_gtype_value(state, WAGT_BEGIN_OBJECT, NULL);
+            push_gtype_value(state, WGT_BEGIN_OBJECT, NULL);
             while ((r2 = gtype_iterator_next(it_object, &v2, true)) != 0)
-                push_gtype_value(state, r2, r2 != WAGT_END_OBJECT ? &v2 : NULL);
+                push_gtype_value(state, r2, r2 != WGT_END_OBJECT ? &v2 : NULL);
 
-            res = push_gtype_value(state, WAGT_END_ARRAY, NULL);
+            res = push_gtype_value(state, WGT_END_ARRAY, NULL);
         }
     }
     else

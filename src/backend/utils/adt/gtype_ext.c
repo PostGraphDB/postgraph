@@ -26,8 +26,8 @@
 #include "utils/graphid.h"
 
 /* define the type and size of the agt_header */
-#define AGT_HEADER_TYPE uint32
-#define AGT_HEADER_SIZE sizeof(AGT_HEADER_TYPE)
+#define GT_HEADER_TYPE uint32
+#define GT_HEADER_SIZE sizeof(GT_HEADER_TYPE)
 
 static short ag_serialize_header(StringInfo buffer, uint32 type)
 {
@@ -35,8 +35,8 @@ static short ag_serialize_header(StringInfo buffer, uint32 type)
     int offset;
 
     padlen = pad_buffer_to_int(buffer);
-    offset = reserve_from_buffer(buffer, AGT_HEADER_SIZE);
-    *((AGT_HEADER_TYPE *)(buffer->data + offset)) = type;
+    offset = reserve_from_buffer(buffer, GT_HEADER_SIZE);
+    *((GT_HEADER_TYPE *)(buffer->data + offset)) = type;
 
     return padlen;
 }
@@ -45,7 +45,7 @@ static short ag_serialize_header(StringInfo buffer, uint32 type)
  * Function serializes the data into the buffer provided.
  * Returns false if the type is not defined. Otherwise, true.
  */
-bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
+bool ag_serialize_extended_type(StringInfo buffer, gtentry *gtentry,
                                 gtype_value *scalar_val)
 {
     short padlen;
@@ -55,64 +55,64 @@ bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
     switch (scalar_val->type)
     {
     case AGTV_INTEGER:
-        padlen = ag_serialize_header(buffer, AGT_HEADER_INTEGER);
+        padlen = ag_serialize_header(buffer, GT_HEADER_INTEGER);
 
         /* copy in the int_value data */
         numlen = sizeof(int64);
         offset = reserve_from_buffer(buffer, numlen);
         *((int64 *)(buffer->data + offset)) = scalar_val->val.int_value;
 
-        *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
         break;
 
     case AGTV_FLOAT:
-        padlen = ag_serialize_header(buffer, AGT_HEADER_FLOAT);
+        padlen = ag_serialize_header(buffer, GT_HEADER_FLOAT);
 
         /* copy in the float_value data */
         numlen = sizeof(scalar_val->val.float_value);
         offset = reserve_from_buffer(buffer, numlen);
         *((float8 *)(buffer->data + offset)) = scalar_val->val.float_value;
 
-        *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
         break;
     case AGTV_TIMESTAMP:
-        padlen = ag_serialize_header(buffer, AGT_HEADER_TIMESTAMP);
+        padlen = ag_serialize_header(buffer, GT_HEADER_TIMESTAMP);
 
         offset = reserve_from_buffer(buffer, sizeof(int64));
         *((int64 *)(buffer->data + offset)) = scalar_val->val.int_value;
 
-	*agtentry = AGTENTRY_IS_GTYPE | (sizeof(int64) + AGT_HEADER_SIZE);
+	*gtentry = GTENTRY_IS_GTYPE | (sizeof(int64) + GT_HEADER_SIZE);
         break;
     case AGTV_TIMESTAMPTZ:
-        padlen = ag_serialize_header(buffer, AGT_HEADER_TIMESTAMPTZ);
+        padlen = ag_serialize_header(buffer, GT_HEADER_TIMESTAMPTZ);
 
         /* copy in the int_value data */
         numlen = sizeof(int64);
         offset = reserve_from_buffer(buffer, numlen);
         *((int64 *)(buffer->data + offset)) = scalar_val->val.int_value;
 
-        *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
         break;
     case AGTV_DATE:
-        padlen = ag_serialize_header(buffer, AGT_HEADER_DATE);
+        padlen = ag_serialize_header(buffer, GT_HEADER_DATE);
 
         /* copy in the date data */
         numlen = sizeof(int32);
         offset = reserve_from_buffer(buffer, numlen);
         *((int32 *)(buffer->data + offset)) = scalar_val->val.date;
 
-        *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
 	break;
     case AGTV_TIME:
-        padlen = ag_serialize_header(buffer, AGT_HEADER_TIME);
+        padlen = ag_serialize_header(buffer, GT_HEADER_TIME);
         numlen = sizeof(int64);
         offset = reserve_from_buffer(buffer, numlen);
         *((int64 *)(buffer->data + offset)) = scalar_val->val.int_value;
 
-        *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
         break;
     case AGTV_TIMETZ:
-        padlen = ag_serialize_header(buffer, AGT_HEADER_TIMETZ);
+        padlen = ag_serialize_header(buffer, GT_HEADER_TIMETZ);
 
         /* copy in the timetz data */
         numlen = sizeof(TimeTzADT);
@@ -120,10 +120,10 @@ bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
         *((TimeADT *)(buffer->data + offset)) = scalar_val->val.timetz.time;
         *((int32 *)(buffer->data + offset + sizeof(TimeADT))) = scalar_val->val.timetz.zone;
 
-        *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
         break;
     case AGTV_INTERVAL:
-        padlen = ag_serialize_header(buffer, AGT_HEADER_INTERVAL);
+        padlen = ag_serialize_header(buffer, GT_HEADER_INTERVAL);
 
         numlen = sizeof(TimeOffset) + (2 * sizeof(int32));
         offset = reserve_from_buffer(buffer, numlen);
@@ -132,43 +132,43 @@ bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
         *((int32 *)(buffer->data + offset + sizeof(TimeOffset))) = scalar_val->val.interval.day;
         *((int32 *)(buffer->data + offset + sizeof(TimeOffset) + sizeof(int32))) = scalar_val->val.interval.month;
 
-        *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
         break;
     case AGTV_INET:
-        padlen = ag_serialize_header(buffer, AGT_HEADER_INET);
+        padlen = ag_serialize_header(buffer, GT_HEADER_INET);
 
 	numlen = sizeof(char) * 22;
         offset = reserve_from_buffer(buffer, numlen);
 	memcpy(buffer->data + offset, &scalar_val->val.inet, numlen);
 
-        *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
 	break;
     case AGTV_CIDR:
-        padlen = ag_serialize_header(buffer, AGT_HEADER_CIDR);
+        padlen = ag_serialize_header(buffer, GT_HEADER_CIDR);
 
         numlen = sizeof(char) * 22;
         offset = reserve_from_buffer(buffer, numlen);
         memcpy(buffer->data + offset, &scalar_val->val.inet, numlen);
 
-        *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
         break;
     case AGTV_MAC:
-        padlen = ag_serialize_header(buffer, AGT_HEADER_MAC);
+        padlen = ag_serialize_header(buffer, GT_HEADER_MAC);
 
         numlen = sizeof(char) * 6;
         offset = reserve_from_buffer(buffer, numlen);
         memcpy(buffer->data + offset, &scalar_val->val.mac, numlen);
 
-        *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
         break;
     case AGTV_MAC8:
-        padlen = ag_serialize_header(buffer, AGT_HEADER_MAC8);
+        padlen = ag_serialize_header(buffer, GT_HEADER_MAC8);
 
         numlen = sizeof(char) * 8;
         offset = reserve_from_buffer(buffer, numlen);
         memcpy(buffer->data + offset, &scalar_val->val.mac, numlen);
 
-        *agtentry = AGTENTRY_IS_GTYPE | (padlen + numlen + AGT_HEADER_SIZE);
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
         break;
 
     default:
@@ -184,62 +184,62 @@ bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
  */
 void ag_deserialize_extended_type(char *base_addr, uint32 offset, gtype_value *result) {
     char *base = base_addr + INTALIGN(offset);
-    AGT_HEADER_TYPE agt_header = *((AGT_HEADER_TYPE *)base);
+    GT_HEADER_TYPE agt_header = *((GT_HEADER_TYPE *)base);
 
     switch (agt_header)
     {
-    case AGT_HEADER_INTEGER:
+    case GT_HEADER_INTEGER:
         result->type = AGTV_INTEGER;
-        result->val.int_value = *((int64 *)(base + AGT_HEADER_SIZE));
+        result->val.int_value = *((int64 *)(base + GT_HEADER_SIZE));
         break;
 
-    case AGT_HEADER_FLOAT:
+    case GT_HEADER_FLOAT:
         result->type = AGTV_FLOAT;
-        result->val.float_value = *((float8 *)(base + AGT_HEADER_SIZE));
+        result->val.float_value = *((float8 *)(base + GT_HEADER_SIZE));
         break;
 
-    case AGT_HEADER_TIMESTAMP:
+    case GT_HEADER_TIMESTAMP:
         result->type = AGTV_TIMESTAMP;
-        result->val.int_value = *((int64 *)(base + AGT_HEADER_SIZE));
+        result->val.int_value = *((int64 *)(base + GT_HEADER_SIZE));
         break;
-    case AGT_HEADER_TIMESTAMPTZ:
+    case GT_HEADER_TIMESTAMPTZ:
         result->type = AGTV_TIMESTAMPTZ;
-        result->val.int_value = *((int64 *)(base + AGT_HEADER_SIZE));
+        result->val.int_value = *((int64 *)(base + GT_HEADER_SIZE));
         break;
-    case AGT_HEADER_DATE:
+    case GT_HEADER_DATE:
         result->type = AGTV_DATE;
-        result->val.date = *((int32 *)(base + AGT_HEADER_SIZE));
+        result->val.date = *((int32 *)(base + GT_HEADER_SIZE));
         break;
-    case AGT_HEADER_TIME:
+    case GT_HEADER_TIME:
         result->type = AGTV_TIME;
-        result->val.int_value = *((int64 *)(base + AGT_HEADER_SIZE));
+        result->val.int_value = *((int64 *)(base + GT_HEADER_SIZE));
         break;
-    case AGT_HEADER_TIMETZ:
+    case GT_HEADER_TIMETZ:
         result->type = AGTV_TIMETZ;
-        result->val.timetz.time = *((TimeADT*)(base + AGT_HEADER_SIZE));
-        result->val.timetz.zone = *((int32*)(base + AGT_HEADER_SIZE + sizeof(TimeADT)));
+        result->val.timetz.time = *((TimeADT*)(base + GT_HEADER_SIZE));
+        result->val.timetz.zone = *((int32*)(base + GT_HEADER_SIZE + sizeof(TimeADT)));
         break;
-    case AGT_HEADER_INTERVAL:
+    case GT_HEADER_INTERVAL:
         result->type = AGTV_INTERVAL;
-        result->val.interval.time =  *((TimeOffset *)(base + AGT_HEADER_SIZE));
-        result->val.interval.day =  *((int32 *)(base + AGT_HEADER_SIZE + sizeof(TimeOffset)));
-        result->val.interval.month =  *((int32 *)(base + AGT_HEADER_SIZE + sizeof(TimeOffset) + sizeof(int32)));
+        result->val.interval.time =  *((TimeOffset *)(base + GT_HEADER_SIZE));
+        result->val.interval.day =  *((int32 *)(base + GT_HEADER_SIZE + sizeof(TimeOffset)));
+        result->val.interval.month =  *((int32 *)(base + GT_HEADER_SIZE + sizeof(TimeOffset) + sizeof(int32)));
         break;
-    case AGT_HEADER_INET:
+    case GT_HEADER_INET:
 	result->type = AGTV_INET;
-	memcpy(&result->val.inet, base + AGT_HEADER_SIZE, sizeof(char) * 22);
+	memcpy(&result->val.inet, base + GT_HEADER_SIZE, sizeof(char) * 22);
         break;
-    case AGT_HEADER_CIDR:
+    case GT_HEADER_CIDR:
         result->type = AGTV_CIDR;
-        memcpy(&result->val.inet, base + AGT_HEADER_SIZE, sizeof(char) * 22);
+        memcpy(&result->val.inet, base + GT_HEADER_SIZE, sizeof(char) * 22);
         break;
-    case AGT_HEADER_MAC:
+    case GT_HEADER_MAC:
         result->type = AGTV_MAC;
-        memcpy(&result->val.mac, base + AGT_HEADER_SIZE, sizeof(char) * 6);
+        memcpy(&result->val.mac, base + GT_HEADER_SIZE, sizeof(char) * 6);
         break;
-    case AGT_HEADER_MAC8:
+    case GT_HEADER_MAC8:
         result->type = AGTV_MAC8;
-        memcpy(&result->val.mac, base + AGT_HEADER_SIZE, sizeof(char) * 8);
+        memcpy(&result->val.mac, base + GT_HEADER_SIZE, sizeof(char) * 8);
         break;
 
     default:

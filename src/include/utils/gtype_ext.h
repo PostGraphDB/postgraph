@@ -28,7 +28,7 @@
  * Function serializes the data into the buffer provided.
  * Returns false if the type is not defined. Otherwise, true.
  */
-bool ag_serialize_extended_type(StringInfo buffer, agtentry *agtentry,
+bool ag_serialize_extended_type(StringInfo buffer, gtentry *gtentry,
                                 gtype_value *scalar_val);
 
 /*

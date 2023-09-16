@@ -569,7 +569,7 @@ static path_container *create_path_container(int64 path_size)
     SET_VARSIZE(vpc, container_size_bytes);
 
     // initialize the container 
-    vpc->header = AGT_FBINARY;
+    vpc->header = GT_FBINARY;
     vpc->graphid_array_size = path_size;
     vpc->container_size_bytes = container_size_bytes;
 

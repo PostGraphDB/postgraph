@@ -42,26 +42,26 @@
 
 /*
  * Maximum number of elements in an array (or key/value pairs in an object).
- * This is limited by two things: the size of the agtentry array must fit
+ * This is limited by two things: the size of the gtentry array must fit
  * in MaxAllocSize, and the number of elements (or pairs) must fit in the bits
  * reserved for that in the gtype_container.header field.
  *
  * (The total size of an array's or object's elements is also limited by
- * AGTENTRY_OFFLENMASK, but we're not concerned about that here.)
+ * GTENTRY_OFFLENMASK, but we're not concerned about that here.)
  */
-#define GTYPE_MAX_ELEMS (Min(MaxAllocSize / sizeof(gtype_value), AGT_CMASK))
-#define GTYPE_MAX_PAIRS (Min(MaxAllocSize / sizeof(gtype_pair), AGT_CMASK))
+#define GTYPE_MAX_ELEMS (Min(MaxAllocSize / sizeof(gtype_value), GT_CMASK))
+#define GTYPE_MAX_PAIRS (Min(MaxAllocSize / sizeof(gtype_pair), GT_CMASK))
 
 static void fill_gtype_value(gtype_container *container, int index,
                               char *base_addr, uint32 offset,
                               gtype_value *result);
 static bool equals_gtype_scalar_value(const gtype_value *a, const gtype_value *b);
 static gtype *convert_to_gtype(gtype_value *val);
-static void convert_gtype_value(StringInfo buffer, agtentry *header, gtype_value *val, int level);
-static void convert_gtype_array(StringInfo buffer, agtentry *pheader, gtype_value *val, int level);
-static void convert_gtype_vector(StringInfo buffer, agtentry *pheader, gtype_value *val, int level);
-static void convert_gtype_object(StringInfo buffer, agtentry *pheader, gtype_value *val, int level);
-static void convert_gtype_scalar(StringInfo buffer, agtentry *entry, gtype_value *scalar_val);
+static void convert_gtype_value(StringInfo buffer, gtentry *header, gtype_value *val, int level);
+static void convert_gtype_array(StringInfo buffer, gtentry *pheader, gtype_value *val, int level);
+static void convert_gtype_vector(StringInfo buffer, gtentry *pheader, gtype_value *val, int level);
+static void convert_gtype_object(StringInfo buffer, gtentry *pheader, gtype_value *val, int level);
+static void convert_gtype_scalar(StringInfo buffer, gtentry *entry, gtype_value *scalar_val);
 static void append_to_buffer(StringInfo buffer, const char *data, int len);
 static void copy_to_buffer(StringInfo buffer, int offset, const char *data, int len);
 static gtype_iterator *iterator_from_container(gtype_container *container, gtype_iterator *parent);
@@ -106,9 +106,9 @@ gtype *gtype_value_to_gtype(gtype_value *val)
         scalar_array.val.array.raw_scalar = true;
         scalar_array.val.array.num_elems = 1;
 
-        push_gtype_value(&pstate, WAGT_BEGIN_ARRAY, &scalar_array);
-        push_gtype_value(&pstate, WAGT_ELEM, val);
-        res = push_gtype_value(&pstate, WAGT_END_ARRAY, NULL);
+        push_gtype_value(&pstate, WGT_BEGIN_ARRAY, &scalar_array);
+        push_gtype_value(&pstate, WGT_ELEM, val);
+        res = push_gtype_value(&pstate, WGT_END_ARRAY, NULL);
 
         out = convert_to_gtype(res);
     }
@@ -130,7 +130,7 @@ gtype *gtype_value_to_gtype(gtype_value *val)
 /*
  * Get the offset of the variable-length portion of an gtype node within
  * the variable-length-data part of its container.  The node is identified
- * by index within the container's agtentry array.
+ * by index within the container's gtentry array.
  */
 uint32 get_gtype_offset(const gtype_container *agtc, int index)
 {
@@ -144,8 +144,8 @@ uint32 get_gtype_offset(const gtype_container *agtc, int index)
      */
     for (i = index - 1; i >= 0; i--)
     {
-        offset += AGTE_OFFLENFLD(agtc->children[i]);
-        if (AGTE_HAS_OFF(agtc->children[i]))
+        offset += GTE_OFFLENFLD(agtc->children[i]);
+        if (GTE_HAS_OFF(agtc->children[i]))
             break;
     }
 
@@ -154,7 +154,7 @@ uint32 get_gtype_offset(const gtype_container *agtc, int index)
 
 /*
  * Get the length of the variable-length portion of an gtype node.
- * The node is identified by index within the container's agtentry array.
+ * The node is identified by index within the container's gtentry array.
  */
 uint32 get_gtype_length(const gtype_container *agtc, int index)
 {
@@ -162,18 +162,18 @@ uint32 get_gtype_length(const gtype_container *agtc, int index)
     uint32 len;
 
     /*
-     * If the length is stored directly in the agtentry, just return it.
+     * If the length is stored directly in the gtentry, just return it.
      * Otherwise, get the begin offset of the entry, and subtract that from
      * the stored end+1 offset.
      */
-    if (AGTE_HAS_OFF(agtc->children[index]))
+    if (GTE_HAS_OFF(agtc->children[index]))
     {
         off = get_gtype_offset(agtc, index);
-        len = AGTE_OFFLENFLD(agtc->children[index]) - off;
+        len = GTE_OFFLENFLD(agtc->children[index]) - off;
     }
     else
     {
-        len = AGTE_OFFLENFLD(agtc->children[index]);
+        len = GTE_OFFLENFLD(agtc->children[index]);
     }
 
     return len;
@@ -239,18 +239,18 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
 
         if (ra == rb)
         {
-            if (ra == WAGT_DONE)
+            if (ra == WGT_DONE)
             {
                 // Decisively equal 
                 break;
             }
 
-            if (ra == WAGT_END_ARRAY || ra == WAGT_END_OBJECT)
+            if (ra == WGT_END_ARRAY || ra == WGT_END_OBJECT)
             {
                 /*
                  * There is no array or object to compare at this stage of
                  * processing.  AGTV_ARRAY/AGTV_OBJECT values are compared
-                 * initially, at the WAGT_BEGIN_ARRAY and WAGT_BEGIN_OBJECT
+                 * initially, at the WGT_BEGIN_ARRAY and WGT_BEGIN_OBJECT
                  * tokens.
                  */
                 continue;
@@ -324,7 +324,7 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
              *
              * If the two values were of the same container type, then there'd
              * have been a chance to observe the variation in the number of
-             * elements/pairs (when processing WAGT_BEGIN_OBJECT, say). They're
+             * elements/pairs (when processing WGT_BEGIN_OBJECT, say). They're
              * either two heterogeneously-typed containers, or a container and
              * some scalar type.
              */
@@ -333,13 +333,13 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
              * Check for the premature array or object end.
              * If left side is shorter, less than.
              */
-            if (ra == WAGT_END_ARRAY || ra == WAGT_END_OBJECT)
+            if (ra == WGT_END_ARRAY || ra == WGT_END_OBJECT)
             {
                 res = -1;
                 break;
             }
             // If right side is shorter, greater than 
-            if (rb == WAGT_END_ARRAY || rb == WAGT_END_OBJECT)
+            if (rb == WGT_END_ARRAY || rb == WGT_END_OBJECT)
             {
                 res = 1;
                 break;
@@ -400,11 +400,11 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
 gtype_value *find_gtype_value_from_container(gtype_container *container,
                                                uint32 flags, const gtype_value *key)
 {
-    agtentry *children = container->children;
+    gtentry *children = container->children;
     int count = GTYPE_CONTAINER_SIZE(container);
     gtype_value *result;
 
-    Assert((flags & ~(AGT_FARRAY | AGT_FOBJECT)) == 0);
+    Assert((flags & ~(GT_FARRAY | GT_FOBJECT)) == 0);
 
     // Quick out without a palloc cycle if object/array is empty 
     if (count <= 0)
@@ -414,7 +414,7 @@ gtype_value *find_gtype_value_from_container(gtype_container *container,
 
     result = palloc(sizeof(gtype_value));
 
-    if ((flags & AGT_FARRAY) && GTYPE_CONTAINER_IS_ARRAY(container))
+    if ((flags & GT_FARRAY) && GTYPE_CONTAINER_IS_ARRAY(container))
     {
         char *base_addr = (char *)(children + count);
         uint32 offset = 0;
@@ -430,10 +430,10 @@ gtype_value *find_gtype_value_from_container(gtype_container *container,
                     return result;
             }
 
-            AGTE_ADVANCE_OFFSET(offset, children[i]);
+            GTE_ADVANCE_OFFSET(offset, children[i]);
         }
     }
-    else if ((flags & AGT_FOBJECT) && GTYPE_CONTAINER_IS_OBJECT(container))
+    else if ((flags & GT_FOBJECT) && GTYPE_CONTAINER_IS_OBJECT(container))
     {
         // Since this is an object, account for *Pairs* of AGTentrys 
         char *base_addr = (char *)(children + count * 2);
@@ -518,7 +518,7 @@ gtype_value *get_ith_gtype_value_from_container(gtype_container *container,
  * A helper function to fill in an gtype_value to represent an element of an
  * array, or a key or value of an object.
  *
- * The node's agtentry is at container->children[index], and its variable-length
+ * The node's gtentry is at container->children[index], and its variable-length
  * data is at base_addr + offset.  We make the caller determine the offset
  * since in many cases the caller can amortize that work across multiple
  * children.  When it can't, it can just call get_gtype_offset().
@@ -530,13 +530,13 @@ static void fill_gtype_value(gtype_container *container, int index,
                               char *base_addr, uint32 offset,
                               gtype_value *result)
 {
-    agtentry entry = container->children[index];
+    gtentry entry = container->children[index];
 
-    if (AGTE_IS_NULL(entry))
+    if (GTE_IS_NULL(entry))
     {
         result->type = AGTV_NULL;
     }
-    else if (AGTE_IS_STRING(entry))
+    else if (GTE_IS_STRING(entry))
     {
         char *string_val;
         int string_len;
@@ -550,7 +550,7 @@ static void fill_gtype_value(gtype_container *container, int index,
         result->val.string.len = string_len;
         Assert(result->val.string.len >= 0);
     }
-    else if (AGTE_IS_NUMERIC(entry))
+    else if (GTE_IS_NUMERIC(entry))
     {
         Numeric numeric;
         Numeric numeric_copy;
@@ -567,27 +567,27 @@ static void fill_gtype_value(gtype_container *container, int index,
      * This is needed because we allow the original jsonb type to be
      * passed in.
      */
-    else if (AGTE_IS_GTYPE(entry))
+    else if (GTE_IS_GTYPE(entry))
     {
         ag_deserialize_extended_type(base_addr, offset, result);
     }
-    else if (AGTE_IS_BOOL_TRUE(entry))
+    else if (GTE_IS_BOOL_TRUE(entry))
     {
         result->type = AGTV_BOOL;
         result->val.boolean = true;
     }
-    else if (AGTE_IS_BOOL_FALSE(entry))
+    else if (GTE_IS_BOOL_FALSE(entry))
     {
         result->type = AGTV_BOOL;
         result->val.boolean = false;
     }
-    else if (AGTE_IS_VECTOR(container))
+    else if (GTE_IS_VECTOR(container))
     {
                 ereport(ERROR, (errmsg("here")));
     }
     else
     {
-        Assert(AGTE_IS_CONTAINER(entry));
+        Assert(GTE_IS_CONTAINER(entry));
         result->type = AGTV_BINARY;
         // Remove alignment padding from data pointer and length 
         result->val.binary.data =
@@ -607,7 +607,7 @@ static void fill_gtype_value(gtype_container *container, int index,
  * originally (caller will get gtype_parse_state back by reference).
  *
  * Only sequential tokens pertaining to non-container types should pass an
- * gtype_value.  There is one exception -- WAGT_BEGIN_ARRAY callers may pass a
+ * gtype_value.  There is one exception -- WGT_BEGIN_ARRAY callers may pass a
  * "raw scalar" pseudo array to append it - the actual scalar should be passed
  * next and it will be added as the only member of the array.
  *
@@ -623,7 +623,7 @@ gtype_value *push_gtype_value(gtype_parse_state **pstate,
     gtype_value v;
     gtype_iterator_token tok;
 
-    if (!agtval || (seq != WAGT_ELEM && seq != WAGT_VALUE) ||
+    if (!agtval || (seq != WGT_ELEM && seq != WGT_VALUE) ||
         (agtval->type != AGTV_BINARY))
     {
         // drop through 
@@ -632,10 +632,10 @@ gtype_value *push_gtype_value(gtype_parse_state **pstate,
 
     // unpack the binary and add each piece to the pstate 
     it = gtype_iterator_init(agtval->val.binary.data);
-    while ((tok = gtype_iterator_next(&it, &v, false)) != WAGT_DONE)
+    while ((tok = gtype_iterator_next(&it, &v, false)) != WGT_DONE)
     {
         res = push_gtype_value_scalar(pstate, tok,
-                                       tok < WAGT_BEGIN_ARRAY ? &v : NULL);
+                                       tok < WGT_BEGIN_ARRAY ? &v : NULL);
     }
 
     return res;
@@ -653,7 +653,7 @@ static gtype_value *push_gtype_value_scalar(gtype_parse_state **pstate,
 
     switch (seq)
     {
-    case WAGT_BEGIN_ARRAY:
+    case WGT_BEGIN_ARRAY:
         Assert(!scalar_val || scalar_val->val.array.raw_scalar);
         *pstate = push_state(pstate);
         result = &(*pstate)->cont_val;
@@ -675,7 +675,7 @@ static gtype_value *push_gtype_value_scalar(gtype_parse_state **pstate,
             palloc(sizeof(gtype_value) * (*pstate)->size);
         (*pstate)->last_updated_value = NULL;
         break;
-    case WAGT_BEGIN_OBJECT:
+    case WGT_BEGIN_OBJECT:
         Assert(!scalar_val);
         *pstate = push_state(pstate);
         result = &(*pstate)->cont_val;
@@ -686,7 +686,7 @@ static gtype_value *push_gtype_value_scalar(gtype_parse_state **pstate,
             palloc(sizeof(gtype_pair) * (*pstate)->size);
         (*pstate)->last_updated_value = NULL;
         break;
-    case WAGT_BEGIN_VECTOR: //BlackPink
+    case WGT_BEGIN_VECTOR: //BlackPink
        *pstate = push_state(pstate);
        result = &(*pstate)->cont_val;
        (*pstate)->cont_val.type = AGTV_VECTOR;
@@ -694,7 +694,7 @@ static gtype_value *push_gtype_value_scalar(gtype_parse_state **pstate,
        (*pstate)->cont_val.val.vector.x	= palloc(sizeof(float8) * 4);
        (*pstate)->last_updated_value = NULL;
        break;
-    case WAGT_VECTOR_VALUE:
+    case WGT_VECTOR_VALUE:
        {
        Vector *v = &(*pstate)->cont_val.val.vector;
 
@@ -710,24 +710,24 @@ static gtype_value *push_gtype_value_scalar(gtype_parse_state **pstate,
        v->x[v->dim++] = scalar_val->val.float_value; 
        break;
        }
-    case WAGT_KEY:
+    case WGT_KEY:
         Assert(scalar_val->type == AGTV_STRING);
         append_key(*pstate, scalar_val);
         break;
-    case WAGT_VALUE:
+    case WGT_VALUE:
         Assert(IS_A_GTYPE_SCALAR(scalar_val));
         append_value(*pstate, scalar_val);
         break;
-    case WAGT_ELEM:
+    case WGT_ELEM:
         Assert(IS_A_GTYPE_SCALAR(scalar_val));
         append_element(*pstate, scalar_val);
         break;
-    case WAGT_END_OBJECT:
+    case WGT_END_OBJECT:
         uniqueify_gtype_object(&(*pstate)->cont_val);
         // fall through! 
-    case WAGT_END_VECTOR:
-    case WAGT_END_ARRAY:
-        // Steps here common to WAGT_END_OBJECT case 
+    case WGT_END_VECTOR:
+    case WGT_END_ARRAY:
+        // Steps here common to WGT_END_OBJECT case 
         Assert(!scalar_val);
         result = &(*pstate)->cont_val;
 
@@ -886,26 +886,26 @@ gtype_iterator *gtype_iterator_init(gtype_container *container)
  * It is our job to expand the AGTV_BINARY representation without bothering
  * them with it.  However, clients should not take it upon themselves to touch
  * array or Object element/pair buffers, since their element/pair pointers are
- * garbage.  Also, *val will not be set when returning WAGT_END_ARRAY or
- * WAGT_END_OBJECT, on the assumption that it's only useful to access values
+ * garbage.  Also, *val will not be set when returning WGT_END_ARRAY or
+ * WGT_END_OBJECT, on the assumption that it's only useful to access values
  * when recursing in.
  */
 gtype_iterator_token gtype_iterator_next(gtype_iterator **it,
                                            gtype_value *val, bool skip_nested)
 {
     if (*it == NULL)
-        return WAGT_DONE;
+        return WGT_DONE;
 
     /*
      * When stepping into a nested container, we jump back here to start
      * processing the child. We will not recurse further in one call, because
-     * processing the child will always begin in AGTI_ARRAY_START or
-     * AGTI_OBJECT_START state.
+     * processing the child will always begin in GTI_ARRAY_START or
+     * GTI_OBJECT_START state.
      */
 recurse:
     switch ((*it)->state)
     {
-    case AGTI_ARRAY_START:
+    case GTI_ARRAY_START:
         // Set v to array on first array call 
         val->type = AGTV_ARRAY;
         val->val.array.num_elems = (*it)->num_elems;
@@ -919,10 +919,10 @@ recurse:
         (*it)->curr_data_offset = 0;
         (*it)->curr_value_offset = 0; // not actually used 
         // Set state for next call 
-        (*it)->state = AGTI_ARRAY_ELEM;
-        return WAGT_BEGIN_ARRAY;
+        (*it)->state = GTI_ARRAY_ELEM;
+        return WGT_BEGIN_ARRAY;
 
-    case AGTI_ARRAY_ELEM:
+    case GTI_ARRAY_ELEM:
         if ((*it)->curr_index >= (*it)->num_elems)
         {
             /*
@@ -932,13 +932,13 @@ recurse:
              * nesting).
              */
             *it = free_and_get_parent(*it);
-            return WAGT_END_ARRAY;
+            return WGT_END_ARRAY;
         }
 
         fill_gtype_value((*it)->container, (*it)->curr_index,
                           (*it)->data_proper, (*it)->curr_data_offset, val);
 
-        AGTE_ADVANCE_OFFSET((*it)->curr_data_offset,
+        GTE_ADVANCE_OFFSET((*it)->curr_data_offset,
                             (*it)->children[(*it)->curr_index]);
         (*it)->curr_index++;
 
@@ -954,10 +954,10 @@ recurse:
              * Scalar item in array, or a container and caller didn't want
              * us to recurse into it.
              */
-            return WAGT_ELEM;
+            return WGT_ELEM;
         }
 
-    case AGTI_OBJECT_START:
+    case GTI_OBJECT_START:
         // Set v to object on first object call 
         val->type = AGTV_OBJECT;
         val->val.object.num_pairs = (*it)->num_elems;
@@ -971,10 +971,10 @@ recurse:
         (*it)->curr_value_offset = get_gtype_offset((*it)->container,
                                                      (*it)->num_elems);
         // Set state for next call 
-        (*it)->state = AGTI_OBJECT_KEY;
-        return WAGT_BEGIN_OBJECT;
+        (*it)->state = GTI_OBJECT_KEY;
+        return WGT_BEGIN_OBJECT;
 
-    case AGTI_OBJECT_KEY:
+    case GTI_OBJECT_KEY:
         if ((*it)->curr_index >= (*it)->num_elems)
         {
             /*
@@ -984,7 +984,7 @@ recurse:
              * of nesting).
              */
             *it = free_and_get_parent(*it);
-            return WAGT_END_OBJECT;
+            return WGT_END_OBJECT;
         }
         else
         {
@@ -998,21 +998,21 @@ recurse:
                                 val->type)));
 
             // Set state for next call 
-            (*it)->state = AGTI_OBJECT_VALUE;
-            return WAGT_KEY;
+            (*it)->state = GTI_OBJECT_VALUE;
+            return WGT_KEY;
         }
 
-    case AGTI_OBJECT_VALUE:
+    case GTI_OBJECT_VALUE:
         // Set state for next call 
-        (*it)->state = AGTI_OBJECT_KEY;
+        (*it)->state = GTI_OBJECT_KEY;
 
         fill_gtype_value((*it)->container,
                           (*it)->curr_index + (*it)->num_elems,
                           (*it)->data_proper, (*it)->curr_value_offset, val);
 
-        AGTE_ADVANCE_OFFSET((*it)->curr_data_offset,
+        GTE_ADVANCE_OFFSET((*it)->curr_data_offset,
                             (*it)->children[(*it)->curr_index]);
-        AGTE_ADVANCE_OFFSET(
+        GTE_ADVANCE_OFFSET(
             (*it)->curr_value_offset,
             (*it)->children[(*it)->curr_index + (*it)->num_elems]);
         (*it)->curr_index++;
@@ -1029,9 +1029,9 @@ recurse:
         }
         else
         {
-            return WAGT_VALUE;
+            return WGT_VALUE;
         }
-    case AGTI_VECTOR_START:
+    case GTI_VECTOR_START:
         // Set v to array on first array call 
         val->type = AGTV_VECTOR;
         val->val.vector.dim = (*it)->num_elems;
@@ -1041,10 +1041,10 @@ recurse:
         (*it)->curr_data_offset = 0;
         (*it)->curr_value_offset = 0; // not actually used 
         // Set state for next call 
-        (*it)->state = AGTI_VECTOR_VALUE;
-        return WAGT_BEGIN_VECTOR;
+        (*it)->state = GTI_VECTOR_VALUE;
+        return WGT_BEGIN_VECTOR;
 
-    case AGTI_VECTOR_VALUE:
+    case GTI_VECTOR_VALUE:
         if ((*it)->curr_index >= (*it)->num_elems)
         {
             /*
@@ -1054,7 +1054,7 @@ recurse:
              * nesting).
              */
             *it = free_and_get_parent(*it);
-            return WAGT_END_VECTOR;
+            return WGT_END_VECTOR;
         }
 
 	val->type = AGTV_FLOAT;
@@ -1063,7 +1063,7 @@ recurse:
 	(*it)->curr_data_offset = (*it)->curr_data_offset + sizeof(float8);
         (*it)->curr_index++;
 
-	return WAGT_VECTOR_VALUE;
+	return WGT_VECTOR_VALUE;
 
     }
 
@@ -1087,36 +1087,36 @@ static gtype_iterator *iterator_from_container(gtype_container *container,
     // Array starts just after header 
     it->children = container->children;
 
-    switch (container->header & (AGT_FARRAY | AGT_FOBJECT | AGT_FEXTENDED_COMPOSITE))
+    switch (container->header & (GT_FARRAY | GT_FOBJECT | GT_FEXTENDED_COMPOSITE))
     {
-    case AGT_FARRAY:
+    case GT_FARRAY:
         it->data_proper = (char *)it->children +
-                          it->num_elems * sizeof(agtentry);
+                          it->num_elems * sizeof(gtentry);
         it->is_scalar = GTYPE_CONTAINER_IS_SCALAR(container);
         // This is either a "raw scalar", or an array 
         Assert(!it->is_scalar || it->num_elems == 1);
 
-        it->state = AGTI_ARRAY_START;
+        it->state = GTI_ARRAY_START;
         break;
 
-    case AGT_FOBJECT:
+    case GT_FOBJECT:
         it->data_proper = (char *)it->children +
-                          it->num_elems * sizeof(agtentry) * 2;
-        it->state = AGTI_OBJECT_START;
+                          it->num_elems * sizeof(gtentry) * 2;
+        it->state = GTI_OBJECT_START;
         break;
 
-    case AGT_FEXTENDED_COMPOSITE:
+    case GT_FEXTENDED_COMPOSITE:
     {
-        if (container->children[0] == AGT_HEADER_VECTOR) {
-            it->data_proper = (char *)it->children + sizeof(agtentry);
-	    it->state = AGTI_VECTOR_START;
+        if (container->children[0] == GT_HEADER_VECTOR) {
+            it->data_proper = (char *)it->children + sizeof(gtentry);
+	    it->state = GTI_VECTOR_START;
             break;
 	}
     }
     default:
         ereport(ERROR,
                 (errmsg("unknown type of gtype container %d",
-                        container->header & (AGT_FARRAY | AGT_FOBJECT | AGT_FEXTENDED_COMPOSITE))));
+                        container->header & (GT_FARRAY | GT_FOBJECT | GT_FEXTENDED_COMPOSITE))));
     }
 
     return it;
@@ -1172,11 +1172,11 @@ bool gtype_deep_contains(gtype_iterator **val, gtype_iterator **m_contained)
          * sufficient reason to give up entirely (but it should be the case
          * that they're both some container type).
          */
-        Assert(rval == WAGT_BEGIN_OBJECT || rval == WAGT_BEGIN_ARRAY);
-        Assert(rcont == WAGT_BEGIN_OBJECT || rcont == WAGT_BEGIN_ARRAY);
+        Assert(rval == WGT_BEGIN_OBJECT || rval == WGT_BEGIN_ARRAY);
+        Assert(rcont == WGT_BEGIN_OBJECT || rcont == WGT_BEGIN_ARRAY);
         return false;
     }
-    else if (rcont == WAGT_BEGIN_OBJECT)
+    else if (rcont == WGT_BEGIN_OBJECT)
     {
         Assert(vval.type == AGTV_OBJECT);
         Assert(vcontained.type == AGTV_OBJECT);
@@ -1203,14 +1203,14 @@ bool gtype_deep_contains(gtype_iterator **val, gtype_iterator **m_contained)
              * object without failing to find one of its values, it's
              * contained.
              */
-            if (rcont == WAGT_END_OBJECT)
+            if (rcont == WGT_END_OBJECT)
                 return true;
 
-            Assert(rcont == WAGT_KEY);
+            Assert(rcont == WGT_KEY);
 
             // First, find value by key... 
             lhs_val = find_gtype_value_from_container(
-                (*val)->container, AGT_FOBJECT, &vcontained);
+                (*val)->container, GT_FOBJECT, &vcontained);
 
             if (!lhs_val)
                 return false;
@@ -1221,7 +1221,7 @@ bool gtype_deep_contains(gtype_iterator **val, gtype_iterator **m_contained)
              */
             rcont = gtype_iterator_next(m_contained, &vcontained, true);
 
-            Assert(rcont == WAGT_VALUE);
+            Assert(rcont == WGT_VALUE);
 
             /*
              * Compare rhs pair's value with lhs pair's value just found using
@@ -1274,7 +1274,7 @@ bool gtype_deep_contains(gtype_iterator **val, gtype_iterator **m_contained)
             }
         }
     }
-    else if (rcont == WAGT_BEGIN_ARRAY)
+    else if (rcont == WGT_BEGIN_ARRAY)
     {
         gtype_value *lhs_conts = NULL;
         uint32 num_lhs_elems = vval.val.array.num_elems;
@@ -1305,15 +1305,15 @@ bool gtype_deep_contains(gtype_iterator **val, gtype_iterator **m_contained)
              * array without failing to find one of its values, it's
              * contained.
              */
-            if (rcont == WAGT_END_ARRAY)
+            if (rcont == WGT_END_ARRAY)
                 return true;
 
-            Assert(rcont == WAGT_ELEM);
+            Assert(rcont == WGT_ELEM);
 
             if (IS_A_GTYPE_SCALAR(&vcontained))
             {
                 if (!find_gtype_value_from_container((*val)->container,
-                                                      AGT_FARRAY, &vcontained))
+                                                      GT_FARRAY, &vcontained))
                     return false;
             }
             else
@@ -1335,7 +1335,7 @@ bool gtype_deep_contains(gtype_iterator **val, gtype_iterator **m_contained)
                     {
                         // Store all lhs elements in temp array 
                         rcont = gtype_iterator_next(val, &vval, true);
-                        Assert(rcont == WAGT_ELEM);
+                        Assert(rcont == WGT_ELEM);
 
                         if (vval.type == AGTV_BINARY)
                             lhs_conts[j++] = vval;
@@ -1394,7 +1394,7 @@ bool gtype_deep_contains(gtype_iterator **val, gtype_iterator **m_contained)
  * Hash an gtype_value scalar value, mixing the hash value into an existing
  * hash provided by the caller.
  *
- * Some callers may wish to independently XOR in AGT_FOBJECT and AGT_FARRAY
+ * Some callers may wish to independently XOR in GT_FOBJECT and GT_FARRAY
  * flags.
  */
 void gtype_hash_scalar_value(const gtype_value *scalar_val, uint32 *hash)
@@ -1792,7 +1792,7 @@ short pad_buffer_to_int(StringInfo buffer)
 static gtype *convert_to_gtype(gtype_value *val)
 {
     StringInfoData buffer;
-    agtentry aentry;
+    gtentry aentry;
     gtype *res;
 
     // Should not already have binary representation 
@@ -1807,7 +1807,7 @@ static gtype *convert_to_gtype(gtype_value *val)
     convert_gtype_value(&buffer, &aentry, val, 0);
 
     /*
-     * Note: the agtentry of the root is discarded. Therefore the root
+     * Note: the gtentry of the root is discarded. Therefore the root
      * gtype_container struct must contain enough information to tell what
      * kind of value it is.
      */
@@ -1823,7 +1823,7 @@ static gtype *convert_to_gtype(gtype_value *val)
 /*
  * Subroutine of convert_gtype: serialize a single gtype_value into buffer.
  *
- * The agtentry header for this node is returned in *header.  It is filled in
+ * The gtentry header for this node is returned in *header.  It is filled in
  * with the length of this value and appropriate type bits.  If we wish to
  * store an end offset rather than a length, it is the caller's responsibility
  * to adjust for that.
@@ -1831,7 +1831,7 @@ static gtype *convert_to_gtype(gtype_value *val)
  * If the value is an array or an object, this recurses. 'level' is only used
  * for debugging purposes.
  */
-static void convert_gtype_value(StringInfo buffer, agtentry *header,
+static void convert_gtype_value(StringInfo buffer, gtentry *header,
                                  gtype_value *val, int level)
 {
     check_stack_depth();
@@ -1860,8 +1860,8 @@ static void convert_gtype_value(StringInfo buffer, agtentry *header,
 }
 
 // define the type and size of the agt_header 
-#define AGT_HEADER_TYPE uint32
-#define AGT_HEADER_SIZE sizeof(AGT_HEADER_TYPE)
+#define GT_HEADER_TYPE uint32
+#define GT_HEADER_SIZE sizeof(GT_HEADER_TYPE)
 
 static short ag_serialize_header(StringInfo buffer, uint32 type)
 {
@@ -1869,17 +1869,17 @@ static short ag_serialize_header(StringInfo buffer, uint32 type)
     int offset;
         
     padlen = pad_buffer_to_int(buffer);
-    offset = reserve_from_buffer(buffer, AGT_HEADER_SIZE);
-    *((AGT_HEADER_TYPE *)(buffer->data + offset)) = type;
+    offset = reserve_from_buffer(buffer, GT_HEADER_SIZE);
+    *((GT_HEADER_TYPE *)(buffer->data + offset)) = type;
 
     return padlen;
 }
 
 
 static void
-convert_gtype_vector(StringInfo buffer, agtentry *pheader, gtype_value *val, int level) {
+convert_gtype_vector(StringInfo buffer, gtentry *pheader, gtype_value *val, int level) {
     int base_offset;
-    int agtentry_offset;
+    int gtentry_offset;
     int i;
     int totallen;
     uint32 header;
@@ -1890,14 +1890,14 @@ convert_gtype_vector(StringInfo buffer, agtentry *pheader, gtype_value *val, int
     pad_buffer_to_int(buffer);
 
     /*
-     * Construct the header agtentry and store it in the beginning of the
+     * Construct the header gtentry and store it in the beginning of the
      * variable-length payload.
      */
-    header = num_elems | AGT_FEXTENDED_COMPOSITE;
+    header = num_elems | GT_FEXTENDED_COMPOSITE;
     append_to_buffer(buffer, (char *)&header, sizeof(uint32));
 
-    // Reserve space for the agtentrys of the elements. 
-    totallen = ag_serialize_header(buffer, AGT_HEADER_VECTOR);
+    // Reserve space for the gtentrys of the elements. 
+    totallen = ag_serialize_header(buffer, GT_HEADER_VECTOR);
 
     for (i = 0; i < num_elems; i++)
     {
@@ -1905,30 +1905,30 @@ convert_gtype_vector(StringInfo buffer, agtentry *pheader, gtype_value *val, int
 
         /*
          * Bail out if total variable-length data exceeds what will fit in a
-         * agtentry length field.  We check this in each iteration, not just
+         * gtentry length field.  We check this in each iteration, not just
          * once at the end, to forestall possible integer overflow. The size
 	 * of vector only allowing 16000 dims should make this impossible,
 	 * but check just in case.
          */
-        if (totallen > AGTENTRY_OFFLENMASK)
+        if (totallen > GTENTRY_OFFLENMASK)
             ereport(ERROR,
                 (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-                 errmsg("total size of vector elements exceeds the maximum of %u bytes", AGTENTRY_OFFLENMASK)));
+                 errmsg("total size of vector elements exceeds the maximum of %u bytes", GTENTRY_OFFLENMASK)));
     }
 
     // Total data size is everything we've appended to buffer 
     totallen = (sizeof(uint32) * 3) + (num_elems * sizeof(float8));
 
-    // Initialize the header of this node in the container's agtentry array 
-    *pheader = AGTENTRY_IS_CONTAINER | totallen;
+    // Initialize the header of this node in the container's gtentry array 
+    *pheader = GTENTRY_IS_CONTAINER | totallen;
 }
 
 
-static void convert_gtype_array(StringInfo buffer, agtentry *pheader,
+static void convert_gtype_array(StringInfo buffer, gtentry *pheader,
                                  gtype_value *val, int level)
 {
     int base_offset;
-    int agtentry_offset;
+    int gtentry_offset;
     int i;
     int totallen;
     uint32 header;
@@ -1941,87 +1941,87 @@ static void convert_gtype_array(StringInfo buffer, agtentry *pheader,
     pad_buffer_to_int(buffer);
 
     /*
-     * Construct the header agtentry and store it in the beginning of the
+     * Construct the header gtentry and store it in the beginning of the
      * variable-length payload.
      */
-    header = num_elems | AGT_FARRAY;
+    header = num_elems | GT_FARRAY;
     if (val->val.array.raw_scalar)
     {
         Assert(num_elems == 1);
         Assert(level == 0);
-        header |= AGT_FSCALAR;
+        header |= GT_FSCALAR;
     }
 
     append_to_buffer(buffer, (char *)&header, sizeof(uint32));
 
-    // Reserve space for the agtentrys of the elements. 
-    agtentry_offset = reserve_from_buffer(buffer, sizeof(agtentry) * num_elems);
+    // Reserve space for the gtentrys of the elements. 
+    gtentry_offset = reserve_from_buffer(buffer, sizeof(gtentry) * num_elems);
 
     totallen = 0;
     for (i = 0; i < num_elems; i++)
     {
         gtype_value *elem = &val->val.array.elems[i];
         int len;
-        agtentry meta;
+        gtentry meta;
 
         /*
-         * Convert element, producing a agtentry and appending its
+         * Convert element, producing a gtentry and appending its
          * variable-length data to buffer
          */
         convert_gtype_value(buffer, &meta, elem, level + 1);
 
-        len = AGTE_OFFLENFLD(meta);
+        len = GTE_OFFLENFLD(meta);
         totallen += len;
 
         /*
          * Bail out if total variable-length data exceeds what will fit in a
-         * agtentry length field.  We check this in each iteration, not just
+         * gtentry length field.  We check this in each iteration, not just
          * once at the end, to forestall possible integer overflow.
          */
-        if (totallen > AGTENTRY_OFFLENMASK)
+        if (totallen > GTENTRY_OFFLENMASK)
         {
             ereport(
                 ERROR,
                 (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
                  errmsg(
                      "total size of gtype array elements exceeds the maximum of %u bytes",
-                     AGTENTRY_OFFLENMASK)));
+                     GTENTRY_OFFLENMASK)));
         }
 
         /*
-         * Convert each AGT_OFFSET_STRIDE'th length to an offset.
+         * Convert each GT_OFFSET_STRIDE'th length to an offset.
          */
-        if ((i % AGT_OFFSET_STRIDE) == 0)
-            meta = (meta & AGTENTRY_TYPEMASK) | totallen | AGTENTRY_HAS_OFF;
+        if ((i % GT_OFFSET_STRIDE) == 0)
+            meta = (meta & GTENTRY_TYPEMASK) | totallen | GTENTRY_HAS_OFF;
 
-        copy_to_buffer(buffer, agtentry_offset, (char *)&meta,
-                       sizeof(agtentry));
-        agtentry_offset += sizeof(agtentry);
+        copy_to_buffer(buffer, gtentry_offset, (char *)&meta,
+                       sizeof(gtentry));
+        gtentry_offset += sizeof(gtentry);
     }
 
     // Total data size is everything we've appended to buffer 
     totallen = buffer->len - base_offset;
 
     // Check length again, since we didn't include the metadata above 
-    if (totallen > AGTENTRY_OFFLENMASK)
+    if (totallen > GTENTRY_OFFLENMASK)
     {
         ereport(
             ERROR,
             (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
              errmsg(
                  "total size of gtype array elements exceeds the maximum of %u bytes",
-                 AGTENTRY_OFFLENMASK)));
+                 GTENTRY_OFFLENMASK)));
     }
 
-    // Initialize the header of this node in the container's agtentry array 
-    *pheader = AGTENTRY_IS_CONTAINER | totallen;
+    // Initialize the header of this node in the container's gtentry array 
+    *pheader = GTENTRY_IS_CONTAINER | totallen;
 }
 
-static void convert_gtype_object(StringInfo buffer, agtentry *pheader,
+static void convert_gtype_object(StringInfo buffer, gtentry *pheader,
                                   gtype_value *val, int level)
 {
     int base_offset;
-    int agtentry_offset;
+    int gtentry_offset;
     int i;
     int totallen;
     uint32 header;
@@ -2034,15 +2034,15 @@ static void convert_gtype_object(StringInfo buffer, agtentry *pheader,
     pad_buffer_to_int(buffer);
 
     /*
-     * Construct the header agtentry and store it in the beginning of the
+     * Construct the header gtentry and store it in the beginning of the
      * variable-length payload.
      */
-    header = num_pairs | AGT_FOBJECT;
+    header = num_pairs | GT_FOBJECT;
     append_to_buffer(buffer, (char *)&header, sizeof(uint32));
 
-    // Reserve space for the agtentrys of the keys and values. 
-    agtentry_offset = reserve_from_buffer(buffer,
-                                          sizeof(agtentry) * num_pairs * 2);
+    // Reserve space for the gtentrys of the keys and values. 
+    gtentry_offset = reserve_from_buffer(buffer,
+                                          sizeof(gtentry) * num_pairs * 2);
 
     /*
      * Iterate over the keys, then over the values, since that is the ordering
@@ -2053,91 +2053,91 @@ static void convert_gtype_object(StringInfo buffer, agtentry *pheader,
     {
         gtype_pair *pair = &val->val.object.pairs[i];
         int len;
-        agtentry meta;
+        gtentry meta;
 
         /*
-         * Convert key, producing an agtentry and appending its variable-length
+         * Convert key, producing an gtentry and appending its variable-length
          * data to buffer
          */
         convert_gtype_scalar(buffer, &meta, &pair->key);
 
-        len = AGTE_OFFLENFLD(meta);
+        len = GTE_OFFLENFLD(meta);
         totallen += len;
 
         /*
          * Bail out if total variable-length data exceeds what will fit in a
-         * agtentry length field.  We check this in each iteration, not just
+         * gtentry length field.  We check this in each iteration, not just
          * once at the end, to forestall possible integer overflow.
          */
-        if (totallen > AGTENTRY_OFFLENMASK)
+        if (totallen > GTENTRY_OFFLENMASK)
         {
             ereport(
                 ERROR,
                 (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
                  errmsg(
                      "total size of gtype object elements exceeds the maximum of %u bytes",
-                     AGTENTRY_OFFLENMASK)));
+                     GTENTRY_OFFLENMASK)));
         }
 
         /*
-         * Convert each AGT_OFFSET_STRIDE'th length to an offset.
+         * Convert each GT_OFFSET_STRIDE'th length to an offset.
          */
-        if ((i % AGT_OFFSET_STRIDE) == 0)
-            meta = (meta & AGTENTRY_TYPEMASK) | totallen | AGTENTRY_HAS_OFF;
+        if ((i % GT_OFFSET_STRIDE) == 0)
+            meta = (meta & GTENTRY_TYPEMASK) | totallen | GTENTRY_HAS_OFF;
 
-        copy_to_buffer(buffer, agtentry_offset, (char *)&meta,
-                       sizeof(agtentry));
-        agtentry_offset += sizeof(agtentry);
+        copy_to_buffer(buffer, gtentry_offset, (char *)&meta,
+                       sizeof(gtentry));
+        gtentry_offset += sizeof(gtentry);
     }
     for (i = 0; i < num_pairs; i++)
     {
         gtype_pair *pair = &val->val.object.pairs[i];
         int len;
-        agtentry meta;
+        gtentry meta;
 
         /*
-         * Convert value, producing an agtentry and appending its
+         * Convert value, producing an gtentry and appending its
          * variable-length data to buffer
          */
         convert_gtype_value(buffer, &meta, &pair->value, level + 1);
 
-        len = AGTE_OFFLENFLD(meta);
+        len = GTE_OFFLENFLD(meta);
         totallen += len;
 
         /*
          * Bail out if total variable-length data exceeds what will fit in a
-         * agtentry length field.  We check this in each iteration, not just
+         * gtentry length field.  We check this in each iteration, not just
          * once at the end, to forestall possible integer overflow.
          */
-        if (totallen > AGTENTRY_OFFLENMASK)
+        if (totallen > GTENTRY_OFFLENMASK)
             ereport(ERROR, (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
                  errmsg("total size of gtype object elements exceeds the maximum of %u bytes",
-                     AGTENTRY_OFFLENMASK)));
+                     GTENTRY_OFFLENMASK)));
 
         /*
-         * Convert each AGT_OFFSET_STRIDE'th length to an offset.
+         * Convert each GT_OFFSET_STRIDE'th length to an offset.
          */
-        if (((i + num_pairs) % AGT_OFFSET_STRIDE) == 0)
-            meta = (meta & AGTENTRY_TYPEMASK) | totallen | AGTENTRY_HAS_OFF;
+        if (((i + num_pairs) % GT_OFFSET_STRIDE) == 0)
+            meta = (meta & GTENTRY_TYPEMASK) | totallen | GTENTRY_HAS_OFF;
 
-        copy_to_buffer(buffer, agtentry_offset, (char *)&meta,
-                       sizeof(agtentry));
-        agtentry_offset += sizeof(agtentry);
+        copy_to_buffer(buffer, gtentry_offset, (char *)&meta,
+                       sizeof(gtentry));
+        gtentry_offset += sizeof(gtentry);
     }
 
     // Total data size is everything we've appended to buffer 
     totallen = buffer->len - base_offset;
 
     // Check length again, since we didn't include the metadata above 
-    if (totallen > AGTENTRY_OFFLENMASK)
+    if (totallen > GTENTRY_OFFLENMASK)
         ereport(ERROR, (errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
-             errmsg("total size of gtype object elements exceeds the maximum of %u bytes", AGTENTRY_OFFLENMASK)));
+             errmsg("total size of gtype object elements exceeds the maximum of %u bytes", GTENTRY_OFFLENMASK)));
 
-    // Initialize the header of this node in the container's agtentry array 
-    *pheader = AGTENTRY_IS_CONTAINER | totallen;
+    // Initialize the header of this node in the container's gtentry array 
+    *pheader = GTENTRY_IS_CONTAINER | totallen;
 }
 
-static void convert_gtype_scalar(StringInfo buffer, agtentry *entry, gtype_value *scalar_val)
+static void convert_gtype_scalar(StringInfo buffer, gtentry *entry, gtype_value *scalar_val)
 {
     int numlen;
     short padlen;
@@ -2146,7 +2146,7 @@ static void convert_gtype_scalar(StringInfo buffer, agtentry *entry, gtype_value
     switch (scalar_val->type)
     {
     case AGTV_NULL:
-        *entry = AGTENTRY_IS_NULL;
+        *entry = GTENTRY_IS_NULL;
         break;
 
     case AGTV_STRING:
@@ -2161,11 +2161,11 @@ static void convert_gtype_scalar(StringInfo buffer, agtentry *entry, gtype_value
 
         append_to_buffer(buffer, (char *)scalar_val->val.numeric, numlen);
 
-        *entry = AGTENTRY_IS_NUMERIC | (padlen + numlen);
+        *entry = GTENTRY_IS_NUMERIC | (padlen + numlen);
         break;
 
     case AGTV_BOOL:
-        *entry = (scalar_val->val.boolean) ? AGTENTRY_IS_BOOL_TRUE : AGTENTRY_IS_BOOL_FALSE;
+        *entry = (scalar_val->val.boolean) ? GTENTRY_IS_BOOL_TRUE : GTENTRY_IS_BOOL_FALSE;
         break;
 
     default:

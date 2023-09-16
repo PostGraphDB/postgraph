@@ -54,21 +54,21 @@
 /* Tokens used when sequentially processing an gtype value */
 typedef enum
 {
-    WAGT_DONE,
-    WAGT_KEY,
-    WAGT_VALUE,
-    WAGT_VECTOR_VALUE,
-    WAGT_ELEM,
-    WAGT_BEGIN_ARRAY,
-    WAGT_END_ARRAY,
-    WAGT_BEGIN_OBJECT,
-    WAGT_END_OBJECT,
-    WAGT_BEGIN_VECTOR,
-    WAGT_END_VECTOR
+    WGT_DONE,
+    WGT_KEY,
+    WGT_VALUE,
+    WGT_VECTOR_VALUE,
+    WGT_ELEM,
+    WGT_BEGIN_ARRAY,
+    WGT_END_ARRAY,
+    WGT_BEGIN_OBJECT,
+    WGT_END_OBJECT,
+    WGT_BEGIN_VECTOR,
+    WGT_END_VECTOR
 } gtype_iterator_token;
 
 #define GTYPE_ITERATOR_TOKEN_IS_HASHABLE(x) \
-    (x > WAGT_DONE && x < WAGT_BEGIN_ARRAY)
+    (x > WGT_DONE && x < WGT_BEGIN_ARRAY)
 
 /* Strategy numbers for GIN index opclasses */
 #define GTYPE_CONTAINS_STRATEGY_NUMBER    7
@@ -86,24 +86,24 @@ typedef enum
  * elements like keys.  The remainder of the text string is empty for a null
  * value, "t" or "f" for a boolean value, a normalized print representation of
  * a numeric value, or the text of a string value.  However, if the length of
- * this text representation would exceed AGT_GIN_MAX_LENGTH bytes, we instead
+ * this text representation would exceed GT_GIN_MAX_LENGTH bytes, we instead
  * hash the text representation and store an 8-hex-digit representation of the
  * uint32 hash value, marking the prefix byte with an additional bit to
  * distinguish that this has happened.  Hashing long strings saves space and
  * ensures that we won't overrun the maximum entry length for a GIN index.
- * (But AGT_GIN_MAX_LENGTH is quite a bit shorter than GIN's limit.  It's
+ * (But GT_GIN_MAX_LENGTH is quite a bit shorter than GIN's limit.  It's
  * chosen to ensure that the on-disk text datum will have a short varlena
  * header.) Note that when any hashed item appears in a query, we must recheck
  * index matches against the heap tuple; currently, this costs nothing because
  * we must always recheck for other reasons.
  */
-#define AGT_GIN_FLAG_KEY    0x01 // key (or string array element)
-#define AGT_GIN_FLAG_NULL   0x02 // null value
-#define AGT_GIN_FLAG_BOOL   0x03 // boolean value
-#define AGT_GIN_FLAG_NUM    0x04 // numeric value
-#define AGT_GIN_FLAG_STR    0x05 // string value (if not an array element)
-#define AGT_GIN_FLAG_HASHED 0x10 // OR'd into flag if value was hashed
-#define AGT_GIN_MAX_LENGTH   125 // max length of text part before hashing
+#define GT_GIN_FLAG_KEY    0x01 // key (or string array element)
+#define GT_GIN_FLAG_NULL   0x02 // null value
+#define GT_GIN_FLAG_BOOL   0x03 // boolean value
+#define GT_GIN_FLAG_NUM    0x04 // numeric value
+#define GT_GIN_FLAG_STR    0x05 // string value (if not an array element)
+#define GT_GIN_FLAG_HASHED 0x10 // OR'd into flag if value was hashed
+#define GT_GIN_MAX_LENGTH   125 // max length of text part before hashing
 
 /* Convenience macros */
 #define DATUM_GET_GTYPE_P(d) ((gtype *)PG_DETOAST_DATUM(d))
@@ -124,24 +124,24 @@ typedef struct gtype_value gtype_value;
  * which a gtype buffer is accessed, but they can also be deep copied and
  * passed around.
  *
- * gtype is a tree structure. Each node in the tree consists of an agtentry
- * header and a variable-length content (possibly of zero size).  The agtentry
+ * gtype is a tree structure. Each node in the tree consists of an gtentry
+ * header and a variable-length content (possibly of zero size).  The gtentry
  * header indicates what kind of a node it is, e.g. a string or an array,
  * and provides the length of its variable-length portion.
  *
- * The agtentry and the content of a node are not stored physically together.
- * Instead, the container array or object has an array that holds the agtentrys
+ * The gtentry and the content of a node are not stored physically together.
+ * Instead, the container array or object has an array that holds the gtentrys
  * of all the child nodes, followed by their variable-length portions.
  *
  * The root node is an exception; it has no parent array or object that could
- * hold its agtentry. Hence, no agtentry header is stored for the root node.
+ * hold its gtentry. Hence, no gtentry header is stored for the root node.
  * It is implicitly known that the root node must be an array or an object,
  * so we can get away without the type indicator as long as we can distinguish
  * the two.  For that purpose, both an array and an object begin with a uint32
- * header field, which contains an AGT_FOBJECT or AGT_FARRAY flag.  When a
+ * header field, which contains an GT_FOBJECT or GT_FARRAY flag.  When a
  * naked scalar value needs to be stored as an gtype value, what we actually
  * store is an array with one element, with the flags in the array's header
- * field set to AGT_FSCALAR | AGT_FARRAY.
+ * field set to GT_FSCALAR | GT_FARRAY.
  *
  * Overall, the gtype struct requires 4-bytes alignment. Within the struct,
  * the variable-length portion of some node types is aligned to a 4-byte
@@ -153,7 +153,7 @@ typedef struct gtype_value gtype_value;
  */
 
 /*
- * agtentry format.
+ * gtentry format.
  *
  * The least significant 28 bits store either the data length of the entry,
  * or its end+1 offset from the start of the variable-length portion of the
@@ -162,15 +162,15 @@ typedef struct gtype_value gtype_value;
  * or an offset.
  *
  * The reason for the offset-or-length complication is to compromise between
- * access speed and data compressibility.  In the initial design each agtentry
- * always stored an offset, but this resulted in agtentry arrays with horrible
+ * access speed and data compressibility.  In the initial design each gtentry
+ * always stored an offset, but this resulted in gtentry arrays with horrible
  * compressibility properties, so that TOAST compression of an gtype did not
  * work well.  Storing only lengths would greatly improve compressibility,
  * but it makes random access into large arrays expensive (O(N) not O(1)).
- * So what we do is store an offset in every AGT_OFFSET_STRIDE'th agtentry and
+ * So what we do is store an offset in every GT_OFFSET_STRIDE'th gtentry and
  * a length in the rest.  This results in reasonably compressible data (as
  * long as the stride isn't too small).  We may have to examine as many as
- * AGT_OFFSET_STRIDE agtentrys in order to find out the offset or length of any
+ * GT_OFFSET_STRIDE gtentrys in order to find out the offset or length of any
  * given item, but that's still O(1) no matter how large the container is.
  *
  * We could avoid eating a flag bit for this purpose if we were to store
@@ -178,62 +178,62 @@ typedef struct gtype_value gtype_value;
  * stride as an unchangeable constant.  Neither of those options is very
  * attractive though.
  */
-typedef uint32 agtentry;
+typedef uint32 gtentry;
 
-#define AGTENTRY_OFFLENMASK 0x0FFFFFFF
-#define AGTENTRY_TYPEMASK   0x70000000
-#define AGTENTRY_HAS_OFF    0x80000000
+#define GTENTRY_OFFLENMASK 0x0FFFFFFF
+#define GTENTRY_TYPEMASK   0x70000000
+#define GTENTRY_HAS_OFF    0x80000000
 
 /* values stored in the type bits */
-#define AGTENTRY_IS_STRING     0x00000000
-#define AGTENTRY_IS_NUMERIC    0x10000000
-#define AGTENTRY_IS_BOOL_FALSE 0x20000000
-#define AGTENTRY_IS_BOOL_TRUE  0x30000000
-#define AGTENTRY_IS_NULL       0x40000000
-#define AGTENTRY_IS_CONTAINER  0x50000000 /* array or object */
-#define AGTENTRY_IS_GTYPE     0x70000000 /* extended type designator */
+#define GTENTRY_IS_STRING     0x00000000
+#define GTENTRY_IS_NUMERIC    0x10000000
+#define GTENTRY_IS_BOOL_FALSE 0x20000000
+#define GTENTRY_IS_BOOL_TRUE  0x30000000
+#define GTENTRY_IS_NULL       0x40000000
+#define GTENTRY_IS_CONTAINER  0x50000000 /* array or object */
+#define GTENTRY_IS_GTYPE     0x70000000 /* extended type designator */
 
 /* Access macros.  Note possible multiple evaluations */
-#define AGTE_OFFLENFLD(agte_) \
-    ((agte_)&AGTENTRY_OFFLENMASK)
-#define AGTE_HAS_OFF(agte_) \
-    (((agte_)&AGTENTRY_HAS_OFF) != 0)
-#define AGTE_IS_STRING(agte_) \
-    (((agte_)&AGTENTRY_TYPEMASK) == AGTENTRY_IS_STRING)
-#define AGTE_IS_NUMERIC(agte_) \
-    (((agte_)&AGTENTRY_TYPEMASK) == AGTENTRY_IS_NUMERIC)
-#define AGTE_IS_CONTAINER(agte_) \
-    (((agte_)&AGTENTRY_TYPEMASK) == AGTENTRY_IS_CONTAINER)
-#define AGTE_IS_NULL(agte_) \
-    (((agte_)&AGTENTRY_TYPEMASK) == AGTENTRY_IS_NULL)
-#define AGTE_IS_BOOL_TRUE(agte_) \
-    (((agte_)&AGTENTRY_TYPEMASK) == AGTENTRY_IS_BOOL_TRUE)
-#define AGTE_IS_BOOL_FALSE(agte_) \
-    (((agte_)&AGTENTRY_TYPEMASK) == AGTENTRY_IS_BOOL_FALSE)
-#define AGTE_IS_BOOL(agte_) \
-    (AGTE_IS_BOOL_TRUE(agte_) || AGTE_IS_BOOL_FALSE(agte_))
-#define AGTE_IS_GTYPE(agte_) \
-    (((agte_)&AGTENTRY_TYPEMASK) == AGTENTRY_IS_GTYPE)
+#define GTE_OFFLENFLD(agte_) \
+    ((agte_)&GTENTRY_OFFLENMASK)
+#define GTE_HAS_OFF(agte_) \
+    (((agte_)&GTENTRY_HAS_OFF) != 0)
+#define GTE_IS_STRING(agte_) \
+    (((agte_)&GTENTRY_TYPEMASK) == GTENTRY_IS_STRING)
+#define GTE_IS_NUMERIC(agte_) \
+    (((agte_)&GTENTRY_TYPEMASK) == GTENTRY_IS_NUMERIC)
+#define GTE_IS_CONTAINER(agte_) \
+    (((agte_)&GTENTRY_TYPEMASK) == GTENTRY_IS_CONTAINER)
+#define GTE_IS_NULL(agte_) \
+    (((agte_)&GTENTRY_TYPEMASK) == GTENTRY_IS_NULL)
+#define GTE_IS_BOOL_TRUE(agte_) \
+    (((agte_)&GTENTRY_TYPEMASK) == GTENTRY_IS_BOOL_TRUE)
+#define GTE_IS_BOOL_FALSE(agte_) \
+    (((agte_)&GTENTRY_TYPEMASK) == GTENTRY_IS_BOOL_FALSE)
+#define GTE_IS_BOOL(agte_) \
+    (GTE_IS_BOOL_TRUE(agte_) || GTE_IS_BOOL_FALSE(agte_))
+#define GTE_IS_GTYPE(agte_) \
+    (((agte_)&GTENTRY_TYPEMASK) == GTENTRY_IS_GTYPE)
 
-/* Macro for advancing an offset variable to the next agtentry */
-#define AGTE_ADVANCE_OFFSET(offset, agte) \
+/* Macro for advancing an offset variable to the next gtentry */
+#define GTE_ADVANCE_OFFSET(offset, agte) \
     do \
     { \
-        agtentry agte_ = (agte); \
-        if (AGTE_HAS_OFF(agte_)) \
-            (offset) = AGTE_OFFLENFLD(agte_); \
+        gtentry agte_ = (agte); \
+        if (GTE_HAS_OFF(agte_)) \
+            (offset) = GTE_OFFLENFLD(agte_); \
         else \
-            (offset) += AGTE_OFFLENFLD(agte_); \
+            (offset) += GTE_OFFLENFLD(agte_); \
     } while (0)
 
 /*
- * We store an offset, not a length, every AGT_OFFSET_STRIDE children.
+ * We store an offset, not a length, every GT_OFFSET_STRIDE children.
  * Caution: this macro should only be referenced when creating an gtype
  * value.  When examining an existing value, pay attention to the HAS_OFF
  * bits instead.  This allows changes in the offset-placement heuristic
  * without breaking on-disk compatibility.
  */
-#define AGT_OFFSET_STRIDE 32
+#define GT_OFFSET_STRIDE 32
 
 /*
  * An gtype array or object node, within an gtype Datum.
@@ -248,26 +248,26 @@ typedef uint32 agtentry;
 typedef struct gtype_container
 {
     uint32 header; /* number of elements or key/value pairs, and flags */
-    agtentry children[FLEXIBLE_ARRAY_MEMBER];
+    gtentry children[FLEXIBLE_ARRAY_MEMBER];
 
     /* the data for each child node follows. */
 } gtype_container;
 
 /* flags for the header-field in gtype_container*/
-#define AGT_CMASK   0x07FFFFFF /* mask for count field */
-#define AGT_FSCALAR 0x10000000 /* flag bits */
-#define AGT_FOBJECT 0x20000000
-#define AGT_FARRAY  0x40000000
-#define AGT_FBINARY 0x80000000
-#define AGT_FEXTENDED_COMPOSITE 0x08000000
+#define GT_CMASK   0x07FFFFFF /* mask for count field */
+#define GT_FSCALAR 0x10000000 /* flag bits */
+#define GT_FOBJECT 0x20000000
+#define GT_FARRAY  0x40000000
+#define GT_FBINARY 0x80000000
+#define GT_FEXTENDED_COMPOSITE 0x08000000
 
 /* convenience macros for accessing an gtype_container struct */
-#define GTYPE_CONTAINER_SIZE(agtc)       ((agtc)->header & AGT_CMASK)
-#define GTYPE_CONTAINER_IS_SCALAR(agtc) (((agtc)->header & AGT_FSCALAR) != 0)
-#define GTYPE_CONTAINER_IS_OBJECT(agtc) (((agtc)->header & AGT_FOBJECT) != 0)
-#define GTYPE_CONTAINER_IS_ARRAY(agtc)  (((agtc)->header & AGT_FARRAY)  != 0)
-#define GTYPE_CONTAINER_IS_BINARY(agtc) (((agtc)->header & AGT_FBINARY) != 0)
-#define GTYPE_CONTAINER_IS_EXTENDED_COMPOSITE(agtc) (((agtc)->header & AGT_FEXTENDED_COMPOSITE) != 0)
+#define GTYPE_CONTAINER_SIZE(agtc)       ((agtc)->header & GT_CMASK)
+#define GTYPE_CONTAINER_IS_SCALAR(agtc) (((agtc)->header & GT_FSCALAR) != 0)
+#define GTYPE_CONTAINER_IS_OBJECT(agtc) (((agtc)->header & GT_FOBJECT) != 0)
+#define GTYPE_CONTAINER_IS_ARRAY(agtc)  (((agtc)->header & GT_FARRAY)  != 0)
+#define GTYPE_CONTAINER_IS_BINARY(agtc) (((agtc)->header & GT_FBINARY) != 0)
+#define GTYPE_CONTAINER_IS_EXTENDED_COMPOSITE(agtc) (((agtc)->header & GT_FEXTENDED_COMPOSITE) != 0)
 
 // The top-level on-disk format for an gtype datum.
 typedef struct
@@ -277,62 +277,62 @@ typedef struct
 } gtype;
 
 // convenience macros for accessing the root container in an gtype datum
-#define AGT_ROOT_COUNT(agtp_) (*(uint32 *)VARDATA(agtp_) & AGT_CMASK)
+#define AGT_ROOT_COUNT(agtp_) (*(uint32 *)VARDATA(agtp_) & GT_CMASK)
 #define AGT_ROOT_IS_SCALAR(agtp_) \
-    ((*(uint32 *)VARDATA(agtp_) & AGT_FSCALAR) != 0)
+    ((*(uint32 *)VARDATA(agtp_) & GT_FSCALAR) != 0)
 #define AGT_ROOT_IS_OBJECT(agtp_) \
-    ((*(uint32 *)VARDATA(agtp_) & AGT_FOBJECT) != 0)
+    ((*(uint32 *)VARDATA(agtp_) & GT_FOBJECT) != 0)
 #define AGT_ROOT_IS_ARRAY(agtp_) \
-    ((*(uint32 *)VARDATA(agtp_) & AGT_FARRAY) != 0)
+    ((*(uint32 *)VARDATA(agtp_) & GT_FARRAY) != 0)
 #define AGT_ROOT_IS_BINARY(agtp_) \
-    ((*(uint32 *)VARDATA(agtp_) & AGT_FBINARY) != 0)
+    ((*(uint32 *)VARDATA(agtp_) & GT_FBINARY) != 0)
 #define AGT_ROOT_IS_EXTENDED_COMPOSITE(agtp_) \
-    ((*(uint32 *)VARDATA(agtp_) & AGT_FEXTENDED_COMPOSITE) != 0)
+    ((*(uint32 *)VARDATA(agtp_) & GT_FEXTENDED_COMPOSITE) != 0)
 #define AGT_ROOT_BINARY_FLAGS(agtp_) \
-    (*(uint32 *)VARDATA(agtp_) & AGT_FBINARY_MASK)
+    (*(uint32 *)VARDATA(agtp_) & GT_FBINARY_MASK)
 
 // values for the GTYPE header field to denote the stored data type
-#define AGT_HEADER_INTEGER     0x00000000
-#define AGT_HEADER_FLOAT       0x00000001
-#define AGT_HEADER_TIMESTAMP   0x00000002
-#define AGT_HEADER_TIMESTAMPTZ 0x00000003
-#define AGT_HEADER_DATE        0x00000004
-#define AGT_HEADER_TIME        0x00000005
-#define AGT_HEADER_TIMETZ      0x00000006
-#define AGT_HEADER_INTERVAL    0x00000007
-#define AGT_HEADER_VECTOR      0x00000008
-#define AGT_HEADER_INET        0x00000009
-#define AGT_HEADER_CIDR        0x00000010
-#define AGT_HEADER_MAC         0x00000011
-#define AGT_HEADER_MAC8        0x00000012
+#define GT_HEADER_INTEGER     0x00000000
+#define GT_HEADER_FLOAT       0x00000001
+#define GT_HEADER_TIMESTAMP   0x00000002
+#define GT_HEADER_TIMESTAMPTZ 0x00000003
+#define GT_HEADER_DATE        0x00000004
+#define GT_HEADER_TIME        0x00000005
+#define GT_HEADER_TIMETZ      0x00000006
+#define GT_HEADER_INTERVAL    0x00000007
+#define GT_HEADER_VECTOR      0x00000008
+#define GT_HEADER_INET        0x00000009
+#define GT_HEADER_CIDR        0x00000010
+#define GT_HEADER_MAC         0x00000011
+#define GT_HEADER_MAC8        0x00000012
 
-#define AGT_IS_INTEGER(agte_) \
-    (((agte_) == AGT_HEADER_INTEGER))
+#define GT_IS_INTEGER(agte_) \
+    (((agte_) == GT_HEADER_INTEGER))
 
-#define AGT_IS_FLOAT(agte_) \
-    (((agte_) == AGT_HEADER_FLOAT))
+#define GT_IS_FLOAT(agte_) \
+    (((agte_) == GT_HEADER_FLOAT))
 
-#define AGT_IS_TIMESTAMP(agt) \
-    (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_TIMESTAMP)
+#define GT_IS_TIMESTAMP(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_TIMESTAMP)
 
 
-#define AGT_IS_INET(agt) \
-    (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_INET)
+#define GT_IS_INET(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_INET)
 
-#define AGT_IS_CIDR(agt) \
-    (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_CIDR)
+#define GT_IS_CIDR(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_CIDR)
 
-#define AGT_IS_MACADDR(agt) \
-    (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_MAC)
+#define GT_IS_MACADDR(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_MAC)
 
-#define AGT_IS_MACADDR8(agt) \
-    (AGTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == AGT_HEADER_MAC8)
+#define GT_IS_MACADDR8(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_MAC8)
 
-#define AGT_IS_VECTOR(agt) \
-    ((((agt)->root.header & AGT_FEXTENDED_COMPOSITE) != 0 ) && (((agt)->root.children[0] & AGT_HEADER_VECTOR) != 0))
+#define GT_IS_VECTOR(agt) \
+    ((((agt)->root.header & GT_FEXTENDED_COMPOSITE) != 0 ) && (((agt)->root.children[0] & GT_HEADER_VECTOR) != 0))
 
-#define AGTE_IS_VECTOR(agt) \
-    ((((agt)->header & AGT_FEXTENDED_COMPOSITE) != 0 ) && (((agt)->children[0] & AGT_HEADER_VECTOR) != 0))
+#define GTE_IS_VECTOR(agt) \
+    ((((agt)->header & GT_FEXTENDED_COMPOSITE) != 0 ) && (((agt)->children[0] & GT_HEADER_VECTOR) != 0))
 
 enum gtype_value_type
 {
@@ -429,21 +429,21 @@ typedef struct gtype_parse_state
  */
 typedef enum
 {
-    AGTI_ARRAY_START,
-    AGTI_ARRAY_ELEM,
-    AGTI_OBJECT_START,
-    AGTI_OBJECT_KEY,
-    AGTI_OBJECT_VALUE,
-    AGTI_VECTOR_START,
-    AGTI_VECTOR_VALUE
-} agt_iterator_state;
+    GTI_ARRAY_START,
+    GTI_ARRAY_ELEM,
+    GTI_OBJECT_START,
+    GTI_OBJECT_KEY,
+    GTI_OBJECT_VALUE,
+    GTI_VECTOR_START,
+    GTI_VECTOR_VALUE
+} gt_iterator_state;
 
 typedef struct gtype_iterator
 {
     gtype_container *container; // Container being iterated
     uint32 num_elems;            // Number of elements in children array (will be num_pairs for objects)
     bool is_scalar;              // Pseudo-array scalar value?
-    agtentry *children;          // agtentrys for child nodes
+    gtentry *children;          // gtentrys for child nodes
     char *data_proper;           // Data proper. This points to the beginning of the variable-length data
     int curr_index;              // Current item in buffer (up to num_elems)
     uint32 curr_data_offset;     // Data offset corresponding to current item
@@ -453,7 +453,7 @@ typedef struct gtype_iterator
      * curr_value_offset points to the current value.
      */
     uint32 curr_value_offset;
-    agt_iterator_state state;    // Private state
+    gt_iterator_state state;    // Private state
     struct gtype_iterator *parent;
 } gtype_iterator;
 

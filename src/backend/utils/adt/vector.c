@@ -286,7 +286,7 @@ Datum l2_distance(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
-    if (!AGT_IS_VECTOR(lhs) || !AGT_IS_VECTOR(rhs))
+    if (!GT_IS_VECTOR(lhs) || !GT_IS_VECTOR(rhs))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("<-> requires vector arguments")));
 
@@ -305,10 +305,10 @@ Datum l2_distance(PG_FUNCTION_ARGS) {
     type = gtype_iterator_next(&lhs_it, &lgtv, true);
     gtype_iterator_next(&rhs_it, &rgtv, true);
 
-    Assert (type == WAGT_BEGIN_VECTOR);
+    Assert (type == WGT_BEGIN_VECTOR);
 
     float8 distance = 0.0;
-    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WAGT_END_VECTOR) {
+    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WGT_END_VECTOR) {
         gtype_iterator_next(&rhs_it, &rgtv, true);
         
 	float8 lhs_f = lgtv.val.float_value;
@@ -331,7 +331,7 @@ Datum gtype_l2_squared_distance(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
-    if (!AGT_IS_VECTOR(lhs) || !AGT_IS_VECTOR(rhs))
+    if (!GT_IS_VECTOR(lhs) || !GT_IS_VECTOR(rhs))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("<-> requires vector arguments")));
 
@@ -350,10 +350,10 @@ Datum gtype_l2_squared_distance(PG_FUNCTION_ARGS) {
     type = gtype_iterator_next(&lhs_it, &lgtv, true);
     gtype_iterator_next(&rhs_it, &rgtv, true);
 
-    Assert (type == WAGT_BEGIN_VECTOR);
+    Assert (type == WGT_BEGIN_VECTOR);
 
     float8 distance = 0.0;
-    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WAGT_END_VECTOR) {
+    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WGT_END_VECTOR) {
         gtype_iterator_next(&rhs_it, &rgtv, true);
 
         float8 lhs_f = lgtv.val.float_value;
@@ -377,7 +377,7 @@ Datum gtype_inner_product(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
-    if (!AGT_IS_VECTOR(lhs) || !AGT_IS_VECTOR(rhs))
+    if (!GT_IS_VECTOR(lhs) || !GT_IS_VECTOR(rhs))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("<-> requires vector arguments")));
 
@@ -396,10 +396,10 @@ Datum gtype_inner_product(PG_FUNCTION_ARGS) {
     type = gtype_iterator_next(&lhs_it, &lgtv, true);
     gtype_iterator_next(&rhs_it, &rgtv, true);
 
-    Assert (type == WAGT_BEGIN_VECTOR);
+    Assert (type == WGT_BEGIN_VECTOR);
 
     float8 distance = 0.0;
-    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WAGT_END_VECTOR) {
+    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WGT_END_VECTOR) {
         gtype_iterator_next(&rhs_it, &rgtv, true);
 
         float8 lhs_f = lgtv.val.float_value;
@@ -421,7 +421,7 @@ Datum gtype_negative_inner_product(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
-    if (!AGT_IS_VECTOR(lhs) || !AGT_IS_VECTOR(rhs))
+    if (!GT_IS_VECTOR(lhs) || !GT_IS_VECTOR(rhs))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("<-> requires vector arguments")));
 
@@ -438,10 +438,10 @@ Datum gtype_negative_inner_product(PG_FUNCTION_ARGS) {
     type = gtype_iterator_next(&lhs_it, &lgtv, true);
     gtype_iterator_next(&rhs_it, &rgtv, true);
 
-    Assert (type == WAGT_BEGIN_VECTOR);
+    Assert (type == WGT_BEGIN_VECTOR);
 
     float8 distance = 0.0;
-    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WAGT_END_VECTOR) {
+    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WGT_END_VECTOR) {
         gtype_iterator_next(&rhs_it, &rgtv, true);
 
         float8 lhs_f = lgtv.val.float_value;
@@ -464,7 +464,7 @@ Datum gtype_cosine_distance(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
-    if (!AGT_IS_VECTOR(lhs) || !AGT_IS_VECTOR(rhs))
+    if (!GT_IS_VECTOR(lhs) || !GT_IS_VECTOR(rhs))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("<-> requires vector arguments")));
 
@@ -483,10 +483,10 @@ Datum gtype_cosine_distance(PG_FUNCTION_ARGS) {
     type = gtype_iterator_next(&lhs_it, &lgtv, true);
     gtype_iterator_next(&rhs_it, &rgtv, true);
 
-    Assert (type == WAGT_BEGIN_VECTOR);
+    Assert (type == WGT_BEGIN_VECTOR);
 
     float8 distance = 0.0, norma = 0.0, normb = 0.0;
-    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WAGT_END_VECTOR) {
+    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WGT_END_VECTOR) {
         gtype_iterator_next(&rhs_it, &rgtv, true);
 
         float8 lhs_f = lgtv.val.float_value;
@@ -518,7 +518,7 @@ Datum gtype_spherical_distance(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
-    if (!AGT_IS_VECTOR(lhs) || !AGT_IS_VECTOR(rhs))
+    if (!GT_IS_VECTOR(lhs) || !GT_IS_VECTOR(rhs))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("<-> requires vector arguments")));
 
@@ -537,10 +537,10 @@ Datum gtype_spherical_distance(PG_FUNCTION_ARGS) {
     type = gtype_iterator_next(&lhs_it, &lgtv, true);
     gtype_iterator_next(&rhs_it, &rgtv, true);
 
-    Assert (type == WAGT_BEGIN_VECTOR);
+    Assert (type == WGT_BEGIN_VECTOR);
 
     float8 distance = 0.0;
-    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WAGT_END_VECTOR) {
+    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WGT_END_VECTOR) {
         gtype_iterator_next(&rhs_it, &rgtv, true);
 
         float8 lhs_f = lgtv.val.float_value;
@@ -568,7 +568,7 @@ Datum gtype_l1_distance(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
-    if (!AGT_IS_VECTOR(lhs) || !AGT_IS_VECTOR(rhs))
+    if (!GT_IS_VECTOR(lhs) || !GT_IS_VECTOR(rhs))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("<-> requires vector arguments")));
 
@@ -587,10 +587,10 @@ Datum gtype_l1_distance(PG_FUNCTION_ARGS) {
     type = gtype_iterator_next(&lhs_it, &lgtv, true);
     gtype_iterator_next(&rhs_it, &rgtv, true);
 
-    Assert (type == WAGT_BEGIN_VECTOR);
+    Assert (type == WGT_BEGIN_VECTOR);
 
     float8 distance = 0.0;
-    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WAGT_END_VECTOR) {
+    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WGT_END_VECTOR) {
         gtype_iterator_next(&rhs_it, &rgtv, true);
 
         float8 lhs_f = lgtv.val.float_value;
@@ -612,7 +612,7 @@ PG_FUNCTION_INFO_V1(gtype_dims);
 Datum gtype_dims(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
 
-    if (!AGT_IS_VECTOR(lhs))
+    if (!GT_IS_VECTOR(lhs))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("<-> requires vector arguments")));
 
@@ -628,7 +628,7 @@ PG_FUNCTION_INFO_V1(gtype_norm);
 Datum gtype_norm(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
 
-    if (!AGT_IS_VECTOR(lhs))
+    if (!GT_IS_VECTOR(lhs))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("<-> requires vector arguments")));
 
@@ -639,10 +639,10 @@ Datum gtype_norm(PG_FUNCTION_ARGS) {
     gtype_value lgtv;
     type = gtype_iterator_next(&lhs_it, &lgtv, true);
 
-    Assert (type == WAGT_BEGIN_VECTOR);
+    Assert (type == WGT_BEGIN_VECTOR);
 
     float8 norm = 0.0;
-    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WAGT_END_VECTOR) {
+    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WGT_END_VECTOR) {
         float8 lhs_f = lgtv.val.float_value;
 
         norm += lhs_f * lhs_f;
@@ -659,7 +659,7 @@ Datum gtype_norm(PG_FUNCTION_ARGS) {
 
 gtype_value *gtype_vector_add(gtype *lhs, gtype *rhs) {
 
-    if (!AGT_IS_VECTOR(lhs) || !AGT_IS_VECTOR(rhs))
+    if (!GT_IS_VECTOR(lhs) || !GT_IS_VECTOR(rhs))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("+ requires vector arguments")));
 
@@ -678,12 +678,12 @@ gtype_value *gtype_vector_add(gtype *lhs, gtype *rhs) {
     type = gtype_iterator_next(&lhs_it, &lgtv, true);
     gtype_iterator_next(&rhs_it, &rgtv, true);
 
-    Assert (type == WAGT_BEGIN_VECTOR);
+    Assert (type == WGT_BEGIN_VECTOR);
 
     gtype_value *result = InitVectorGType(dim);
     result->type = AGTV_VECTOR;
     int i = 0;
-    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WAGT_END_VECTOR) {
+    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WGT_END_VECTOR) {
         gtype_iterator_next(&rhs_it, &rgtv, true);
 
         float8 lhs_f = lgtv.val.float_value;
@@ -702,7 +702,7 @@ gtype_value *gtype_vector_add(gtype *lhs, gtype *rhs) {
 
 gtype_value *gtype_vector_sub(gtype *lhs, gtype *rhs) {
 
-    if (!AGT_IS_VECTOR(lhs) || !AGT_IS_VECTOR(rhs))
+    if (!GT_IS_VECTOR(lhs) || !GT_IS_VECTOR(rhs))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("- requires vector arguments")));
 
@@ -721,12 +721,12 @@ gtype_value *gtype_vector_sub(gtype *lhs, gtype *rhs) {
     type = gtype_iterator_next(&lhs_it, &lgtv, true);
     gtype_iterator_next(&rhs_it, &rgtv, true);
 
-    Assert (type == WAGT_BEGIN_VECTOR);
+    Assert (type == WGT_BEGIN_VECTOR);
 
     gtype_value *result = InitVectorGType(dim);
     result->type = AGTV_VECTOR;
     int i = 0;
-    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WAGT_END_VECTOR) {
+    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WGT_END_VECTOR) {
         gtype_iterator_next(&rhs_it, &rgtv, true);
 
         float8 lhs_f = lgtv.val.float_value;
@@ -744,7 +744,7 @@ gtype_value *gtype_vector_sub(gtype *lhs, gtype *rhs) {
 
 gtype_value *gtype_vector_mul(gtype *lhs, gtype *rhs) {
 
-    if (!AGT_IS_VECTOR(lhs) || !AGT_IS_VECTOR(rhs))
+    if (!GT_IS_VECTOR(lhs) || !GT_IS_VECTOR(rhs))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("- requires vector arguments")));
 
@@ -763,12 +763,12 @@ gtype_value *gtype_vector_mul(gtype *lhs, gtype *rhs) {
     type = gtype_iterator_next(&lhs_it, &lgtv, true);
     gtype_iterator_next(&rhs_it, &rgtv, true);
 
-    Assert (type == WAGT_BEGIN_VECTOR);
+    Assert (type == WGT_BEGIN_VECTOR);
 
     gtype_value *result = InitVectorGType(dim);
     result->type = AGTV_VECTOR;
     int i = 0;
-    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WAGT_END_VECTOR) {
+    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WGT_END_VECTOR) {
         gtype_iterator_next(&rhs_it, &rgtv, true);
 
         float8 lhs_f = lgtv.val.float_value;
@@ -791,7 +791,7 @@ gtype_value *gtype_vector_mul(gtype *lhs, gtype *rhs) {
 
 int32 gtype_vector_cmp(gtype *lhs, gtype *rhs) {
 
-    if (!AGT_IS_VECTOR(lhs) || !AGT_IS_VECTOR(rhs))
+    if (!GT_IS_VECTOR(lhs) || !GT_IS_VECTOR(rhs))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("cmp requires vector arguments")));
 
@@ -810,9 +810,9 @@ int32 gtype_vector_cmp(gtype *lhs, gtype *rhs) {
     type = gtype_iterator_next(&lhs_it, &lgtv, true);
     gtype_iterator_next(&rhs_it, &rgtv, true);
 
-    Assert (type == WAGT_BEGIN_VECTOR);
+    Assert (type == WGT_BEGIN_VECTOR);
 
-    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WAGT_END_VECTOR) {
+    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WGT_END_VECTOR) {
         gtype_iterator_next(&rhs_it, &rgtv, true);
 
         float8 lhs_f = lgtv.val.float_value;
