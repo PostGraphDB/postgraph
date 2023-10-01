@@ -158,6 +158,46 @@ SELECT * FROM cypher('cypher_union', $$RETURN 1.0::float UNION RETURN 1::int UNI
  1.0
 (1 row)
 
+-- Intersect
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n INTERSECT MATCH (m) RETURN m$$) AS (result vertex);
+                         result                         
+--------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {}}
+(1 row)
+
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n INTERSECT ALL MATCH (m) RETURN m$$) AS (result vertex);
+                         result                         
+--------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {}}
+(1 row)
+
+-- Except
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n EXCEPT MATCH (m) RETURN m$$) AS (result vertex);
+ result 
+--------
+(0 rows)
+
+SELECT * FROM cypher('cypher_union', $$MATCH (n) RETURN n EXCEPT ALL MATCH (m) RETURN m$$) AS (result vertex);
+ result 
+--------
+(0 rows)
+
+-- Operator Precedence
+SELECT * FROM cypher('cypher_union', $$RETURN 2.0::int UNION (RETURN 1::float UNION ALL RETURN 1.0::float)$$) AS (result gtype);
+ result 
+--------
+ 1.0
+ 2
+(2 rows)
+
+SELECT * FROM cypher('cypher_union', $$(RETURN 2.0::int UNION RETURN 1::float ) UNION ALL RETURN 1.0::float$$) AS (result gtype);
+ result 
+--------
+ 1.0
+ 2
+ 1.0
+(3 rows)
+
 SELECT drop_graph('cypher_union', true);
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table cypher_union._ag_label_vertex

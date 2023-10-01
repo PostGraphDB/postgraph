@@ -189,7 +189,7 @@ Query *transform_cypher_clause(cypher_parsestate *cpstate, cypher_clause *clause
 
         if (n->op == SETOP_NONE)
             result = transform_cypher_return(cpstate, clause);
-        else if (n->op == SETOP_UNION)
+        else if (n->op == SETOP_UNION | n->op == SETOP_INTERSECT | n->op == SETOP_EXCEPT)
             result = transform_cypher_union(cpstate, clause);
         else
             ereport(ERROR, (errmsg_internal("unexpected Node for cypher_return")));
@@ -455,7 +455,7 @@ transform_cypher_union_tree(cypher_parsestate *cpstate, cypher_clause *clause, b
     if (cmp->op == SETOP_NONE) {
         Assert(cmp->larg == NULL && cmp->rarg == NULL);
         isLeaf = true;
-    } else if (cmp->op == SETOP_UNION) {
+    } else if (cmp->op == SETOP_UNION | cmp->op == SETOP_EXCEPT | cmp->op == SETOP_INTERSECT) {
         Assert(cmp->larg != NULL && cmp->rarg != NULL);
         if (cmp->order_by || cmp->limit || cmp->skip)
             isLeaf = true;

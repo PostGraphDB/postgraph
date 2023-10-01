@@ -86,9 +86,9 @@
                  BY
                  CALL CASE COALESCE CONTAINS CREATE CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
                  DATE DECADE DELETE DESC DESCENDING DETACH DISTINCT
-                 ELSE END_P ENDS EXISTS EXTRACT
+                 ELSE END_P ENDS EXCEPT EXISTS EXTRACT
                  FALSE_P FROM
-                 IN INTERVAL IS
+                 IN INTERSECT INTERVAL IS
                  LIMIT LOCALTIME LOCALTIMESTAMP
                  MATCH MERGE 
                  NOT NULL_P
@@ -169,7 +169,7 @@
 %type <boolean> all_or_distinct
 
 /* precedence: lowest to highest */
-%left UNION
+%left UNION INTERSECT EXCEPT
 %left OR
 %left AND
 %left XOR
@@ -254,9 +254,21 @@ cypher_stmt:
         {
             $$ = $1;
         }
+    | '(' cypher_stmt ')'
+        {
+            $$ = $2;
+        }
     | cypher_stmt UNION all_or_distinct cypher_stmt
         {
             $$ = list_make1(make_set_op(SETOP_UNION, $3, $1, $4));
+        }
+    | cypher_stmt INTERSECT all_or_distinct cypher_stmt
+        {
+            $$ = list_make1(make_set_op(SETOP_INTERSECT, $3, $1, $4));
+        }
+    | cypher_stmt EXCEPT all_or_distinct cypher_stmt
+        {
+            $$ = list_make1(make_set_op(SETOP_EXCEPT, $3, $1, $4));
         }
     ;
 
