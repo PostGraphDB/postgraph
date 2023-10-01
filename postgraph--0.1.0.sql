@@ -1327,7 +1327,7 @@ CREATE OPERATOR @> (
   FUNCTION = edge_contained_in_variable_edge,
   LEFTARG = edge,
   RIGHTARG = variable_edge,
-  COMMUTATOR = '<@',
+  --COMMUTATOR = '<@',
   RESTRICT = contsel,  
   JOIN = contjoinsel
 );  
@@ -1348,6 +1348,20 @@ CREATE OPERATOR <@ (
   RESTRICT = contsel,
   JOIN = contjoinsel 
 );  
+
+CREATE FUNCTION variable_edge_edges_overlap(variable_edge, variable_edge)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR && (
+  FUNCTION = variable_edge_edges_overlap,
+  LEFTARG = variable_edge,
+  RIGHTARG = variable_edge
+);
 
 --
 -- variable_edge functions

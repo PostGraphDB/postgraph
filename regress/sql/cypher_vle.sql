@@ -166,6 +166,10 @@ SELECT count(*) FROM cypher('cypher_vle', $$MATCH (u)-[*0..1]-(v) RETURN u, v$$)
 SELECT count(*) FROM cypher('cypher_vle', $$MATCH (u)-[*..1]-(v) RETURN u, v$$) AS (u vertex, v vertex);
 SELECT count(*) FROM cypher('cypher_vle', $$MATCH (u)-[*..5]-(v) RETURN u, v$$) AS (u vertex, v vertex);
 
+SELECT * FROM cypher('cypher_vle', $$MATCH p=(:begin)<-[ve1*]-(:end), (:end)-[ve2*]->(:begin) RETURN ve1 && ve2 $$) AS (overlap boolean);
+
+SELECT * FROM cypher('cypher_vle', $$MATCH p=()<-[ve1:edge*]-(), ()-[ve2:alternate_edge*]->() RETURN ve1 && ve2 $$) AS (overlap boolean);
+
 --
 -- Test VLE inside of a BEGIN/COMMIT block
 --

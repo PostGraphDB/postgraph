@@ -287,6 +287,29 @@ PG_RETURN_BOOL(left_start == right_start || left_end == right_start ||
 		left_start == right_end || left_end == right_end);
 }
 
+PG_FUNCTION_INFO_V1(variable_edge_edges_overlap);
+Datum variable_edge_edges_overlap(PG_FUNCTION_ARGS) {
+    VariableEdge *lhs = AG_GET_ARG_VARIABLE_EDGE(0);
+    VariableEdge *rhs = AG_GET_ARG_VARIABLE_EDGE(1);
+
+    char *rhs_ptr = &rhs->children[1];
+    for (int i = 0; i < rhs->children[0] - 1; i++, rhs_ptr = rhs_ptr + VARSIZE(rhs_ptr)) {
+        if (i % 2 == 0) {
+	    char *lhs_ptr = &lhs->children[1];
+	    edge *right_edge = (edge *)rhs_ptr;
+            for (int j = 0; j < lhs->children[0]; j++, lhs_ptr = lhs_ptr + VARSIZE(lhs_ptr)) {
+                  if (j % 2 == 0) {
+                      edge *left_edge = (edge *)lhs_ptr;
+		      if (EXTRACT_EDGE_ID(left_edge) == EXTRACT_EDGE_ID(right_edge))
+                           PG_RETURN_BOOL(true);
+		  }
+	    }
+	}
+    }
+
+    PG_RETURN_BOOL(false);
+}
+
 /*
  * Functions
  */
