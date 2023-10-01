@@ -2207,32 +2207,71 @@ static FuncCall *prevent_duplicate_edges(cypher_parsestate *cpstate, List *entit
     List *edges = NIL;
     ListCell *lc;
     List *qualified_function_name;
-    Value *catalog, *edge_fn;
+    Value *ag_catalog, *edge_fn;
 
-    catalog = makeString(CATALOG_SCHEMA);
+    ag_catalog = makeString("postgraph");
     edge_fn = makeString("_ag_enforce_edge_uniqueness");
 
-    qualified_function_name = list_make2(catalog, edge_fn);
+    qualified_function_name = list_make2(ag_catalog, edge_fn);
 
-    // iterate through each entity, collecting the access node for each edge
+    bool has_vle =  false;
     foreach (lc, entities)
     {
         transform_entity *entity = lfirst(lc);
-        Node *edge;
 
-        if (entity->type == ENT_EDGE) {
-            edge = make_qual(cpstate, entity, AG_EDGE_COLNAME_ID);
-
-            edges = lappend(edges, edge);
-        } else if (entity->type == ENT_VLE_EDGE) {
-            ParseNamespaceItem *pnsi;
-            pnsi = find_pnsi(cpstate, get_entity_name(entity));
-            Node *node = scanNSItemForColumn((ParseState *)cpstate, pnsi, 0, "edges", -1);
-            edges = lappend(edges, node);
+        if (entity->type == ENT_VLE_EDGE)
+        {
+            has_vle = true;
+            break;
         }
     }
 
-    return makeFuncCall(qualified_function_name, edges, COERCE_SQL_SYNTAX, -1);
+    /*
+     * if the match clause uses the VLE code, we need to do the old slow way... for now.
+     * that could probably be fixed by exposes the edges being scanned, but we will worry
+     * about that later. For MATCH with no VLE edges, just use <> between each id in the path
+     * let the optimizer do its magic.
+     */
+    if (has_vle) {
+        // iterate through each entity, collecting the access node for each edge
+        foreach (lc, entities)
+        {
+            transform_entity *entity = lfirst(lc);
+            Node *edge;
+
+            if (entity->type == ENT_EDGE)
+            {
+                edge = make_qual(cpstate, entity, AG_EDGE_COLNAME_ID);
+
+                 edges = lappend(edges, edge);
+            }
+            else if (entity->type == ENT_VLE_EDGE)
+            {
+                edges = lappend(edges, entity->expr);
+            }
+        }
+
+        return makeFuncCall(qualified_function_name, edges, COERCE_SQL_SYNTAX, -1);
+    }
+
+    for (int i = 0; i < list_length(entities); i++) {
+        transform_entity *entity_i = (transform_entity *)list_nth_cell(entities, i)->ptr_value;
+
+        if (entity_i->type == ENT_EDGE) {
+
+            for (int j = i + 1; j < list_length(entities); j++) {
+                transform_entity *entity_j = (transform_entity *)list_nth_cell(entities, j)->ptr_value;
+                if (entity_j->type == ENT_EDGE) {
+                    Node *left = make_qual(cpstate, entity_i, AG_EDGE_COLNAME_ID);
+                    Node *right = make_qual(cpstate, entity_j, AG_EDGE_COLNAME_ID);
+
+                    edges = lappend (edges, makeSimpleA_Expr(AEXPR_OP, "<>", left, right, -1));
+                }
+
+            }
+        }
+    }
+    return makeBoolExpr(AND_EXPR, edges, -1);
 }
 
 /*
