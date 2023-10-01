@@ -74,6 +74,13 @@ SELECT * FROM cypher('variable_edge_functions', $$
 $$) AS (contained boolean, e graphid, edges edge[]);
 
 
+SELECT * FROM cypher('variable_edge_functions', $$
+    MATCH (:begin)-[ve*3..3]->(:end)
+    MATCH ()-[e]->()
+    RETURN ve <@ e, id(e), edges(ve)
+$$) AS (contained boolean, e graphid, edges edge[]);
+
+
 --
 -- Clean up
 --
