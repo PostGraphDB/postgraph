@@ -66,7 +66,7 @@
 
 typedef Datum (*coearce_function) (gtype_value *);
 static Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
-static ArrayType *gtype_to_array(coearce_function func, gtype *agt, char *type); 
+static ArrayType *gtype_to_array(coearce_function func, gtype *agt, char *type, Oid type_oid, int type_len, bool elembyval); 
 
 Datum gtype_to_inet_internal(gtype_value *agtv);
 Datum gtype_to_cidr_internal(gtype_value *agtv);
@@ -648,6 +648,18 @@ inet_to_gtype(PG_FUNCTION_ARGS) {
 /*
  * gtype to postgres array functions
  */
+PG_FUNCTION_INFO_V1(gtype_to_numeric_array);
+// gtype -> numeric[]
+Datum
+gtype_to_numeric_array(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    ArrayType *result = gtype_to_array(gtype_to_numeric_internal, agt, "numeric[]", NUMERICOID, -1, false);
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    PG_RETURN_ARRAYTYPE_P(result);
+}
 
 PG_FUNCTION_INFO_V1(gtype_to_int8_array);
 // gtype -> int8[]
@@ -655,7 +667,7 @@ Datum
 gtype_to_int8_array(PG_FUNCTION_ARGS) {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
 
-    ArrayType *result = gtype_to_array(gtype_to_int8_internal, agt, "int8[]");
+    ArrayType *result = gtype_to_array(gtype_to_int8_internal, agt, "int8[]", INT8OID, 8, true);
 
     PG_FREE_IF_COPY(agt, 0);
     
@@ -667,7 +679,7 @@ PG_FUNCTION_INFO_V1(gtype_to_int4_array);
 Datum gtype_to_int4_array(PG_FUNCTION_ARGS) {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
     
-    ArrayType *result = gtype_to_array(gtype_to_int4_internal, agt, "int4[]");
+    ArrayType *result = gtype_to_array(gtype_to_int4_internal, agt, "int4[]", INT4OID, 4, true);
 
     PG_FREE_IF_COPY(agt, 0);
     
@@ -679,17 +691,15 @@ PG_FUNCTION_INFO_V1(gtype_to_int2_array);
 Datum gtype_to_int2_array(PG_FUNCTION_ARGS) {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
     
-    ArrayType *result = gtype_to_array(gtype_to_int2_internal, agt, "int2[]");
+    ArrayType *result = gtype_to_array(gtype_to_int2_internal, agt, "int2[]", INT4OID, 4, true);
 
     PG_FREE_IF_COPY(agt, 0);
     
     PG_RETURN_ARRAYTYPE_P(result);
 }
 
-
-
 static ArrayType *
-gtype_to_array(coearce_function func, gtype *agt, char *type) {
+gtype_to_array(coearce_function func, gtype *agt, char *type, Oid type_oid, int type_len, bool elembyval) {
     gtype_value agtv;
     Datum *array_value;
 
@@ -705,7 +715,7 @@ gtype_to_array(coearce_function func, gtype *agt, char *type) {
     while ((agtv_token = gtype_iterator_next(&gtype_iterator, &agtv, true)) < WGT_END_ARRAY)
         array_value[i++] = func(&agtv);
 
-    ArrayType *result = construct_array(array_value, AGT_ROOT_COUNT(agt), INT4OID, 4, true, 'i');
+    ArrayType *result = construct_array(array_value, AGT_ROOT_COUNT(agt), type_oid, type_len, elembyval, 'i');
 
     return result;
 }

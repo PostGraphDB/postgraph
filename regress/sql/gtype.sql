@@ -414,6 +414,14 @@ SELECT gtype_to_int8_array(gtype_in('[1.6,2.3,3.66]'));
 SELECT gtype_to_int8_array(gtype_in('["6","7",3.66]'));
 
 --
+-- Test gtype to numeric[]
+--
+SELECT gtype_to_numeric_array(gtype_in('[1,2,3]'));
+SELECT gtype_to_numeric_array(gtype_in('[1.6,2.3,3.66]'));
+SELECT gtype_to_numeric_array(gtype_in('["6","7",3.66]'));
+
+
+--
 -- Map Literal
 --
 
