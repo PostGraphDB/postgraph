@@ -57,6 +57,8 @@ SELECT * from cypher('vector', $$RETURN '[1.0, 9, 2, .9]'::vector $$) as (value_
 SELECT * from cypher('vector', $$RETURN '[1.0, 9, 2, .9]'::vector $$) as (value_array int[]);
 SELECT * from cypher('vector', $$RETURN '[1.0, 9, 2, .9]'::vector $$) as (value_array smallint[]);
 SELECT * from cypher('vector', $$RETURN '[1.0, 9, 2, .9]'::vector $$) as (value_array numeric[]);
+SELECT * from cypher('vector', $$RETURN '[1.0, 9, 2, .9]'::vector $$) as (value_array float8[]);
+
 --
 -- l2 distance
 --

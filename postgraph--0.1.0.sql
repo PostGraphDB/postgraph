@@ -2260,6 +2260,18 @@ AS 'MODULE_PATHNAME';
 CREATE CAST (gtype AS float8) 
 WITH FUNCTION gtype_to_float8(gtype);
 
+-- gtype -> float8[]
+CREATE FUNCTION gtype_to_float8_array(gtype)
+RETURNS float8[]
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype AS float8[])
+WITH FUNCTION gtype_to_float8_array(gtype);
+
 -- gtype -> numeric[]
 CREATE FUNCTION gtype_to_numeric_array(gtype)
 RETURNS numeric[]

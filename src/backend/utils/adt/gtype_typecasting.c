@@ -648,6 +648,19 @@ inet_to_gtype(PG_FUNCTION_ARGS) {
 /*
  * gtype to postgres array functions
  */
+PG_FUNCTION_INFO_V1(gtype_to_float8_array);
+// gtype -> float8[]
+Datum 
+gtype_to_float8_array(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    ArrayType *result = gtype_to_array(gtype_to_float8_internal, agt, "float8[]", FLOAT8OID, 8, true);
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    PG_RETURN_ARRAYTYPE_P(result);
+}
+
 PG_FUNCTION_INFO_V1(gtype_to_numeric_array);
 // gtype -> numeric[]
 Datum
