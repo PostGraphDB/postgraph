@@ -75,6 +75,7 @@ Datum gtype_to_cidr_internal(gtype_value *agtv);
 Datum gtype_to_macaddr_internal(gtype_value *agtv);
 Datum gtype_to_macaddr8_internal(gtype_value *agtv);
 Datum gtype_to_float4_internal(gtype_value *agtv);
+Datum gtype_to_text_internal(gtype_value *agtv);
 
 static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqltype);
 
@@ -667,6 +668,19 @@ inet_to_gtype(PG_FUNCTION_ARGS) {
 /*
  * gtype to postgres array functions
  */
+PG_FUNCTION_INFO_V1(gtype_to_text_array);
+// gtype -> text[]
+Datum
+gtype_to_text_array(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    ArrayType *result = gtype_to_array(gtype_to_text_internal, agt, "text[]", TEXTOID, -1, false);
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    PG_RETURN_ARRAYTYPE_P(result);
+}
+
 PG_FUNCTION_INFO_V1(gtype_to_float8_array);
 // gtype -> float8[]
 Datum 
@@ -872,10 +886,16 @@ gtype_to_numeric_internal(gtype_value *agtv) {
 
         return numd;
     } else
-        cannot_cast_gtype_value(agtv->type, "numerivc");
+        cannot_cast_gtype_value(agtv->type, "numeric");
 
     // unreachable
     return 0;
+}
+
+
+Datum
+gtype_to_text_internal(gtype_value *agtv) {
+    return CStringGetTextDatum(DatumGetCString(gtype_to_string_internal(agtv)));
 }
 
 Datum

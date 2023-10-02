@@ -2199,6 +2199,19 @@ AS 'MODULE_PATHNAME';
 CREATE CAST (gtype AS text) 
 WITH FUNCTION gtype_to_text(gtype);
 
+-- gtype -> text[]
+CREATE FUNCTION gtype_to_text_array(gtype)
+RETURNS text[]
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype AS text[])
+WITH FUNCTION gtype_to_text_array(gtype);
+
+
 -- text -> gtype
 CREATE FUNCTION text_to_gtype(text) 
 RETURNS gtype 
