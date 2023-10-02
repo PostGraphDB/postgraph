@@ -51,12 +51,14 @@
 #define float8_to_int8 dtoi8
 #define float8_to_int4 dtoi4
 #define float8_to_int2 dtoi2
+#define float8_to_float4 dtof
 #define float8_to_numeric float8_numeric
 #define float8_to_string float8out
 
 #define numeric_to_int8 numeric_int8
 #define numeric_to_int4 numeric_int4
 #define numeric_to_int2 numeric_int2
+#define numeric_to_float4 numeric_float4
 #define numeric_to_string numeric_out
 
 #define string_to_int8 int8in
@@ -72,7 +74,8 @@ Datum gtype_to_inet_internal(gtype_value *agtv);
 Datum gtype_to_cidr_internal(gtype_value *agtv);
 Datum gtype_to_macaddr_internal(gtype_value *agtv);
 Datum gtype_to_macaddr8_internal(gtype_value *agtv);
-	
+Datum gtype_to_float4_internal(gtype_value *agtv);
+
 static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqltype);
 
 Datum convert_to_scalar(coearce_function func, gtype *agt, char *type) {
@@ -524,6 +527,22 @@ gtype_to_float8(PG_FUNCTION_ARGS) {
     PG_RETURN_DATUM(d);
 }
 
+PG_FUNCTION_INFO_V1(gtype_to_float4);
+// gtype -> float4.
+Datum
+gtype_to_float4(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    Datum d = convert_to_scalar(gtype_to_float4_internal, agt, "float4");
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    PG_RETURN_DATUM(d);
+}
+
 PG_FUNCTION_INFO_V1(gtype_to_text);
 // gtype -> text
 Datum
@@ -655,6 +674,19 @@ gtype_to_float8_array(PG_FUNCTION_ARGS) {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
 
     ArrayType *result = gtype_to_array(gtype_to_float8_internal, agt, "float8[]", FLOAT8OID, 8, true);
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    PG_RETURN_ARRAYTYPE_P(result);
+}
+
+PG_FUNCTION_INFO_V1(gtype_to_float4_array);
+// gtype -> float4[]
+Datum
+gtype_to_float4_array(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    ArrayType *result = gtype_to_array(gtype_to_float4_internal, agt, "float4[]", FLOAT4OID, 4, true);
 
     PG_FREE_IF_COPY(agt, 0);
 
@@ -799,6 +831,23 @@ gtype_to_float8_internal(gtype_value *agtv) {
         return DirectFunctionCall1(float8in, CStringGetDatum(agtv->val.string.val));
     else
         cannot_cast_gtype_value(agtv->type, "float8");
+
+    // unreachable
+    return 0;
+}
+
+Datum
+gtype_to_float4_internal(gtype_value *agtv) {
+    if (agtv->type == AGTV_FLOAT)
+        return DirectFunctionCall1(dtof, Float8GetDatum(agtv->val.float_value));
+    else if (agtv->type == AGTV_INTEGER)
+        return DirectFunctionCall1(i8tof, Int64GetDatum(agtv->val.int_value));
+    else if (agtv->type == AGTV_NUMERIC)
+        return DirectFunctionCall1(numeric_float4, NumericGetDatum(agtv->val.numeric));
+    else if (agtv->type == AGTV_STRING)
+        return DirectFunctionCall1(float4in, CStringGetDatum(agtv->val.string.val));
+    else
+        cannot_cast_gtype_value(agtv->type, "float4");
 
     // unreachable
     return 0;

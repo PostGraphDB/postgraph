@@ -428,6 +428,13 @@ SELECT gtype_to_float8_array(gtype_in('[1.6,2.3,3.66]'));
 SELECT gtype_to_float8_array(gtype_in('["6","7",3.66]'));
 
 --
+-- Test gtype to float4[]
+--
+SELECT gtype_to_float4_array(gtype_in('[1,2,3]'));
+SELECT gtype_to_float4_array(gtype_in('[1.6,2.3,3.66]'));
+SELECT gtype_to_float4_array(gtype_in('["6","7",3.66]'));
+
+--
 -- Map Literal
 --
 
