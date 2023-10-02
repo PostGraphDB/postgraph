@@ -1271,6 +1271,27 @@ SELECT bool_to_gtype(true) <> bool_to_gtype(false);
 (1 row)
 
 --
+-- gtype -> smallint[]
+--
+SELECT gtype_to_int2_array(gtype_in('[1,2,3]'));
+ gtype_to_int2_array 
+---------------------
+ {1,2,3}
+(1 row)
+
+SELECT gtype_to_int2_array(gtype_in('[1.6,2.3,3.66]'));
+ gtype_to_int2_array 
+---------------------
+ {2,2,4}
+(1 row)
+
+SELECT gtype_to_int2_array(gtype_in('["6","7",3.66]'));
+ gtype_to_int2_array 
+---------------------
+ {6,7,4}
+(1 row)
+
+--
 -- Test gtype to int[]
 --
 SELECT gtype_to_int4_array(gtype_in('[1,2,3]'));

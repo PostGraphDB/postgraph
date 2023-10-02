@@ -55,6 +55,7 @@ $$) as (Labels gtype);
 --
 SELECT * from cypher('vector', $$RETURN '[1.0, 9, 2, .9]'::vector $$) as (value_array bigint[]);
 SELECT * from cypher('vector', $$RETURN '[1.0, 9, 2, .9]'::vector $$) as (value_array int[]);
+SELECT * from cypher('vector', $$RETURN '[1.0, 9, 2, .9]'::vector $$) as (value_array smallint[]);
 
 --
 -- l2 distance

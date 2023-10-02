@@ -2380,6 +2380,19 @@ AS 'MODULE_PATHNAME';
 CREATE CAST (gtype AS smallint) 
 WITH FUNCTION gtype_to_int2(gtype);
 
+-- gtype -> int2[]
+CREATE FUNCTION gtype_to_int2_array(gtype)
+RETURNS smallint[]
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype AS smallint[])
+WITH FUNCTION gtype_to_int2_array(gtype);
+
+
 -- gtype -> int4[]
 CREATE FUNCTION gtype_to_int4_array(gtype) 
 RETURNS int[] 

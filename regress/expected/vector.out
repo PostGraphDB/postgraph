@@ -87,9 +87,11 @@ SELECT * from cypher('vector', $$RETURN '[1.0, 9, 2, .9]'::vector $$) as (value_
 (1 row)
 
 SELECT * from cypher('vector', $$RETURN '[1.0, 9, 2, .9]'::vector $$) as (value_array smallint[]);
-ERROR:  cannot cast type gtype to smallint[] for column "value_array"
-LINE 1: SELECT * from cypher('vector', $$RETURN '[1.0, 9, 2, .9]'::v...
-                      ^
+ value_array 
+-------------
+ {1,9,2,1}
+(1 row)
+
 --
 -- l2 distance
 --
@@ -626,7 +628,7 @@ SET enable_seqscan = false;
 CREATE TABLE ivfflat (v gtype);
 INSERT INTO ivfflat (v) VALUES (tovector('"[0, 0, 0]"'::gtype));
 CREATE INDEX ON ivfflat USING ivfflat (v gtype_l2_ops)  WITH (lists = 1, dimensions = 3);
-WARNING:  detected write past chunk end in PortalContext 0x2416480
+WARNING:  detected write past chunk end in PortalContext 0x1293480
 EXPLAIN SELECT * FROM ivfflat ORDER BY v <-> '[1, 2, 3]';
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
@@ -658,8 +660,8 @@ SELECT * FROM cypher('ivfflat_l2', $$ CREATE ( {i: tovector('[1, 1, 1]')}) $$) a
 (0 rows)
 
 SELECT create_ivfflat_l2_ops_index('ivfflat_l2', '_ag_label_vertex', 'i', 3 , 1);
-WARNING:  detected write past chunk end in ExprContext 0x2480b30
-WARNING:  detected write past chunk end in ExprContext 0x24157e0
+WARNING:  detected write past chunk end in ExprContext 0x12fdb30
+WARNING:  detected write past chunk end in ExprContext 0x12927e0
  create_ivfflat_l2_ops_index 
 -----------------------------
  
@@ -670,7 +672,7 @@ EXPLAIN SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) RETURN n ORDER BY n.i <-
 ---------------------------------------------------------------------------------------------------------------------
  Subquery Scan on _  (cost=10000000001.08..10000000001.12 rows=3 width=32)
    ->  Sort  (cost=10000000001.08..10000000001.09 rows=3 width=64)
-         Sort Key: (((build_vertex(n.id, '18170'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
+         Sort Key: (((build_vertex(n.id, '18174'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
          ->  Seq Scan on _ag_label_vertex n  (cost=10000000000.00..10000000001.06 rows=3 width=64)
 (4 rows)
 
@@ -680,7 +682,7 @@ EXPLAIN SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) WITH n as n, n.i as i OR
  Limit  (cost=10000000001.08..10000000001.10 rows=1 width=32)
    ->  Subquery Scan on _  (cost=10000000001.08..10000000001.12 rows=3 width=32)
          ->  Sort  (cost=10000000001.08..10000000001.09 rows=3 width=96)
-               Sort Key: (((build_vertex(n.id, '18170'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
+               Sort Key: (((build_vertex(n.id, '18174'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
                ->  Seq Scan on _ag_label_vertex n  (cost=10000000000.00..10000000001.06 rows=3 width=96)
 (5 rows)
 
@@ -689,7 +691,7 @@ EXPLAIN SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) RETURN n ORDER BY n.i <-
 ---------------------------------------------------------------------------------------------------------------------
  Subquery Scan on _  (cost=10000000001.08..10000000001.12 rows=3 width=32)
    ->  Sort  (cost=10000000001.08..10000000001.09 rows=3 width=64)
-         Sort Key: (((build_vertex(n.id, '18170'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
+         Sort Key: (((build_vertex(n.id, '18174'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
          ->  Seq Scan on _ag_label_vertex n  (cost=10000000000.00..10000000001.06 rows=3 width=64)
 (4 rows)
 
@@ -842,10 +844,10 @@ SELECT * FROM cypher('ivfflat_ip', $$ CREATE ( {i: tovector('[1, 1, 1]')}) $$) a
 (0 rows)
 
 SELECT create_ivfflat_ip_ops_index('ivfflat_ip', '_ag_label_vertex', 'i', 3 , 1);
-WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x25497f0, chunk 0x254ab18
-WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x2443660, chunk 0x2443cb0
-WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x25497f0, chunk 0x254ab18
-WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x2443660, chunk 0x2443cb0
+WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x13c67f0, chunk 0x13c7b18
+WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x12c0660, chunk 0x12c0cb0
+WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x13c67f0, chunk 0x13c7b18
+WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x12c0660, chunk 0x12c0cb0
 ERROR:  <-> requires vector arguments
 EXPLAIN SELECT * FROM cypher('ivfflat_ip', $$ MATCH (n) ORDER BY n.i <#> toVector('[3,3,3]') RETURN n$$) as (i vertex);
                                               QUERY PLAN                                              

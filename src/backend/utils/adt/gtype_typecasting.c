@@ -674,6 +674,20 @@ Datum gtype_to_int4_array(PG_FUNCTION_ARGS) {
     PG_RETURN_ARRAYTYPE_P(result);
 }
 
+PG_FUNCTION_INFO_V1(gtype_to_int2_array);
+// gtype -> int2[]
+Datum gtype_to_int2_array(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+    
+    ArrayType *result = gtype_to_array(gtype_to_int2_internal, agt, "int2[]");
+
+    PG_FREE_IF_COPY(agt, 0);
+    
+    PG_RETURN_ARRAYTYPE_P(result);
+}
+
+
+
 static ArrayType *
 gtype_to_array(coearce_function func, gtype *agt, char *type) {
     gtype_value agtv;
