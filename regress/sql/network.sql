@@ -40,6 +40,9 @@ SELECT '192.168.1.5'::inet::gtype;
 --
 SELECT toinet('"192.168.1.5"'::gtype)::inet;
 
+-- Cast to itself
+SELECT * FROM cypher('network', $$ RETURN toinet('::ffff:fff0:1')::inet $$) as (i gtype);
+
 -- type coercion
 SELECT * FROM cypher('network', $$ RETURN toinet('192.168.1.5') $$) as (i inet);
 
@@ -49,6 +52,7 @@ SELECT * FROM cypher('network', $$ RETURN toinet('192.168.1.5') $$) as (i inet);
 SELECT '"192.168.1.5"'::gtype::inet;
 
 -- type coercion
+SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet $$) as (i inet);
 SELECT * FROM cypher('network', $$ RETURN '192.168.1.5' $$) as (i inet);
 
 
@@ -63,16 +67,39 @@ SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::cidr $$) as (i gtype);
 SELECT * FROM cypher('network', $$ RETURN '::ffff:fff0:1'::cidr $$) as (i gtype);
 
 --
+-- cidr typecasting
+--
+
+-- Cast to itself
+SELECT * FROM cypher('network', $$ RETURN tocidr('::ffff:fff0:1')::cidr $$) as (i gtype);
+
+
+--
 -- macaddr
 --
 SELECT * FROM cypher('network', $$ RETURN tomacaddr('12:34:56:78:90:ab') $$) as (i gtype);
 SELECT * FROM cypher('network', $$ RETURN '12:34:56:78:90:ab'::macaddr $$) as (i gtype);
+
+
+--
+-- macaddr typecasting
+--
+
+-- Cast to itself
+SELECT * FROM cypher('network', $$ RETURN tomacaddr('12:34:56:78:90:ab')::macaddr $$) as (i gtype);
 
 --
 -- macaddr8
 --
 SELECT * FROM cypher('network', $$ RETURN tomacaddr8('12:34:56:78:90:ab:cd:ef') $$) as (i gtype);
 SELECT * FROM cypher('network', $$ RETURN '12:34:56:78:90:ab:cd:ef'::macaddr8 $$) as (i gtype);
+
+--
+-- macaddr8 typecasting
+--
+
+-- Cast to itself
+SELECT * FROM cypher('network', $$ RETURN tomacaddr8('12:34:56:78:90:ab')::macaddr8 $$) as (i gtype);
 
 --
 -- inet + integer

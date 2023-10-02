@@ -1017,7 +1017,9 @@ gtype_to_inet_internal(gtype_value *agtv) {
 
 Datum
 gtype_to_cidr_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_STRING)
+    if (agtv->type == AGTV_CIDR)
+        return InetPGetDatum(&agtv->val.inet);
+    else if (agtv->type == AGTV_STRING)
         return DirectFunctionCall1(cidr_in, CStringGetDatum(agtv->val.string.val));
     else
         cannot_cast_gtype_value(agtv->type, "cidr");
@@ -1028,7 +1030,9 @@ gtype_to_cidr_internal(gtype_value *agtv) {
 
 Datum
 gtype_to_macaddr_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_STRING)
+    if (agtv->type == AGTV_MAC)
+	return MacaddrPGetDatum(&agtv->val.mac);
+    else if (agtv->type == AGTV_STRING)
         return DirectFunctionCall1(macaddr_in, CStringGetDatum(agtv->val.string.val));
     else
         cannot_cast_gtype_value(agtv->type, "macaddr");
@@ -1039,7 +1043,9 @@ gtype_to_macaddr_internal(gtype_value *agtv) {
 
 Datum
 gtype_to_macaddr8_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_STRING)
+    if (agtv->type == AGTV_MAC8)
+        return Macaddr8PGetDatum(&agtv->val.mac8);
+    else if (agtv->type == AGTV_STRING)
         return DirectFunctionCall1(macaddr8_in, CStringGetDatum(agtv->val.string.val));
     else
         cannot_cast_gtype_value(agtv->type, "macaddr");

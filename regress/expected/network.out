@@ -80,6 +80,13 @@ SELECT toinet('"192.168.1.5"'::gtype)::inet;
  192.168.1.5
 (1 row)
 
+-- Cast to itself
+SELECT * FROM cypher('network', $$ RETURN toinet('::ffff:fff0:1')::inet $$) as (i gtype);
+         i          
+--------------------
+ ::ffff:255.240.0.1
+(1 row)
+
 -- type coercion
 SELECT * FROM cypher('network', $$ RETURN toinet('192.168.1.5') $$) as (i inet);
       i      
@@ -97,6 +104,12 @@ SELECT '"192.168.1.5"'::gtype::inet;
 (1 row)
 
 -- type coercion
+SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet $$) as (i inet);
+      i      
+-------------
+ 192.168.1.5
+(1 row)
+
 SELECT * FROM cypher('network', $$ RETURN '192.168.1.5' $$) as (i inet);
       i      
 -------------
@@ -143,6 +156,16 @@ SELECT * FROM cypher('network', $$ RETURN '::ffff:fff0:1'::cidr $$) as (i gtype)
 (1 row)
 
 --
+-- cidr typecasting
+--
+-- Cast to itself
+SELECT * FROM cypher('network', $$ RETURN tocidr('::ffff:fff0:1')::cidr $$) as (i gtype);
+           i            
+------------------------
+ ::ffff:255.240.0.1/128
+(1 row)
+
+--
 -- macaddr
 --
 SELECT * FROM cypher('network', $$ RETURN tomacaddr('12:34:56:78:90:ab') $$) as (i gtype);
@@ -152,6 +175,16 @@ SELECT * FROM cypher('network', $$ RETURN tomacaddr('12:34:56:78:90:ab') $$) as 
 (1 row)
 
 SELECT * FROM cypher('network', $$ RETURN '12:34:56:78:90:ab'::macaddr $$) as (i gtype);
+         i         
+-------------------
+ 12:34:56:78:90:ab
+(1 row)
+
+--
+-- macaddr typecasting
+--
+-- Cast to itself
+SELECT * FROM cypher('network', $$ RETURN tomacaddr('12:34:56:78:90:ab')::macaddr $$) as (i gtype);
          i         
 -------------------
  12:34:56:78:90:ab
@@ -170,6 +203,16 @@ SELECT * FROM cypher('network', $$ RETURN '12:34:56:78:90:ab:cd:ef'::macaddr8 $$
             i            
 -------------------------
  12:34:56:78:90:ab:cd:ef
+(1 row)
+
+--
+-- macaddr8 typecasting
+--
+-- Cast to itself
+SELECT * FROM cypher('network', $$ RETURN tomacaddr8('12:34:56:78:90:ab')::macaddr8 $$) as (i gtype);
+            i            
+-------------------------
+ 12:34:56:ff:fe:78:90:ab
 (1 row)
 
 --
