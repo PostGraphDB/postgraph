@@ -2297,6 +2297,18 @@ AS 'MODULE_PATHNAME';
 CREATE CAST (gtype AS float4[])
 WITH FUNCTION gtype_to_float4_array(gtype);
 
+-- gtype -> numeric
+CREATE FUNCTION gtype_to_numeric(gtype)
+RETURNS numeric
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype AS numeric)
+WITH FUNCTION gtype_to_numeric(gtype);
+
 -- gtype -> numeric[]
 CREATE FUNCTION gtype_to_numeric_array(gtype)
 RETURNS numeric[]
@@ -2414,8 +2426,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME';
 
-CREATE CAST (gtype AS int) 
-WITH FUNCTION gtype_to_int4(gtype);
+CREATE CAST (gtype AS int) WITH FUNCTION gtype_to_int4(gtype);
 
 -- gtype -> int2
 CREATE FUNCTION gtype_to_int2(gtype) 
@@ -2438,9 +2449,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 AS 'MODULE_PATHNAME';
 
-CREATE CAST (gtype AS smallint[])
-WITH FUNCTION gtype_to_int2_array(gtype);
-
+CREATE CAST (gtype AS smallint[]) WITH FUNCTION gtype_to_int2_array(gtype);
 
 -- gtype -> int4[]
 CREATE FUNCTION gtype_to_int4_array(gtype) 
@@ -2451,8 +2460,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME';
 
-CREATE CAST (gtype AS int[]) 
-WITH FUNCTION gtype_to_int4_array(gtype);
+CREATE CAST (gtype AS int[]) WITH FUNCTION gtype_to_int4_array(gtype);
 
 -- inet -> gtype
 CREATE FUNCTION inet_to_gtype(inet)
@@ -2463,8 +2471,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 AS 'MODULE_PATHNAME';
 
-CREATE CAST (inet as gtype)
-WITH FUNCTION inet_to_gtype(inet);
+CREATE CAST (inet as gtype) WITH FUNCTION inet_to_gtype(inet);
 
 -- gtype -> inet
 CREATE FUNCTION gtype_to_inet(gtype)
@@ -2475,8 +2482,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 AS 'MODULE_PATHNAME';
 
-CREATE CAST (gtype as inet)
-WITH FUNCTION gtype_to_inet(gtype);
+CREATE CAST (gtype as inet) WITH FUNCTION gtype_to_inet(gtype);
 
 -- gtype -> cidr
 CREATE FUNCTION gtype_to_cidr(gtype)
@@ -2487,9 +2493,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 AS 'MODULE_PATHNAME';
 
-CREATE CAST (gtype as cidr)
-WITH FUNCTION gtype_to_cidr(gtype);
-
+CREATE CAST (gtype as cidr) WITH FUNCTION gtype_to_cidr(gtype);
 
 --
 -- gtype - typecasting to other gtype types

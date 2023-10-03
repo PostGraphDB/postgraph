@@ -1424,6 +1424,33 @@ SELECT gtype_to_float4_array(gtype_in('["6","7",3.66]'));
 (1 row)
 
 --
+-- gtype to numeric
+--
+SELECT '1'::gtype::numeric;
+ numeric 
+---------
+       1
+(1 row)
+
+SELECT '1.6'::gtype::numeric;
+ numeric 
+---------
+     1.6
+(1 row)
+
+SELECT '1.6::numeric'::gtype::numeric;
+ numeric 
+---------
+     1.6
+(1 row)
+
+SELECT '"6"'::gtype::numeric;
+ numeric 
+---------
+       6
+(1 row)
+
+--
 -- Map Literal
 --
 --Invalid Map Key (should fail)

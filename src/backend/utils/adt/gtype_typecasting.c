@@ -528,6 +528,22 @@ gtype_to_float8(PG_FUNCTION_ARGS) {
     PG_RETURN_DATUM(d);
 }
 
+PG_FUNCTION_INFO_V1(gtype_to_numeric);
+// gtype -> numeric.
+Datum
+gtype_to_numeric(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    Datum d = convert_to_scalar(gtype_to_numeric_internal, agt, "numerifloat8c");
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    PG_RETURN_DATUM(d);
+}
+
 PG_FUNCTION_INFO_V1(gtype_to_float4);
 // gtype -> float4.
 Datum
