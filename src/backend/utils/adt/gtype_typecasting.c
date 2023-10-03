@@ -680,6 +680,19 @@ inet_to_gtype(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(cidr_to_gtype);
+//cidr -> gtype
+Datum
+cidr_to_gtype(PG_FUNCTION_ARGS) {
+    inet *ip = PG_GETARG_INET_PP(0);
+
+    gtype_value gtv;
+    gtv.type = AGTV_CIDR;
+    memcpy(&gtv.val.inet, ip, sizeof(char) * 22);
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
 /*
  * gtype to postgres array functions
  */

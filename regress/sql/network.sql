@@ -98,6 +98,10 @@ SELECT * FROM cypher('network', $$ RETURN '192.168.1.5' $$) as (i inet);
 --
 -- cidr typecasting
 --
+-- PG cidr -> gtype cidr
+SELECT '192.168.1.5'::cidr::gtype;
+-- gtype cidr -> PG cidr
+SELECT tocidr('"192.168.1.5"'::gtype)::cidr;
 -- cidr -> cidr
 SELECT * FROM cypher('network', $$ RETURN tocidr('::ffff:fff0:1')::cidr $$) as (i gtype);
 
