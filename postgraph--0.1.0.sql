@@ -2478,6 +2478,18 @@ AS 'MODULE_PATHNAME';
 CREATE CAST (gtype as inet)
 WITH FUNCTION gtype_to_inet(gtype);
 
+-- gtype -> cidr
+CREATE FUNCTION gtype_to_cidr(gtype)
+RETURNS cidr
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype as cidr)
+WITH FUNCTION gtype_to_cidr(gtype);
+
 
 --
 -- gtype - typecasting to other gtype types

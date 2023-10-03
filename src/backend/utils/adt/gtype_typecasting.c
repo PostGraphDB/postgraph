@@ -553,7 +553,7 @@ gtype_to_text(PG_FUNCTION_ARGS) {
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    Datum d = convert_to_scalar(gtype_to_string_internal, agt, "string");
+    Datum d = convert_to_scalar(gtype_to_string_internal, agt, "text");
 
     PG_FREE_IF_COPY(agt, 0);
 
@@ -569,13 +569,28 @@ gtype_to_inet(PG_FUNCTION_ARGS) {
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    Datum d = convert_to_scalar(gtype_to_inet_internal, agt, "string");
+    Datum d = convert_to_scalar(gtype_to_inet_internal, agt, "inet");
 
     PG_FREE_IF_COPY(agt, 0);
 
     PG_RETURN_DATUM(d);
 }
 
+PG_FUNCTION_INFO_V1(gtype_to_cidr);
+// gtype -> cidr
+Datum
+gtype_to_cidr(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    Datum d = convert_to_scalar(gtype_to_cidr_internal, agt, "cidr");
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    PG_RETURN_DATUM(d);
+}
 
 /*
  * Postgres types to gtype

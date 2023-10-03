@@ -101,6 +101,13 @@ SELECT * FROM cypher('network', $$ RETURN '192.168.1.5' $$) as (i inet);
 -- cidr -> cidr
 SELECT * FROM cypher('network', $$ RETURN tocidr('::ffff:fff0:1')::cidr $$) as (i gtype);
 
+-- type coercion
+SELECT * FROM cypher('network', $$ RETURN tocidr('192.168.1.5') $$) as (i cidr);
+SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::cidr $$) as (i cidr);
+SELECT * FROM cypher('network', $$ RETURN '192.168.1.5' $$) as (i cidr);
+
+
+
 --
 -- macaddr typecasting
 --
