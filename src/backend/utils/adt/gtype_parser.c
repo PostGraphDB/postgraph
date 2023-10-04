@@ -302,6 +302,9 @@ static inline void parse_scalar(gtype_lex_context *lex, gtype_sem_action *sem) {
     case GTYPE_TOKEN_STRING:
         lex_accept(lex, GTYPE_TOKEN_STRING, valaddr);
         break;
+    case GTYPE_TOKEN_INET:
+        lex_accept(lex, GTYPE_TOKEN_INET, valaddr);
+        break;
     default:
         report_parse_error(GTYPE_PARSE_VALUE, lex);
     }
@@ -942,8 +945,39 @@ static inline void gtype_lex_number(gtype_lex_context *lex, char *s, bool *num_e
         }
     }
 
-    /* Part (4): parse optional exponent. */
-    if (len < lex->input_length && (*s == 'e' || *s == 'E')) {
+    /* Part (4A) Houston, we discovered the internet! ... well IP4 internet*/
+    if (len < lex->input_length && *s == '.') {
+        lex->token_type = GTYPE_TOKEN_INET;
+
+        s++;
+        len++;
+        if (len == lex->input_length || *s < '0' || *s > '9') {
+            error = true;
+        } else {
+            do {
+    		s++;
+                len++;
+            } while (len < lex->input_length && ((*s >= '0' && *s <= '9') || *s == '.') );
+
+	}
+
+	// Optional netmask
+        if (len < lex->input_length && *s == '/')  {
+            s++;
+            len++;
+            if (len == lex->input_length || *s < '0' || *s > '9') {
+                error = true;
+            } else {
+                do {
+                    s++;
+                    len++;
+                } while (len < lex->input_length && *s >= '0' && *s <= '9');
+            }
+	}
+    }
+
+    /* Part (4b): parse optional exponent. */
+    else if (len < lex->input_length && (*s == 'e' || *s == 'E')) {
         /* since we have an exponent, we have a float */
         lex->token_type = GTYPE_TOKEN_FLOAT;
 

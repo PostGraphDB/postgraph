@@ -30,31 +30,9 @@ SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet $$) as (i gtype);
 SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::inet $$) as (i gtype);
 SELECT * FROM cypher('network', $$ RETURN '::ffff:fff0:1'::inet $$) as (i gtype);
 
---
--- inet to gtype inet
---
-SELECT '192.168.1.5'::inet::gtype;
-
---
--- gtype inet to inet
---
-SELECT toinet('"192.168.1.5"'::gtype)::inet;
-
--- Cast to itself
-SELECT * FROM cypher('network', $$ RETURN toinet('::ffff:fff0:1')::inet $$) as (i gtype);
-
--- type coercion
-SELECT * FROM cypher('network', $$ RETURN toinet('192.168.1.5') $$) as (i inet);
-
---
--- gtype string to inet
---
-SELECT '"192.168.1.5"'::gtype::inet;
-
--- type coercion
-SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet $$) as (i inet);
-SELECT * FROM cypher('network', $$ RETURN '192.168.1.5' $$) as (i inet);
-
+SELECT '192.168.1.5'::gtype;
+SELECT '192.168.1.5/24'::gtype;
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 $$) as (i gtype);
 
 --
 -- cidr
@@ -105,12 +83,11 @@ SELECT tocidr('"192.168.1.5"'::gtype)::cidr;
 -- cidr -> cidr
 SELECT * FROM cypher('network', $$ RETURN tocidr('::ffff:fff0:1')::cidr $$) as (i gtype);
 
+
 -- type coercion
 SELECT * FROM cypher('network', $$ RETURN tocidr('192.168.1.5') $$) as (i cidr);
 SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::cidr $$) as (i cidr);
 SELECT * FROM cypher('network', $$ RETURN '192.168.1.5' $$) as (i cidr);
-
-
 
 --
 -- macaddr typecasting

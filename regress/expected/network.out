@@ -62,60 +62,22 @@ SELECT * FROM cypher('network', $$ RETURN '::ffff:fff0:1'::inet $$) as (i gtype)
  ::ffff:255.240.0.1
 (1 row)
 
---
--- inet to gtype inet
---
-SELECT '192.168.1.5'::inet::gtype;
+SELECT '192.168.1.5'::gtype;
     gtype    
 -------------
  192.168.1.5
 (1 row)
 
---
--- gtype inet to inet
---
-SELECT toinet('"192.168.1.5"'::gtype)::inet;
-   toinet    
--------------
- 192.168.1.5
+SELECT '192.168.1.5/24'::gtype;
+     gtype      
+----------------
+ 192.168.1.5/24
 (1 row)
 
--- Cast to itself
-SELECT * FROM cypher('network', $$ RETURN toinet('::ffff:fff0:1')::inet $$) as (i gtype);
-         i          
---------------------
- ::ffff:255.240.0.1
-(1 row)
-
--- type coercion
-SELECT * FROM cypher('network', $$ RETURN toinet('192.168.1.5') $$) as (i inet);
-      i      
--------------
- 192.168.1.5
-(1 row)
-
---
--- gtype string to inet
---
-SELECT '"192.168.1.5"'::gtype::inet;
-    inet     
--------------
- 192.168.1.5
-(1 row)
-
--- type coercion
-SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet $$) as (i inet);
-      i      
--------------
- 192.168.1.5
-(1 row)
-
-SELECT * FROM cypher('network', $$ RETURN '192.168.1.5' $$) as (i inet);
-      i      
--------------
- 192.168.1.5
-(1 row)
-
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 $$) as (i gtype);
+ERROR:  syntax error at or near ".1"
+LINE 1: SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 $$) as...
+                                                         ^
 --
 -- cidr
 --
