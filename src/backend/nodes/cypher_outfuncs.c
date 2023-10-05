@@ -240,6 +240,15 @@ void out_cypher_bool_const(StringInfo str, const ExtensibleNode *node)
     WRITE_LOCATION_FIELD(location);
 }
 
+// serialization function for the cypher_inet_const ExtensibleNode.
+void out_cypher_inet_const(StringInfo str, const ExtensibleNode *node)
+{
+    DEFINE_AG_NODE(cypher_inet_const);
+
+    WRITE_STRING_FIELD(inet);
+    WRITE_LOCATION_FIELD(location);
+}
+
 // serialization function for the cypher_param ExtensibleNode.
 void out_cypher_param(StringInfo str, const ExtensibleNode *node)
 {

@@ -56,6 +56,7 @@
 #include "parser/cypher_transform_entity.h"
 #include "utils/ag_func.h"
 #include "utils/gtype.h"
+#include "utils/gtype_typecasting.h"
 
 #define is_a_slice(node) \
     (IsA((node), A_Indices) && ((A_Indices *)(node))->is_slice)
@@ -67,6 +68,7 @@ static Node *transform_a_indirection(cypher_parsestate *cpstate, A_Indirection *
 static Node *transform_a_expr_op(cypher_parsestate *cpstate, A_Expr *a);
 static Node *transform_bool_expr(cypher_parsestate *cpstate, BoolExpr *expr);
 static Node *transform_cypher_bool_const(cypher_parsestate *cpstate, cypher_bool_const *bc);
+static Node * transform_cypher_inet_const(cypher_parsestate *cpstate, cypher_inet_const *inet);
 static Node *transform_cypher_integer_const(cypher_parsestate *cpstate, cypher_integer_const *ic);
 static Node *transform_cypher_param(cypher_parsestate *cpstate, cypher_param *cp);
 static Node *transform_cypher_map(cypher_parsestate *cpstate, cypher_map *cm);
@@ -166,7 +168,9 @@ transform_cypher_expr_recurse(cypher_parsestate *cpstate, Node *expr) {
     case T_ExtensibleNode:
         if (is_ag_node(expr, cypher_bool_const))
             return transform_cypher_bool_const(cpstate, (cypher_bool_const *)expr);
-        if (is_ag_node(expr, cypher_integer_const))
+        if (is_ag_node(expr, cypher_inet_const))
+            return transform_cypher_inet_const(cpstate, (cypher_inet_const *)expr);
+	if (is_ag_node(expr, cypher_integer_const))
             return transform_cypher_integer_const(cpstate, (cypher_integer_const *)expr);
         if (is_ag_node(expr, cypher_param))
             return transform_cypher_param(cpstate, (cypher_param *)expr);
@@ -443,6 +447,19 @@ transform_cypher_bool_const(cypher_parsestate *cpstate, cypher_bool_const *b) {
     // typtypmod, typcollation, typlen, and typbyval of gtype are hard-coded.
     Const *c = makeConst(GTYPEOID, -1, InvalidOid, -1, agt, false, false);
     c->location = b->location;
+
+    return (Node *)c;
+}
+
+
+static Node *
+transform_cypher_inet_const(cypher_parsestate *cpstate, cypher_inet_const *inet) {
+
+    Datum agt = _gtype_toinet(GTYPE_P_GET_DATUM(string_to_gtype(inet->inet)));
+
+    // typtypmod, typcollation, typlen, and typbyval of gtype are hard-coded.
+    Const *c = makeConst(GTYPEOID, -1, InvalidOid, -1, agt, false, false);
+    c->location = inet->location;
 
     return (Node *)c;
 }

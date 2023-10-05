@@ -26,31 +26,19 @@ NOTICE:  graph "network" has been created
 --
 -- inet
 --
-SELECT * FROM cypher('network', $$ RETURN toinet('192.168.1.5') $$) as (i gtype);
-      i      
--------------
- 192.168.1.5
-(1 row)
-
-SELECT * FROM cypher('network', $$ RETURN toinet('192.168.1/24') $$) as (i gtype);
-       i        
-----------------
- 192.168.1.0/24
-(1 row)
-
 SELECT * FROM cypher('network', $$ RETURN toinet('::ffff:fff0:1') $$) as (i gtype);
          i          
 --------------------
  ::ffff:255.240.0.1
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 $$) as (i gtype);
       i      
 -------------
  192.168.1.5
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::inet $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1/24 $$) as (i gtype);
        i        
 ----------------
  192.168.1.0/24
@@ -75,9 +63,11 @@ SELECT '192.168.1.5/24'::gtype;
 (1 row)
 
 SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 $$) as (i gtype);
-ERROR:  syntax error at or near ".1"
-LINE 1: SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 $$) as...
-                                                         ^
+      i      
+-------------
+ 192.168.1.5
+(1 row)
+
 --
 -- cidr
 --
@@ -179,6 +169,12 @@ SELECT '"192.168.1.5"'::gtype::inet;
 (1 row)
 
 -- type coercion
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 $$) as (i inet);
+      i      
+-------------
+ 192.168.1.5
+(1 row)
+
 SELECT * FROM cypher('network', $$ RETURN toinet('192.168.1.5') $$) as (i inet);
       i      
 -------------
@@ -275,7 +271,7 @@ SELECT * FROM cypher('network', $$ RETURN tomacaddr('12:34:56:78:90:ab')::macadd
 --
 -- inet + integer
 --
-SELECT * FROM cypher('network', $$ RETURN toinet('192.168.1.5') + 10 $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 + 10 $$) as (i gtype);
       i       
 --------------
  192.168.1.15
@@ -284,7 +280,7 @@ SELECT * FROM cypher('network', $$ RETURN toinet('192.168.1.5') + 10 $$) as (i g
 --
 -- inet - integer
 --
-SELECT * FROM cypher('network', $$ RETURN toinet('192.168.1.5') - 10 $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 - 10 $$) as (i gtype);
        i       
 ---------------
  192.168.0.251
@@ -293,16 +289,16 @@ SELECT * FROM cypher('network', $$ RETURN toinet('192.168.1.5') - 10 $$) as (i g
 --
 -- integer + inet
 --
-SELECT * FROM cypher('network', $$ RETURN 10 + toinet('192.168.1.5') $$) as (i gtype);
-      i       
---------------
- 192.168.1.15
+SELECT * FROM cypher('network', $$ RETURN 10 + '192.168.1.5' $$) as (i gtype);
+        i        
+-----------------
+ "10192.168.1.5"
 (1 row)
 
 --
 -- inet - inet
 --
-SELECT * FROM cypher('network', $$ RETURN toinet('192.168.1.5') - toinet('192.168.1.0') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 - 192.168.1.0 $$) as (i gtype);
  i 
 ---
  5
@@ -311,7 +307,7 @@ SELECT * FROM cypher('network', $$ RETURN toinet('192.168.1.5') - toinet('192.16
 --
 -- ~ inet
 --
-SELECT * FROM cypher('network', $$ RETURN ~ toinet('192.168.1.5') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN ~ 192.168.1.5 $$) as (i gtype);
        i       
 ---------------
  63.87.254.250
@@ -320,13 +316,13 @@ SELECT * FROM cypher('network', $$ RETURN ~ toinet('192.168.1.5') $$) as (i gtyp
 --
 -- inet & inet
 --
-SELECT * FROM cypher('network', $$ RETURN '10.1.0.0/32'::inet & toinet('192.168.1.5') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 10.1.0.0/32 & 192.168.1.5 $$) as (i gtype);
     i    
 ---------
  0.0.0.0
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet & toinet('192.168.1.5') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 & 192.168.1.5 $$) as (i gtype);
       i      
 -------------
  192.168.1.5
@@ -335,13 +331,13 @@ SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet & toinet('192.168.
 --
 -- inet | inet
 --
-SELECT * FROM cypher('network', $$ RETURN '10.1.0.0/32'::inet | toinet('192.168.1.5') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 10.1.0.0/32 | 192.168.1.5 $$) as (i gtype);
       i      
 -------------
  202.169.1.5
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet | toinet('192.168.1.5') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 | 192.168.1.5 $$) as (i gtype);
       i      
 -------------
  192.168.1.5
@@ -350,19 +346,19 @@ SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet | toinet('192.168.
 --
 -- inet << inet
 --
-SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet << toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 << 192.168.1/24 $$) as (i gtype);
   i   
 ------
  true
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN '192.168.0.5'::inet << toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.0.5 << 192.168.1/24 $$) as (i gtype);
    i   
 -------
  false
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::inet << toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1/24 << 192.168.1/24 $$) as (i gtype);
    i   
 -------
  false
@@ -371,19 +367,19 @@ SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::inet << toinet('192.16
 --
 -- inet <<= inet
 --
-SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet <<= toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 <<= 192.168.1/24 $$) as (i gtype);
   i   
 ------
  true
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN '192.168.0.5'::inet <<= toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.0.5 <<= 192.168.1/24 $$) as (i gtype);
    i   
 -------
  false
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::inet <<= toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1/24 <<= 192.168.1/24 $$) as (i gtype);
   i   
 ------
  true
@@ -392,19 +388,19 @@ SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::inet <<= toinet('192.1
 --
 -- inet >> inet
 --
-SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet >> toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 >> 192.168.1/24 $$) as (i gtype);
    i   
 -------
  false
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN '192.168.0.5'::inet >> toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.0.5 >> 192.168.1/24 $$) as (i gtype);
    i   
 -------
  false
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::inet >> toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1/24 >> 192.168.1/24 $$) as (i gtype);
    i   
 -------
  false
@@ -413,19 +409,19 @@ SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::inet >> toinet('192.16
 --
 -- inet >>= inet
 --
-SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet >>= toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 >>= 192.168.1/24 $$) as (i gtype);
    i   
 -------
  false
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN '192.168.0.5'::inet >>= toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.0.5 >>= 192.168.1/24 $$) as (i gtype);
    i   
 -------
  false
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::inet >>= toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1/24 >>= 192.168.1/24 $$) as (i gtype);
   i   
 ------
  true
@@ -434,19 +430,19 @@ SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::inet >>= toinet('192.1
 --
 -- inet && inet
 --
-SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::inet && toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 && 192.168.1/24 $$) as (i gtype);
   i   
 ------
  true
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN '192.168.0.5'::inet && toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.0.5 && 192.168.1/24 $$) as (i gtype);
    i   
 -------
  false
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::inet && toinet('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1/24 && 192.168.1/24 $$) as (i gtype);
   i   
 ------
  true
@@ -455,13 +451,13 @@ SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::inet && toinet('192.16
 --
 -- abbrev
 --
-SELECT * FROM cypher('network', $$ RETURN abbrev('192.168.1.5'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN abbrev(192.168.1.5) $$) as (i gtype);
        i       
 ---------------
  "192.168.1.5"
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN abbrev('192.168.1/24'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN abbrev(192.168.1/24) $$) as (i gtype);
         i         
 ------------------
  "192.168.1.0/24"
@@ -473,7 +469,7 @@ SELECT * FROM cypher('network', $$ RETURN abbrev('::ffff:fff0:1'::inet) $$) as (
  "::ffff:255.240.0.1"
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN abbrev('10.1.0.0/32'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN abbrev(10.1.0.0/32) $$) as (i gtype);
      i      
 ------------
  "10.1.0.0"
@@ -512,13 +508,13 @@ SELECT * FROM cypher('network', $$ RETURN abbrev('10.1.0.0/16'::cidr) $$) as (i 
 --
 -- broadcast
 --
-SELECT * FROM cypher('network', $$ RETURN broadcast('192.168.1.5'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN broadcast(192.168.1.5) $$) as (i gtype);
       i      
 -------------
  192.168.1.5
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN broadcast('192.168.1/24'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN broadcast(192.168.1/24) $$) as (i gtype);
         i         
 ------------------
  192.168.1.255/24
@@ -530,7 +526,7 @@ SELECT * FROM cypher('network', $$ RETURN broadcast('::ffff:fff0:1'::inet) $$) a
  ::ffff:255.240.0.1
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN broadcast('10.1.0.0/32'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN broadcast(10.1.0.0/32) $$) as (i gtype);
     i     
 ----------
  10.1.0.0
@@ -539,13 +535,13 @@ SELECT * FROM cypher('network', $$ RETURN broadcast('10.1.0.0/32'::inet) $$) as 
 --
 -- family
 --
-SELECT * FROM cypher('network', $$ RETURN family('192.168.1.5'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN family(192.168.1.5) $$) as (i gtype);
  i 
 ---
  4
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN family('192.168.1/24'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN family(192.168.1/24) $$) as (i gtype);
  i 
 ---
  4
@@ -557,7 +553,7 @@ SELECT * FROM cypher('network', $$ RETURN family('::ffff:fff0:1'::inet) $$) as (
  6
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN family('10.1.0.0/32'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN family(10.1.0.0/32) $$) as (i gtype);
  i 
 ---
  4
@@ -566,13 +562,13 @@ SELECT * FROM cypher('network', $$ RETURN family('10.1.0.0/32'::inet) $$) as (i 
 --
 -- host
 --
-SELECT * FROM cypher('network', $$ RETURN host('192.168.1.5'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN host(192.168.1.5) $$) as (i gtype);
        i       
 ---------------
  "192.168.1.5"
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN host('192.168.1/24'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN host(192.168.1/24) $$) as (i gtype);
        i       
 ---------------
  "192.168.1.0"
@@ -584,7 +580,7 @@ SELECT * FROM cypher('network', $$ RETURN host('::ffff:fff0:1'::inet) $$) as (i 
  "::ffff:255.240.0.1"
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN host('10.1.0.0/32'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN host(10.1.0.0/32) $$) as (i gtype);
      i      
 ------------
  "10.1.0.0"
@@ -593,13 +589,13 @@ SELECT * FROM cypher('network', $$ RETURN host('10.1.0.0/32'::inet) $$) as (i gt
 --
 -- hostmask
 --
-SELECT * FROM cypher('network', $$ RETURN hostmask('192.168.1.5'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN hostmask(192.168.1.5) $$) as (i gtype);
     i    
 ---------
  0.0.0.0
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN hostmask('192.168.1/24'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN hostmask(192.168.1/24) $$) as (i gtype);
      i     
 -----------
  0.0.0.255
@@ -611,7 +607,7 @@ SELECT * FROM cypher('network', $$ RETURN hostmask('::ffff:fff0:1'::inet) $$) as
  ::
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN hostmask('10.1.0.0/32'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN hostmask(10.1.0.0/32) $$) as (i gtype);
     i    
 ---------
  0.0.0.0
@@ -620,7 +616,7 @@ SELECT * FROM cypher('network', $$ RETURN hostmask('10.1.0.0/32'::inet) $$) as (
 --
 -- inet_merge
 --
-SELECT * FROM cypher('network', $$ RETURN inet_merge('192.168.1.5/24'::inet, '192.168.2.5/24'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN inet_merge(192.168.1.5/24, 192.168.2.5/24) $$) as (i gtype);
        i        
 ----------------
  192.168.0.0/22
@@ -629,13 +625,13 @@ SELECT * FROM cypher('network', $$ RETURN inet_merge('192.168.1.5/24'::inet, '19
 --
 -- inet_same_family
 --
-SELECT * FROM cypher('network', $$ RETURN inet_same_family('192.168.1.5/24'::inet, '192.168.2.5/24'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN inet_same_family(192.168.1.5/24, 192.168.2.5/24) $$) as (i gtype);
   i   
 ------
  true
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN inet_same_family('192.168.1.5/24'::inet, '::1'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN inet_same_family(192.168.1.5/24, '::1'::inet) $$) as (i gtype);
    i   
 -------
  false
@@ -644,13 +640,13 @@ SELECT * FROM cypher('network', $$ RETURN inet_same_family('192.168.1.5/24'::ine
 --
 -- masklen
 --
-SELECT * FROM cypher('network', $$ RETURN masklen('192.168.1.5'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN masklen(192.168.1.5) $$) as (i gtype);
  i 
 ---
  4
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN masklen('192.168.1/24'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN masklen(192.168.1/24) $$) as (i gtype);
  i 
 ---
  4
@@ -662,7 +658,7 @@ SELECT * FROM cypher('network', $$ RETURN masklen('::ffff:fff0:1'::inet) $$) as 
  6
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN masklen('10.1.0.0/32'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN masklen(10.1.0.0/32) $$) as (i gtype);
  i 
 ---
  4
@@ -671,13 +667,13 @@ SELECT * FROM cypher('network', $$ RETURN masklen('10.1.0.0/32'::inet) $$) as (i
 --
 -- netmask
 --
-SELECT * FROM cypher('network', $$ RETURN netmask('192.168.1.5'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN netmask(192.168.1.5) $$) as (i gtype);
         i        
 -----------------
  255.255.255.255
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN netmask('192.168.1/24'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN netmask(192.168.1/24) $$) as (i gtype);
        i       
 ---------------
  255.255.255.0
@@ -689,13 +685,13 @@ SELECT * FROM cypher('network', $$ RETURN netmask('::ffff:fff0:1'::inet) $$) as 
  ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN netmask('10.1.0.0/32'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN netmask(10.1.0.0/32) $$) as (i gtype);
         i        
 -----------------
  255.255.255.255
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN netmask('192.168.1/8'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN netmask(192.168.1/8) $$) as (i gtype);
      i     
 -----------
  255.0.0.0
@@ -704,13 +700,13 @@ SELECT * FROM cypher('network', $$ RETURN netmask('192.168.1/8'::inet) $$) as (i
 --
 -- network
 --
-SELECT * FROM cypher('network', $$ RETURN network('192.168.1.5'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN network(192.168.1.5) $$) as (i gtype);
        i        
 ----------------
  192.168.1.5/32
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN network('192.168.1/24'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN network(192.168.1/24) $$) as (i gtype);
        i        
 ----------------
  192.168.1.0/24
@@ -722,13 +718,13 @@ SELECT * FROM cypher('network', $$ RETURN network('::ffff:fff0:1'::inet) $$) as 
  ::ffff:255.240.0.1/128
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN network('10.1.0.0/32'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN network(10.1.0.0/32) $$) as (i gtype);
       i      
 -------------
  10.1.0.0/32
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN network('192.168.1/8'::inet) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN network(192.168.1/8) $$) as (i gtype);
       i      
 -------------
  192.0.0.0/8
@@ -737,13 +733,13 @@ SELECT * FROM cypher('network', $$ RETURN network('192.168.1/8'::inet) $$) as (i
 --
 -- set_masklen
 --
-SELECT * FROM cypher('network', $$ RETURN set_masklen('192.168.1.5'::inet, 24) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN set_masklen(192.168.1.5, 24) $$) as (i gtype);
        i        
 ----------------
  192.168.1.5/24
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN set_masklen('192.168.1/24'::inet, 16) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN set_masklen(192.168.1/24, 16) $$) as (i gtype);
        i        
 ----------------
  192.168.1.0/16
@@ -755,13 +751,13 @@ SELECT * FROM cypher('network', $$ RETURN set_masklen('::ffff:fff0:1'::inet, 24)
  ::ffff:255.240.0.1/24
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN set_masklen('10.1.0.0/32'::inet, 8) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN set_masklen(10.1.0.0/32, 8) $$) as (i gtype);
      i      
 ------------
  10.1.0.0/8
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN set_masklen('192.168.1/8'::inet, 24) $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN set_masklen(192.168.1/8, 24) $$) as (i gtype);
        i        
 ----------------
  192.168.1.0/24

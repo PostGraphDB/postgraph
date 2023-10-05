@@ -152,6 +152,7 @@ digitseq {digit}+
 hexint     0[Xx]{hexdigit}+
 hexintfail 0[Xx]
 
+
 /*
  * decimal pattern covers RegularDecimalReal rule in Cypher and also accepts
  * "{digitseq}\." pattern (e.g. "1.") which RegularDecimalReal rule doesn't.
@@ -163,6 +164,14 @@ hexintfail 0[Xx]
  * dot_dot can be matched next.
  */
 decimal     {digitseq}\.{digit}*|\.{digitseq}
+inetseq     ({digitseq}\.{digit}+\.{digitseq}\.{digitseq}(\/{digitseq})?)|{digitseq}\.{digit}+\.{digitseq}(\/{digitseq})?
+
+inetseqfail  {digitseq}\.{digit}+\.
+inetseqfail2 {digitseq}\.{digit}+\.{digitseq}
+inetseqfail3 {digitseq}\.{digit}+\.{digitseq}\.
+inetseqfail4 {digitseq}\.{digit}+\.{digitseq}\.{digitseq}\/
+inetseqfail5 {digitseq}\.{digit}+\.{digitseq}\/
+
 decimalfail {digitseq}\.\.
 
 /*
@@ -352,6 +361,7 @@ ag_token token;
     // ignore
 }
 
+
 {digitseq} |
 {hexint} {
     update_location();
@@ -375,6 +385,13 @@ ag_token token;
     token.location = get_location();
     return token;
 }
+{inetseq} {
+    update_location();
+    token.type = AG_TOKEN_INET;
+    token.value.s = yytext;
+    token.location = get_location();
+    return token;
+}
 
 {decimalfail} {
     // return dot_dot back to the input stream
@@ -387,6 +404,30 @@ ag_token token;
     token.location = get_location();
     return token;
 }
+
+{inetseqfail} {
+    // return dot_dot back to the input stream
+    yyless(yyleng - 1);
+
+    update_location();
+    
+    // consume digitseq
+    integer_literal_to_token(yytext, &token, &yyextra);
+    token.location = get_location();
+    return token;
+}
+
+
+{inetseqfail2} |
+{inetseqfail3} |
+{inetseqfail4} |
+{inetseqfail5} {
+    update_location();
+    ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                    scan_errmsg("invalid scientific notation literal"),
+                    scan_errposition()));
+}
+
 
 {decimalscifail1} |
 {decimalscifail2} {

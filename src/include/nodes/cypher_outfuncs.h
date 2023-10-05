@@ -44,6 +44,7 @@ void out_cypher_relationship(StringInfo str, const ExtensibleNode *node);
 
 // expression
 void out_cypher_bool_const(StringInfo str, const ExtensibleNode *node);
+void out_cypher_inet_const(StringInfo str, const ExtensibleNode *node);
 void out_cypher_param(StringInfo str, const ExtensibleNode *node);
 void out_cypher_map(StringInfo str, const ExtensibleNode *node);
 void out_cypher_list(StringInfo str, const ExtensibleNode *node);

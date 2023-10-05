@@ -76,6 +76,7 @@
 %token <string> DECIMAL STRING
 
 %token <string> IDENTIFIER
+%token <string> INET
 %token <string> PARAMETER
 
 /* operators that have more than 1 character */
@@ -204,6 +205,7 @@ static Node *make_int_const(int i, int location);
 static Node *make_float_const(char *s, int location);
 static Node *make_string_const(char *s, int location);
 static Node *make_bool_const(bool b, int location);
+static Node *make_inet_const(char *s, int location);
 static Node *make_null_const(int location);
 
 // typecast
@@ -1595,6 +1597,10 @@ expr_literal:
         {
             $$ = make_null_const(@1);
         }
+    | INET
+        {
+            $$ = make_inet_const($1, @1);
+        }
     | map
     | list
     ;
@@ -2007,6 +2013,18 @@ static Node *make_bool_const(bool b, int location)
 
     return (Node *)n;
 }
+
+static Node *make_inet_const(char *s, int location)
+{
+    cypher_inet_const *n;
+
+    n = make_ag_node(cypher_inet_const);
+    n->inet = s;
+    n->location = location;
+
+    return (Node *)n;
+}
+
 
 static Node *make_null_const(int location)
 {

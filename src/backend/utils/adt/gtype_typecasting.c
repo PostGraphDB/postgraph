@@ -324,6 +324,42 @@ Datum tovector(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(agtv));
 }
 
+Datum _gtype_toinet(Datum arg){
+    gtype *agt = DATUM_GET_GTYPE_P(arg);
+
+    if (is_gtype_null(agt))
+        return NULL;
+
+    inet *i = DatumGetInetPP(convert_to_scalar(gtype_to_inet_internal, agt, "inet"));
+
+    gtype_value agtv;
+    agtv.type = AGTV_INET;
+    agtv.val.inet.vl_len_[0] = i->vl_len_[0];
+    agtv.val.inet.vl_len_[1] = i->vl_len_[1];
+    agtv.val.inet.vl_len_[2] = i->vl_len_[2];
+    agtv.val.inet.vl_len_[3] = i->vl_len_[3];
+    agtv.val.inet.inet_data.family = i->inet_data.family;
+    agtv.val.inet.inet_data.bits = i->inet_data.bits;
+    agtv.val.inet.inet_data.ipaddr[0] = i->inet_data.ipaddr[0];
+    agtv.val.inet.inet_data.ipaddr[1] = i->inet_data.ipaddr[1];
+    agtv.val.inet.inet_data.ipaddr[2] = i->inet_data.ipaddr[2];
+    agtv.val.inet.inet_data.ipaddr[3] = i->inet_data.ipaddr[3];
+    agtv.val.inet.inet_data.ipaddr[4] = i->inet_data.ipaddr[4];
+    agtv.val.inet.inet_data.ipaddr[5] = i->inet_data.ipaddr[5];
+    agtv.val.inet.inet_data.ipaddr[6] = i->inet_data.ipaddr[6];
+    agtv.val.inet.inet_data.ipaddr[7] = i->inet_data.ipaddr[7];
+    agtv.val.inet.inet_data.ipaddr[8] = i->inet_data.ipaddr[8];
+    agtv.val.inet.inet_data.ipaddr[9] = i->inet_data.ipaddr[9];
+    agtv.val.inet.inet_data.ipaddr[10] = i->inet_data.ipaddr[10];
+    agtv.val.inet.inet_data.ipaddr[11] = i->inet_data.ipaddr[11];
+    agtv.val.inet.inet_data.ipaddr[12] = i->inet_data.ipaddr[12];
+    agtv.val.inet.inet_data.ipaddr[13] = i->inet_data.ipaddr[13];
+    agtv.val.inet.inet_data.ipaddr[14] = i->inet_data.ipaddr[14];
+    agtv.val.inet.inet_data.ipaddr[15] = i->inet_data.ipaddr[15];
+
+    return GTYPE_P_GET_DATUM(gtype_value_to_gtype(&agtv));
+}
+
 PG_FUNCTION_INFO_V1(gtype_toinet);
 /*                  
  * Execute function to typecast an agtype to an agtype timestamp
@@ -1083,6 +1119,8 @@ Datum
 gtype_to_cidr_internal(gtype_value *agtv) {
     if (agtv->type == AGTV_CIDR)
         return InetPGetDatum(&agtv->val.inet);
+    else if (agtv->type == AGTV_INET)
+	return DirectFunctionCall1(inet_to_cidr, InetPGetDatum(&agtv->val.inet));
     else if (agtv->type == AGTV_STRING)
         return DirectFunctionCall1(cidr_in, CStringGetDatum(agtv->val.string.val));
     else

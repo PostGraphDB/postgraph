@@ -34,4 +34,6 @@ Datum gtype_to_timetz_internal(gtype_value *agtv);
 Datum gtype_to_timestamptz_internal(gtype_value *agtv);
 Datum gtype_to_timestamp_internal(gtype_value *agtv);
 
+Datum _gtype_toinet(Datum arg);
+
 #endif

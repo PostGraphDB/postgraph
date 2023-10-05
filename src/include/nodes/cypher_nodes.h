@@ -184,6 +184,14 @@ typedef struct cypher_bool_const
     int location;
 } cypher_bool_const;
 
+typedef struct cypher_inet_const
+{
+    ExtensibleNode extensible;
+    char *inet;
+    int location;
+} cypher_inet_const;
+
+
 typedef struct cypher_integer_const
 {
     ExtensibleNode extensible;

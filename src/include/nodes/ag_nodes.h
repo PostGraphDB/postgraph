@@ -49,6 +49,7 @@ typedef enum ag_node_tag
     cypher_relationship_t,
     // expression
     cypher_bool_const_t,
+    cypher_inet_const_t,
     cypher_param_t,
     cypher_map_t,
     cypher_list_t,
