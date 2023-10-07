@@ -5435,6 +5435,39 @@ $$) AS (results gtype);
  57.2957795130823
 (1 row)
 
+--asinh
+SELECT results FROM cypher('expr', $$
+    RETURN asinh(3.1415)
+$$) AS (results gtype);
+     results      
+------------------
+ 1.86226763975997
+(1 row)
+
+SELECT results FROM cypher('expr', $$
+    RETURN asinh(pi())
+$$) AS (results gtype);
+     results      
+------------------
+ 1.86229574331085
+(1 row)
+
+SELECT results FROM cypher('expr', $$
+    RETURN asinh(0)
+$$) AS (results gtype);
+ results 
+---------
+ 0.0
+(1 row)
+
+SELECT results FROM cypher('expr', $$
+    RETURN asinh(1)
+$$) AS (results gtype);
+      results      
+-------------------
+ 0.881373587019543
+(1 row)
+
 --
 -- abs(), ceil(), floor(), & round()
 --

@@ -2025,6 +2025,20 @@ SELECT * FROM cypher('expr', $$
     RETURN degrees("1")
 $$) AS (results gtype);
 
+--asinh
+SELECT results FROM cypher('expr', $$
+    RETURN asinh(3.1415)
+$$) AS (results gtype);
+SELECT results FROM cypher('expr', $$
+    RETURN asinh(pi())
+$$) AS (results gtype);
+SELECT results FROM cypher('expr', $$
+    RETURN asinh(0)
+$$) AS (results gtype);
+SELECT results FROM cypher('expr', $$
+    RETURN asinh(1)
+$$) AS (results gtype);
+
 --
 -- abs(), ceil(), floor(), & round()
 --
