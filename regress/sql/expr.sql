@@ -2240,6 +2240,28 @@ SELECT * FROM cypher('expr', $$
 $$) AS (results gtype);
 
 --
+-- gcd
+--
+SELECT * FROM cypher('expr', $$
+    RETURN gcd(10, 5)
+$$) AS (results gtype);
+SELECT * FROM cypher('expr', $$
+    RETURN gcd(10.0, 5.0)
+$$) AS (results gtype);
+SELECT * FROM cypher('expr', $$
+    RETURN gcd(10.0, 5)
+$$) AS (results gtype);
+SELECT * FROM cypher('expr', $$
+    RETURN gcd(10, 5::numeric)
+$$) AS (results gtype);
+SELECT * FROM cypher('expr', $$
+    RETURN gcd('10', 5)
+$$) AS (results gtype);
+SELECT * FROM cypher('expr', $$
+    RETURN gcd(10::numeric, '5')
+$$) AS (results gtype);
+
+--
 -- rand()
 --
 -- should select 0 rows as rand() is in [0,1)

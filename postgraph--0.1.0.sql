@@ -3479,6 +3479,14 @@ IMMUTABLE
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME', 'gtype_rand';
 
+CREATE FUNCTION gcd (gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_gcd';
+
+
 --
 -- Agreggation
 --

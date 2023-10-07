@@ -312,6 +312,12 @@ typedef struct
 #define GT_IS_FLOAT(agte_) \
     (((agte_) == GT_HEADER_FLOAT))
 
+#define GTYPE_IS_INTEGER(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_INTEGER)
+
+#define GTYPE_IS_FLOAT(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_FLOAT)
+
 #define GT_IS_TIMESTAMP(agt) \
     (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_TIMESTAMP)
 

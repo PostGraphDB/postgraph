@@ -3507,6 +3507,33 @@ Datum gtype_radians(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
 }
 
+PG_FUNCTION_INFO_V1(gtype_gcd);
+Datum
+gtype_gcd(PG_FUNCTION_ARGS) {
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+
+    if (GTYPE_IS_FLOAT(lhs) || GTE_IS_NUMERIC(lhs->root.children[0]) || GTYPE_IS_FLOAT(rhs) || GTE_IS_NUMERIC(rhs->root.children[0])) {
+        Datum x = convert_to_scalar(gtype_to_numeric_internal, lhs, "numeric");
+        Datum y = convert_to_scalar(gtype_to_numeric_internal, rhs, "numeric");
+
+        gtype_value gtv_result;
+        gtv_result.type = AGTV_NUMERIC;
+        gtv_result.val.numeric = DatumGetNumeric(DirectFunctionCall2(numeric_gcd, y, x));
+
+        PG_RETURN_POINTER(gtype_value_to_gtype(&gtv_result));
+    } else {
+        Datum x = convert_to_scalar(gtype_to_int8_internal, lhs, "int8");
+        Datum y = convert_to_scalar(gtype_to_int8_internal, rhs, "int8");
+
+        gtype_value gtv_result;
+        gtv_result.type = AGTV_INTEGER;
+        gtv_result.val.int_value = DatumGetInt64(DirectFunctionCall2(int8gcd, y, x));
+
+        PG_RETURN_POINTER(gtype_value_to_gtype(&gtv_result));
+    }
+}
+
 PG_FUNCTION_INFO_V1(gtype_round);
 
 Datum gtype_round(PG_FUNCTION_ARGS)

@@ -5946,6 +5946,57 @@ SELECT * FROM cypher('expr', $$
 $$) AS (results gtype);
 ERROR:  sign() unsupported argument gtype 1
 --
+-- gcd
+--
+SELECT * FROM cypher('expr', $$
+    RETURN gcd(10, 5)
+$$) AS (results gtype);
+ results 
+---------
+ 5
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN gcd(10.0, 5.0)
+$$) AS (results gtype);
+  results   
+------------
+ 5::numeric
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN gcd(10.0, 5)
+$$) AS (results gtype);
+  results   
+------------
+ 5::numeric
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN gcd(10, 5::numeric)
+$$) AS (results gtype);
+  results   
+------------
+ 5::numeric
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN gcd('10', 5)
+$$) AS (results gtype);
+ results 
+---------
+ 5
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN gcd(10::numeric, '5')
+$$) AS (results gtype);
+  results   
+------------
+ 5::numeric
+(1 row)
+
+--
 -- rand()
 --
 -- should select 0 rows as rand() is in [0,1)
