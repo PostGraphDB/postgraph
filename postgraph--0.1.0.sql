@@ -3486,6 +3486,12 @@ IMMUTABLE
 PARALLEL SAFE
 AS 'MODULE_PATHNAME', 'gtype_gcd';
 
+CREATE FUNCTION lcm (gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_lcm';
 
 --
 -- Agreggation
