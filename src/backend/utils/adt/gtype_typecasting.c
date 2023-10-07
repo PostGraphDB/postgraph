@@ -66,8 +66,6 @@
 #define string_to_int2 int2in
 #define string_to_numeric numeric_in
 
-typedef Datum (*coearce_function) (gtype_value *);
-static Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
 static ArrayType *gtype_to_array(coearce_function func, gtype *agt, char *type, Oid type_oid, int type_len, bool elembyval); 
 
 Datum gtype_to_inet_internal(gtype_value *agtv);

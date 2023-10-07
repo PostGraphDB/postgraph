@@ -27,14 +27,6 @@ NOTICE:  graph "expr" has been created
  
 (1 row)
 
-SELECT * FROM cypher('expr', $$
-RETURN 0x1
-$$) AS r(c gtype);
- c 
----
- 1
-(1 row)
-
 --
 -- map literal
 --
@@ -4890,19 +4882,35 @@ HINT:  Could not choose a best candidate function. You might need to add explici
 SELECT * FROM cypher('expr', $$
     RETURN sin("0")
 $$) AS (results gtype);
-ERROR:  sin() unsupported argument gtype 1
+ results 
+---------
+ 0.0
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN cos("0")
 $$) AS (results gtype);
-ERROR:  cos() unsupported argument gtype 1
+ results 
+---------
+ 1.0
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN tan("0")
 $$) AS (results gtype);
-ERROR:  tan() unsupported argument gtype 1
+ results 
+---------
+ 0.0
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN cot("0")
 $$) AS (results gtype);
-ERROR:  cot() unsupported argument gtype 1
+ results  
+----------
+ Infinity
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN sin()
 $$) AS (results gtype);
@@ -5119,23 +5127,43 @@ SELECT * FROM atan2(null, '1'::gtype);
 SELECT * FROM cypher('expr', $$
     RETURN asin("0")
 $$) AS (results gtype);
-ERROR:  asin() unsupported argument gtype 1
+ results 
+---------
+ 0.0
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN acos("0")
 $$) AS (results gtype);
-ERROR:  acos() unsupported argument gtype 1
+     results     
+-----------------
+ 1.5707963267949
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN atan("0")
 $$) AS (results gtype);
-ERROR:  atan() unsupported argument gtype 1
+ results 
+---------
+ 0.0
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN atan2("0", 1)
 $$) AS (results gtype);
-ERROR:  atan2() unsupported argument gtype 1
+     results     
+-----------------
+ 1.5707963267949
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN atan2(0, "1")
 $$) AS (results gtype);
-ERROR:  atan2() unsupported argument gtype 1
+     results     
+-----------------
+ 1.5707963267949
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN asin()
 $$) AS (results gtype);
@@ -5190,9 +5218,17 @@ SELECT * FROM atan('0'::gtype);
 (1 row)
 
 SELECT * FROM atan2('"0"'::gtype, '1'::gtype);
-ERROR:  atan2() unsupported argument gtype 1
+      atan2      
+-----------------
+ 1.5707963267949
+(1 row)
+
 SELECT * FROM atan2('1'::gtype, '"0"'::gtype);
-ERROR:  atan2() unsupported argument gtype 1
+ atan2 
+-------
+ 0.0
+(1 row)
+
 SELECT * FROM asin();
 ERROR:  function asin() does not exist
 LINE 1: SELECT * FROM asin();
@@ -5386,11 +5422,19 @@ HINT:  No function matches the given name and argument types. You might need to 
 SELECT * FROM cypher('expr', $$
     RETURN radians("1")
 $$) AS (results gtype);
-ERROR:  radians() unsupported argument gtype 1
+      results       
+--------------------
+ 0.0174532925199433
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN degrees("1")
 $$) AS (results gtype);
-ERROR:  degrees() unsupported argument gtype 1
+     results      
+------------------
+ 57.2957795130823
+(1 row)
+
 --
 -- abs(), ceil(), floor(), & round()
 --

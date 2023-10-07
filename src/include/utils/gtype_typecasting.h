@@ -22,6 +22,9 @@
 
 #include "utils/timestamp.h"
 
+typedef Datum (*coearce_function) (gtype_value *);
+Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
+
 Datum gtype_to_int8_internal(gtype_value *agtv);
 Datum gtype_to_int4_internal(gtype_value *agtv);
 Datum gtype_to_int2_internal(gtype_value *agtv);

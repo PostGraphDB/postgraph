@@ -64,6 +64,7 @@
 #include "utils/vector.h"
 #include "utils/vertex.h"
 #include "utils/gtype_parser.h"
+#include "utils/gtype_typecasting.h"
 #include "catalog/ag_graph.h"
 #include "catalog/ag_label.h"
 #include "utils/graphid.h"
@@ -3296,223 +3297,135 @@ static Numeric get_numeric_compatible_arg(Datum arg, Oid type, char *funcname,
 }
 
 PG_FUNCTION_INFO_V1(gtype_sin);
+Datum
+gtype_sin(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
 
-Datum gtype_sin(PG_FUNCTION_ARGS)
-{
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    gtype_value agtv_result;
-    float8 angle;
-    bool is_null;
+    gtype_value gtv_result;
+    gtv_result.type = AGTV_FLOAT;
+    gtv_result.val.float_value =
+        DatumGetFloat8(DirectFunctionCall1(dsin, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
 
-    angle = get_float_compatible_arg(GTYPE_P_GET_DATUM(agt), GTYPEOID, "sin", &is_null);
-
-    if (is_null)
-        PG_RETURN_NULL();
-
-    agtv_result.type = AGTV_FLOAT;
-    agtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(dsin, Float8GetDatum(angle)));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
 }
 
 PG_FUNCTION_INFO_V1(gtype_cos);
+Datum
+gtype_cos(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+    
+    gtype_value gtv_result;
+    gtv_result.type = AGTV_FLOAT;
+    gtv_result.val.float_value =
+        DatumGetFloat8(DirectFunctionCall1(dcos, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
 
-Datum gtype_cos(PG_FUNCTION_ARGS)
-{
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    gtype_value agtv_result;
-    float8 angle;
-    bool is_null;
-
-    angle = get_float_compatible_arg(GTYPE_P_GET_DATUM(agt), GTYPEOID, "cos", &is_null);
-
-    if (is_null)
-        PG_RETURN_NULL();
-
-    agtv_result.type = AGTV_FLOAT;
-    agtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(dcos, Float8GetDatum(angle)));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
 }
 
 PG_FUNCTION_INFO_V1(gtype_tan);
+Datum
+gtype_tan(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
 
-Datum gtype_tan(PG_FUNCTION_ARGS)
-{
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    gtype_value agtv_result;
-    float8 angle;
-    bool is_null;
+    gtype_value gtv_result;
+    gtv_result.type = AGTV_FLOAT;
+    gtv_result.val.float_value =
+        DatumGetFloat8(DirectFunctionCall1(dtan, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
 
-    angle = get_float_compatible_arg(GTYPE_P_GET_DATUM(agt), GTYPEOID, "tan", &is_null);
-
-    if (is_null)
-        PG_RETURN_NULL();
-
-    agtv_result.type = AGTV_FLOAT;
-    agtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(dtan, Float8GetDatum(angle)));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
 }
 
 PG_FUNCTION_INFO_V1(gtype_cot);
+Datum
+gtype_cot(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
 
-Datum gtype_cot(PG_FUNCTION_ARGS)
-{
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    gtype_value agtv_result;
-    float8 angle;
-    bool is_null;
-    
-    angle = get_float_compatible_arg(GTYPE_P_GET_DATUM(agt), GTYPEOID, "cot", &is_null);
-    
-    if (is_null)
-        PG_RETURN_NULL();
-    
-    agtv_result.type = AGTV_FLOAT;
-    agtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(dcot, Float8GetDatum(angle)));
-    
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+    gtype_value gtv_result;
+    gtv_result.type = AGTV_FLOAT;
+    gtv_result.val.float_value =
+        DatumGetFloat8(DirectFunctionCall1(dcot, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
 }
 
 PG_FUNCTION_INFO_V1(gtype_asin);
+Datum
+gtype_asin(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
 
-Datum gtype_asin(PG_FUNCTION_ARGS)
-{
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    gtype_value agtv_result;
-    float8 angle;
-    bool is_null;
+    gtype_value gtv_result;
+    gtv_result.type = AGTV_FLOAT;
+    gtv_result.val.float_value =
+        DatumGetFloat8(DirectFunctionCall1(dasin, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
 
-    angle = get_float_compatible_arg(GTYPE_P_GET_DATUM(agt), GTYPEOID, "asin", &is_null);
-
-    if (is_null)
-        PG_RETURN_NULL();
-
-    agtv_result.type = AGTV_FLOAT;
-    agtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(dasin, Float8GetDatum(angle)));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
 }
 
 PG_FUNCTION_INFO_V1(gtype_acos);
+Datum
+gtype_acos(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
 
-Datum gtype_acos(PG_FUNCTION_ARGS)
-{
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    gtype_value agtv_result;
-    float8 angle;
-    bool is_null;
-    
-    angle = get_float_compatible_arg(GTYPE_P_GET_DATUM(agt), GTYPEOID, "acos", &is_null);
+    gtype_value gtv_result;
+    gtv_result.type = AGTV_FLOAT;
+    gtv_result.val.float_value =
+        DatumGetFloat8(DirectFunctionCall1(dacos, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
 
-    if (is_null)
-        PG_RETURN_NULL();
-    
-    agtv_result.type = AGTV_FLOAT;
-    agtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(dacos, Float8GetDatum(angle)));
-    
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
 }
 
 PG_FUNCTION_INFO_V1(gtype_atan);
+Datum
+gtype_atan(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
 
-Datum gtype_atan(PG_FUNCTION_ARGS)
-{
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    gtype_value agtv_result;
-    float8 angle;
-    bool is_null;
-    
-    angle = get_float_compatible_arg(GTYPE_P_GET_DATUM(agt), GTYPEOID, "atan", &is_null);
-    
-    if (is_null)
-        PG_RETURN_NULL();
-    
-    agtv_result.type = AGTV_FLOAT;
-    agtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(datan, Float8GetDatum(angle)));
-    
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+    gtype_value gtv_result;
+    gtv_result.type = AGTV_FLOAT;
+    gtv_result.val.float_value =
+        DatumGetFloat8(DirectFunctionCall1(datan, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
 }
 
 PG_FUNCTION_INFO_V1(gtype_atan2);
+Datum
+gtype_atan2(PG_FUNCTION_ARGS) {
+    Datum x = convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(0), "float");
+    Datum y = convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(1), "float");
 
-Datum gtype_atan2(PG_FUNCTION_ARGS)
-{
-    gtype *x_agt = AG_GET_ARG_GTYPE_P(0);
-    gtype *y_agt = AG_GET_ARG_GTYPE_P(1);
-    gtype_value agtv_result;
-    bool is_null;
-    float8 x, y;
-    float8 angle;
+    gtype_value gtv_result;
+    gtv_result.type = AGTV_FLOAT;
+    gtv_result.val.float_value = DatumGetFloat8(DirectFunctionCall2(datan2, y, x));
 
-    y = get_float_compatible_arg(GTYPE_P_GET_DATUM(y_agt), GTYPEOID, "atan2", &is_null);
-
-    if (is_null)
-        PG_RETURN_NULL();
-
-    x = get_float_compatible_arg(GTYPE_P_GET_DATUM(x_agt), GTYPEOID, "atan2", &is_null);
-
-    if (is_null)
-        PG_RETURN_NULL();
-
-    angle = DatumGetFloat8(DirectFunctionCall2(datan2,
-                                               Float8GetDatum(y),
-                                               Float8GetDatum(x)));
-
-    agtv_result.type = AGTV_FLOAT;
-    agtv_result.val.float_value = angle;
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv_result));
 }
 
 PG_FUNCTION_INFO_V1(gtype_degrees);
 
 Datum gtype_degrees(PG_FUNCTION_ARGS)
 {
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    gtype_value agtv_result;
-    float8 angle;
-    bool is_null;
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
 
-    angle = get_float_compatible_arg(GTYPE_P_GET_DATUM(agt), GTYPEOID, "degrees", &is_null);
+    gtype_value gtv_result;
+    gtv_result.type = AGTV_FLOAT;
+    gtv_result.val.float_value =
+        DatumGetFloat8(DirectFunctionCall1(degrees, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
 
-    if (is_null)
-        PG_RETURN_NULL();
-
-    agtv_result.type = AGTV_FLOAT;
-    agtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(degrees, Float8GetDatum(angle)));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
 }
 
 PG_FUNCTION_INFO_V1(gtype_radians);
 
 Datum gtype_radians(PG_FUNCTION_ARGS)
 {
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    gtype_value agtv_result;
-    float8 angle;
-    bool is_null;
-    
-    angle = get_float_compatible_arg(GTYPE_P_GET_DATUM(agt), GTYPEOID, "radians", &is_null);
-    
-    if (is_null)
-        PG_RETURN_NULL();
-    
-    agtv_result.type = AGTV_FLOAT;
-    agtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(radians, Float8GetDatum(angle)));
-    
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    gtype_value gtv_result;
+    gtv_result.type = AGTV_FLOAT;
+    gtv_result.val.float_value =
+        DatumGetFloat8(DirectFunctionCall1(radians, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
 }
 
 PG_FUNCTION_INFO_V1(gtype_round);
