@@ -2038,6 +2038,19 @@ $$) AS (results gtype);
 SELECT results FROM cypher('expr', $$
     RETURN asinh(1)
 $$) AS (results gtype);
+--acosh
+SELECT results FROM cypher('expr', $$
+    RETURN acosh(3.1415)
+$$) AS (results gtype);
+SELECT results FROM cypher('expr', $$
+    RETURN acosh(pi())
+$$) AS (results gtype);
+SELECT results FROM cypher('expr', $$
+    RETURN acosh(0)
+$$) AS (results gtype);
+SELECT results FROM cypher('expr', $$
+    RETURN acosh(1)
+$$) AS (results gtype);
 
 --
 -- abs(), ceil(), floor(), & round()

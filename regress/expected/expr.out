@@ -5468,6 +5468,39 @@ $$) AS (results gtype);
  0.881373587019543
 (1 row)
 
+--acosh
+SELECT results FROM cypher('expr', $$
+    RETURN acosh(3.1415)
+$$) AS (results gtype);
+     results      
+------------------
+ 11.5908832931176
+(1 row)
+
+SELECT results FROM cypher('expr', $$
+    RETURN acosh(pi())
+$$) AS (results gtype);
+     results      
+------------------
+ 11.5919532755215
+(1 row)
+
+SELECT results FROM cypher('expr', $$
+    RETURN acosh(0)
+$$) AS (results gtype);
+ results 
+---------
+ 1.0
+(1 row)
+
+SELECT results FROM cypher('expr', $$
+    RETURN acosh(1)
+$$) AS (results gtype);
+     results      
+------------------
+ 1.54308063481524
+(1 row)
+
 --
 -- abs(), ceil(), floor(), & round()
 --

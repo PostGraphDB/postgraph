@@ -3413,6 +3413,20 @@ gtype_asinh(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
 }
 
+PG_FUNCTION_INFO_V1(gtype_acosh);
+Datum
+gtype_acosh(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    gtype_value gtv_result;
+    gtv_result.type = AGTV_FLOAT;
+    gtv_result.val.float_value =
+        DatumGetFloat8(DirectFunctionCall1(dcosh, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
+}
+
+
 PG_FUNCTION_INFO_V1(gtype_degrees);
 
 Datum gtype_degrees(PG_FUNCTION_ARGS)
