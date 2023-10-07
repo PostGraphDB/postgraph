@@ -2051,6 +2051,19 @@ $$) AS (results gtype);
 SELECT results FROM cypher('expr', $$
     RETURN cosh(1)
 $$) AS (results gtype);
+--tanh
+SELECT results FROM cypher('expr', $$
+    RETURN tanh(3.1415)
+$$) AS (results gtype);
+SELECT results FROM cypher('expr', $$
+    RETURN tanh(pi())
+$$) AS (results gtype);
+SELECT results FROM cypher('expr', $$
+    RETURN tanh(0)
+$$) AS (results gtype);
+SELECT results FROM cypher('expr', $$
+    RETURN tanh(1)
+$$) AS (results gtype);
 --asinh
 SELECT results FROM cypher('expr', $$
     RETURN asinh(3.1415)
