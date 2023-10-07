@@ -71,13 +71,13 @@ SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 $$) as (i gtype);
 --
 -- cidr
 --
-SELECT * FROM cypher('network', $$ RETURN tocidr('192.168.1.5') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN tocidr(192.168.1.5) $$) as (i gtype);
        i        
 ----------------
  192.168.1.5/32
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN tocidr('192.168.1/24') $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN tocidr(192.168.1/24) $$) as (i gtype);
        i        
 ----------------
  192.168.1.0/24
@@ -89,13 +89,13 @@ SELECT * FROM cypher('network', $$ RETURN tocidr('::ffff:fff0:1') $$) as (i gtyp
  ::ffff:255.240.0.1/128
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::cidr $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5::cidr $$) as (i gtype);
        i        
 ----------------
  192.168.1.5/32
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN '192.168.1/24'::cidr $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1/24::cidr $$) as (i gtype);
        i        
 ----------------
  192.168.1.0/24
@@ -216,13 +216,13 @@ SELECT * FROM cypher('network', $$ RETURN tocidr('::ffff:fff0:1')::cidr $$) as (
 (1 row)
 
 -- type coercion
-SELECT * FROM cypher('network', $$ RETURN tocidr('192.168.1.5') $$) as (i cidr);
+SELECT * FROM cypher('network', $$ RETURN tocidr(192.168.1.5) $$) as (i cidr);
        i        
 ----------------
  192.168.1.5/32
 (1 row)
 
-SELECT * FROM cypher('network', $$ RETURN '192.168.1.5'::cidr $$) as (i cidr);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5::cidr $$) as (i cidr);
        i        
 ----------------
  192.168.1.5/32

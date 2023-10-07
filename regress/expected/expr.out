@@ -27,6 +27,14 @@ NOTICE:  graph "expr" has been created
  
 (1 row)
 
+SELECT * FROM cypher('expr', $$
+RETURN 0x1
+$$) AS r(c gtype);
+ c 
+---
+ 1
+(1 row)
+
 --
 -- map literal
 --
