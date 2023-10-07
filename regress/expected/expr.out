@@ -5468,6 +5468,39 @@ $$) AS (results gtype);
  1.1752011936438
 (1 row)
 
+--cosh
+SELECT results FROM cypher('expr', $$
+    RETURN cosh(3.1415)
+$$) AS (results gtype);
+     results      
+------------------
+ 11.5908832931176
+(1 row)
+
+SELECT results FROM cypher('expr', $$
+    RETURN cosh(pi())
+$$) AS (results gtype);
+     results      
+------------------
+ 11.5919532755215
+(1 row)
+
+SELECT results FROM cypher('expr', $$
+    RETURN cosh(0)
+$$) AS (results gtype);
+ results 
+---------
+ 1.0
+(1 row)
+
+SELECT results FROM cypher('expr', $$
+    RETURN cosh(1)
+$$) AS (results gtype);
+     results      
+------------------
+ 1.54308063481524
+(1 row)
+
 --asinh
 SELECT results FROM cypher('expr', $$
     RETURN asinh(3.1415)
@@ -5507,7 +5540,7 @@ SELECT results FROM cypher('expr', $$
 $$) AS (results gtype);
      results      
 ------------------
- 11.5908832931176
+ 1.81149516122582
 (1 row)
 
 SELECT results FROM cypher('expr', $$
@@ -5515,23 +5548,19 @@ SELECT results FROM cypher('expr', $$
 $$) AS (results gtype);
      results      
 ------------------
- 11.5919532755215
+ 1.81152627246085
 (1 row)
 
 SELECT results FROM cypher('expr', $$
     RETURN acosh(0)
 $$) AS (results gtype);
- results 
----------
- 1.0
-(1 row)
-
+ERROR:  input is out of range
 SELECT results FROM cypher('expr', $$
     RETURN acosh(1)
 $$) AS (results gtype);
-     results      
-------------------
- 1.54308063481524
+ results 
+---------
+ 0.0
 (1 row)
 
 --atanh
