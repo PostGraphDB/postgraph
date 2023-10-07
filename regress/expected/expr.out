@@ -5501,6 +5501,39 @@ $$) AS (results gtype);
  1.54308063481524
 (1 row)
 
+--atanh
+SELECT results FROM cypher('expr', $$
+    RETURN atanh(3.1415)
+$$) AS (results gtype);
+      results      
+-------------------
+ 0.996271386633702
+(1 row)
+
+SELECT results FROM cypher('expr', $$
+    RETURN atanh(pi())
+$$) AS (results gtype);
+     results      
+------------------
+ 0.99627207622075
+(1 row)
+
+SELECT results FROM cypher('expr', $$
+    RETURN atanh(0)
+$$) AS (results gtype);
+ results 
+---------
+ 0.0
+(1 row)
+
+SELECT results FROM cypher('expr', $$
+    RETURN atanh(1)
+$$) AS (results gtype);
+      results      
+-------------------
+ 0.761594155955765
+(1 row)
+
 --
 -- abs(), ceil(), floor(), & round()
 --
