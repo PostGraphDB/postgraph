@@ -136,7 +136,6 @@ static gtype_value *execute_array_access_operator_internal(gtype *array, int64 a
 static Numeric get_numeric_compatible_arg(Datum arg, Oid type, char *funcname, bool *is_null, enum gtype_value_type *ag_type);
 static int64 get_int64_from_int_datums(Datum d, Oid type, char *funcname, bool *is_agnull);
 static gtype_iterator *get_next_object_key(gtype_iterator *it, gtype_container *agtc, gtype_value *key);
-static gtype_iterator *get_next_list_element(gtype_iterator *it, gtype_container *agtc, gtype_value *elem);
 gtype_value *gtype_composite_to_gtype_value_binary(gtype *a);
 static Datum process_access_operator_result(FunctionCallInfo fcinfo, gtype_value *agtv, bool as_text);
 static Datum process_access_operator_result(FunctionCallInfo fcinfo, gtype_value *agtv, bool as_text);
@@ -2311,160 +2310,38 @@ Datum gtype_size(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
 }
 
-static gtype_iterator *get_next_list_element(gtype_iterator *it,
-                           gtype_container *agtc, gtype_value *elem)
-{
-    gtype_iterator_token itok;
-    gtype_value tmp;
-
-    /* verify input params */
-    Assert(agtc != NULL);
-    Assert(elem != NULL);
-
-    /* check to see if the container is empty */
-    if (GTYPE_CONTAINER_SIZE(agtc) == 0)
-    {
-       return NULL;
-    }
-
-    /* if the passed iterator is NULL, this is the first time, create it */
-    if (it == NULL)
-    {
-        /* initial the iterator */
-        it = gtype_iterator_init(agtc);
-        /* get the first token */
-        itok = gtype_iterator_next(&it, &tmp, true);
-        /* it should be WGT_BEGIN_ARRAY */
-        Assert(itok == WGT_BEGIN_ARRAY);
-    }
-
-    /* the next token should be an element or the end of the array */
-    itok = gtype_iterator_next(&it, &tmp, true);
-    Assert(itok == WGT_ELEM || WGT_END_ARRAY);
-
-    /* if this is the end of the array return NULL */
-    if (itok == WGT_END_ARRAY) {
-        return NULL;
-    }
-
-    /* this should be the element, copy it */
-    if (itok == WGT_ELEM) {
-        memcpy(elem, &tmp, sizeof(gtype_value));
-    }
-
-    return it;
-}
-
 PG_FUNCTION_INFO_V1(gtype_reverse);
 
 Datum gtype_reverse(PG_FUNCTION_ARGS)
 {
-    int nargs;
-    Datum *args;
-    Datum arg;
-    bool *nulls;
-    Oid *types;
-    gtype_value agtv_result;
-    text *text_string = NULL;
-    char *string = NULL;
-    int string_len;
-    Oid type;
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
 
-    /* extract argument values */
-    nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
-
-    /* check number of args */
-    if (nargs > 1)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("reverse() only supports one argument")));
-
-    /* check for null */
-    if (nargs < 0 || nulls[0])
-        PG_RETURN_NULL();
-
-    /* reverse() supports text, cstring, or the gtype string input */
-    arg = args[0];
-    type = types[0];
-
-        gtype *agt_arg = NULL;
-        gtype_value *agtv_value = NULL;
+    if (!AGT_ROOT_IS_SCALAR(gt) && AGT_ROOT_IS_ARRAY(gt))
+    {
         gtype_parse_state *parse_state = NULL;
-        gtype_value elem = {0};
-        gtype_iterator *it = NULL;
-        gtype_value tmp;
-        gtype_value *elems = NULL;
-        int num_elems;
-        int i;
+        gtype_value *agtv_value = push_gtype_value(&parse_state, WGT_BEGIN_ARRAY, NULL);
 
-        /* get the gtype argument */
-        agt_arg = DATUM_GET_GTYPE_P(arg);
+	for (int i = AGT_ROOT_COUNT(gt) - 1; i >= 0; i--) {
+            gtype_value *gtv = get_ith_gtype_value_from_container(&gt->root, i);
+    
+            agtv_value = push_gtype_value(&parse_state, WGT_ELEM, gtv);
+	}
 
-        if (!AGT_ROOT_IS_SCALAR(agt_arg))
-        {
-            agtv_value = push_gtype_value(&parse_state, WGT_BEGIN_ARRAY, NULL);
+        agtv_value = push_gtype_value(&parse_state, WGT_END_ARRAY, NULL);
 
-            while ((it = get_next_list_element(it, &agt_arg->root, &elem)))
-            {
-                agtv_value = push_gtype_value(&parse_state, WGT_ELEM, &elem);
-            }
+        AG_RETURN_GTYPE_P(gtype_value_to_gtype(agtv_value));
+   }
+   else
+   {
+        Datum x = convert_to_scalar(gtype_to_text_internal, gt, "text");
 
-            /* now reverse the list */
-            elems = parse_state->cont_val.val.array.elems;
-            num_elems = parse_state->cont_val.val.array.num_elems;
+        Datum d = DirectFunctionCall1(text_reverse, x);
 
-            for(i = 0; i < num_elems/2; i++)
-            {
-                tmp = elems[i];
-                elems[i] = elems[num_elems - 1 - i];
-                elems[num_elems - 1 - i] = tmp;
-            }
-            /* reverse done*/
+        gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(d) }};
 
-            elems = NULL;
+        AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 
-            agtv_value = push_gtype_value(&parse_state, WGT_END_ARRAY, NULL);
-
-            Assert(agtv_value != NULL);
-            Assert(agtv_value->type = AGTV_ARRAY);
-
-            PG_RETURN_POINTER(gtype_value_to_gtype(agtv_value));
-
-        }
-
-        agtv_value = get_ith_gtype_value_from_container(&agt_arg->root, 0);
-
-        /* check for gtype null */
-        if (agtv_value->type == AGTV_NULL)
-            PG_RETURN_NULL();
-        if (agtv_value->type == AGTV_STRING)
-            text_string = cstring_to_text_with_len(agtv_value->val.string.val,
-                                                   agtv_value->val.string.len);
-        else
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("reverse() unsupported argument gtype %d",
-                                   agtv_value->type)));
-
-    /*
-     * We need the string as a text string so that we can let PG deal with
-     * multibyte characters in reversing the string.
-     */
-    text_string = DatumGetTextPP(DirectFunctionCall1(text_reverse,
-                                                     PointerGetDatum(text_string)));
-
-    /* convert it back to a cstring */
-    string = text_to_cstring(text_string);
-    string_len = strlen(string);
-
-    /* if we have an empty string, return null */
-    if (string_len == 0)
-        PG_RETURN_NULL();
-
-    /* build the result */
-    agtv_result.type = AGTV_STRING;
-    agtv_result.val.string.val = string;
-    agtv_result.val.string.len = string_len;
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
+   }
 }
 
 PG_FUNCTION_INFO_V1(gtype_toupper);
