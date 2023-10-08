@@ -4227,15 +4227,27 @@ SELECT * FROM trim(null);
 SELECT * FROM cypher('expr', $$
     RETURN lTrim(true)
 $$) AS (results gtype);
-ERROR:  lTrim() unsupported argument gtype 5
+ results 
+---------
+ "true"
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN rTrim(true)
 $$) AS (results gtype);
-ERROR:  rTrim() unsupported argument gtype 5
+ results 
+---------
+ "true"
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN trim(true)
 $$) AS (results gtype);
-ERROR:  Trim() unsupported argument gtype 5
+ results 
+---------
+ "true"
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN lTrim()
 $$) AS (results gtype);

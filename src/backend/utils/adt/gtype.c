@@ -2547,87 +2547,39 @@ PG_FUNCTION_INFO_V1(gtype_rtrim);
 
 Datum gtype_rtrim(PG_FUNCTION_ARGS)
 {
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+    Datum x = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(0), "text");
 
-    if (!AGT_ROOT_IS_SCALAR(agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("rTrim() only supports scalar arguments")));
+    Datum d = DirectFunctionCall1(rtrim1, x);
 
-    gtype_value *agtv_value = get_ith_gtype_value_from_container(&agt->root, 0);
-
-    text *text_string;
-    if (agtv_value->type == AGTV_NULL)
-        PG_RETURN_NULL();
-    else if (agtv_value->type == AGTV_STRING)
-        text_string = cstring_to_text_with_len(agtv_value->val.string.val, agtv_value->val.string.len);
-    else
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("rTrim() unsupported argument gtype %d", agtv_value->type)));
-
-    text_string = DatumGetTextPP(DirectFunctionCall1(rtrim1, PointerGetDatum(text_string)));
-
-    gtype_value agtv_result = { .type = AGTV_STRING, 
-                                 .val.string = { VARSIZE(text_string), text_to_cstring(text_string) }};
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+    gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(d) }};
+ 
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_ltrim);
 
 Datum gtype_ltrim(PG_FUNCTION_ARGS)
 {
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+    Datum x = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(0), "text");
 
-    if (!AGT_ROOT_IS_SCALAR(agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("lTrim() only supports scalar arguments")));
+    Datum d = DirectFunctionCall1(ltrim1, x);
 
-    gtype_value *agtv_value = get_ith_gtype_value_from_container(&agt->root, 0);
-
-    text *text_string;
-    if (agtv_value->type == AGTV_NULL)
-        PG_RETURN_NULL();
-    else if (agtv_value->type == AGTV_STRING)
-        text_string = cstring_to_text_with_len(agtv_value->val.string.val, agtv_value->val.string.len);
-    else
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("lTrim() unsupported argument gtype %d", agtv_value->type)));
-
-    text_string = DatumGetTextPP(DirectFunctionCall1(ltrim1, PointerGetDatum(text_string)));
-
-    gtype_value agtv_result = { .type = AGTV_STRING, 
-                                 .val.string = { VARSIZE(text_string), text_to_cstring(text_string) }};
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+    gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(d) }};
+ 
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_trim);
 
 Datum gtype_trim(PG_FUNCTION_ARGS)
 {
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+    Datum x = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(0), "text");
 
-    if (!AGT_ROOT_IS_SCALAR(agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("Trim() only supports scalar arguments")));
+    Datum d = DirectFunctionCall1(btrim1, x);
 
-    gtype_value *agtv_value = get_ith_gtype_value_from_container(&agt->root, 0);
+    gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(d) }};
 
-    text *text_string;
-    if (agtv_value->type == AGTV_NULL)
-        PG_RETURN_NULL();
-    else if (agtv_value->type == AGTV_STRING)
-        text_string = cstring_to_text_with_len(agtv_value->val.string.val, agtv_value->val.string.len);
-    else
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("Trim() unsupported argument gtype %d", agtv_value->type)));
-
-    text_string = DatumGetTextPP(DirectFunctionCall1(btrim1, PointerGetDatum(text_string)));
-
-    gtype_value agtv_result = { .type = AGTV_STRING,
-                                 .val.string = { VARSIZE(text_string), text_to_cstring(text_string) }};
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_right);
