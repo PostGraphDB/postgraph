@@ -4131,155 +4131,38 @@ PG_FUNCTION_INFO_V1(gtype_gtype_sum);
 
 Datum gtype_gtype_sum(PG_FUNCTION_ARGS)
 {
-    gtype *agt_arg0 = AG_GET_ARG_GTYPE_P(0);
-    gtype *agt_arg1 = AG_GET_ARG_GTYPE_P(1);
-    gtype_value *agtv_lhs;
-    gtype_value *agtv_rhs;
-    gtype_value agtv_result;
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
-    /* get our args */
-    agt_arg0 = AG_GET_ARG_GTYPE_P(0);
-    agt_arg1 = AG_GET_ARG_GTYPE_P(1);
-
-    /* only scalars are allowed */
-    if (!AGT_ROOT_IS_SCALAR(agt_arg0) || !AGT_ROOT_IS_SCALAR(agt_arg1))
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("arguments must resolve to a scalar")));
-
-    /* get the values */
-    agtv_lhs = get_ith_gtype_value_from_container(&agt_arg0->root, 0);
-    agtv_rhs = get_ith_gtype_value_from_container(&agt_arg1->root, 0);
-
-    /* only numbers are allowed */
-    if ((agtv_lhs->type != AGTV_INTEGER && agtv_lhs->type != AGTV_FLOAT &&
-         agtv_lhs->type != AGTV_NUMERIC) || (agtv_rhs->type != AGTV_INTEGER &&
-        agtv_rhs->type != AGTV_FLOAT && agtv_rhs->type != AGTV_NUMERIC))
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("arguments must resolve to a number")));
-
-    /* check for gtype null */
-    if (agtv_lhs->type == AGTV_NULL)
-        PG_RETURN_POINTER(agt_arg1);
-    if (agtv_rhs->type == AGTV_NULL)
-        PG_RETURN_POINTER(agt_arg0);
-
-    /* we want to maintain the precision of the most precise input */
-    if (agtv_lhs->type == AGTV_NUMERIC || agtv_rhs->type == AGTV_NUMERIC)
-    {
-        agtv_result.type = AGTV_NUMERIC;
-    }
-    else if (agtv_lhs->type == AGTV_FLOAT || agtv_rhs->type == AGTV_FLOAT)
-    {
-        agtv_result.type = AGTV_FLOAT;
-    }
+    gtype_value gtv;
+    if (is_gtype_numeric(lhs) || is_gtype_numeric(rhs))
+        gtv.type = AGTV_NUMERIC;
+    else if (is_gtype_float(lhs) || is_gtype_float(rhs))
+        gtv.type = AGTV_FLOAT;
     else
-    {
-        agtv_result.type = AGTV_INTEGER;
-    }
+        gtv.type = AGTV_INTEGER;
 
-    /* switch on the type to perform the correct addition */
-    switch(agtv_result.type)
+    Datum x, y;
+    switch(gtv.type)
     {
-        /* if the type is integer, they are obviously both ints */
         case AGTV_INTEGER:
-            agtv_result.val.int_value = DatumGetInt64(
-                DirectFunctionCall2(int8pl,
-                                    Int64GetDatum(agtv_lhs->val.int_value),
-                                    Int64GetDatum(agtv_rhs->val.int_value)));
-            break;
-        /* for float it can be either, float + float or float + int */
+            x = convert_to_scalar(gtype_to_int8_internal, lhs, "int");
+	    y = convert_to_scalar(gtype_to_int8_internal, rhs, "int");
+	    gtv.val.int_value = DatumGetInt64(DirectFunctionCall2(int8pl, x, y));
+	    break;
         case AGTV_FLOAT:
-        {
-            Datum dfl;
-            Datum dfr;
-            Datum dresult;
-            /* extract and convert the values as necessary */
-            /* float + float */
-            if (agtv_lhs->type == AGTV_FLOAT && agtv_rhs->type == AGTV_FLOAT)
-            {
-                dfl = Float8GetDatum(agtv_lhs->val.float_value);
-                dfr = Float8GetDatum(agtv_rhs->val.float_value);
-            }
-            /* float + int */
-            else
-            {
-                int64 ival;
-                float8 fval;
-                bool is_null;
-
-                ival = (agtv_lhs->type == AGTV_INTEGER) ?
-                    agtv_lhs->val.int_value : agtv_rhs->val.int_value;
-                fval = (agtv_lhs->type == AGTV_FLOAT) ?
-                    agtv_lhs->val.float_value : agtv_rhs->val.float_value;
-
-                dfl = Float8GetDatum(get_float_compatible_arg(Int64GetDatum(ival),
-                                                              INT8OID, "",
-                                                              &is_null));
-                dfr = Float8GetDatum(fval);
-            }
-            /* add the floats and set the result */
-            dresult = DirectFunctionCall2(float8pl, dfl, dfr);
-            agtv_result.val.float_value = DatumGetFloat8(dresult);
-        }
+            x = convert_to_scalar(gtype_to_float8_internal, lhs, "float");
+            y = convert_to_scalar(gtype_to_float8_internal, rhs, "float");
+	    gtv.val.float_value = DatumGetFloat8(DirectFunctionCall2(float8pl, x, y));
             break;
-        /*
-         * For numeric it can be either, numeric + numeric or numeric + float or
-         * numeric + int
-         */
         case AGTV_NUMERIC:
-        {
-            Datum dnl;
-            Datum dnr;
-            Datum dresult;
-            /* extract and convert the values as necessary */
-            /* numeric + numeric */
-            if (agtv_lhs->type == AGTV_NUMERIC && agtv_rhs->type == AGTV_NUMERIC)
-            {
-                dnl = NumericGetDatum(agtv_lhs->val.numeric);
-                dnr = NumericGetDatum(agtv_rhs->val.numeric);
-            }
-            /* numeric + float */
-            else if (agtv_lhs->type == AGTV_FLOAT || agtv_rhs->type == AGTV_FLOAT)
-            {
-                float8 fval;
-                Numeric nval;
-
-                fval = (agtv_lhs->type == AGTV_FLOAT) ?
-                    agtv_lhs->val.float_value : agtv_rhs->val.float_value;
-                nval = (agtv_lhs->type == AGTV_NUMERIC) ?
-                    agtv_lhs->val.numeric : agtv_rhs->val.numeric;
-
-                dnl = DirectFunctionCall1(float8_numeric, Float8GetDatum(fval));
-                dnr = NumericGetDatum(nval);
-            }
-            /* numeric + int */
-            else
-            {
-                int64 ival;
-                Numeric nval;
-
-                ival = (agtv_lhs->type == AGTV_INTEGER) ?
-                    agtv_lhs->val.int_value : agtv_rhs->val.int_value;
-                nval = (agtv_lhs->type == AGTV_NUMERIC) ?
-                    agtv_lhs->val.numeric : agtv_rhs->val.numeric;
-
-                dnl = DirectFunctionCall1(int8_numeric, Int64GetDatum(ival));
-                dnr = NumericGetDatum(nval);
-            }
-            /* add the numerics and set the result */
-            dresult = DirectFunctionCall2(numeric_add, dnl, dnr);
-            agtv_result.val.numeric = DatumGetNumeric(dresult);
-        }
-            break;
-
-        default:
-            elog(ERROR, "unexpected gtype");
+            x = convert_to_scalar(gtype_to_numeric_internal, lhs, "numeric");
+            y = convert_to_scalar(gtype_to_numeric_internal, rhs, "numeric");
+	    gtv.val.numeric = DatumGetNumeric(DirectFunctionCall2(numeric_add, x, y));
             break;
     }
-    /* return the result */
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 /*
