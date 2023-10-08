@@ -40,10 +40,12 @@
 #define STATE_DIMS(x) (ARR_DIMS(x)[0] - 1)
 #define CreateStateDatums(dim) palloc(sizeof(Datum) * (dim + 1))
 
-typedef float8 (*vector_dist_per_elem_calculation) (float8 distance, float8 lhs, float8 rhs);
-typedef float8 (*vector_dist_final) (float8 distance);
+typedef float8 (*vector_element_calc) (float8 distance, float8 lhs, float8 rhs);
+typedef float8 (*vector_final_calc) (float8 distance);
 
-float8 calc_l2_distance(float8 distance, float8 lhs, float8 rhs){
+gtype *vector_calc_vector(gtype *lhs, gtype *rhs, vector_element_calc calc, vector_final_calc final, bool return_scalar, char *function);
+static float8 calc_spherical_distance_final(float8 distance);
+static inline float8 calc_l2_distance(float8 distance, float8 lhs, float8 rhs){
      float8 diff = lhs - rhs;
      distance += diff * diff;
      return distance;
@@ -310,50 +312,12 @@ vector_out(Vector *vector)
     return buf;
 }
 
-static Datum vector_dist_function(gtype *lhs, gtype *rhs, vector_dist_per_elem_calculation per_elem,  vector_dist_final final, char *function) {
-    if (!GT_IS_VECTOR(lhs) || !GT_IS_VECTOR(rhs))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("%s requires vector arguments", function)));
-
-    if (AGT_ROOT_COUNT(lhs) != AGT_ROOT_COUNT(rhs))
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("different vector dimensions %i and %i", AGT_ROOT_COUNT(lhs), AGT_ROOT_COUNT(rhs))));
-
-    gtype_iterator *lhs_it, *rhs_it;
-    lhs_it = gtype_iterator_init(&lhs->root);
-    rhs_it = gtype_iterator_init(&rhs->root);
-    gtype_iterator_token type;
-
-    gtype_value lgtv, rgtv;
-    type = gtype_iterator_next(&lhs_it, &lgtv, true);
-    gtype_iterator_next(&rhs_it, &rgtv, true);
-
-    Assert (type == WGT_BEGIN_VECTOR);
-
-    float8 distance = 0.0;
-    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WGT_END_VECTOR) {
-        gtype_iterator_next(&rhs_it, &rgtv, true);
-
-        distance = per_elem(distance, lgtv.val.float_value, rgtv.val.float_value);
-    }
-
-    if (final != NULL)
-	    distance = final(distance);
-
-    gtype_value gtv = {
-        .type = AGTV_FLOAT,
-        .val.float_value = distance
-    };
-
-    return gtype_value_to_gtype(&gtv);
-}
-
 PG_FUNCTION_INFO_V1(l2_distance);
 Datum l2_distance(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
-    AG_RETURN_GTYPE_P(vector_dist_function(lhs, rhs, calc_l2_distance,  NULL, "l2_distance"));
+    AG_RETURN_GTYPE_P(vector_calc_vector(lhs, rhs, calc_l2_distance,  NULL, true, "l2_distance"));
 }
 
 PG_FUNCTION_INFO_V1(gtype_l2_squared_distance);
@@ -362,7 +326,7 @@ Datum gtype_l2_squared_distance(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     
-    AG_RETURN_GTYPE_P(vector_dist_function(lhs, rhs, calc_l2_distance, calc_l2_squared_distance_final, "l2_squared_distance"));
+    AG_RETURN_GTYPE_P(vector_calc_vector(lhs, rhs, calc_l2_distance, calc_l2_squared_distance_final, true, "l2_squared_distance"));
 }
 
 
@@ -371,7 +335,7 @@ Datum gtype_inner_product(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
-    AG_RETURN_GTYPE_P(vector_dist_function(lhs, rhs, calc_inner_product,  NULL, "inner_product"));
+    AG_RETURN_GTYPE_P(vector_calc_vector(lhs, rhs, calc_inner_product,  NULL, true, "inner_product"));
 }
 
 PG_FUNCTION_INFO_V1(gtype_negative_inner_product);
@@ -379,7 +343,7 @@ Datum gtype_negative_inner_product(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
-    AG_RETURN_GTYPE_P(vector_dist_function(lhs, rhs, calc_inner_product,  calc_negative_inner_product_final, "negative_inner_product"));
+    AG_RETURN_GTYPE_P(vector_calc_vector(lhs, rhs, calc_inner_product, calc_negative_inner_product_final, true, "negative_inner_product"));
 }
 
 
@@ -442,45 +406,17 @@ Datum gtype_spherical_distance(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
-    if (!GT_IS_VECTOR(lhs) || !GT_IS_VECTOR(rhs))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("<-> requires vector arguments")));
+    AG_RETURN_GTYPE_P(vector_calc_vector(lhs, rhs, calc_spherical_distance,  calc_spherical_distance_final, true, "spherical_distance"));
 
+}
 
-
-    if (AGT_ROOT_COUNT(lhs) != AGT_ROOT_COUNT(rhs))
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("different vector dimensions %i and %i", AGT_ROOT_COUNT(lhs), AGT_ROOT_COUNT(rhs))));
-
-    gtype_iterator *lhs_it, *rhs_it;
-    lhs_it = gtype_iterator_init(&lhs->root);
-    rhs_it = gtype_iterator_init(&rhs->root);
-    gtype_iterator_token type;
-
-    gtype_value lgtv, rgtv;
-    type = gtype_iterator_next(&lhs_it, &lgtv, true);
-    gtype_iterator_next(&rhs_it, &rgtv, true);
-
-    Assert (type == WGT_BEGIN_VECTOR);
-
-    float8 distance = 0.0;
-    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WGT_END_VECTOR) {
-        gtype_iterator_next(&rhs_it, &rgtv, true);
-
-        distance = calc_spherical_distance(distance, lgtv.val.float_value, rgtv.val.float_value);
-    }
-
+static float8 calc_spherical_distance_final(float8 distance) {
     if (distance > 1)
         distance = 1;
     else if (distance < -1)
         distance = -1;
 
-    gtype_value gtv = {
-        .type = AGTV_FLOAT,
-        .val.float_value = acos(distance) / M_PI
-    };
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
+    return acos(distance) / M_PI;
 }
 
 PG_FUNCTION_INFO_V1(gtype_l1_distance);
@@ -488,7 +424,7 @@ Datum gtype_l1_distance(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
-    AG_RETURN_GTYPE_P(vector_dist_function(lhs, rhs, calc_l1_distance,  NULL, "l1_distance"));
+    AG_RETURN_GTYPE_P(vector_calc_vector(lhs, rhs, calc_l1_distance,  NULL, true, "l1_distance"));
 }
 
 PG_FUNCTION_INFO_V1(gtype_dims);
@@ -539,55 +475,22 @@ Datum gtype_norm(PG_FUNCTION_ARGS) {
     PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
-
-gtype_value *gtype_vector_add(gtype *lhs, gtype *rhs) {
-
-    if (!GT_IS_VECTOR(lhs) || !GT_IS_VECTOR(rhs))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("+ requires vector arguments")));
-
-    if (AGT_ROOT_COUNT(lhs) != AGT_ROOT_COUNT(rhs))
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("different vector dimensions %i and %i", AGT_ROOT_COUNT(lhs), AGT_ROOT_COUNT(rhs))));
-
-    int dim = AGT_ROOT_COUNT(lhs);
-
-    gtype_iterator *lhs_it, *rhs_it;
-    lhs_it = gtype_iterator_init(&lhs->root);
-    rhs_it = gtype_iterator_init(&rhs->root);
-    gtype_iterator_token type;
-
-    gtype_value lgtv, rgtv;
-    type = gtype_iterator_next(&lhs_it, &lgtv, true);
-    gtype_iterator_next(&rhs_it, &rgtv, true);
-
-    Assert (type == WGT_BEGIN_VECTOR);
-
-    gtype_value *result = InitVectorGType(dim);
-    result->type = AGTV_VECTOR;
-    int i = 0;
-    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WGT_END_VECTOR) {
-        gtype_iterator_next(&rhs_it, &rgtv, true);
-
-        float8 lhs_f = lgtv.val.float_value;
-        float8 rhs_f = rgtv.val.float_value;
-
-        result->val.vector.x[i] = lhs_f + rhs_f;
-
-	if (isinf(result->val.vector.x[i]))
-            float_overflow_error();
-	i++;
-    }
-
-    return result;
+float8 vector_add(float8 distance, float8 lhs, float8 rhs) {
+    return lhs + rhs;
 }
 
+float8 vector_sub(float8 distance, float8 lhs, float8 rhs) {
+    return lhs - rhs;
+}
 
-gtype_value *gtype_vector_sub(gtype *lhs, gtype *rhs) {
+float8 vector_mul(float8 distance, float8 lhs, float8 rhs) {
+    return lhs * rhs;
+}
 
+gtype *vector_calc_vector(gtype *lhs, gtype *rhs, vector_element_calc calc, vector_final_calc final, bool return_scalar, char *function) {
     if (!GT_IS_VECTOR(lhs) || !GT_IS_VECTOR(rhs))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("- requires vector arguments")));
+                 errmsg("%s requires vector arguments", function)));
 
     if (AGT_ROOT_COUNT(lhs) != AGT_ROOT_COUNT(rhs))
             ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
@@ -606,69 +509,53 @@ gtype_value *gtype_vector_sub(gtype *lhs, gtype *rhs) {
 
     Assert (type == WGT_BEGIN_VECTOR);
 
-    gtype_value *result = InitVectorGType(dim);
-    result->type = AGTV_VECTOR;
+    gtype_value *result;
+    if (!return_scalar) {
+	result = InitVectorGType(dim);
+        result->type = AGTV_VECTOR;
+    }
+
     int i = 0;
+    float8 distance = 0.0;
     while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WGT_END_VECTOR) {
         gtype_iterator_next(&rhs_it, &rgtv, true);
 
-        float8 lhs_f = lgtv.val.float_value;
-        float8 rhs_f = rgtv.val.float_value;
+        if (!return_scalar) {
+            result->val.vector.x[i] = calc(0.0, lgtv.val.float_value, rgtv.val.float_value);
 
-        result->val.vector.x[i] = lhs_f - rhs_f;
-
-        if (isinf(result->val.vector.x[i]))
-            float_overflow_error();
+            if (isinf(result->val.vector.x[i]))
+                float_overflow_error();
+	} else {
+            distance = calc(distance, lgtv.val.float_value, rgtv.val.float_value);
+	}
         i++;
     }
 
-    return result;
+    if (!return_scalar)
+        return result;
+    else {
+        if (final != NULL)
+            distance = final(distance);
+
+         gtype_value gtv = {
+            .type = AGTV_FLOAT,
+            .val.float_value = distance
+        };
+
+        return gtype_value_to_gtype(&gtv);
+    }
+}
+
+gtype_value *gtype_vector_add(gtype *lhs, gtype *rhs) {
+    return vector_calc_vector(lhs, rhs, vector_add, NULL, false, "+");
+}
+
+gtype_value *gtype_vector_sub(gtype *lhs, gtype *rhs) {
+    return vector_calc_vector(lhs, rhs, vector_sub, NULL, false, "-");
 }
 
 gtype_value *gtype_vector_mul(gtype *lhs, gtype *rhs) {
-
-    if (!GT_IS_VECTOR(lhs) || !GT_IS_VECTOR(rhs))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("- requires vector arguments")));
-
-    if (AGT_ROOT_COUNT(lhs) != AGT_ROOT_COUNT(rhs))
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("different vector dimensions %i and %i", AGT_ROOT_COUNT(lhs), AGT_ROOT_COUNT(rhs))));
-
-    int dim = AGT_ROOT_COUNT(lhs);
-
-    gtype_iterator *lhs_it, *rhs_it;
-    lhs_it = gtype_iterator_init(&lhs->root);
-    rhs_it = gtype_iterator_init(&rhs->root);
-    gtype_iterator_token type;
-
-    gtype_value lgtv, rgtv;
-    type = gtype_iterator_next(&lhs_it, &lgtv, true);
-    gtype_iterator_next(&rhs_it, &rgtv, true);
-
-    Assert (type == WGT_BEGIN_VECTOR);
-
-    gtype_value *result = InitVectorGType(dim);
-    result->type = AGTV_VECTOR;
-    int i = 0;
-    while ((type = gtype_iterator_next(&lhs_it, &lgtv, false)) != WGT_END_VECTOR) {
-        gtype_iterator_next(&rhs_it, &rgtv, true);
-
-        float8 lhs_f = lgtv.val.float_value;
-        float8 rhs_f = rgtv.val.float_value;
-
-        result->val.vector.x[i] = lhs_f * rhs_f;
-
-        if (isinf(result->val.vector.x[i]))
-            float_overflow_error();
-
-	if (result->val.vector.x[i] == 0 && !(lhs_f == 0 || rhs_f == 0))
-            float_underflow_error();
-
-        i++;
-    }
-
-    return result;
+    return vector_calc_vector(lhs, rhs, vector_mul, NULL, false, "*");
 }
 
 
