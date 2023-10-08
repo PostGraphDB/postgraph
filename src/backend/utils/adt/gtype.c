@@ -4394,13 +4394,6 @@ PG_FUNCTION_INFO_V1(gtype_collect_aggtransfn);
 
 Datum gtype_collect_aggtransfn(PG_FUNCTION_ARGS)
 {
-    gtype_in_state *castate;
-    int nargs;
-    Datum *args;
-    bool *nulls;
-    Oid *types;
-    MemoryContext old_mcxt;
-
     /* verify we are in an aggregate context */
     Assert(AggCheckCallContext(fcinfo, NULL) == AGG_CONTEXT_AGGREGATE);
 
@@ -4408,82 +4401,39 @@ Datum gtype_collect_aggtransfn(PG_FUNCTION_ARGS)
      * Switch to the correct aggregate context. Otherwise, the data added to the
      * array will be lost.
      */
-    old_mcxt = MemoryContextSwitchTo(fcinfo->flinfo->fn_mcxt);
+    MemoryContext old_mcxt = MemoryContextSwitchTo(fcinfo->flinfo->fn_mcxt);
+
 
     /* if this is the first invocation, create the state */
+    gtype_in_state *castate;
     if (PG_ARGISNULL(0)) {
         castate = palloc0(sizeof(gtype_in_state));
-        memset(castate, 0, sizeof(gtype_in_state));
 
         castate->res = push_gtype_value(&castate->parse_state, WGT_BEGIN_ARRAY, NULL);
     } else {
         castate = (gtype_in_state *) PG_GETARG_POINTER(0);
     }
 
-    /*
-     * Extract the variadic args, of which there should only be one.
-     * Insert the arg into the array, unless it is null. Nulls are
-     * skipped over.
-     */
-    if (PG_ARGISNULL(1))
-        nargs = 0;
-    else
-        nargs = extract_variadic_args(fcinfo, 1, true, &args, &types, &nulls);
+    if (!PG_ARGISNULL(1)) {
+        gtype *gt = AG_GET_ARG_GTYPE_P(1);
 
-    if (nargs == 1) {
-        /* only add non null values */
-        if (nulls[0] == false) {
-            /* we need to check for gtype null and skip it, if found */
-            if (types[0] == GTYPEOID) {
-                gtype *agt_arg;
-                gtype_value *agtv_value;
-
-                /* get the gtype argument */
-                agt_arg = DATUM_GET_GTYPE_P(args[0]);
-                agtv_value = get_ith_gtype_value_from_container(&agt_arg->root, 0);
-                /* add the arg if not gtype null */
-                if (agtv_value->type != AGTV_NULL)
-                    add_gtype(args[0], nulls[0], castate, types[0], false);
-            } else {
-                add_gtype(args[0], nulls[0], castate, types[0], false);
-            }
-        }
-    } else if (nargs > 1) {
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("collect() invalid number of arguments")));
+            
+        add_gtype(gt, false, castate, GTYPEOID, false);
     }
 
-    /* restore the old context */
     MemoryContextSwitchTo(old_mcxt);
 
-    /* return the state */
     PG_RETURN_POINTER(castate);
 }
 
 PG_FUNCTION_INFO_V1(gtype_collect_aggfinalfn);
 
 Datum gtype_collect_aggfinalfn(PG_FUNCTION_ARGS) {
-    gtype_in_state *castate;
-    MemoryContext old_mcxt;
-
-    /* verify we are in an aggregate context */
     Assert(AggCheckCallContext(fcinfo, NULL) == AGG_CONTEXT_AGGREGATE);
 
-    /*
-     * Get the state. There are cases where the age_collect_aggtransfn never
-     * gets called. So, check to see if this is one.
-     */
-    if (PG_ARGISNULL(0)) {
-        /* create and initialize the state */
-        castate = palloc0(sizeof(gtype_in_state));
-        memset(castate, 0, sizeof(gtype_in_state));
-        /* start the array */
-        castate->res = push_gtype_value(&castate->parse_state, WGT_BEGIN_ARRAY, NULL);
-    } else {
-        castate = (gtype_in_state *) PG_GETARG_POINTER(0);
-    }
+    gtype_in_state *castate = (gtype_in_state *) PG_GETARG_POINTER(0);
 
-    old_mcxt = MemoryContextSwitchTo(fcinfo->flinfo->fn_mcxt);
+    MemoryContext old_mcxt = MemoryContextSwitchTo(fcinfo->flinfo->fn_mcxt);
 
     castate->res = push_gtype_value(&castate->parse_state, WGT_END_ARRAY, NULL);
 

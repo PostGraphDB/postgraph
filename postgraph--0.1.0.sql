@@ -3739,7 +3739,8 @@ AS 'MODULE_PATHNAME', 'gtype_collect_aggtransfn';
 CREATE FUNCTION collect_aggfinalfn (internal) 
 RETURNS gtype 
 LANGUAGE c 
-IMMUTABLE 
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME', 'gtype_collect_aggfinalfn';
 
