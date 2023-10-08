@@ -4307,64 +4307,34 @@ PG_FUNCTION_INFO_V1(gtype_stddev_samp_final);
 
 Datum gtype_stddev_samp_final(PG_FUNCTION_ARGS)
 {
-    Datum result;
-    PGFunction func;
-    gtype_value agtv_float;
+    PGFunction func = float8_stddev_samp;
+    Datum result = (*func) (fcinfo);
 
-    /* we can't use DirectFunctionCall1 as it errors for NULL values */
-    func = float8_stddev_samp;
-    result = (*func) (fcinfo);
-
-    agtv_float.type = AGTV_FLOAT;
-
-    /*
-     * Check to see if float8_stddev_samp returned null. If so, we need to
-     * return a gtype float 0.
-     */
     if (fcinfo->isnull)
-    {
-        /* we need to clear the flag */
-        fcinfo->isnull = false;
-        agtv_float.val.float_value = 0.0;
-    }
-    else
-    {
-        agtv_float.val.float_value = DatumGetFloat8(result);
-    }
+        PG_RETURN_NULL();
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_float));
+    gtype_value gtv;
+    gtv.type = AGTV_FLOAT;
+    gtv.val.float_value = DatumGetFloat8(result);
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_stddev_pop_final);
 
 Datum gtype_stddev_pop_final(PG_FUNCTION_ARGS)
 {
-    Datum result;
-    PGFunction func;
-    gtype_value agtv_float;
+    PGFunction func = float8_stddev_pop;
+    Datum result = (*func) (fcinfo);
 
-    /* we can't use DirectFunctionCall1 as it errors for NULL values */
-    func = float8_stddev_pop;
-    result = (*func) (fcinfo);
-
-    agtv_float.type = AGTV_FLOAT;
-
-    /*
-     * Check to see if float8_stddev_pop returned null. If so, we need to
-     * return a gtype float 0.
-     */
     if (fcinfo->isnull)
-    {
-        /* we need to clear the flag */
-        fcinfo->isnull = false;
-        agtv_float.val.float_value = 0.0;
-    }
-    else
-    {
-        agtv_float.val.float_value = DatumGetFloat8(result);
-    }
+        PG_RETURN_NULL();
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_float));
+    gtype_value gtv;
+    gtv.type = AGTV_FLOAT;
+    gtv.val.float_value = DatumGetFloat8(result);
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_max_trans);

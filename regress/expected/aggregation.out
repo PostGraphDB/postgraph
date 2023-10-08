@@ -235,13 +235,13 @@ $$) AS (stDev gtype, stDevP gtype);
 SELECT * FROM cypher('UCSC', $$ RETURN stDev(NULL) $$) AS (stDev gtype);
  stdev 
 -------
- 0.0
+ 
 (1 row)
 
 SELECT * FROM cypher('UCSC', $$ RETURN stDevP(NULL) $$) AS (stDevP gtype);
  stdevp 
 --------
- 0.0
+ 
 (1 row)
 
 --
