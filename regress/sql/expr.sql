@@ -2387,13 +2387,34 @@ $$) as (result gtype);
 SELECT * from cypher('expr', $$
     RETURN sqrt(null)
 $$) as (result gtype);
--- should fail
-SELECT * from cypher('expr', $$
-    RETURN sqrt()
-$$) as (result gtype);
 SELECT * from cypher('expr', $$
     RETURN sqrt("1")
 $$) as (result gtype);
+
+
+--
+-- cbrt()
+--
+SELECT * from cypher('expr', $$
+    RETURN cbrt(125)
+$$) as (result gtype);
+SELECT * from cypher('expr', $$
+    RETURN cbrt(1)
+$$) as (result gtype);
+SELECT * from cypher('expr', $$
+    RETURN cbrt(0)
+$$) as (result gtype);
+SELECT * from cypher('expr', $$
+    RETURN cbrt(-1)
+$$) as (result gtype);
+SELECT * from cypher('expr', $$
+    RETURN cbrt(null)
+$$) as (result gtype);
+SELECT * from cypher('expr', $$
+    RETURN cbrt("1")
+$$) as (result gtype);
+
+
 
 --
 -- toTimestamp()

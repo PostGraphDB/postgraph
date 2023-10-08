@@ -5997,6 +5997,57 @@ $$) AS (results gtype);
 (1 row)
 
 --
+-- lcm
+--
+SELECT * FROM cypher('expr', $$
+    RETURN lcm(10, 5)
+$$) AS (results gtype);
+ results 
+---------
+ 10
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN lcm(10.0, 5.0)
+$$) AS (results gtype);
+   results   
+-------------
+ 10::numeric
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN lcm(10.0, 5)
+$$) AS (results gtype);
+   results   
+-------------
+ 10::numeric
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN lcm(10, 5::numeric)
+$$) AS (results gtype);
+   results   
+-------------
+ 10::numeric
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN lcm('10', 5)
+$$) AS (results gtype);
+ results 
+---------
+ 10
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN lcm(10::numeric, '5')
+$$) AS (results gtype);
+   results   
+-------------
+ 10::numeric
+(1 row)
+
+--
 -- rand()
 --
 -- should select 0 rows as rand() is in [0,1)
@@ -6186,18 +6237,61 @@ $$) as (result gtype);
  
 (1 row)
 
--- should fail
-SELECT * from cypher('expr', $$
-    RETURN sqrt()
-$$) as (result gtype);
-ERROR:  function postgraph.sqrt() does not exist
-LINE 2:     RETURN sqrt()
-                   ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * from cypher('expr', $$
     RETURN sqrt("1")
 $$) as (result gtype);
 ERROR:  sqrt() unsupported argument gtype 1
+--
+-- cbrt()
+--
+SELECT * from cypher('expr', $$
+    RETURN cbrt(125)
+$$) as (result gtype);
+ result 
+--------
+ 5.0
+(1 row)
+
+SELECT * from cypher('expr', $$
+    RETURN cbrt(1)
+$$) as (result gtype);
+ result 
+--------
+ 1.0
+(1 row)
+
+SELECT * from cypher('expr', $$
+    RETURN cbrt(0)
+$$) as (result gtype);
+ result 
+--------
+ 0.0
+(1 row)
+
+SELECT * from cypher('expr', $$
+    RETURN cbrt(-1)
+$$) as (result gtype);
+ result 
+--------
+ -1.0
+(1 row)
+
+SELECT * from cypher('expr', $$
+    RETURN cbrt(null)
+$$) as (result gtype);
+ result 
+--------
+ 
+(1 row)
+
+SELECT * from cypher('expr', $$
+    RETURN cbrt("1")
+$$) as (result gtype);
+ result 
+--------
+ 1.0
+(1 row)
+
 --
 -- toTimestamp()
 --

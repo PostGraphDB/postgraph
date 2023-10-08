@@ -3932,6 +3932,20 @@ Datum gtype_sqrt(PG_FUNCTION_ARGS)
     }
 }
 
+PG_FUNCTION_INFO_V1(gtype_cbrt);
+Datum
+gtype_cbrt(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    gtype_value gtv_result;
+    gtv_result.type = AGTV_FLOAT;
+    gtv_result.val.float_value =
+        DatumGetFloat8(DirectFunctionCall1(dcbrt, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
+}
+
+
 /*
  * Converts an gtype object or array to a binary gtype_value.
  */
