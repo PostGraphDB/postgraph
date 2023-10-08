@@ -3640,25 +3640,21 @@ PG_FUNCTION_INFO_V1(gtype_ceil);
 
 Datum gtype_ceil(PG_FUNCTION_ARGS)
 {
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    bool is_null = true;
-
-    if (is_gtype_null(agt))
-        PG_RETURN_NULL();
-
-    if (is_gtype_numeric(agt)) {
-        Numeric arg = get_numeric_compatible_arg(GTYPE_P_GET_DATUM(agt), GTYPEOID, "ceil", &is_null, NULL);
-
-        Numeric result = DatumGetNumeric(DirectFunctionCall1(numeric_ceil, NumericGetDatum(arg)));
-
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+    
+    if (is_gtype_numeric(gt)) {
+        Datum arg = convert_to_scalar(gtype_to_numeric_internal, gt, "numeric");
+    
+        Numeric result = DatumGetNumeric(DirectFunctionCall1(numeric_ceil, arg));
+    
         gtype_value agtv = { .type = AGTV_NUMERIC, .val.numeric = result };
-
+            
         AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
     } else {
-        float8 arg = get_float_compatible_arg(GTYPE_P_GET_DATUM(agt), GTYPEOID, "ceil", &is_null);
+        Datum arg = convert_to_scalar(gtype_to_float8_internal, gt, "float");
     
-        float8 result = DatumGetFloat8(DirectFunctionCall1(dceil, Float8GetDatum(arg)));
-    
+        float8 result = DatumGetFloat8(DirectFunctionCall1(dceil, arg));
+        
         gtype_value agtv = { .type = AGTV_FLOAT, .val.float_value = result };
 
         AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
@@ -3669,27 +3665,23 @@ PG_FUNCTION_INFO_V1(gtype_floor);
 
 Datum gtype_floor(PG_FUNCTION_ARGS)
 {
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    bool is_null = true;
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
 
-    if (is_gtype_null(agt))
-        PG_RETURN_NULL();
+    if (is_gtype_numeric(gt)) {
+        Datum arg = convert_to_scalar(gtype_to_numeric_internal, gt, "numeric");
 
-    if (is_gtype_numeric(agt)) {
-        Numeric arg = get_numeric_compatible_arg(GTYPE_P_GET_DATUM(agt), GTYPEOID, "floor", &is_null, NULL);
-
-        Numeric result = DatumGetNumeric(DirectFunctionCall1(numeric_floor, NumericGetDatum(arg)));
-                                          
+        Numeric result = DatumGetNumeric(DirectFunctionCall1(numeric_floor, arg));
+        
         gtype_value agtv = { .type = AGTV_NUMERIC, .val.numeric = result };
-
+            
         AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
     } else {
-        float8 arg = get_float_compatible_arg(GTYPE_P_GET_DATUM(agt), GTYPEOID, "floor", &is_null);
-    
-        float8 result = DatumGetFloat8(DirectFunctionCall1(dfloor, Float8GetDatum(arg)));
-    
-        gtype_value agtv = { .type = AGTV_FLOAT, .val.float_value = result };
+        Datum arg = convert_to_scalar(gtype_to_float8_internal, gt, "float");
 
+        float8 result = DatumGetFloat8(DirectFunctionCall1(dfloor, arg));
+        
+        gtype_value agtv = { .type = AGTV_FLOAT, .val.float_value = result };
+        
         AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
     }
 }

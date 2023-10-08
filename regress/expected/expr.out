@@ -5932,11 +5932,19 @@ ERROR:  abs() unsupported argument gtype 1
 SELECT * FROM cypher('expr', $$
     RETURN ceil("1")
 $$) AS (results gtype);
-ERROR:  ceil() unsupported argument gtype 1
+ results 
+---------
+ 1.0
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN floor("1")
 $$) AS (results gtype);
-ERROR:  floor() unsupported argument gtype 1
+ results 
+---------
+ 1.0
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN round("1")
 $$) AS (results gtype);
