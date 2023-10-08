@@ -2757,110 +2757,15 @@ PG_FUNCTION_INFO_V1(gtype_replace);
 
 Datum gtype_replace(PG_FUNCTION_ARGS)
 {
-    int nargs;
-    Datum *args;
-    Datum arg;
-    bool *nulls;
-    Oid *types;
-    gtype_value agtv_result;
-    text *param = NULL;
-    text *text_string = NULL;
-    text *text_search = NULL;
-    text *text_replace = NULL;
-    text *text_result = NULL;
-    char *string = NULL;
-    int string_len;
-    Oid type;
-    int i;
+    Datum x = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(0), "text");
+    Datum y = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(1), "text");
+    Datum z = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(2), "text");
 
-    /* extract argument values */
-    nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
+    Datum d = DirectFunctionCall3Coll(replace_text, DEFAULT_COLLATION_OID, x, y, z);
 
-    /* check number of args */
-    if (nargs != 3)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("replace() invalid number of arguments")));
+    gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(DatumGetTextP(d)) }};
 
-    /* check for a null string, search, and replace */
-    if (nargs < 0 || nulls[0] || nulls[1] || nulls[2])
-        PG_RETURN_NULL();
-
-    /*
-     * replace() supports text, cstring, or the gtype string input for the
-     * string and delimiter values
-     */
-
-    for (i = 0; i < 3; i++)
-    {
-        arg = args[i];
-        type = types[i];
-
-        if (type != GTYPEOID)
-        {
-            if (type == CSTRINGOID)
-                param = cstring_to_text(DatumGetCString(arg));
-            else if (type == TEXTOID)
-                param = DatumGetTextPP(arg);
-            else
-                ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                                errmsg("replace() unsupported argument type %d",
-                                       type)));
-        }
-        else
-        {
-            gtype *agt_arg;
-            gtype_value *agtv_value;
-
-            /* get the gtype argument */
-            agt_arg = DATUM_GET_GTYPE_P(arg);
-
-            if (!AGT_ROOT_IS_SCALAR(agt_arg))
-                ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                                errmsg("replace() only supports scalar arguments")));
-
-            agtv_value = get_ith_gtype_value_from_container(&agt_arg->root, 0);
-
-            /* check for gtype null */
-            if (agtv_value->type == AGTV_NULL)
-                PG_RETURN_NULL();
-            if (agtv_value->type == AGTV_STRING)
-                param = cstring_to_text_with_len(agtv_value->val.string.val,
-                                                 agtv_value->val.string.len);
-            else
-                ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                                errmsg("replace() unsupported argument gtype %d",
-                                       agtv_value->type)));
-        }
-        if (i == 0)
-            text_string = param;
-        if (i == 1)
-            text_search = param;
-        if (i == 2)
-            text_replace = param;
-    }
-
-    /*
-     * We need the strings as a text strings so that we can let PG deal with
-     * multibyte characters in the string.
-     */
-    text_result = DatumGetTextPP(DirectFunctionCall3Coll(
-        replace_text, C_COLLATION_OID, PointerGetDatum(text_string),
-        PointerGetDatum(text_search), PointerGetDatum(text_replace)));
-
-    /* convert it back to a cstring */
-    string = text_to_cstring(text_result);
-    string_len = strlen(string);
-
-    /* if we have an empty string, return null */
-    if (string_len == 0)
-        PG_RETURN_NULL();
-
-    /* build the result */
-    agtv_result.type = AGTV_STRING;
-    agtv_result.val.string.val = string;
-    agtv_result.val.string.len = string_len;
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 /*

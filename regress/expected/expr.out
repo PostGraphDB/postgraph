@@ -4773,7 +4773,7 @@ SELECT * FROM cypher('expr', $$
 $$) AS (results gtype);
  results 
 ---------
- 
+ ""
 (1 row)
 
 SELECT * FROM cypher('expr', $$
@@ -4781,7 +4781,7 @@ SELECT * FROM cypher('expr', $$
 $$) AS (results gtype);
  results 
 ---------
- 
+ ""
 (1 row)
 
 SELECT * FROM cypher('expr', $$
@@ -4789,7 +4789,7 @@ SELECT * FROM cypher('expr', $$
 $$) AS (results gtype);
  results 
 ---------
- 
+ ""
 (1 row)
 
 -- should fail
@@ -4817,11 +4817,19 @@ HINT:  No function matches the given name and argument types. You might need to 
 SELECT * FROM cypher('expr', $$
     RETURN replace("Hello", "e", 1)
 $$) AS (results gtype);
-ERROR:  replace() unsupported argument gtype 3
+ results 
+---------
+ "H1llo"
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN replace("Hello", 1, "e")
 $$) AS (results gtype);
-ERROR:  replace() unsupported argument gtype 3
+ results 
+---------
+ "Hello"
+(1 row)
+
 --
 -- sin, cos, tan, cot
 --
