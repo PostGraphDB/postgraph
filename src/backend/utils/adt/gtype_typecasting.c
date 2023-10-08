@@ -73,7 +73,6 @@ Datum gtype_to_cidr_internal(gtype_value *agtv);
 Datum gtype_to_macaddr_internal(gtype_value *agtv);
 Datum gtype_to_macaddr8_internal(gtype_value *agtv);
 Datum gtype_to_float4_internal(gtype_value *agtv);
-Datum gtype_to_text_internal(gtype_value *agtv);
 
 static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqltype);
 

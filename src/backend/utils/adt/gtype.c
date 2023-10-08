@@ -133,7 +133,6 @@ static void add_indent(StringInfo out, bool indent, int level);
 static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqltype);
 static bool gtype_extract_scalar(gtype_container *agtc, gtype_value *res);
 static gtype_value *execute_array_access_operator_internal(gtype *array, int64 array_index);
-/* graph entity retrieval */
 static Numeric get_numeric_compatible_arg(Datum arg, Oid type, char *funcname, bool *is_null, enum gtype_value_type *ag_type);
 static int64 get_int64_from_int_datums(Datum d, Oid type, char *funcname, bool *is_agnull);
 static gtype_iterator *get_next_object_key(gtype_iterator *it, gtype_container *agtc, gtype_value *key);
@@ -1248,19 +1247,6 @@ static void datum_to_gtype(Datum val, bool is_null, gtype_in_state *result, agt_
         case AGT_TYPE_GTYPE:
         case AGT_TYPE_JSONB:
         {
-		/*
-            if (GT_IS_VECTOR(DATUM_GET_GTYPE_P(val))) {
-                gtype_value *obj = &result->parse_state->cont_val;
-		gtype *vector = DATUM_GET_GTYPE_P(val);
-                int idx = obj->val.object.num_pairs;
-		obj->val.object.pairs[idx] = vector;
-
-		obj->val.object.num_pairs++;
-		result->parse_state.last_updated_value = vector;
-   		    ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                                 errmsg("vector handle")));
-            }
-*/
             gtype *jsonb = DATUM_GET_GTYPE_P(val);
             gtype_iterator *it;
 
@@ -2057,9 +2043,7 @@ Datum gtype_in_operator(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(gtype_string_match_starts_with);
-/*
- * Execution function for STARTS WITH
- */
+// STARTS WITH
 Datum gtype_string_match_starts_with(PG_FUNCTION_ARGS)
 {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
@@ -2650,84 +2634,28 @@ PG_FUNCTION_INFO_V1(gtype_right);
 
 Datum gtype_right(PG_FUNCTION_ARGS)
 {
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+    Datum x = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(0), "text");
+    Datum y = convert_to_scalar(gtype_to_int8_internal, AG_GET_ARG_GTYPE_P(1), "int");
 
-    if (!AGT_ROOT_IS_SCALAR(agt))
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("right() only supports scalar arguments")));
+    Datum d = DirectFunctionCall2(text_right, x, y);
 
-    gtype_value *agtv_value = get_ith_gtype_value_from_container(&agt->root, 0);
+    gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(d) }};
 
-    text *text_string;
-    if (agtv_value->type == AGTV_NULL)
-        PG_RETURN_NULL();
-    else if (agtv_value->type == AGTV_STRING)
-        text_string = cstring_to_text_with_len(agtv_value->val.string.val, agtv_value->val.string.len);
-    else
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("right() unsupported argument gtype %d", agtv_value->type)));
-
-    agt = AG_GET_ARG_GTYPE_P(1);
-    if (!AGT_ROOT_IS_SCALAR(agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("right() only supports scalar arguments")));
-
-    agtv_value = get_ith_gtype_value_from_container(&agt->root, 0);
-
-    if (agtv_value->type != AGTV_INTEGER)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("right() unsupported argument gtype %d", agtv_value->type)));
-
-    text_string = DatumGetTextPP(DirectFunctionCall2(text_right,
-                                                     PointerGetDatum(text_string),
-                                                     Int64GetDatum(agtv_value->val.int_value)));
-
-    gtype_value agtv_result = { .type = AGTV_STRING,
-                                 .val.string = { VARSIZE(text_string), text_to_cstring(text_string) }};
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_left);
 
 Datum gtype_left(PG_FUNCTION_ARGS)
 {
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+    Datum x = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(0), "text");
+    Datum y = convert_to_scalar(gtype_to_int8_internal, AG_GET_ARG_GTYPE_P(1), "int");
 
-    if (!AGT_ROOT_IS_SCALAR(agt))
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("left() only supports scalar arguments")));
+    Datum d = DirectFunctionCall2(text_left, x, y);
 
-    gtype_value *agtv_value = get_ith_gtype_value_from_container(&agt->root, 0);
+    gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(d) }};
 
-    text *text_string;
-    if (agtv_value->type == AGTV_NULL)
-        PG_RETURN_NULL();
-    else if (agtv_value->type == AGTV_STRING)
-        text_string = cstring_to_text_with_len(agtv_value->val.string.val, agtv_value->val.string.len);
-    else
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("left() unsupported argument gtype %d", agtv_value->type)));
-
-    agt = AG_GET_ARG_GTYPE_P(1);
-    if (!AGT_ROOT_IS_SCALAR(agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("left() only supports scalar arguments")));
-
-    agtv_value = get_ith_gtype_value_from_container(&agt->root, 0); 
-
-    if (agtv_value->type != AGTV_INTEGER)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("left() unsupported argument gtype %d", agtv_value->type)));
-
-    text_string = DatumGetTextPP(DirectFunctionCall2(text_left,
-                                                     PointerGetDatum(text_string),
-                                                     Int64GetDatum(agtv_value->val.int_value)));
-
-    gtype_value agtv_result = { .type = AGTV_STRING,
-                                 .val.string = { VARSIZE(text_string), text_to_cstring(text_string) }};
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_substring);
@@ -2751,37 +2679,17 @@ Datum gtype_substring(PG_FUNCTION_ARGS)
     /* extract argument values */
     nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
 
-    /* check number of args */
-    if (nargs < 2 || nargs > 3)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("substring() invalid number of arguments")));
-
-    /* check for null */
-    if (nargs < 0 || nulls[0])
+    if (nulls[0] || nulls[1])
         PG_RETURN_NULL();
 
     /* neither offset or length can be null if there is a valid string */
-    if ((nargs == 2 && nulls[1]) ||
-        (nargs == 3 && nulls[2]))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("substring() offset or length cannot be null")));
+    if ((nargs == 3 && nulls[2]))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("substring() offset or length cannot be null")));
 
     /* substring() supports text, cstring, or the gtype string input */
     arg = args[0];
     type = types[0];
 
-    if (type != GTYPEOID)
-    {
-        if (type == CSTRINGOID)
-            text_string = cstring_to_text(DatumGetCString(arg));
-        else if (type == TEXTOID)
-            text_string = DatumGetTextPP(arg);
-        else
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("substring() unsupported argument type %d",
-                                   type)));
-    }
-    else
     {
         gtype *agt_arg;
         gtype_value *agtv_value;
@@ -2799,8 +2707,7 @@ Datum gtype_substring(PG_FUNCTION_ARGS)
         if (agtv_value->type == AGTV_NULL)
             PG_RETURN_NULL();
         if (agtv_value->type == AGTV_STRING)
-            text_string = cstring_to_text_with_len(agtv_value->val.string.val,
-                                                   agtv_value->val.string.len);
+            text_string = cstring_to_text_with_len(agtv_value->val.string.val, agtv_value->val.string.len);
         else
             ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                             errmsg("substring() unsupported argument gtype %d",
@@ -2816,21 +2723,6 @@ Datum gtype_substring(PG_FUNCTION_ARGS)
         arg = args[i];
         type = types[i];
 
-        if (type != GTYPEOID)
-        {
-            if (type == INT2OID)
-                param = (int64) DatumGetInt16(arg);
-            else if (type == INT4OID)
-                param = (int64) DatumGetInt32(arg);
-            else if (type == INT8OID)
-                param = (int64) DatumGetInt64(arg);
-            else
-                ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                                errmsg("substring() unsupported argument type %d",
-                                       type)));
-        }
-        else
-        {
             gtype *agt_arg;
             gtype_value *agtv_value;
 
@@ -2850,7 +2742,6 @@ Datum gtype_substring(PG_FUNCTION_ARGS)
                                        agtv_value->type)));
 
             param = agtv_value->val.int_value;
-        }
 
         if (i == 1)
             string_start = param;

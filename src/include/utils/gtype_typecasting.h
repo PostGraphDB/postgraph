@@ -31,6 +31,7 @@ Datum gtype_to_int2_internal(gtype_value *agtv);
 Datum gtype_to_float8_internal(gtype_value *agtv);
 Datum gtype_to_numeric_internal(gtype_value *agtv);
 Datum gtype_to_string_internal(gtype_value *agtv);
+Datum gtype_to_text_internal(gtype_value *agtv);
 Datum gtype_to_date_internal(gtype_value *agtv);
 Datum gtype_to_time_internal(gtype_value *agtv);
 Datum gtype_to_timetz_internal(gtype_value *agtv);

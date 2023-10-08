@@ -4521,7 +4521,11 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN substring("123456789", null)
 $$) AS (results gtype);
-ERROR:  substring() offset or length cannot be null
+ results 
+---------
+ 
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN substring("123456789", 0, -1)
 $$) AS (results gtype);
