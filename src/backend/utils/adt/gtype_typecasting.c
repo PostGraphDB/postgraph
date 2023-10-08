@@ -88,6 +88,26 @@ Datum convert_to_scalar(coearce_function func, gtype *agt, char *type) {
     return d;
 }
 
+
+/*
+ * gtype to and from graphid
+ */
+PG_FUNCTION_INFO_V1(graphid_to_gtype);
+
+Datum graphid_to_gtype(PG_FUNCTION_ARGS)
+{
+    PG_RETURN_POINTER(integer_to_gtype(AG_GETARG_GRAPHID(0)));
+}
+
+PG_FUNCTION_INFO_V1(gtype_to_graphid);
+
+Datum gtype_to_graphid(PG_FUNCTION_ARGS)
+{
+    PG_RETURN_INT16(DatumGetInt64(convert_to_scalar(gtype_to_int8_internal, AG_GET_ARG_GTYPE_P(0), "integer")));
+}
+
+
+
 /*
  * gtype to other gtype functions
  */
@@ -165,6 +185,42 @@ gtype_tostring(PG_FUNCTION_ARGS) {
     PG_FREE_IF_COPY(agt, 0);
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
+}
+
+PG_FUNCTION_INFO_V1(gtype_toboolean);
+Datum
+gtype_toboolean(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (!AGT_ROOT_IS_SCALAR(agt))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("toBoolean() only supports scalar arguments")));
+
+    gtype_value *agtv_value = get_ith_gtype_value_from_container(&agt->root, 0);
+
+    bool result;
+    if (agtv_value->type == AGTV_BOOL) {
+            result = agtv_value->val.boolean;
+    } else if (agtv_value->type == AGTV_STRING) {
+        int len = agtv_value->val.string.len;
+
+        char *string = agtv_value->val.string.val;
+
+        if (len == 4 && !pg_strncasecmp(string, "true", len))
+            result = true;
+        else if (len == 5 && !pg_strncasecmp(string, "false", len))
+            result = false;
+        else
+            PG_RETURN_NULL();
+    } else {
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("toBoolean() unsupported argument gtype %d",
+                               agtv_value->type)));
+    }
+
+    gtype_value agtv_result = { .type = AGTV_BOOL, .val.boolean = result };
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
 }
 
 PG_FUNCTION_INFO_V1(gtype_totimestamp);

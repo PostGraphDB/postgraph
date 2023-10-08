@@ -2282,9 +2282,7 @@ Datum gtype_head(PG_FUNCTION_ARGS)
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("head() argument must resolve to a list")));
 
-    int count = AGT_ROOT_COUNT(agt);
-
-    if (count == 0)
+    if (AGT_ROOT_COUNT(agt) == 0)
         PG_RETURN_NULL();
 
     gtype_value *agtv_result = get_ith_gtype_value_from_container(&agt->root, 0);
@@ -2296,70 +2294,21 @@ PG_FUNCTION_INFO_V1(gtype_last);
 
 Datum gtype_last(PG_FUNCTION_ARGS)
 {
-    gtype *agt_arg = NULL;
-    gtype_value *agtv_result = NULL;
-    int count;
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
 
-    /* check for null */
-    if (PG_ARGISNULL(0))
-        PG_RETURN_NULL();
-
-    agt_arg = AG_GET_ARG_GTYPE_P(0);
-    /* check for an array */
-    if (!AGT_ROOT_IS_ARRAY(agt_arg) || AGT_ROOT_IS_SCALAR(agt_arg))
+    if (!AGT_ROOT_IS_ARRAY(gt) || AGT_ROOT_IS_SCALAR(gt))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("last() argument must resolve to a list or null")));
 
-    count = AGT_ROOT_COUNT(agt_arg);
-
-    /* if we have an empty list, return null */
-    if (count == 0)
+    if (0 == AGT_ROOT_COUNT(gt))
         PG_RETURN_NULL();
 
-    /* get the last element of the array */
-    agtv_result = get_ith_gtype_value_from_container(&agt_arg->root, count -1);
+    gtype_value *gtv = get_ith_gtype_value_from_container(&gt->root, AGT_ROOT_COUNT(gt) - 1);
 
-    /* if it is AGTV_NULL, return null */
-    if (agtv_result->type == AGTV_NULL)
+    if (gtv->type == AGTV_NULL)
         PG_RETURN_NULL();
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(agtv_result));
-}
-
-PG_FUNCTION_INFO_V1(gtype_toboolean);
-Datum
-gtype_toboolean(PG_FUNCTION_ARGS) {
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-
-    if (!AGT_ROOT_IS_SCALAR(agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("toBoolean() only supports scalar arguments")));
-
-    gtype_value *agtv_value = get_ith_gtype_value_from_container(&agt->root, 0);
-
-    bool result;
-    if (agtv_value->type == AGTV_BOOL) {
-            result = agtv_value->val.boolean;
-    } else if (agtv_value->type == AGTV_STRING) {
-        int len = agtv_value->val.string.len;
-
-        char *string = agtv_value->val.string.val;
-
-        if (len == 4 && !pg_strncasecmp(string, "true", len))
-            result = true;
-        else if (len == 5 && !pg_strncasecmp(string, "false", len))
-            result = false;
-        else
-            PG_RETURN_NULL();
-    } else {
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("toBoolean() unsupported argument gtype %d",
-                               agtv_value->type)));
-    }
-
-    gtype_value agtv_result = { .type = AGTV_BOOL, .val.boolean = result };
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
+    PG_RETURN_POINTER(gtype_value_to_gtype(gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_size);
@@ -2384,29 +2333,6 @@ Datum gtype_size(PG_FUNCTION_ARGS) {
     gtype_value agtv = { .type = AGTV_INTEGER, .val.int_value = result };
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
-}
-
-PG_FUNCTION_INFO_V1(graphid_to_gtype);
-
-Datum graphid_to_gtype(PG_FUNCTION_ARGS)
-{
-    PG_RETURN_POINTER(integer_to_gtype(AG_GETARG_GRAPHID(0)));
-}
-
-PG_FUNCTION_INFO_V1(gtype_to_graphid);
-
-Datum gtype_to_graphid(PG_FUNCTION_ARGS)
-{
-    gtype *gtype_in = AG_GET_ARG_GTYPE_P(0);
-    gtype_value agtv;
-
-    if (!gtype_extract_scalar(&gtype_in->root, &agtv) ||
-        agtv.type != AGTV_INTEGER)
-        cannot_cast_gtype_value(agtv.type, "graphid");
-
-    PG_FREE_IF_COPY(gtype_in, 0);
-
-    PG_RETURN_INT16(agtv.val.int_value);
 }
 
 static gtype_iterator *get_next_list_element(gtype_iterator *it,
