@@ -134,7 +134,6 @@ static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqlt
 static bool gtype_extract_scalar(gtype_container *agtc, gtype_value *res);
 static gtype_value *execute_array_access_operator_internal(gtype *array, int64 array_index);
 /* graph entity retrieval */
-static float8 get_float_compatible_arg(Datum arg, Oid type, char *funcname, bool *is_null);
 static Numeric get_numeric_compatible_arg(Datum arg, Oid type, char *funcname, bool *is_null, enum gtype_value_type *ag_type);
 static int64 get_int64_from_int_datums(Datum d, Oid type, char *funcname, bool *is_agnull);
 static gtype_iterator *get_next_object_key(gtype_iterator *it, gtype_container *agtc, gtype_value *key);
@@ -3132,81 +3131,6 @@ Datum gtype_replace(PG_FUNCTION_ARGS)
 }
 
 /*
- * Helper function to extract one float8 compatible value from a variadic any.
- * It supports integer2/4/8, float4/8, and numeric or the gtype integer, float,
- * and numeric for the argument. It does not support a character based float,
- * otherwise we would just use tofloat. It returns a float on success or fails
- * with a message stating the funcname that called it and a specific message
- * stating the error.
- */
-static float8 get_float_compatible_arg(Datum arg, Oid type, char *funcname,
-                                       bool *is_null)
-{
-    float8 result;
-
-    /* Assume the value is null. Although, this is only necessary for gtypes */
-    *is_null = true;
-
-    if (type != GTYPEOID)
-    {
-        if (type == INT2OID)
-            result = (float8) DatumGetInt16(arg);
-        else if (type == INT4OID)
-            result = (float8) DatumGetInt32(arg);
-        else if (type == INT8OID)
-            result = DatumGetFloat8(DirectFunctionCall1(i8tod, Int64GetDatum(arg)));
-        else if (type == FLOAT4OID)
-            result = (float8) DatumGetFloat4(arg);
-        else if (type == FLOAT8OID)
-            result = DatumGetFloat8(arg);
-        else if (type == NUMERICOID)
-            result = DatumGetFloat8(DirectFunctionCall1(
-                numeric_float8_no_overflow, arg));
-        else
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("%s() unsupported argument type %d", funcname,
-                                   type)));
-    }
-    else
-    {
-        gtype *agt_arg;
-        gtype_value *agtv_value;
-
-        /* get the gtype argument */
-        agt_arg = DATUM_GET_GTYPE_P(arg);
-
-        if (!AGT_ROOT_IS_SCALAR(agt_arg))
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("%s() only supports scalar arguments",
-                                   funcname)));
-
-        agtv_value = get_ith_gtype_value_from_container(&agt_arg->root, 0);
-
-        /* check for gtype null */
-        if (agtv_value->type == AGTV_NULL)
-            return 0;
-
-        if (agtv_value->type == AGTV_INTEGER)
-            result = DatumGetFloat8(DirectFunctionCall1(i8tod, Int64GetDatum(agtv_value->val.int_value)));
-        else if (agtv_value->type == AGTV_FLOAT)
-            result = agtv_value->val.float_value;
-        else if (agtv_value->type == AGTV_NUMERIC)
-            result = DatumGetFloat8(DirectFunctionCall1(
-                numeric_float8_no_overflow,
-                NumericGetDatum(agtv_value->val.numeric)));
-        else
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("%s() unsupported argument gtype %d",
-                                   funcname, agtv_value->type)));
-    }
-
-    /* there is a valid non null value */
-    *is_null = false;
-
-    return result;
-}
-
-/*
  * Helper function to extract one numeric compatible value from a variadic any.
  * It supports integer2/4/8, float4/8, and numeric or the gtype integer, float,
  * and numeric for the argument. It does not support a character based numeric,
@@ -3775,52 +3699,46 @@ Datum gtype_sign(PG_FUNCTION_ARGS) {
 }
 
 PG_FUNCTION_INFO_V1(gtype_log);
-Datum gtype_log(PG_FUNCTION_ARGS) {
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    bool is_null = true;
-
-    if (is_gtype_null(agt))
-        PG_RETURN_NULL();
-
-    if (is_gtype_numeric(agt)) {
-        Numeric arg = get_numeric_compatible_arg(GTYPE_P_GET_DATUM(agt), GTYPEOID, "log", &is_null, NULL);
-
-        Numeric result = DatumGetNumeric(DirectFunctionCall1(numeric_ln, NumericGetDatum(arg)));
+Datum
+gtype_log(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+    
+    if (is_gtype_numeric(gt)) {
+        Datum arg = convert_to_scalar(gtype_to_numeric_internal, gt, "numeric");
+        
+        Numeric result = DatumGetNumeric(DirectFunctionCall1(numeric_ln, arg));
         
         gtype_value agtv = { .type = AGTV_NUMERIC, .val.numeric = result };
-
+            
         AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
     } else {
-        float8 arg = get_float_compatible_arg(GTYPE_P_GET_DATUM(agt), GTYPEOID, "log", &is_null);
-
-        float8 result = DatumGetFloat8(DirectFunctionCall1(dlog1, Float8GetDatum(arg)));
-
+        Datum arg = convert_to_scalar(gtype_to_float8_internal, gt, "float");
+        
+        float8 result = DatumGetFloat8(DirectFunctionCall1(dlog1, arg));
+        
         gtype_value agtv = { .type = AGTV_FLOAT, .val.float_value = result };
-
+ 
         AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
     }
 }
 
 PG_FUNCTION_INFO_V1(gtype_log10);
-Datum gtype_log10(PG_FUNCTION_ARGS) {
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    bool is_null = true;
+Datum
+gtype_log10(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
 
-    if (is_gtype_null(agt))
-        PG_RETURN_NULL();
+    if (is_gtype_numeric(gt)) {
+        Datum arg = convert_to_scalar(gtype_to_numeric_internal, gt, "numeric");
 
-    if (is_gtype_numeric(agt)) {
-        Numeric arg = get_numeric_compatible_arg(GTYPE_P_GET_DATUM(agt), GTYPEOID, "log10", &is_null, NULL);
-
-        Numeric result = DatumGetNumeric(DirectFunctionCall1(numeric_log, NumericGetDatum(arg)));
+        Numeric result = DatumGetNumeric(DirectFunctionCall1(numeric_log, arg));
 
         gtype_value agtv = { .type = AGTV_NUMERIC, .val.numeric = result };
 
         AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
     } else {
-        float8 arg = get_float_compatible_arg(GTYPE_P_GET_DATUM(agt), GTYPEOID, "log10", &is_null);
+        Datum arg = convert_to_scalar(gtype_to_float8_internal, gt, "float");
 
-        float8 result = DatumGetFloat8(DirectFunctionCall1(dlog10, Float8GetDatum(arg)));
+        float8 result = DatumGetFloat8(DirectFunctionCall1(dlog10, arg));
 
         gtype_value agtv = { .type = AGTV_FLOAT, .val.float_value = result };
 
