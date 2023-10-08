@@ -3870,42 +3870,37 @@ gtype_rand(PG_FUNCTION_ARGS) {
 }
 
 PG_FUNCTION_INFO_V1(gtype_exp);
+Datum
+gtype_exp(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
 
-Datum gtype_exp(PG_FUNCTION_ARGS)
-{
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    bool is_null = true;
+    if (is_gtype_numeric(gt)) {
+        Datum arg = convert_to_scalar(gtype_to_numeric_internal, gt, "numeric");
 
-    if (is_gtype_null(agt))
-        PG_RETURN_NULL();
-
-    if (is_gtype_numeric(agt)) {
-        Numeric arg = get_numeric_compatible_arg(GTYPE_P_GET_DATUM(agt), GTYPEOID, "exp", &is_null, NULL);
-
-        Numeric result = DatumGetNumeric(DirectFunctionCall1(numeric_exp, NumericGetDatum(arg)));
+        Numeric result = DatumGetNumeric(DirectFunctionCall1(numeric_exp, arg));
 
         gtype_value agtv = { .type = AGTV_NUMERIC, .val.numeric = result };
 
         AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
     } else {
-        float8 arg = get_float_compatible_arg(GTYPE_P_GET_DATUM(agt), GTYPEOID, "exp", &is_null);
-
-        float8 result = DatumGetFloat8(DirectFunctionCall1(dexp, Float8GetDatum(arg)));
-
+        Datum arg = convert_to_scalar(gtype_to_float8_internal, gt, "float");
+        
+        float8 result = DatumGetFloat8(DirectFunctionCall1(dexp, arg));
+        
         gtype_value agtv = { .type = AGTV_FLOAT, .val.float_value = result };
 
         AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
     }
+
 }
 
 PG_FUNCTION_INFO_V1(gtype_sqrt);
-
-Datum gtype_sqrt(PG_FUNCTION_ARGS)
-{
+Datum
+gtype_sqrt(PG_FUNCTION_ARGS) {
     gtype *gt = AG_GET_ARG_GTYPE_P(0);
 
     if (is_gtype_numeric(gt)) {
-        Datum arg = DatumGetNumeric(convert_to_scalar(gtype_to_numeric_internal, gt, "numeric"));
+        Datum arg = convert_to_scalar(gtype_to_numeric_internal, gt, "numeric");
 
         Numeric result = DatumGetNumeric(DirectFunctionCall1(numeric_sqrt, arg));
 
