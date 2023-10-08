@@ -5801,7 +5801,7 @@ SELECT * FROM cypher('expr', $$
 $$) AS (results gtype);
  results 
 ---------
- 5.0
+ 4.0
 (1 row)
 
 SELECT * FROM cypher('expr', $$
@@ -5817,23 +5817,23 @@ SELECT * FROM cypher('expr', $$
 $$) AS (results gtype);
  results 
 ---------
- -5.0
+ -4.0
 (1 row)
 
 SELECT * FROM cypher('expr', $$
     RETURN round(7.4163, 3)
 $$) AS (results gtype);
- results 
----------
- 7.416
+    results     
+----------------
+ 7.416::numeric
 (1 row)
 
 SELECT * FROM cypher('expr', $$
     RETURN round(7.416343479, 8)
 $$) AS (results gtype);
-  results   
-------------
- 7.41634348
+       results       
+---------------------
+ 7.41634348::numeric
 (1 row)
 
 SELECT * FROM cypher('expr', $$
@@ -5841,7 +5841,7 @@ SELECT * FROM cypher('expr', $$
 $$) AS (results gtype);
  results 
 ---------
- 7.0
+ 
 (1 row)
 
 SELECT * FROM cypher('expr', $$
@@ -5855,17 +5855,17 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN round(7, 2)
 $$) AS (results gtype);
- results 
----------
- 7.0
+    results    
+---------------
+ 7.00::numeric
 (1 row)
 
 SELECT * FROM cypher('expr', $$
     RETURN round(7.4342, 2.1123)
 $$) AS (results gtype);
- results 
----------
- 7.43
+    results    
+---------------
+ 7.43::numeric
 (1 row)
 
 SELECT * FROM cypher('expr', $$
@@ -6000,7 +6000,11 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN round("1")
 $$) AS (results gtype);
-ERROR:  round() unsupported argument gtype 1
+ results 
+---------
+ 1.0
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN sign("1")
 $$) AS (results gtype);

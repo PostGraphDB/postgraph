@@ -1944,8 +1944,7 @@ Datum gtype_access_slice(PG_FUNCTION_ARGS)
     /* build our result array */
     memset(&result, 0, sizeof(gtype_in_state));
 
-    result.res = push_gtype_value(&result.parse_state, WGT_BEGIN_ARRAY,
-                                   NULL);
+    result.res = push_gtype_value(&result.parse_state, WGT_BEGIN_ARRAY, NULL);
 
     /* get array elements */
     for (i = lower_index; i < upper_index; i++)
@@ -2038,31 +2037,12 @@ PG_FUNCTION_INFO_V1(gtype_string_match_starts_with);
 // STARTS WITH
 Datum gtype_string_match_starts_with(PG_FUNCTION_ARGS)
 {
-    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
-    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+    Datum x = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(0), "text");
+    Datum y = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(1), "text");
 
-    if (AGT_ROOT_IS_SCALAR(lhs) && AGT_ROOT_IS_SCALAR(rhs))
-    {
-        gtype_value *lhs_value;
-        gtype_value *rhs_value;
+    Datum d = DirectFunctionCall2Coll(text_starts_with, DEFAULT_COLLATION_OID, x, y);
 
-        lhs_value = get_ith_gtype_value_from_container(&lhs->root, 0);
-        rhs_value = get_ith_gtype_value_from_container(&rhs->root, 0);
-
-        if (lhs_value->type == AGTV_STRING && rhs_value->type == AGTV_STRING)
-        {
-            if (lhs_value->val.string.len < rhs_value->val.string.len)
-                return boolean_to_gtype(false);
-
-            if (strncmp(lhs_value->val.string.val, rhs_value->val.string.val,
-                        rhs_value->val.string.len) == 0)
-                return boolean_to_gtype(true);
-            else
-                return boolean_to_gtype(false);
-        }
-    }
-    ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                    errmsg("gtype string values expected")));
+    AG_RETURN_GTYPE_P(boolean_to_gtype(DatumGetBool(d)));
 }
 
 PG_FUNCTION_INFO_V1(gtype_string_match_ends_with);
@@ -2895,80 +2875,46 @@ gtype_lcm(PG_FUNCTION_ARGS) {
     }
 }
 
+PG_FUNCTION_INFO_V1(gtype_round_w_precision);
+
+Datum gtype_round_w_precision(PG_FUNCTION_ARGS)
+{
+     gtype *gt = AG_GET_ARG_GTYPE_P(0);
+     gtype *prec = AG_GET_ARG_GTYPE_P(1);
+
+     Datum x = convert_to_scalar(gtype_to_numeric_internal, gt, "numeric");
+     Datum y = convert_to_scalar(gtype_to_int4_internal, prec, "int4");
+
+     gtype_value gtv;
+     gtv.type = AGTV_NUMERIC;
+     gtv.val.numeric = DatumGetNumeric(DirectFunctionCall2(numeric_round, x, y));
+
+     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
 PG_FUNCTION_INFO_V1(gtype_round);
 
 Datum gtype_round(PG_FUNCTION_ARGS)
 {
-    Datum *args = NULL;
-    bool *nulls = NULL;
-    Oid *types = NULL;
-    int nargs = 0;
-    gtype_value agtv_result;
-    Numeric arg, arg_precision;
-    Numeric numeric_result;
-    float8 float_result;
-    bool is_null = true;
-    int precision = 0;
+     gtype *gt = AG_GET_ARG_GTYPE_P(0);
 
-    /* extract argument values */
-    nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
+     if (is_gtype_numeric(gt)) {
+         Datum x = convert_to_scalar(gtype_to_numeric_internal, gt, "numeric");
 
-    /* check number of args */
-    if (nargs != 1 && nargs != 2)
-    {
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("round() invalid number of arguments")));
-    }
+         gtype_value gtv;
+         gtv.type = AGTV_NUMERIC;
+         gtv.val.numeric = DatumGetNumeric(DirectFunctionCall2(numeric_round, x, Int32GetDatum(0)));
 
-    /* check for a null input */
-    if (nargs < 0 || nulls[0])
-        PG_RETURN_NULL();
+         AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+     } else {
+         Datum x = convert_to_scalar(gtype_to_float8_internal, gt, "float");
 
-    /*
-     * round() supports integer, float, and numeric or the gtype integer,
-     * float, and numeric for the input expression.
-     */
-    arg = get_numeric_compatible_arg(args[0], types[0], "round", &is_null, NULL);
+         gtype_value gtv;
+         gtv.type = AGTV_FLOAT;
+         gtv.val.float_value = DatumGetFloat8(DirectFunctionCall1(dround, x));
 
-    /* check for a gtype null input */
-    if (is_null)
-        PG_RETURN_NULL();
-
-    /* We need the input as a numeric so that we can pass it off to PG */
-    if (nargs == 2 && !nulls[1])
-    {
-        arg_precision = get_numeric_compatible_arg(args[1], types[1], "round",
-                                                   &is_null, NULL);
-        if (!is_null)
-        {
-            precision = DatumGetInt64(DirectFunctionCall1(numeric_int8,
-                                      NumericGetDatum(arg_precision)));
-            numeric_result = DatumGetNumeric(DirectFunctionCall2(numeric_round,
-                                             NumericGetDatum(arg),
-                                             Int32GetDatum(precision)));
-        }
-        else
-        {
-            ereport(ERROR,
-                    (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                     errmsg("round() invalid NULL precision value")));
-        }
-    }
-    else
-    {
-        numeric_result = DatumGetNumeric(DirectFunctionCall2(numeric_round,
-                                         NumericGetDatum(arg),
-                                         Int32GetDatum(0)));
-    }
-
-    float_result = DatumGetFloat8(DirectFunctionCall1(numeric_float8_no_overflow,
-                                               NumericGetDatum(numeric_result)));
-    /* build the result */
-    agtv_result.type = AGTV_FLOAT;
-    agtv_result.val.float_value = float_result;
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
+         AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+     }
 }
 
 PG_FUNCTION_INFO_V1(gtype_ceil);
@@ -3528,61 +3474,20 @@ PG_FUNCTION_INFO_V1(gtype_max_trans);
 
 Datum gtype_max_trans(PG_FUNCTION_ARGS)
 {
-    gtype *gtype_arg1;
-    gtype *gtype_arg2;
-    gtype *gtype_larger;
-    int test;
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
-    /* for max we need to ignore NULL values */
-    /* extract the args as gtype */
-    gtype_arg1 = AG_GET_ARG_GTYPE_P(0);
-    gtype_arg2 = AG_GET_ARG_GTYPE_P(1);
-
-    if (gtype_arg1 == NULL && gtype_arg2 == NULL)
-        PG_RETURN_NULL();
-    else if (gtype_arg2 == NULL)
-        PG_RETURN_POINTER(gtype_arg1);
-    else if (gtype_arg1 == NULL)
-        PG_RETURN_POINTER(gtype_arg2);
-
-    /* test for max value */
-    test = compare_gtype_containers_orderability(&gtype_arg1->root, &gtype_arg2->root);
-
-    gtype_larger = (test >= 0) ? gtype_arg1 : gtype_arg2;
-
-    PG_RETURN_POINTER(gtype_larger);
+    AG_RETURN_GTYPE_P((compare_gtype_containers_orderability(&lhs->root, &rhs->root) >= 0) ? lhs : rhs);
 }
 
 PG_FUNCTION_INFO_V1(gtype_min_trans);
 
 Datum gtype_min_trans(PG_FUNCTION_ARGS)
 {
-    gtype *gtype_arg1 = NULL;
-    gtype *gtype_arg2 = NULL;
-    gtype *gtype_smaller;
-    int test;
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
-    /* for min we need to ignore NULL values */
-    /* extract the args as gtype */
-    gtype_arg1 = AG_GET_ARG_GTYPE_P(0);
-    gtype_arg2 = AG_GET_ARG_GTYPE_P(1);
-
-    /* return NULL if both are NULL */
-    if (gtype_arg1 == NULL && gtype_arg2 == NULL)
-        PG_RETURN_NULL();
-    /* if one is NULL, return the other */
-    if (gtype_arg1 != NULL && gtype_arg2 == NULL)
-        PG_RETURN_POINTER(gtype_arg1);
-    if (gtype_arg1 == NULL && gtype_arg2 != NULL)
-        PG_RETURN_POINTER(gtype_arg2);
-
-    /* test for min value */
-    test = compare_gtype_containers_orderability(&gtype_arg1->root,
-                                                  &gtype_arg2->root);
-
-    gtype_smaller = (test <= 0) ? gtype_arg1 : gtype_arg2;
-
-    PG_RETURN_POINTER(gtype_smaller);
+    AG_RETURN_GTYPE_P((compare_gtype_containers_orderability(&lhs->root, &rhs->root) <= 0) ? lhs : rhs);
 }
 
 /* borrowed from PGs float8 routines for percentile_cont */
