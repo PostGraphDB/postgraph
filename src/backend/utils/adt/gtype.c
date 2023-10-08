@@ -133,7 +133,6 @@ static void add_indent(StringInfo out, bool indent, int level);
 static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqltype);
 static bool gtype_extract_scalar(gtype_container *agtc, gtype_value *res);
 static gtype_value *execute_array_access_operator_internal(gtype *array, int64 array_index);
-static Numeric get_numeric_compatible_arg(Datum arg, Oid type, char *funcname, bool *is_null, enum gtype_value_type *ag_type);
 static gtype_iterator *get_next_object_key(gtype_iterator *it, gtype_container *agtc, gtype_value *key);
 gtype_value *gtype_composite_to_gtype_value_binary(gtype *a);
 static Datum process_access_operator_result(FunctionCallInfo fcinfo, gtype_value *agtv, bool as_text);
@@ -2521,95 +2520,6 @@ Datum gtype_replace(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
-/*
- * Helper function to extract one numeric compatible value from a variadic any.
- * It supports integer2/4/8, float4/8, and numeric or the gtype integer, float,
- * and numeric for the argument. It does not support a character based numeric,
- * otherwise we would just cast it to numeric. It returns a numeric on success
- * or fails with a message stating the funcname that called it and a specific
- * message stating the error.
- */
-static Numeric get_numeric_compatible_arg(Datum arg, Oid type, char *funcname,
-                                          bool *is_null,
-                                          enum gtype_value_type *ag_type)
-{
-    Numeric result;
-
-    /* Assume the value is null. Although, this is only necessary for gtypes */
-    *is_null = true;
-
-    if (ag_type != NULL)
-        *ag_type = AGTV_NULL;
-
-    if (type != GTYPEOID)
-    {
-        if (type == INT2OID)
-            result = DatumGetNumeric(DirectFunctionCall1(int2_numeric, arg));
-        else if (type == INT4OID)
-            result = DatumGetNumeric(DirectFunctionCall1(int4_numeric, arg));
-        else if (type == INT8OID)
-            result = DatumGetNumeric(DirectFunctionCall1(int8_numeric, arg));
-        else if (type == FLOAT4OID)
-            result = DatumGetNumeric(DirectFunctionCall1(float4_numeric, arg));
-        else if (type == FLOAT8OID)
-            result = DatumGetNumeric(DirectFunctionCall1(float8_numeric, arg));
-        else if (type == NUMERICOID)
-            result = DatumGetNumeric(arg);
-        else
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("%s() unsupported argument type %d", funcname, type)));
-    }
-    else
-    {
-        gtype *agt_arg;
-        gtype_value *agtv_value;
-
-        /* get the gtype argument */
-        agt_arg = DATUM_GET_GTYPE_P(arg);
-
-        if (!AGT_ROOT_IS_SCALAR(agt_arg))
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("%s() only supports scalar arguments",
-                                   funcname)));
-
-        agtv_value = get_ith_gtype_value_from_container(&agt_arg->root, 0);
-
-        /* check for gtype null */
-        if (agtv_value->type == AGTV_NULL)
-            return 0;
-
-        if (agtv_value->type == AGTV_INTEGER)
-        {
-            result = DatumGetNumeric(DirectFunctionCall1(
-                int8_numeric, Int64GetDatum(agtv_value->val.int_value)));
-            if (ag_type != NULL)
-                *ag_type = AGTV_INTEGER;
-        }
-        else if (agtv_value->type == AGTV_FLOAT)
-        {
-            result = DatumGetNumeric(DirectFunctionCall1(
-                float8_numeric, Float8GetDatum(agtv_value->val.float_value)));
-            if (ag_type != NULL)
-                *ag_type = AGTV_FLOAT;
-        }
-        else if (agtv_value->type == AGTV_NUMERIC)
-        {
-            result = agtv_value->val.numeric;
-            if (ag_type != NULL)
-                *ag_type = AGTV_NUMERIC;
-        }
-        else
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("%s() unsupported argument gtype %d",
-                                   funcname, agtv_value->type)));
-    }
-
-    /* there is a valid non null value */
-    *is_null = false;
-
-    return result;
-}
-
 PG_FUNCTION_INFO_V1(gtype_sin);
 Datum
 gtype_sin(PG_FUNCTION_ARGS) {
@@ -2996,48 +2906,21 @@ Datum gtype_abs(PG_FUNCTION_ARGS)
 
 PG_FUNCTION_INFO_V1(gtype_sign);
 Datum gtype_sign(PG_FUNCTION_ARGS) {
-    int nargs;
-    Datum *args;
-    bool *nulls;
-    Oid *types;
-    gtype_value agtv_result;
-    Numeric arg;
-    Numeric numeric_result;
-    int int_result;
-    bool is_null = true;
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
 
-    /* extract argument values */
-    nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
+    Datum x;
+    gtype_value gtv;
+    if (is_gtype_numeric(gt)) {
+        gtv.type = AGTV_NUMERIC;
+        x = convert_to_scalar(gtype_to_numeric_internal, gt, "numeric");
+        gtv.val.numeric = DatumGetNumeric(DirectFunctionCall1(numeric_sign, x));
+    } else {
+        gtv.type = AGTV_FLOAT;
+        x = convert_to_scalar(gtype_to_float8_internal, gt, "float");
+        gtv.val.float_value = DatumGetFloat8(DirectFunctionCall1(dsign, x));
+    }
 
-    /* check number of args */
-    if (nargs != 1)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("sign() invalid number of arguments")));
-
-    /* check for a null input */
-    if (nargs < 0 || nulls[0])
-        PG_RETURN_NULL();
-
-    /*
-     * sign() supports integer, float, and numeric or the gtype integer,
-     * float, and numeric for the input expression.
-     */
-    arg = get_numeric_compatible_arg(args[0], types[0], "sign", &is_null, NULL);
-
-    /* check for a gtype null input */
-    if (is_null)
-        PG_RETURN_NULL();
-
-    /* We need the input as a numeric so that we can pass it off to PG */
-    numeric_result = DatumGetNumeric(DirectFunctionCall1(numeric_sign, NumericGetDatum(arg)));
-
-    int_result = DatumGetInt64(DirectFunctionCall1(numeric_int8, NumericGetDatum(numeric_result)));
-
-    /* build the result */
-    agtv_result.type = AGTV_INTEGER;
-    agtv_result.val.int_value = int_result;
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_log);

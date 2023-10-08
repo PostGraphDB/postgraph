@@ -5881,7 +5881,7 @@ SELECT * FROM cypher('expr', $$
 $$) AS (results gtype);
  results 
 ---------
- 1
+ 1.0
 (1 row)
 
 SELECT * FROM cypher('expr', $$
@@ -5889,7 +5889,7 @@ SELECT * FROM cypher('expr', $$
 $$) AS (results gtype);
  results 
 ---------
- -1
+ -1.0
 (1 row)
 
 SELECT * FROM cypher('expr', $$
@@ -5897,7 +5897,7 @@ SELECT * FROM cypher('expr', $$
 $$) AS (results gtype);
  results 
 ---------
- 0
+ 0.0
 (1 row)
 
 -- should return null
@@ -6012,7 +6012,11 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN sign("1")
 $$) AS (results gtype);
-ERROR:  sign() unsupported argument gtype 1
+ results 
+---------
+ 1.0
+(1 row)
+
 --
 -- gcd
 --
