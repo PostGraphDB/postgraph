@@ -3221,18 +3221,20 @@ PARALLEL SAFE
 RETURNS NULL ON NULL INPUT 
 AS 'MODULE_PATHNAME', 'gtype_left';
 
+CREATE FUNCTION "substring" (gtype, gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME', 'gtype_substring_w_len';
+
 CREATE FUNCTION "substring" (gtype, gtype) 
 RETURNS gtype 
 LANGUAGE c 
 IMMUTABLE 
 PARALLEL SAFE 
-AS 'MODULE_PATHNAME', 'gtype_substring';
-
-CREATE FUNCTION "substring" (gtype, gtype, gtype) 
-RETURNS gtype 
-LANGUAGE c 
-IMMUTABLE 
-PARALLEL SAFE 
+RETURNS NULL ON NULL INPUT
 AS 'MODULE_PATHNAME', 'gtype_substring';
 
 CREATE FUNCTION split (gtype, gtype) 

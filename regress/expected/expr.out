@@ -4477,7 +4477,7 @@ SELECT * FROM cypher('expr', $$
 $$) AS (results gtype);
  results 
 ---------
- "0"
+ ""
 (1 row)
 
 SELECT * FROM cypher('expr', $$
@@ -4485,15 +4485,15 @@ SELECT * FROM cypher('expr', $$
 $$) AS (results gtype);
  results 
 ---------
- "123"
+ "012"
 (1 row)
 
 SELECT * FROM cypher('expr', $$
     RETURN substring("0123456789", 3)
 $$) AS (results gtype);
-  results  
------------
- "3456789"
+  results   
+------------
+ "23456789"
 (1 row)
 
 SELECT * FROM cypher('expr', $$
@@ -4541,11 +4541,15 @@ $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
     RETURN substring("123456789", 0, -1)
 $$) AS (results gtype);
-ERROR:  substring() negative values are not supported for offset or length
+ERROR:  negative substring length not allowed
 SELECT * FROM cypher('expr', $$
     RETURN substring("123456789", -1)
 $$) AS (results gtype);
-ERROR:  substring() negative values are not supported for offset or length
+   results   
+-------------
+ "123456789"
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN substring("123456789")
 $$) AS (results gtype);

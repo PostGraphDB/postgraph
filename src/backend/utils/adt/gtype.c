@@ -2602,136 +2602,33 @@ Datum gtype_left(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+
+PG_FUNCTION_INFO_V1(gtype_substring_w_len);
+Datum
+gtype_substring_w_len(PG_FUNCTION_ARGS) {
+    Datum x = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(0), "text");
+    Datum y = convert_to_scalar(gtype_to_int4_internal, AG_GET_ARG_GTYPE_P(1), "int4");
+    Datum z = convert_to_scalar(gtype_to_int4_internal, AG_GET_ARG_GTYPE_P(2), "int4");
+
+    Datum d = DirectFunctionCall3(text_substr, x, y, z);
+
+    gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(DatumGetTextP(d)) }};
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
 PG_FUNCTION_INFO_V1(gtype_substring);
 
 Datum gtype_substring(PG_FUNCTION_ARGS)
 {
-    int nargs;
-    Datum *args;
-    Datum arg;
-    bool *nulls;
-    Oid *types;
-    gtype_value agtv_result;
-    text *text_string = NULL;
-    char *string = NULL;
-    int param;
-    int string_start = 0;
-    int string_len = 0;
-    int i;
-    Oid type;
+    Datum x = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(0), "text");
+    Datum y = convert_to_scalar(gtype_to_int4_internal, AG_GET_ARG_GTYPE_P(1), "int4");
 
-    /* extract argument values */
-    nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
+    Datum d = DirectFunctionCall2(text_substr_no_len, x, y);
 
-    if (nulls[0] || nulls[1])
-        PG_RETURN_NULL();
+    gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(DatumGetTextP(d)) }};
 
-    /* neither offset or length can be null if there is a valid string */
-    if ((nargs == 3 && nulls[2]))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("substring() offset or length cannot be null")));
-
-    /* substring() supports text, cstring, or the gtype string input */
-    arg = args[0];
-    type = types[0];
-
-    {
-        gtype *agt_arg;
-        gtype_value *agtv_value;
-
-        /* get the gtype argument */
-        agt_arg = DATUM_GET_GTYPE_P(arg);
-
-        if (!AGT_ROOT_IS_SCALAR(agt_arg))
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("substring() only supports scalar arguments")));
-
-        agtv_value = get_ith_gtype_value_from_container(&agt_arg->root, 0);
-
-        /* check for gtype null */
-        if (agtv_value->type == AGTV_NULL)
-            PG_RETURN_NULL();
-        if (agtv_value->type == AGTV_STRING)
-            text_string = cstring_to_text_with_len(agtv_value->val.string.val, agtv_value->val.string.len);
-        else
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("substring() unsupported argument gtype %d",
-                                   agtv_value->type)));
-    }
-
-    /*
-     * substring() only supports integer and gtype integer for the second and
-     * third parameters values.
-     */
-    for (i = 1; i < nargs; i++)
-    {
-        arg = args[i];
-        type = types[i];
-
-            gtype *agt_arg;
-            gtype_value *agtv_value;
-
-            /* get the gtype argument */
-            agt_arg = DATUM_GET_GTYPE_P(arg);
-
-            if (!AGT_ROOT_IS_SCALAR(agt_arg))
-                ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                                errmsg("substring() only supports scalar arguments")));
-
-            agtv_value = get_ith_gtype_value_from_container(&agt_arg->root, 0);
-
-            /* no need to check for gtype null because it is an error if found */
-            if (agtv_value->type != AGTV_INTEGER)
-                ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                                errmsg("substring() unsupported argument gtype %d",
-                                       agtv_value->type)));
-
-            param = agtv_value->val.int_value;
-
-        if (i == 1)
-            string_start = param;
-        if (i == 2)
-            string_len = param;
-    }
-
-    /* negative values are not supported in the opencypher spec */
-    if (string_start < 0 || string_len < 0)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("substring() negative values are not supported for offset or length")));
-
-    /* cypher substring is 0 based while PG's is 1 based */
-    string_start += 1;
-
-    /*
-     * We need the string as a text string so that we can let PG deal with
-     * multibyte characters in the string.
-     */
-
-    /* if optional length is left out */
-    if (nargs == 2)
-         text_string = DatumGetTextPP(DirectFunctionCall2(text_substr_no_len,
-                                                          PointerGetDatum(text_string),
-                                                          Int64GetDatum(string_start)));
-    /* if length is given */
-    else
-        text_string = DatumGetTextPP(DirectFunctionCall3(text_substr,
-                                                         PointerGetDatum(text_string),
-                                                         Int64GetDatum(string_start),
-                                                         Int64GetDatum(string_len)));
-
-    /* convert it back to a cstring */
-    string = text_to_cstring(text_string);
-    string_len = strlen(string);
-
-    /* if we have an empty string, return null */
-    if (string_len == 0)
-        PG_RETURN_NULL();
-
-    /* build the result */
-    agtv_result.type = AGTV_STRING;
-    agtv_result.val.string.val = string;
-    agtv_result.val.string.len = string_len;
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_split);
