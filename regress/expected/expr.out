@@ -4651,11 +4651,19 @@ SELECT * FROM split(null, '","'::gtype);
 SELECT * FROM cypher('expr', $$
     RETURN split(123456789, ",")
 $$) AS (results gtype);
-ERROR:  split() unsupported argument gtype 3
+    results    
+---------------
+ ["123456789"]
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN split("a,b,c,d,e,f", -1)
 $$) AS (results gtype);
-ERROR:  split() unsupported argument gtype 3
+     results     
+-----------------
+ ["a,b,c,d,e,f"]
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN split("a,b,c,d,e,f")
 $$) AS (results gtype);
@@ -4671,9 +4679,17 @@ LINE 2:     RETURN split()
                    ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM split('123456789'::gtype, '","'::gtype);
-ERROR:  split() unsupported argument gtype 3
+     split     
+---------------
+ ["123456789"]
+(1 row)
+
 SELECT * FROM split('"a,b,c,d,e,f"'::gtype, '-1'::gtype);
-ERROR:  split() unsupported argument gtype 3
+      split      
+-----------------
+ ["a,b,c,d,e,f"]
+(1 row)
+
 SELECT * FROM split('"a,b,c,d,e,f"'::gtype);
 ERROR:  function split(gtype) does not exist
 LINE 1: SELECT * FROM split('"a,b,c,d,e,f"'::gtype);

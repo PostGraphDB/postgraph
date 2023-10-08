@@ -2028,16 +2028,10 @@ Datum gtype_in_operator(PG_FUNCTION_ARGS)
         gtype_iterator_next(&it_array, &agtv_elem, true);
         /* if both are containers, compare containers */
         if (!IS_A_GTYPE_SCALAR(&agtv_item) && !IS_A_GTYPE_SCALAR(&agtv_elem))
-        {
-            result = (compare_gtype_containers_orderability(
-                          &agt_item->root, agtv_elem.val.binary.data) == 0);
-        }
+            result = (compare_gtype_containers_orderability( &agt_item->root, agtv_elem.val.binary.data) == 0);
         /* if both are scalars and of the same type, compare scalars */
-        else if (IS_A_GTYPE_SCALAR(&agtv_item) &&
-                 IS_A_GTYPE_SCALAR(&agtv_elem) &&
-                 agtv_item.type == agtv_elem.type)
-            result = (compare_gtype_scalar_values(&agtv_item, &agtv_elem) ==
-                      0);
+        else if (IS_A_GTYPE_SCALAR(&agtv_item) && IS_A_GTYPE_SCALAR(&agtv_elem) && agtv_item.type == agtv_elem.type)
+            result = (compare_gtype_scalar_values(&agtv_item, &agtv_elem) == 0);
     }
     return result;
 }
@@ -2095,10 +2089,8 @@ Datum gtype_string_match_ends_with(PG_FUNCTION_ARGS)
             if (lhs_value->val.string.len < rhs_value->val.string.len)
                 return boolean_to_gtype(false);
 
-            if (strncmp(lhs_value->val.string.val + lhs_value->val.string.len -
-                            rhs_value->val.string.len,
-                        rhs_value->val.string.val,
-                        rhs_value->val.string.len) == 0)
+            if (strncmp(lhs_value->val.string.val + lhs_value->val.string.len - rhs_value->val.string.len,
+                        rhs_value->val.string.val, rhs_value->val.string.len) == 0)
                 return boolean_to_gtype(true);
             else
                 return boolean_to_gtype(false);
@@ -2746,47 +2738,19 @@ PG_FUNCTION_INFO_V1(gtype_split);
 
 Datum gtype_split(PG_FUNCTION_ARGS)
 {
-    text *text_string;
-    text *text_delimiter;
+    Datum x = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(0), "text");
+    Datum y = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(1), "text");
 
-    for (int i = 0; i < 2; i++) {
-        gtype *agt = AG_GET_ARG_GTYPE_P(i);
-        gtype_value *agtv_value;
+    Datum d = DirectFunctionCall2(text_right, x, y);
 
-        if (!AGT_ROOT_IS_SCALAR(agt))
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("split() only supports scalar arguments")));
+    Datum text_array = DirectFunctionCall2Coll(regexp_split_to_array, DEFAULT_COLLATION_OID, x, y);
 
-        agtv_value = get_ith_gtype_value_from_container(&agt->root, 0);
+    gtype_in_state in_state;
+    memset(&in_state, 0, sizeof(gtype_in_state));
 
-        /* check for gtype null */
-        if (agtv_value->type == AGTV_NULL) {
-            PG_RETURN_NULL();
-        } else if (agtv_value->type == AGTV_STRING) {
-            text *param = cstring_to_text_with_len(agtv_value->val.string.val,
-                                                   agtv_value->val.string.len);
+    array_to_gtype_internal(text_array, &in_state);
 
-            if (i == 0)
-                text_string = param;
-            else
-                text_delimiter = param;
-        } else {
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("split() unsupported argument gtype %d",
-                                       agtv_value->type)));
-        }
-    }
-
-    Datum text_array = DirectFunctionCall2Coll(regexp_split_to_array,
-                                               DEFAULT_COLLATION_OID,
-                                               PointerGetDatum(text_string),
-                                               PointerGetDatum(text_delimiter));
-
-    gtype_in_state result;
-    memset(&result, 0, sizeof(gtype_in_state));
-    array_to_gtype_internal(text_array, &result);
-    
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(result.res));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(in_state.res));
 }
 
 PG_FUNCTION_INFO_V1(gtype_replace);
