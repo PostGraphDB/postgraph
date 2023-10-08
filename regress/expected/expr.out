@@ -5980,7 +5980,11 @@ HINT:  No function matches the given name and argument types. You might need to 
 SELECT * FROM cypher('expr', $$
     RETURN abs("1")
 $$) AS (results gtype);
-ERROR:  abs() unsupported argument gtype 1
+ results 
+---------
+ 1
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN ceil("1")
 $$) AS (results gtype);

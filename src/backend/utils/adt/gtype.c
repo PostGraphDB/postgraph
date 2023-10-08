@@ -2971,42 +2971,27 @@ PG_FUNCTION_INFO_V1(gtype_abs);
 
 Datum gtype_abs(PG_FUNCTION_ARGS)
 {
-    gtype_value agtv_result;
-    bool is_null;
-    enum gtype_value_type type;
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
 
-    Numeric arg = get_numeric_compatible_arg(AG_GET_ARG_GTYPE_P(0), GTYPEOID, "abs", &is_null, &type);
-
-    if (is_null)
-        PG_RETURN_NULL();
-
-    Numeric numeric_result = DatumGetNumeric(DirectFunctionCall1(numeric_abs, NumericGetDatum(arg)));
-
-    if (type == AGTV_INTEGER) {
-        int64 int_result;
-
-        int_result = DatumGetInt64(DirectFunctionCall1(numeric_int8,
-                                                       NumericGetDatum(numeric_result)));
-
-        agtv_result.type = AGTV_INTEGER;
-        agtv_result.val.int_value = int_result;
-    } else if (type == AGTV_FLOAT) {
-        float8 float_result;
-
-        float_result = DatumGetFloat8(DirectFunctionCall1(numeric_float8_no_overflow,
-                                                          NumericGetDatum(numeric_result)));
-
-        agtv_result.type = AGTV_FLOAT;
-        agtv_result.val.float_value = float_result;
-    } else if (type == AGTV_NUMERIC) {
-        agtv_result.type = AGTV_NUMERIC;
-        agtv_result.val.numeric = numeric_result;
-    } else {
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("abs() invalid argument type")));
+    Datum x;
+    gtype_value gtv;
+    if (is_gtype_numeric(gt)) {
+        gtv.type = AGTV_NUMERIC;
+        x = convert_to_scalar(gtype_to_numeric_internal, gt, "numeric");
+        gtv.val.numeric = DatumGetNumeric(DirectFunctionCall1(numeric_abs, x));
+    }
+    else if (is_gtype_float(gt)) {
+        gtv.type = AGTV_FLOAT;
+        x = convert_to_scalar(gtype_to_float8_internal, gt, "float");
+        gtv.val.float_value = DatumGetFloat8(DirectFunctionCall1(float8abs, x));
+    }
+    else {
+        gtv.type = AGTV_INTEGER;
+        x = convert_to_scalar(gtype_to_int8_internal, gt, "int");
+        gtv.val.int_value = DatumGetInt64(DirectFunctionCall1(int8abs, x));
     }
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_sign);
