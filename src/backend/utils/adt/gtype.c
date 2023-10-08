@@ -136,7 +136,6 @@ static gtype_value *execute_array_access_operator_internal(gtype *array, int64 a
 /* graph entity retrieval */
 static float8 get_float_compatible_arg(Datum arg, Oid type, char *funcname, bool *is_null);
 static Numeric get_numeric_compatible_arg(Datum arg, Oid type, char *funcname, bool *is_null, enum gtype_value_type *ag_type);
-gtype *get_one_gtype_from_variadic_args(FunctionCallInfo fcinfo, int variadic_offset, int expected_nargs);
 static int64 get_int64_from_int_datums(Datum d, Oid type, char *funcname, bool *is_agnull);
 static gtype_iterator *get_next_object_key(gtype_iterator *it, gtype_container *agtc, gtype_value *key);
 static gtype_iterator *get_next_list_element(gtype_iterator *it, gtype_container *agtc, gtype_value *elem);
@@ -3838,9 +3837,8 @@ Datum gtype_log10(PG_FUNCTION_ARGS) {
 }
 
 PG_FUNCTION_INFO_V1(gtype_e);
-
-Datum gtype_e(PG_FUNCTION_ARGS)
-{
+Datum
+gtype_e(PG_FUNCTION_ARGS) {
     gtype_value agtv_result = {
         .type = AGTV_FLOAT,
         .val.float_value = DatumGetFloat8(DirectFunctionCall1(dexp, Float8GetDatum(1)))
@@ -3850,9 +3848,8 @@ Datum gtype_e(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(gtype_pi);
-    
-Datum gtype_pi(PG_FUNCTION_ARGS)
-{   
+Datum
+gtype_pi(PG_FUNCTION_ARGS) {   
     gtype_value agtv_result = {
         .type = AGTV_FLOAT,
         .val.float_value = M_PI
@@ -3862,9 +3859,8 @@ Datum gtype_pi(PG_FUNCTION_ARGS)
 }   
 
 PG_FUNCTION_INFO_V1(gtype_rand);
-
-Datum gtype_rand(PG_FUNCTION_ARGS)
-{
+Datum
+gtype_rand(PG_FUNCTION_ARGS) {
     gtype_value agtv_result = {
         .type = AGTV_FLOAT,
         .val.float_value = DatumGetFloat8(DirectFunctionCall1(random, Float8GetDatum(1)))
@@ -4119,73 +4115,6 @@ gtype_value *alter_property_value(gtype *properties, char *var_name,
     parsed_gtype_value = push_gtype_value(&parse_state, WGT_END_OBJECT, NULL);
 
     return parsed_gtype_value;
-}
-
-/*
- * Helper function to extract 1 datum from a variadic "any" and convert, if
- * possible, to an gtype, if it isn't already.
- *
- * If the value is a NULL or gtype NULL, the function returns NULL.
- * If the datum cannot be converted, the function will error out in
- * extract_variadic_args.
- */
-gtype *get_one_gtype_from_variadic_args(FunctionCallInfo fcinfo, int variadic_offset, int expected_nargs) {
-    int nargs;
-    Datum *args = NULL;
-    bool *nulls = NULL;
-    Oid *types = NULL;
-    gtype *gtype_result = NULL;
-
-    nargs = extract_variadic_args(fcinfo, variadic_offset, false, &args, &types, &nulls);
-    /* throw an error if the number of args is not the expected number */
-    if (nargs != expected_nargs)
-    {
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("number of args %d does not match expected %d",
-                               nargs, expected_nargs)));
-    }
-    /* if null, return null */
-    if (nulls[0])
-    {
-        return NULL;
-    }
-
-    /* if type is GTYPEOID, we don't need to convert it */
-    if (types[0] == GTYPEOID)
-    {
-        gtype_container *agtc;
-
-        gtype_result = DATUM_GET_GTYPE_P(args[0]);
-        agtc = &gtype_result->root;
-
-        /*
-         * Is this a scalar (scalars are stored as one element arrays)? If so,
-         * test for gtype NULL.
-         */
-        if (GTYPE_CONTAINER_IS_SCALAR(agtc) &&
-            GTE_IS_NULL(agtc->children[0]))
-        {
-            return NULL;
-        }
-    }
-    /* otherwise, try to convert it to an gtype */
-    else
-    {
-        gtype_in_state state;
-        agt_type_category tcategory;
-        Oid outfuncoid;
-
-        /* we need an empty state */
-        state.parse_state = NULL;
-        state.res = NULL;
-        /* get the category for the datum */
-        gtype_categorize_type(types[0], &tcategory, &outfuncoid);
-        /* convert it to an gtype_value */
-        datum_to_gtype(args[0], false, &state, tcategory, outfuncoid, false);
-        /* convert it to an gtype */
-        gtype_result = gtype_value_to_gtype(state.res);
-    }
-    return gtype_result;
 }
 
 /*
@@ -4449,8 +4378,8 @@ Datum gtype_max_trans(PG_FUNCTION_ARGS)
 
     /* for max we need to ignore NULL values */
     /* extract the args as gtype */
-    gtype_arg1 = get_one_gtype_from_variadic_args(fcinfo, 0, 2);
-    gtype_arg2 = get_one_gtype_from_variadic_args(fcinfo, 1, 1);
+    gtype_arg1 = AG_GET_ARG_GTYPE_P(0);
+    gtype_arg2 = AG_GET_ARG_GTYPE_P(1);
 
     if (gtype_arg1 == NULL && gtype_arg2 == NULL)
         PG_RETURN_NULL();
@@ -4478,8 +4407,8 @@ Datum gtype_min_trans(PG_FUNCTION_ARGS)
 
     /* for min we need to ignore NULL values */
     /* extract the args as gtype */
-    gtype_arg1 = get_one_gtype_from_variadic_args(fcinfo, 0, 2);
-    gtype_arg2 = get_one_gtype_from_variadic_args(fcinfo, 1, 1);
+    gtype_arg1 = AG_GET_ARG_GTYPE_P(0);
+    gtype_arg2 = AG_GET_ARG_GTYPE_P(1);
 
     /* return NULL if both are NULL */
     if (gtype_arg1 == NULL && gtype_arg2 == NULL)
