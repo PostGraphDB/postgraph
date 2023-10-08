@@ -6240,7 +6240,11 @@ $$) as (result gtype);
 SELECT * from cypher('expr', $$
     RETURN sqrt("1")
 $$) as (result gtype);
-ERROR:  sqrt() unsupported argument gtype 1
+ result 
+--------
+ 1.0
+(1 row)
+
 --
 -- cbrt()
 --
