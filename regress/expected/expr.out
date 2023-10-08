@@ -7824,9 +7824,9 @@ SELECT * from cypher('list', $$RETURN range(0, 10)$$) as (range gtype);
 (1 row)
 
 SELECT * from cypher('list', $$RETURN range(0, 10, null)$$) as (range gtype);
-               range                
-------------------------------------
- [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+ range 
+-------
+ 
 (1 row)
 
 SELECT * from cypher('list', $$RETURN range(0, 10, 1)$$) as (range gtype);
@@ -7886,11 +7886,23 @@ SELECT * from cypher('list', $$RETURN range(-10, 10, -1)$$) as (range gtype);
 
 -- should return an error
 SELECT * from cypher('list', $$RETURN range(null, -10, -3)$$) as (range gtype);
-ERROR:  range(): neither start or end can be NULL
+ range 
+-------
+ 
+(1 row)
+
 SELECT * from cypher('list', $$RETURN range(0, null, -3)$$) as (range gtype);
-ERROR:  range(): neither start or end can be NULL
+ range 
+-------
+ 
+(1 row)
+
 SELECT * from cypher('list', $$RETURN range(0, -10.0, -3.0)$$) as (range gtype);
-ERROR:  range() unsupported argument type
+      range      
+-----------------
+ [0, -3, -6, -9]
+(1 row)
+
 -- labels()
 SELECT * from cypher('list', $$CREATE (u:People {name: "John"}) RETURN u$$) as (Vertices vertex);
                                   vertices                                   

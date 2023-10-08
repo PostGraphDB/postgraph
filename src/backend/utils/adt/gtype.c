@@ -134,7 +134,6 @@ static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqlt
 static bool gtype_extract_scalar(gtype_container *agtc, gtype_value *res);
 static gtype_value *execute_array_access_operator_internal(gtype *array, int64 array_index);
 static Numeric get_numeric_compatible_arg(Datum arg, Oid type, char *funcname, bool *is_null, enum gtype_value_type *ag_type);
-static int64 get_int64_from_int_datums(Datum d, Oid type, char *funcname, bool *is_agnull);
 static gtype_iterator *get_next_object_key(gtype_iterator *it, gtype_container *agtc, gtype_value *key);
 gtype_value *gtype_composite_to_gtype_value_binary(gtype *a);
 static Datum process_access_operator_result(FunctionCallInfo fcinfo, gtype_value *agtv, bool as_text);
@@ -4163,129 +4162,61 @@ Datum gtype_keys(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(agtv_result));
 }
 
-/*
- * Helper function to convert an integer type (PostgreSQL or gtype) datum into
- * an int64. The function will flag if an gtype null was found. The function
- * will error out on invalid information, printing out the funcname passed.
- */
-static int64 get_int64_from_int_datums(Datum d, Oid type, char *funcname, bool *is_agnull) {
-    int64 result = 0;
-
-    if (type == INT2OID) {
-        result = (int64) DatumGetInt16(d);
-    } else if (type == INT4OID) {
-        result = (int64) DatumGetInt32(d);
-    } else if (type == INT8OID) {
-        result = (int64) DatumGetInt64(d);
-    } else if (type == GTYPEOID) {
-        gtype *agt_arg = NULL;
-        gtype_value *agtv_value = NULL;
-        gtype_container *agtc = NULL;
-
-        agt_arg = DATUM_GET_GTYPE_P(d);
-
-        if (!AGT_ROOT_IS_SCALAR(agt_arg))
-            ereport(ERROR,
-                    (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                     errmsg("%s() only supports scalar arguments", funcname)));
-
-        agtc = &agt_arg->root;
-        if (GTE_IS_NULL(agtc->children[0])) {
-            *is_agnull = true;
-            return 0;
-        }
-
-        agtv_value = get_ith_gtype_value_from_container(&agt_arg->root, 0);
-
-        if (agtv_value->type == AGTV_INTEGER)
-            result = agtv_value->val.int_value;
-        else
-            ereport(ERROR,
-                    (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                     errmsg("%s() unsupported argument type", funcname)));
-    } else {
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("%s() unsupported argument type", funcname)));
-    }
-
-    *is_agnull = false;
-    return result;
-}
-
-PG_FUNCTION_INFO_V1(gtype_range);
-/*
- * Execution function to implement openCypher range() function
- */
-Datum gtype_range(PG_FUNCTION_ARGS)
+PG_FUNCTION_INFO_V1(gtype_range_w_skip);
+// range function
+Datum gtype_range_w_skip(PG_FUNCTION_ARGS)
 {
-    Datum *args = NULL;
-    bool *nulls = NULL;
-    Oid *types = NULL;
-    int nargs;
-    int64 start_idx = 0;
-    int64 end_idx = 0;
-    /* step defaults to 1 */
-    int64 step = 1;
-    bool is_agnull = false;
-    gtype_in_state agis_result;
-    int64 i = 0;
-
-    /* get the arguments */
-    nargs = extract_variadic_args(fcinfo, 0, false, &args, &types, &nulls);
-
-    /* throw an error if the number of args is not the expected number */
-    if (nargs != 2 && nargs != 3)
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("range(): invalid number of input parameters")));
-
-    /* check for NULL start and end input */
-    if (nulls[0] || nulls[1])
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("range(): neither start or end can be NULL")));
-
-    /* get the start index */
-    start_idx = get_int64_from_int_datums(args[0], types[0], "range", &is_agnull);
-    if (is_agnull)
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("range(): start cannot be NULL")));
-
-    /* get the end index */
-    end_idx = get_int64_from_int_datums(args[1], types[1], "range", &is_agnull);
-    if (is_agnull)
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("range(): end cannot be NULL")));
-
-    /* get the step */
-    if (nargs == 3 && !nulls[2]) {
-        step = get_int64_from_int_datums(args[2], types[2], "range", &is_agnull);
-        if (is_agnull)
-            step = 1;
-    }
+    int64 start = DatumGetInt64(convert_to_scalar(gtype_to_int8_internal, AG_GET_ARG_GTYPE_P(0), "int"));
+    int64 end = DatumGetInt64(convert_to_scalar(gtype_to_int8_internal, AG_GET_ARG_GTYPE_P(1), "int"));
+    int64 step = DatumGetInt64(convert_to_scalar(gtype_to_int8_internal, AG_GET_ARG_GTYPE_P(2), "int"));
 
     if (step == 0)
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("range(): step cannot be zero")));
+                 errmsg("range(gtype, gtype, gtype): arg 3 cannot be 0")));
 
-    MemSet(&agis_result, 0, sizeof(gtype_in_state));
+    gtype_in_state in_state;
+    MemSet(&in_state, 0, sizeof(gtype_in_state));
 
-    agis_result.res = push_gtype_value(&agis_result.parse_state, WGT_BEGIN_ARRAY, NULL);
+    in_state.res = push_gtype_value(&in_state.parse_state, WGT_BEGIN_ARRAY, NULL);
 
-    for (i = start_idx; (step > 0 && i <= end_idx) || (step < 0 && i >= end_idx); i += step) {
-        gtype_value agtv;
+    for (int64 i = start; (step > 0 && i <= end) || (step < 0 && i >= end); i += step) {
+        gtype_value gtv;
 
-        agtv.type = AGTV_INTEGER;
-        agtv.val.int_value = i;
+        gtv.type = AGTV_INTEGER;
+        gtv.val.int_value = i;
 
-        agis_result.res = push_gtype_value(&agis_result.parse_state, WGT_ELEM, &agtv);
+        in_state.res = push_gtype_value(&in_state.parse_state, WGT_ELEM, &gtv);
     }
 
-    agis_result.res = push_gtype_value(&agis_result.parse_state, WGT_END_ARRAY, NULL);
+    in_state.res = push_gtype_value(&in_state.parse_state, WGT_END_ARRAY, NULL);
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(agis_result.res));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(in_state.res));
+}
+
+PG_FUNCTION_INFO_V1(gtype_range);
+// range function
+Datum gtype_range(PG_FUNCTION_ARGS)
+{
+    int64 start = DatumGetInt64(convert_to_scalar(gtype_to_int8_internal, AG_GET_ARG_GTYPE_P(0), "int"));
+    int64 end = DatumGetInt64(convert_to_scalar(gtype_to_int8_internal, AG_GET_ARG_GTYPE_P(1), "int"));
+
+    gtype_in_state in_state;
+    MemSet(&in_state, 0, sizeof(gtype_in_state));
+
+    in_state.res = push_gtype_value(&in_state.parse_state, WGT_BEGIN_ARRAY, NULL);
+
+    for (int64 i = start; i <= end; i++) {
+        gtype_value gtv;
+
+        gtv.type = AGTV_INTEGER;
+        gtv.val.int_value = i;
+        
+        in_state.res = push_gtype_value(&in_state.parse_state, WGT_ELEM, &gtv);
+    }
+
+    in_state.res = push_gtype_value(&in_state.parse_state, WGT_END_ARRAY, NULL);
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(in_state.res));
 }
 
 PG_FUNCTION_INFO_V1(gtype_unnest);

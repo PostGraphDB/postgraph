@@ -3120,6 +3120,7 @@ RETURNS gtype
 LANGUAGE c 
 IMMUTABLE 
 PARALLEL SAFE 
+RETURNS NULL ON NULL INPUT
 AS 'MODULE_PATHNAME', 'gtype_range';
 
 CREATE FUNCTION range (gtype, gtype, gtype) 
@@ -3127,7 +3128,8 @@ RETURNS gtype
 LANGUAGE c 
 IMMUTABLE 
 PARALLEL SAFE 
-AS 'MODULE_PATHNAME', 'gtype_range';
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME', 'gtype_range_w_skip';
 
 --
 -- Unnest (UNWIND Clause) Functions
