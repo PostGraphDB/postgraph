@@ -4291,13 +4291,9 @@ PG_FUNCTION_INFO_V1(gtype_accum);
 
 Datum gtype_accum(PG_FUNCTION_ARGS)
 {
-    Datum dfloat;
     Datum result;
 
-    /* convert to a float8 datum, if possible */
-    dfloat = DirectFunctionCall1(gtype_to_float8, PG_GETARG_DATUM(1));
-    /* pass the arguments off to float8_accum */
-    result = DirectFunctionCall2(float8_accum, PG_GETARG_DATUM(0), dfloat);
+    result = DirectFunctionCall2(float8_accum, PG_GETARG_DATUM(0), convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(1), "float"));
 
     PG_RETURN_DATUM(result);
 }
