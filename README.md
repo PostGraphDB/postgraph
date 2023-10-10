@@ -7,6 +7,7 @@ PostGraph is a fork of the Apache AGE project. The goal of PostGraph is to go be
 ## Completed:
  - Date and Time Support
  - Vector Datatype Support and Exact K-Nearest Neighbors
+ - Intersect and Union Clauses
 
 ## In Progress
  - Full support of database normalization
@@ -14,10 +15,10 @@ PostGraph is a fork of the Apache AGE project. The goal of PostGraph is to go be
  - Approximate K-Nearest Neighbors Support for Vectors
  - Conformity of logic between Cypher and Postgres Functions
  - JsonB Style Key existance operators
- - Intersect and Union Clauses
  - Property Constraints
  - Network Datatypes - Support Data types for MAC and IP Addresses
  - Regex Support - Robust Regular Expression Support
+ - Spatial Datatypes via [PostGIS](http://postgis.net/)
 
 # Todo List
  - geospatial trajectory data [MobilityDB](https://github.com/MobilityDB/MobilityDB)
@@ -29,7 +30,6 @@ PostGraph is a fork of the Apache AGE project. The goal of PostGraph is to go be
  - Label Partitioning - Allow Labels to be partitioned
  - Shortest Path Algorithms - Weighted and Unweighted Shortest Path.
  - [pgRouting](https://github.com/pgRouting)
- - Spatial Datatypes via [PostGIS](http://postgis.net/)
  - Cryptology Support via [pgsodium](https://github.com/michelp/pgsodium)
  - Chinese Full Text Search - Allow users to use a Chinese Full Text Dictionary.
  - Apache Spark Connector - Allow PostGraph to be a data source or sink for Apache Spark.
@@ -52,3 +52,12 @@ PostGraph is a fork of the Apache AGE project. The goal of PostGraph is to go be
  - Undirected Graphs
  - zson properties - The original writers of JsonB, which gtype is based on, created a new zson. Zson in certain uses case see a 10% Improvement in throughput and 40% improvement in compression. Allow users to be able to use zson as its storage mechanism for properties.
 
+POSTGIS Dependencies:
+autoconf
+automake
+libtool
+libxml2-devel
+geos-devel
+proj-devel
+protobuf-devel protobuf-c-compiler protobuf-compiler
+gdal-devel

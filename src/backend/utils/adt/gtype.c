@@ -139,6 +139,13 @@ static Datum process_access_operator_result(FunctionCallInfo fcinfo, gtype_value
 static Datum process_access_operator_result(FunctionCallInfo fcinfo, gtype_value *agtv, bool as_text);
 Datum gtype_array_element_impl(FunctionCallInfo fcinfo, gtype *gtype_in, int element, bool as_text);
 
+// PostGIS
+#include "liblwgeom/liblwgeom_internal.h"
+
+PG_FUNCTION_INFO_V1(BOX2D_out);
+PG_FUNCTION_INFO_V1(BOX3D_out);
+PG_FUNCTION_INFO_V1(ellipsoid_out);
+
 PG_FUNCTION_INFO_V1(gtype_build_map_noargs);
 /*              
  * degenerate case of gtype_build_map where it gets 0 arguments.
@@ -398,6 +405,18 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
         break;
     case AGTV_MAC8:
         numstr = DatumGetCString(DirectFunctionCall1(macaddr8_out, MacaddrPGetDatum(&scalar_val->val.mac)));
+        appendStringInfoString(out, numstr);
+        break;
+    case AGTV_BOX2D:
+        numstr = DatumGetCString(DirectFunctionCall1(BOX2D_out, PointerGetDatum(&scalar_val->val.gbox)));
+        appendStringInfoString(out, numstr);
+	break;
+    case AGTV_BOX3D:
+        numstr = DatumGetCString(DirectFunctionCall1(BOX3D_out, PointerGetDatum(&scalar_val->val.box3d)));
+        appendStringInfoString(out, numstr);
+        break;
+    case AGTV_SPHEROID:
+        numstr = DatumGetCString(DirectFunctionCall1(ellipsoid_out, PointerGetDatum(&scalar_val->val.spheroid)));
         appendStringInfoString(out, numstr);
         break;
     case AGTV_BOOL:

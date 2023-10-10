@@ -35,6 +35,7 @@
 #ifndef AG_GTYPE_H
 #define AG_GTYPE_H
 
+// Postgres
 #include "access/htup_details.h"
 #include "datatype/timestamp.h"
 #include "fmgr.h"
@@ -46,6 +47,10 @@
 #include "utils/numeric.h"
 #include "utils/syscache.h"
 
+// PostGIS
+#include "liblwgeom/liblwgeom.h"
+
+// PostGraph
 #include "catalog/ag_namespace.h"
 #include "catalog/pg_type.h"
 #include "utils/graphid.h"
@@ -305,6 +310,9 @@ typedef struct
 #define GT_HEADER_CIDR        0x00000010
 #define GT_HEADER_MAC         0x00000011
 #define GT_HEADER_MAC8        0x00000012
+#define GT_HEADER_BOX2D       0x00000013
+#define GT_HEADER_BOX3D       0x00000014
+#define GT_HEADER_SPHEROID    0x00000015
 
 #define GT_IS_INTEGER(agte_) \
     (((agte_) == GT_HEADER_INTEGER))
@@ -340,6 +348,15 @@ typedef struct
 #define GTE_IS_VECTOR(agt) \
     ((((agt)->header & GT_FEXTENDED_COMPOSITE) != 0 ) && (((agt)->children[0] & GT_HEADER_VECTOR) != 0))
 
+#define GT_IS_BOX2D(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_BOX2D)
+
+#define GT_IS_BOX3D(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_BOX3D)
+
+#define GT_IS_SPHEROID(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_SPHEREOID)
+
 enum gtype_value_type
 {
     /* Scalar types */
@@ -359,6 +376,9 @@ enum gtype_value_type
     AGTV_CIDR,
     AGTV_MAC,
     AGTV_MAC8,
+    AGTV_BOX2D,
+    AGTV_BOX3D,
+    AGTV_SPHEROID,
     /* Composite types */
     AGTV_ARRAY = 0x100,
     AGTV_OBJECT,
@@ -391,7 +411,10 @@ struct gtype_value
 	inet inet;
 	macaddr mac;
         macaddr8 mac8;
-	struct { int len; gtype_container *data; } binary;                          // Array or object, in on-disk format
+        GBOX gbox;
+        BOX3D box3d;
+	SPHEROID spheroid;
+	struct { int len; gtype_container *data; } binary; // Array or object, in on-disk format
     } val;
 };
 

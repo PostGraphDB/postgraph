@@ -170,7 +170,35 @@ bool ag_serialize_extended_type(StringInfo buffer, gtentry *gtentry,
 
         *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
         break;
+   case AGTV_BOX2D:
+        padlen = ag_serialize_header(buffer, GT_HEADER_BOX2D);
 
+        numlen = sizeof(GBOX);
+        offset = reserve_from_buffer(buffer, numlen);
+        memcpy(buffer->data + offset, &scalar_val->val.gbox, sizeof(GBOX));
+
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
+        break;
+
+    case AGTV_BOX3D:
+        padlen = ag_serialize_header(buffer, GT_HEADER_BOX3D);
+
+        numlen = sizeof(BOX3D);
+        offset = reserve_from_buffer(buffer, numlen);
+        memcpy(buffer->data + offset, &scalar_val->val.gbox, sizeof(BOX3D));
+
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
+        break;
+
+    case AGTV_SPHEROID:
+        padlen = ag_serialize_header(buffer, GT_HEADER_SPHEROID);
+
+        numlen = sizeof(SPHEROID);
+        offset = reserve_from_buffer(buffer, numlen);
+        memcpy(buffer->data + offset, &scalar_val->val.spheroid, sizeof(SPHEROID));
+
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
+        break;
     default:
         return false;
     }
@@ -241,7 +269,18 @@ void ag_deserialize_extended_type(char *base_addr, uint32 offset, gtype_value *r
         result->type = AGTV_MAC8;
         memcpy(&result->val.mac, base + GT_HEADER_SIZE, sizeof(char) * 8);
         break;
-
+    case GT_HEADER_BOX2D:
+        result->type = AGTV_BOX2D;
+        memcpy(&result->val.gbox, base + GT_HEADER_SIZE, sizeof(GBOX));
+        break;
+    case GT_HEADER_BOX3D:
+        result->type = AGTV_BOX3D;
+        memcpy(&result->val.gbox, base + GT_HEADER_SIZE, sizeof(BOX3D));
+        break;
+    case GT_HEADER_SPHEROID:
+        result->type = AGTV_SPHEROID;
+        memcpy(&result->val.gbox, base + GT_HEADER_SIZE, sizeof(SPHEROID));
+        break;
     default:
         elog(ERROR, "Invalid AGT header value.");
     }

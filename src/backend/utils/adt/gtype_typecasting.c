@@ -73,8 +73,167 @@ Datum gtype_to_cidr_internal(gtype_value *agtv);
 Datum gtype_to_macaddr_internal(gtype_value *agtv);
 Datum gtype_to_macaddr8_internal(gtype_value *agtv);
 Datum gtype_to_float4_internal(gtype_value *agtv);
+Datum gtype_to_box2d_internal(gtype_value *agtv);	
+Datum gtype_to_box3d_internal(gtype_value *agtv);
+Datum gtype_to_spheroid_internal(gtype_value *agtv);
+
+// PostGIS
+PG_FUNCTION_INFO_V1(BOX2D_in);
+PG_FUNCTION_INFO_V1(BOX3D_in);
+PG_FUNCTION_INFO_V1(ellipsoid_in);
 
 static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqltype);
+
+void gbox_init(GBOX *gbox)
+{
+        memset(gbox, 0, sizeof(GBOX));
+}
+
+GBOX* gbox_copy(const GBOX *box)
+{
+        GBOX *copy = (GBOX*)palloc(sizeof(GBOX));
+        memcpy(copy, box, sizeof(GBOX));
+        return copy;
+}
+
+
+/*
+ * Use the WKT definition of an ellipsoid
+ * ie. SPHEROID["name",A,rf] or SPHEROID("name",A,rf)
+ *        SPHEROID["GRS_1980",6378137,298.257222101]
+ * wkt says you can use "(" or "["
+ */
+Datum _ellipsoid_in(char *str)
+{
+        SPHEROID *sphere = (SPHEROID *) palloc(sizeof(SPHEROID));
+        int nitems;
+        double rf;
+
+        memset(sphere,0, sizeof(SPHEROID));
+
+        if (strstr(str,"SPHEROID") !=  str )
+        {
+                elog(ERROR,"SPHEROID parser - doesn't start with SPHEROID");
+                pfree(sphere);
+                return NULL;
+        }
+
+        nitems = sscanf(str,"SPHEROID[\"%19[^\"]\",%lf,%lf]",
+                        sphere->name, &sphere->a, &rf);
+
+        if ( nitems==0)
+                nitems = sscanf(str,"SPHEROID(\"%19[^\"]\",%lf,%lf)",
+                                sphere->name, &sphere->a, &rf);
+
+        if (nitems != 3)
+        {
+                elog(ERROR,"SPHEROID parser - couldnt parse the spheroid");
+                pfree(sphere);
+                return NULL;
+        }
+
+        sphere->f = 1.0/rf;
+        sphere->b = sphere->a - (1.0/rf)*sphere->a;
+        sphere->e_sq = ((sphere->a*sphere->a) - (sphere->b*sphere->b)) /
+                       (sphere->a*sphere->a);
+        sphere->e = sqrt(sphere->e_sq);
+
+        return (sphere);
+
+}
+
+
+Datum _BOX3D_in(char *str)
+{
+        int nitems;
+        BOX3D *box = (BOX3D *)palloc(sizeof(BOX3D));
+        box->zmin = 0;
+        box->zmax = 0;
+
+        if (strstr(str, "BOX3D(") != str)
+        {
+                pfree(box);
+                elog(ERROR, "BOX3D parser - doesn't start with BOX3D(");
+               return NULL;
+        }
+
+        nitems = sscanf(str,
+                        "BOX3D(%le %le %le ,%le %le %le)",
+                        &box->xmin,
+                        &box->ymin,
+                        &box->zmin,
+                        &box->xmax,
+                        &box->ymax,
+                        &box->zmax);
+        if (nitems != 6)
+        {
+                nitems = sscanf(str, "BOX3D(%le %le ,%le %le)", &box->xmin, &box->ymin, &box->xmax, &box->ymax);
+                if (nitems != 4)
+                {
+                        pfree(box);
+                        elog(
+                            ERROR,
+                            "BOX3D parser - couldn't parse.  It should look like: BOX3D(xmin ymin zmin,xmax ymax zmax) or BOX3D(xmin ymin,xmax ymax)");
+                       return NULL;
+                }
+        }
+
+        if (box->xmin > box->xmax)
+        {
+                float tmp = box->xmin;
+                box->xmin = box->xmax;
+                box->xmax = tmp;
+        }
+        if (box->ymin > box->ymax)
+        {
+                float tmp = box->ymin;
+                box->ymin = box->ymax;
+                box->ymax = tmp;
+        }
+        if (box->zmin > box->zmax)
+        {
+                float tmp = box->zmin;
+                box->zmin = box->zmax;
+                box->zmax = tmp;
+        }
+        box->srid = SRID_UNKNOWN;
+        return (box);
+}
+
+
+Datum _BOX2D_in(char *str)
+{
+        int nitems;
+        double tmp;
+        GBOX box;
+        int i;
+
+        gbox_init(&box);
+
+        for(i = 0; str[i]; i++) {
+          str[i] = tolower(str[i]);
+        }
+
+        nitems = sscanf(str,"box(%lf %lf,%lf %lf)", &box.xmin, &box.ymin, &box.xmax, &box.ymax);
+        if (nitems != 4)
+                elog(ERROR,"box2d parser - couldn't parse.  It should look like: BOX(xmin ymin,xmax ymax), not %s", str);
+
+        if (box.xmin > box.xmax)
+        {
+                tmp = box.xmin;
+                box.xmin = box.xmax;
+                box.xmax = tmp;
+        }
+        if (box.ymin > box.ymax)
+        {
+                tmp = box.ymin;
+                box.ymin = box.ymax;
+                box.ymax = tmp;
+        }
+        PG_RETURN_POINTER(gbox_copy(&box));
+}
+
+
 
 Datum convert_to_scalar(coearce_function func, gtype *agt, char *type) {
     if (!AGT_ROOT_IS_SCALAR(agt))
@@ -545,6 +704,86 @@ Datum gtype_tomacaddr8(PG_FUNCTION_ARGS)
     agtv.val.mac8.g = mac->g;
     agtv.val.mac8.h = mac->h;
 
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+}
+
+PG_FUNCTION_INFO_V1(gtype_tobox2d);
+/*
+ * Execute function to typecast an agtype to an agtype timestamp
+ */
+Datum gtype_tobox2d(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    GBOX *box = convert_to_scalar(gtype_to_box2d_internal, agt, "box2d");
+
+    gtype_value agtv;
+    agtv.type = AGTV_BOX2D;
+
+    agtv.val.gbox.flags = box->flags;
+    agtv.val.gbox.xmin = box->xmin;
+    agtv.val.gbox.xmax = box->xmax;
+    agtv.val.gbox.ymin = box->ymin;
+    agtv.val.gbox.ymax = box->ymax;
+    agtv.val.gbox.zmin = box->zmin;
+    agtv.val.gbox.zmax = box->zmax;
+    agtv.val.gbox.mmin = box->mmin;
+    agtv.val.gbox.mmax = box->mmax;
+
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+}
+
+PG_FUNCTION_INFO_V1(gtype_tobox3d);
+/*
+ * Execute function to typecast an agtype to an agtype timestamp
+ */
+Datum gtype_tobox3d(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    BOX3D *box = convert_to_scalar(gtype_to_box3d_internal, agt, "box3d");
+
+    gtype_value agtv;
+    agtv.type = AGTV_BOX3D;
+
+    agtv.val.box3d.srid = box->srid;
+    agtv.val.box3d.xmin = box->xmin;
+    agtv.val.box3d.xmax = box->xmax;
+    agtv.val.box3d.ymin = box->ymin;
+    agtv.val.box3d.ymax = box->ymax;
+    agtv.val.box3d.zmin = box->zmin;
+    agtv.val.box3d.zmax = box->zmax;
+
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+}
+
+
+PG_FUNCTION_INFO_V1(gtype_tospheroid);
+/*
+ * Execute function to typecast an agtype to an agtype timestamp
+ */
+Datum gtype_tospheroid(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    SPHEROID *box = convert_to_scalar(gtype_to_spheroid_internal, agt, "spheroid");
+
+    gtype_value agtv;
+    agtv.type = AGTV_SPHEROID;
+
+    memcpy(&agtv.val.spheroid, box, sizeof(SPHEROID));
 
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
 }
@@ -1213,6 +1452,37 @@ gtype_to_macaddr8_internal(gtype_value *agtv) {
     return CStringGetDatum("");
 }
 
+Datum
+gtype_to_box2d_internal(gtype_value *agtv) {
+    if (agtv->type == AGTV_STRING){
+        return DirectFunctionCall1(BOX2D_in, CStringGetDatum(agtv->val.string.val));
+    }  else
+        cannot_cast_gtype_value(agtv->type, "box2d");
+
+    // unreachable
+    return CStringGetDatum("");
+}
+
+Datum
+gtype_to_box3d_internal(gtype_value *agtv) {
+    if (agtv->type == AGTV_STRING){
+        return DirectFunctionCall1(BOX3D_in, CStringGetDatum(agtv->val.string.val));
+    }  else
+        cannot_cast_gtype_value(agtv->type, "box3d");
+
+    // unreachable
+    return CStringGetDatum("");
+}
+Datum
+gtype_to_spheroid_internal(gtype_value *agtv) {
+    if (agtv->type == AGTV_STRING){
+        return DirectFunctionCall1(ellipsoid_in, CStringGetDatum(agtv->val.string.val));
+    }  else
+        cannot_cast_gtype_value(agtv->type, "spheroid");
+
+    // unreachable
+    return CStringGetDatum("");
+}
 
 /*
  * Emit correct, translatable cast error message

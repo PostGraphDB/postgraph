@@ -696,7 +696,7 @@ EXPLAIN SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) RETURN n ORDER BY n.i <-
 ---------------------------------------------------------------------------------------------------------------------
  Subquery Scan on _  (cost=10000000001.08..10000000001.12 rows=3 width=32)
    ->  Sort  (cost=10000000001.08..10000000001.09 rows=3 width=64)
-         Sort Key: (((build_vertex(n.id, '18180'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
+         Sort Key: (((build_vertex(n.id, '19263'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
          ->  Seq Scan on _ag_label_vertex n  (cost=10000000000.00..10000000001.06 rows=3 width=64)
 (4 rows)
 
@@ -706,7 +706,7 @@ EXPLAIN SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) WITH n as n, n.i as i OR
  Limit  (cost=10000000001.08..10000000001.10 rows=1 width=32)
    ->  Subquery Scan on _  (cost=10000000001.08..10000000001.12 rows=3 width=32)
          ->  Sort  (cost=10000000001.08..10000000001.09 rows=3 width=96)
-               Sort Key: (((build_vertex(n.id, '18180'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
+               Sort Key: (((build_vertex(n.id, '19263'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
                ->  Seq Scan on _ag_label_vertex n  (cost=10000000000.00..10000000001.06 rows=3 width=96)
 (5 rows)
 
@@ -715,7 +715,7 @@ EXPLAIN SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) RETURN n ORDER BY n.i <-
 ---------------------------------------------------------------------------------------------------------------------
  Subquery Scan on _  (cost=10000000001.08..10000000001.12 rows=3 width=32)
    ->  Sort  (cost=10000000001.08..10000000001.09 rows=3 width=64)
-         Sort Key: (((build_vertex(n.id, '18180'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
+         Sort Key: (((build_vertex(n.id, '19263'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
          ->  Seq Scan on _ag_label_vertex n  (cost=10000000000.00..10000000001.06 rows=3 width=64)
 (4 rows)
 
@@ -872,7 +872,6 @@ WARNING:  problem in alloc set ExprContext: detected write past chunk end in blo
 WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x27293a0, chunk 0x27299f0
 WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x275d710, chunk 0x275ea38
 WARNING:  problem in alloc set ExprContext: detected write past chunk end in block 0x27293a0, chunk 0x27299f0
-ERROR:  <-> requires vector arguments
 EXPLAIN SELECT * FROM cypher('ivfflat_ip', $$ MATCH (n) ORDER BY n.i <#> toVector('[3,3,3]') RETURN n$$) as (i vertex);
                                               QUERY PLAN                                              
 ------------------------------------------------------------------------------------------------------
