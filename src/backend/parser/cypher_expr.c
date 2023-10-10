@@ -748,6 +748,12 @@ transform_cypher_typecast(cypher_parsestate *cpstate, cypher_typecast *ctypecast
         fname = lappend(fname, makeString("tomacaddr"));
     else if (pg_strcasecmp(ctypecast->typecast, "macaddr8") == 0)
         fname = lappend(fname, makeString("tomacaddr8"));
+    else if (pg_strcasecmp(ctypecast->typecast, "box2d") == 0)
+        fname = lappend(fname, makeString("tobox2d"));
+    else if (pg_strcasecmp(ctypecast->typecast, "box3d") == 0)
+        fname = lappend(fname, makeString("tobox3d"));
+    else if (pg_strcasecmp(ctypecast->typecast, "spheroid") == 0)
+        fname = lappend(fname, makeString("tospheroid"));
     else
         ereport(ERROR, (errmsg_internal("typecast \'%s\' not supported", ctypecast->typecast)));
 

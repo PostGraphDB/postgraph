@@ -109,13 +109,15 @@ REGRESS = scan \
 	  aggregation \
           traversal_functions \
           variable_edge_functions \
+          postgis \
           index \
           drop
 
 srcdir=`pwd`
+POSTGIS_DIR ?= postgis_dir
 
 ag_regress_dir = $(srcdir)/regress
-REGRESS_OPTS = --load-extension=postgraph --inputdir=$(ag_regress_dir) --outputdir=$(ag_regress_dir) --temp-instance=$(ag_regress_dir)/instance --port=61958 --encoding=UTF-8
+REGRESS_OPTS = --load-extension=postgis --load-extension=postgraph --inputdir=$(ag_regress_dir) --outputdir=$(ag_regress_dir) --temp-instance=$(ag_regress_dir)/instance --port=61958 --encoding=UTF-8
 
 ag_regress_out = instance/ log/ results/ regression.*
 EXTRA_CLEAN = $(addprefix $(ag_regress_dir)/, $(ag_regress_out)) src/backend/parser/cypher_gram.c src/backend/parser/ag_scanner.c src/include/parser/cypher_gram_def.h src/include/parser/cypher_kwlist_d.h
@@ -124,7 +126,9 @@ GEN_KEYWORDLIST = $(PERL) -I ./tools/ ./tools/gen_keywordlist.pl
 GEN_KEYWORDLIST_DEPS = ./tools/gen_keywordlist.pl tools/PerfectHash.pm
 
 ag_include_dir = $(srcdir)/src/include
-PG_CPPFLAGS = -w -I$(ag_include_dir) -I$(ag_include_dir)/parser
+PG_CPPFLAGS = -w -I$(ag_include_dir) -I$(ag_include_dir)/parser -I$(POSTGIS_DIR)
+PG_LDFLAGS = -lgeos_c
+SHLIB_LINK=  $(POSTGIS_DIR)/liblwgeom/.libs/liblwgeom.a -Wl,--no-as-needed -Wl,-l:postgis-3.so
 
 PG_CONFIG ?= pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)
