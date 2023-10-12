@@ -30,6 +30,7 @@ Some Usefule Addtional Features
 - Advanced Indexing Strategies
 - Property Constraints
 
+
 POSTGIS Dependencies:
 autoconf
 automake
