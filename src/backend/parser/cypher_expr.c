@@ -754,6 +754,8 @@ transform_cypher_typecast(cypher_parsestate *cpstate, cypher_typecast *ctypecast
         fname = lappend(fname, makeString("tobox3d"));
     else if (pg_strcasecmp(ctypecast->typecast, "spheroid") == 0)
         fname = lappend(fname, makeString("tospheroid"));
+    else if (pg_strcasecmp(ctypecast->typecast, "geometry") == 0)
+        fname = lappend(fname, makeString("togeometry"));
     else
         ereport(ERROR, (errmsg_internal("typecast \'%s\' not supported", ctypecast->typecast)));
 

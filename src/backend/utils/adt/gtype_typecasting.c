@@ -73,9 +73,6 @@ Datum gtype_to_cidr_internal(gtype_value *agtv);
 Datum gtype_to_macaddr_internal(gtype_value *agtv);
 Datum gtype_to_macaddr8_internal(gtype_value *agtv);
 Datum gtype_to_float4_internal(gtype_value *agtv);
-Datum gtype_to_box2d_internal(gtype_value *agtv);	
-Datum gtype_to_box3d_internal(gtype_value *agtv);
-Datum gtype_to_spheroid_internal(gtype_value *agtv);
 
 // PostGIS
 PG_FUNCTION_INFO_V1(BOX2D_in);
@@ -788,6 +785,29 @@ Datum gtype_tospheroid(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
 }
 
+
+PG_FUNCTION_INFO_V1(gtype_togeometry);
+/*
+ * Execute function to typecast an agtype to an agtype timestamp
+ */
+Datum gtype_togeometry(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    void *gserial = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, agt, "geometry"));
+
+    gtype_value agtv;
+    agtv.type = AGTV_GSERIALIZED;
+    agtv.val.gserialized = gserial;
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+}
+
+
+
 /*
  * gtype to postgres functions
  */
@@ -1473,6 +1493,8 @@ gtype_to_box3d_internal(gtype_value *agtv) {
     // unreachable
     return CStringGetDatum("");
 }
+
+PG_FUNCTION_INFO_V1(LWGEOM_in);
 Datum
 gtype_to_spheroid_internal(gtype_value *agtv) {
     if (agtv->type == AGTV_STRING){
@@ -1483,6 +1505,20 @@ gtype_to_spheroid_internal(gtype_value *agtv) {
     // unreachable
     return CStringGetDatum("");
 }
+
+Datum
+gtype_to_geometry_internal(gtype_value *agtv) {
+    if (agtv->type == AGTV_GSERIALIZED) {
+	return PointerGetDatum(agtv->val.gserialized);
+    } else if (agtv->type == AGTV_STRING){
+        return DirectFunctionCall1(LWGEOM_in, CStringGetDatum(agtv->val.string.val));
+    }  else
+        cannot_cast_gtype_value(agtv->type, "geography");
+
+    // unreachable
+    return CStringGetDatum("");
+}
+
 
 /*
  * Emit correct, translatable cast error message
