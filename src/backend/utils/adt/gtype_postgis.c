@@ -51,3 +51,60 @@ gtype_asEWKT(PG_FUNCTION_ARGS) {
         
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
+
+PG_FUNCTION_INFO_V1(LWGEOM_x_point);
+
+PG_FUNCTION_INFO_V1(gtype_x_point);
+Datum
+gtype_x_point(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d = DirectFunctionCall1(LWGEOM_x_point, convert_to_scalar(gtype_to_geometry_internal, gt, "geometry"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+PG_FUNCTION_INFO_V1(LWGEOM_y_point);
+
+PG_FUNCTION_INFO_V1(gtype_y_point);
+Datum
+gtype_y_point(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d = DirectFunctionCall1(LWGEOM_y_point, convert_to_scalar(gtype_to_geometry_internal, gt, "geometry"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+PG_FUNCTION_INFO_V1(LWGEOM_z_point);
+
+PG_FUNCTION_INFO_V1(gtype_z_point);
+Datum
+gtype_z_point(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d = DirectFunctionCall1(LWGEOM_z_point, convert_to_scalar(gtype_to_geometry_internal, gt, "geometry"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+PG_FUNCTION_INFO_V1(LWGEOM_m_point);
+
+PG_FUNCTION_INFO_V1(gtype_m_point);
+Datum
+gtype_m_point(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d = DirectFunctionCall1(LWGEOM_m_point, convert_to_scalar(gtype_to_geometry_internal, gt, "geometry"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+

@@ -84,6 +84,150 @@ SELECT * FROM cypher('postgis', $$RETURN 'POLYGON( (0 0 1 , 10 0 1, 10 10 1, 0 1
 SELECT * FROM cypher('postgis', $$RETURN ST_AsEWKT('POLYGON( (0 0 1 , 10 0 1, 10 10 1, 0 10 1, 0 0 1) )'::geometry) $$) AS r(c gtype);
 SELECT * FROM cypher('postgis', $$RETURN ST_AsEWKT('POLYGON( (0 0 1 , 10 0 1, 10 10 1, 0 10 1, 0 0 1) )') $$) AS r(c gtype);
 
+--
+-- Point Cordinates
+--
+
+--
+-- ST_X
+--
+SELECT ST_X('POINT (0 0)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_X('POINT (0 0)'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN X('POINT (0 0)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_X('POINTZ (1 2 3)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_X('POINTZ (1 2 3)'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN X('POINTZ (1 2 3)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_X('POINTM (6 7 8)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_X('POINTM (6 7 8)'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN X('POINTM (6 7 8)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_X('POINTZM (10 11 12 13)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_X('POINTZM (10 11 12 13)'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN X('POINTZM (10 11 12 13)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_X('MULTIPOINT ((0 0), (1 1))'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_X('MULTIPOINT ((0 0), (1 1))'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN X('MULTIPOINT ((0 0), (1 1))'::geometry) $$) AS r(c gtype);
+
+SELECT ST_X('LINESTRING (0 0, 1 1)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_X('LINESTRING (0 0, 1 1)'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN X('LINESTRING (0 0, 1 1)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_X('GEOMETRYCOLLECTION (POINT(0 0))'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_X('GEOMETRYCOLLECTION (POINT(0 0))'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN X('GEOMETRYCOLLECTION (POINT(0 0))'::geometry) $$) AS r(c gtype);
+
+SELECT ST_X('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_X('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN X('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry) $$) AS r(c gtype);
+
+--
+-- ST_Y
+--
+SELECT ST_Y('POINT (0 0)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_Y('POINT (0 0)'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN Y('POINT (0 0)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_Y('POINTZ (1 2 3)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_Y('POINTZ (1 2 3)'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN Y('POINTZ (1 2 3)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_Y('POINTM (6 7 8)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_Y('POINTM (6 7 8)'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN Y('POINTM (6 7 8)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_Y('POINTZM (10 11 12 13)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_Y('POINTZM (10 11 12 13)'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN Y('POINTZM (10 11 12 13)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_Y('MULTIPOINT ((0 0), (1 1))'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_Y('MULTIPOINT ((0 0), (1 1))'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN Y('MULTIPOINT ((0 0), (1 1))'::geometry) $$) AS r(c gtype);
+
+SELECT ST_Y('LINESTRING (0 0, 1 1)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_Y('LINESTRING (0 0, 1 1)'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN Y('LINESTRING (0 0, 1 1)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_Y('GEOMETRYCOLLECTION (POINT(0 0))'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_Y('GEOMETRYCOLLECTION (POINT(0 0))'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN Y('GEOMETRYCOLLECTION (POINT(0 0))'::geometry) $$) AS r(c gtype);
+
+SELECT ST_Y('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_Y('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN Y('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry) $$) AS r(c gtype);
+
+--
+-- ST_Z
+--
+SELECT ST_Z('POINT (0 0)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_Z('POINT (0 0)'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN Z('POINT (0 0)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_Z('POINTZ (1 2 3)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_Z('POINTZ (1 2 3)'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN Z('POINTZ (1 2 3)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_Z('POINTM (6 7 8)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_Z('POINTM (6 7 8)'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN Z('POINTM (6 7 8)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_Z('POINTZM (10 11 12 13)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_Z('POINTZM (10 11 12 13)'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN Z('POINTZM (10 11 12 13)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_Z('MULTIPOINT ((0 0), (1 1))'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_Z('MULTIPOINT ((0 0), (1 1))'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN Z('MULTIPOINT ((0 0), (1 1))'::geometry) $$) AS r(c gtype);
+
+SELECT ST_Z('LINESTRING (0 0, 1 1)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_Z('LINESTRING (0 0, 1 1)'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN Z('LINESTRING (0 0, 1 1)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_Z('GEOMETRYCOLLECTION (POINT(0 0))'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_Z('GEOMETRYCOLLECTION (POINT(0 0))'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN Z('GEOMETRYCOLLECTION (POINT(0 0))'::geometry) $$) AS r(c gtype);
+
+SELECT ST_Z('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_Z('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN Z('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry) $$) AS r(c gtype);
+
+--
+-- ST_M
+--
+SELECT ST_M('POINT (0 0)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_M('POINT (0 0)'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN M('POINT (0 0)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_M('POINTZ (1 2 3)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_M('POINTZ (1 2 3)'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN M('POINTZ (1 2 3)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_M('POINTM (6 7 8)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_M('POINTM (6 7 8)'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN M('POINTM (6 7 8)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_M('POINTZM (10 11 12 13)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_M('POINTZM (10 11 12 13)'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN M('POINTZM (10 11 12 13)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_M('MULTIPOINT ((0 0), (1 1))'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_M('MULTIPOINT ((0 0), (1 1))'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN M('MULTIPOINT ((0 0), (1 1))'::geometry) $$) AS r(c gtype);
+
+SELECT ST_M('LINESTRING (0 0, 1 1)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_M('LINESTRING (0 0, 1 1)'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN M('LINESTRING (0 0, 1 1)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_M('GEOMETRYCOLLECTION (POINT(0 0))'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_M('GEOMETRYCOLLECTION (POINT(0 0))'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN M('GEOMETRYCOLLECTION (POINT(0 0))'::geometry) $$) AS r(c gtype);
+
+SELECT ST_M('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_M('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$RETURN M('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry) $$) AS r(c gtype);
+
 
 
 SELECT * FROM drop_graph('postgis', true);
