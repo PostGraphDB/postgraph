@@ -82,6 +82,14 @@ $$) AS (covar_pop gtype);
 (1 row)
 
 SELECT * FROM cypher('UCSC', $$
+    MATCH (u) RETURN covar_samp(u.gpa, u.age)
+$$) AS (covar_samp gtype);
+     covar_samp     
+--------------------
+ -0.152380952380953
+(1 row)
+
+SELECT * FROM cypher('UCSC', $$
     MATCH (u)
     RETURN avg(u.gpa),
            sum(u.gpa),
