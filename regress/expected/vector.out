@@ -693,7 +693,7 @@ EXPLAIN SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) RETURN n ORDER BY n.i <-
 ---------------------------------------------------------------------------------------------------------------------
  Subquery Scan on _  (cost=10000000001.08..10000000001.12 rows=3 width=32)
    ->  Sort  (cost=10000000001.08..10000000001.09 rows=3 width=64)
-         Sort Key: (((build_vertex(n.id, '19285'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
+         Sort Key: (((build_vertex(n.id, '19287'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
          ->  Seq Scan on _ag_label_vertex n  (cost=10000000000.00..10000000001.06 rows=3 width=64)
 (4 rows)
 
@@ -703,7 +703,7 @@ EXPLAIN SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) WITH n as n, n.i as i OR
  Limit  (cost=10000000001.08..10000000001.10 rows=1 width=32)
    ->  Subquery Scan on _  (cost=10000000001.08..10000000001.12 rows=3 width=32)
          ->  Sort  (cost=10000000001.08..10000000001.09 rows=3 width=96)
-               Sort Key: (((build_vertex(n.id, '19285'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
+               Sort Key: (((build_vertex(n.id, '19287'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
                ->  Seq Scan on _ag_label_vertex n  (cost=10000000000.00..10000000001.06 rows=3 width=96)
 (5 rows)
 
@@ -712,7 +712,7 @@ EXPLAIN SELECT * FROM cypher('ivfflat_l2', $$ MATCH (n) RETURN n ORDER BY n.i <-
 ---------------------------------------------------------------------------------------------------------------------
  Subquery Scan on _  (cost=10000000001.08..10000000001.12 rows=3 width=32)
    ->  Sort  (cost=10000000001.08..10000000001.09 rows=3 width=64)
-         Sort Key: (((build_vertex(n.id, '19285'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
+         Sort Key: (((build_vertex(n.id, '19287'::oid, n.properties) -> '"i"'::gtype) <-> '[3.0, 3.0, 3.0]'::gtype))
          ->  Seq Scan on _ag_label_vertex n  (cost=10000000000.00..10000000001.06 rows=3 width=64)
 (4 rows)
 
