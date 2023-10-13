@@ -39,10 +39,9 @@ SELECT * FROM cypher('UCSC', $$
     MATCH (u) RETURN corr(u.gpa, u.age)
 $$) AS (corr gtype);
 
-
 SELECT * FROM cypher('UCSC', $$
-    MATCH (u) RETURN (u)
-$$) AS (vertex vertex);
+    MATCH (u) RETURN covar_pop(u.gpa, u.age)
+$$) AS (covar_pop gtype);
 
 SELECT * FROM cypher('UCSC', $$
     MATCH (u)
