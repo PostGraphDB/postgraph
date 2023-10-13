@@ -3152,6 +3152,19 @@ COST 1
 AS 'MODULE_PATHNAME', 'gtype_m_point';
 
 --
+-- PostGIS Functions - Temporal
+--
+CREATE FUNCTION ST_ClosestPointOfApproach (gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 5000
+AS 'MODULE_PATHNAME', 'gtype_ST_ClosestPointOfApproach';
+
+
+--
 -- PostGIS Functions - GEOS
 --
 CREATE FUNCTION ST_Intersection (gtype, gtype, gtype DEFAULT '-1.0'::gtype)
@@ -3160,7 +3173,7 @@ LANGUAGE c
 IMMUTABLE
 RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
-COST 1
+COST 5000
 AS 'MODULE_PATHNAME', 'gtype_st_intersection';
 
 --
