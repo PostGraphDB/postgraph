@@ -66,6 +66,14 @@ SELECT * FROM cypher('UCSC', $$ CREATE (:students {name: "Jessica", gpa: 3.9::nu
 (0 rows)
 
 SELECT * FROM cypher('UCSC', $$
+    MATCH (u) RETURN corr(u.gpa, u.age)
+$$) AS (corr gtype);
+        corr         
+---------------------
+ -0.0611333038221933
+(1 row)
+
+SELECT * FROM cypher('UCSC', $$
     MATCH (u) RETURN (u)
 $$) AS (vertex vertex);
                                                        vertex                                                        

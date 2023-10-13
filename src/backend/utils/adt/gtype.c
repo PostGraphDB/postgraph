@@ -3311,23 +3311,38 @@ Datum gtype_gtype_sum(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
-/*
- * Wrapper function for float8_accum to take an gtype input.
- * This function is defined as STRICT so it does not need to check
- * for NULL input parameters
- */
 PG_FUNCTION_INFO_V1(gtype_accum);
 
 Datum gtype_accum(PG_FUNCTION_ARGS)
 {
-    Datum result;
-
-    result = DirectFunctionCall2(float8_accum, PG_GETARG_DATUM(0), convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(1), "float"));
-
-    PG_RETURN_DATUM(result);
+    PG_RETURN_DATUM(DirectFunctionCall2(float8_accum, PG_GETARG_DATUM(0),
+		                        convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(1), "float")));
 }
 
-/* Wrapper for stdDev function. */
+PG_FUNCTION_INFO_V1(gtype_regr_accum);
+
+Datum gtype_regr_accum(PG_FUNCTION_ARGS)
+{
+    PG_RETURN_DATUM(DirectFunctionCall3(float8_regr_accum, PG_GETARG_DATUM(0), 
+		                        convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(1), "float"),
+				        convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(2), "float")));
+}   
+
+
+PG_FUNCTION_INFO_V1(gtype_corr_final);
+Datum
+gtype_corr_final(PG_FUNCTION_ARGS) {
+    Datum result = (*float8_corr) (fcinfo);
+
+    if (fcinfo->isnull)
+        PG_RETURN_NULL();
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(result) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+
 PG_FUNCTION_INFO_V1(gtype_stddev_samp_final);
 
 Datum gtype_stddev_samp_final(PG_FUNCTION_ARGS)
