@@ -3060,7 +3060,7 @@ AS 'MODULE_PATHNAME', 'gtype_macaddr8_set7bit';
 
 --
 -- PostGIS Functions
--- gtype_asEWKT
+--
 CREATE FUNCTION ST_asEWKT (gtype)
 RETURNS gtype
 LANGUAGE c
@@ -3151,6 +3151,17 @@ PARALLEL SAFE
 COST 1
 AS 'MODULE_PATHNAME', 'gtype_m_point';
 
+--
+-- PostGIS Functions - GEOS
+--
+CREATE FUNCTION ST_Intersection (gtype, gtype, gtype DEFAULT '-1.0'::gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 1
+AS 'MODULE_PATHNAME', 'gtype_st_intersection';
 
 --
 -- Scalar Functions

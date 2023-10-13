@@ -228,6 +228,23 @@ SELECT ST_M('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry);
 SELECT * FROM cypher('postgis', $$RETURN ST_M('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry) $$) AS r(c gtype);
 SELECT * FROM cypher('postgis', $$RETURN M('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry) $$) AS r(c gtype);
 
+--
+-- ST_Intersection
+--
+SELECT ST_Intersection('MULTIPOINT ((0 0), (1 1))'::geometry, 'MULTIPOINT ((0 0), (1 1))'::geometry);
+SELECT ST_AsEWKT(ST_Intersection('MULTIPOINT ((0 0), (1 1))'::geometry, 'MULTIPOINT ((0 0), (1 1))'::geometry));
+SELECT * FROM cypher('postgis', $$
+     RETURN ST_Intersection('MULTIPOINT ((0 0), (1 1))'::geometry, 'MULTIPOINT ((0 0), (1 1))'::geometry, -1.0)
+$$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$
+     RETURN ST_AsEWKT(ST_Intersection('MULTIPOINT ((0 0), (1 1))'::geometry, 'MULTIPOINT ((0 0), (1 1))'::geometry, -1.0))
+$$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$
+     RETURN ST_AsEWKT(ST_Intersection('MULTIPOINT ((2 2), (5 1))'::geometry, 'MULTIPOINT ((0 0), (1 1))'::geometry, -1.0))
+$$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$
+     RETURN ST_AsEWKT(ST_Intersection('MULTIPOINT ((2 2), (5 1))'::geometry, 'MULTIPOINT ((0 0), (1 1))'::geometry))
+$$) AS r(c gtype);
 
 
 SELECT * FROM drop_graph('postgis', true);

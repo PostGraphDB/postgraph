@@ -478,9 +478,9 @@ SELECT ST_Z('POINT (0 0)'::geometry);
 (1 row)
 
 SELECT * FROM cypher('postgis', $$RETURN ST_Z('POINT (0 0)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7fd6112dcf70 returned NULL
+ERROR:  function 0x7f96014dcf70 returned NULL
 SELECT * FROM cypher('postgis', $$RETURN Z('POINT (0 0)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7fd6112dcf70 returned NULL
+ERROR:  function 0x7f96014dcf70 returned NULL
 SELECT ST_Z('POINTZ (1 2 3)'::geometry);
  st_z 
 ------
@@ -506,9 +506,9 @@ SELECT ST_Z('POINTM (6 7 8)'::geometry);
 (1 row)
 
 SELECT * FROM cypher('postgis', $$RETURN ST_Z('POINTM (6 7 8)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7fd6112dcf70 returned NULL
+ERROR:  function 0x7f96014dcf70 returned NULL
 SELECT * FROM cypher('postgis', $$RETURN Z('POINTM (6 7 8)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7fd6112dcf70 returned NULL
+ERROR:  function 0x7f96014dcf70 returned NULL
 SELECT ST_Z('POINTZM (10 11 12 13)'::geometry);
  st_z 
 ------
@@ -561,9 +561,9 @@ SELECT ST_M('POINT (0 0)'::geometry);
 (1 row)
 
 SELECT * FROM cypher('postgis', $$RETURN ST_M('POINT (0 0)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7fd6112dcff0 returned NULL
+ERROR:  function 0x7f96014dcff0 returned NULL
 SELECT * FROM cypher('postgis', $$RETURN M('POINT (0 0)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7fd6112dcff0 returned NULL
+ERROR:  function 0x7f96014dcff0 returned NULL
 SELECT ST_M('POINTZ (1 2 3)'::geometry);
  st_m 
 ------
@@ -571,9 +571,9 @@ SELECT ST_M('POINTZ (1 2 3)'::geometry);
 (1 row)
 
 SELECT * FROM cypher('postgis', $$RETURN ST_M('POINTZ (1 2 3)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7fd6112dcff0 returned NULL
+ERROR:  function 0x7f96014dcff0 returned NULL
 SELECT * FROM cypher('postgis', $$RETURN M('POINTZ (1 2 3)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7fd6112dcff0 returned NULL
+ERROR:  function 0x7f96014dcff0 returned NULL
 SELECT ST_M('POINTM (6 7 8)'::geometry);
  st_m 
 ------
@@ -634,6 +634,53 @@ SELECT * FROM cypher('postgis', $$RETURN ST_M('GEOMETRYCOLLECTION (POINT(0 1), L
 ERROR:  Argument to ST_M() must have type POINT
 SELECT * FROM cypher('postgis', $$RETURN M('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry) $$) AS r(c gtype);
 ERROR:  Argument to ST_M() must have type POINT
+--
+-- ST_Intersection
+--
+SELECT ST_Intersection('MULTIPOINT ((0 0), (1 1))'::geometry, 'MULTIPOINT ((0 0), (1 1))'::geometry);
+                                            st_intersection                                             
+--------------------------------------------------------------------------------------------------------
+ 0104000000020000000101000000000000000000000000000000000000000101000000000000000000F03F000000000000F03F
+(1 row)
+
+SELECT ST_AsEWKT(ST_Intersection('MULTIPOINT ((0 0), (1 1))'::geometry, 'MULTIPOINT ((0 0), (1 1))'::geometry));
+      st_asewkt      
+---------------------
+ MULTIPOINT(0 0,1 1)
+(1 row)
+
+SELECT * FROM cypher('postgis', $$
+     RETURN ST_Intersection('MULTIPOINT ((0 0), (1 1))'::geometry, 'MULTIPOINT ((0 0), (1 1))'::geometry, -1.0)
+$$) AS r(c gtype);
+                                                   c                                                    
+--------------------------------------------------------------------------------------------------------
+ 0104000000020000000101000000000000000000000000000000000000000101000000000000000000F03F000000000000F03F
+(1 row)
+
+SELECT * FROM cypher('postgis', $$
+     RETURN ST_AsEWKT(ST_Intersection('MULTIPOINT ((0 0), (1 1))'::geometry, 'MULTIPOINT ((0 0), (1 1))'::geometry, -1.0))
+$$) AS r(c gtype);
+           c           
+-----------------------
+ "MULTIPOINT(0 0,1 1)"
+(1 row)
+
+SELECT * FROM cypher('postgis', $$
+     RETURN ST_AsEWKT(ST_Intersection('MULTIPOINT ((2 2), (5 1))'::geometry, 'MULTIPOINT ((0 0), (1 1))'::geometry, -1.0))
+$$) AS r(c gtype);
+       c       
+---------------
+ "POINT EMPTY"
+(1 row)
+
+SELECT * FROM cypher('postgis', $$
+     RETURN ST_AsEWKT(ST_Intersection('MULTIPOINT ((2 2), (5 1))'::geometry, 'MULTIPOINT ((0 0), (1 1))'::geometry))
+$$) AS r(c gtype);
+       c       
+---------------
+ "POINT EMPTY"
+(1 row)
+
 SELECT * FROM drop_graph('postgis', true);
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table postgis._ag_label_vertex
