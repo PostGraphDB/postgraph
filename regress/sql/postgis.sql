@@ -229,6 +229,43 @@ SELECT * FROM cypher('postgis', $$RETURN ST_M('GEOMETRYCOLLECTION (POINT(0 1), L
 SELECT * FROM cypher('postgis', $$RETURN M('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry) $$) AS r(c gtype);
 
 --
+-- Temporal
+--
+
+--
+-- ST_ClosestPointOfApproach
+--
+-- Converging
+select ST_ClosestPointOfApproach( 'LINESTRINGZM(0 0 0 0, 10 10 10 10)', 'LINESTRINGZM(0 0 0 1, 10 10 10 10)'::geometry);
+select * FROM cypher('postgis', $$
+    RETURN ST_ClosestPointOfApproach( 'LINESTRINGZM(0 0 0 0, 10 10 10 10)'::geometry, 'LINESTRINGZM(0 0 0 1, 10 10 10 10)')
+$$) as (c gtype);
+-- Following
+select ST_ClosestPointOfApproach( 'LINESTRINGZM(0 0 0 0, 10 10 10 10)', 'LINESTRINGZM(0 0 0 5, 10 10 10 15)'::geometry);
+select * FROM cypher('postgis', $$
+    RETURN ST_ClosestPointOfApproach( 'LINESTRINGZM(0 0 0 0, 10 10 10 10)', 'LINESTRINGZM(0 0 0 5, 10 10 10 15)'::geometry)
+$$) as (c gtype);
+-- Crossing
+select ST_ClosestPointOfApproach( 'LINESTRINGZM(0 0 0 0, 0 0 0 10)', 'LINESTRINGZM(-30 0 5 4, 10 0 5 6)'::geometry);
+select * FROM cypher('postgis', $$
+    RETURN ST_ClosestPointOfApproach( 'LINESTRINGZM(0 0 0 0, 0 0 0 10)', 'LINESTRINGZM(-30 0 5 4, 10 0 5 6)'::geometry)
+$$) as (c gtype);
+-- Meeting
+select ST_ClosestPointOfApproach( 'LINESTRINGZM(0 0 0 0, 0 0 0 10)', 'LINESTRINGZM(0 5 0 10, 10 0 5 11)'::geometry);
+select * FROM cypher('postgis', $$
+    RETURN ST_ClosestPointOfApproach( 'LINESTRINGZM(0 0 0 0, 0 0 0 10)', 'LINESTRINGZM(0 5 0 10, 10 0 5 11)'::geometry)
+$$) as (c gtype);
+-- Disjoint
+select ST_ClosestPointOfApproach( 'LINESTRINGM(0 0 0, 0 0 4)', 'LINESTRINGM(0 0 5, 0 0 10)'::geometry);
+select * FROM cypher('postgis', $$
+    RETURN ST_ClosestPointOfApproach('LINESTRINGM(0 0 0, 0 0 4)', 'LINESTRINGM(0 0 5, 0 0 10)'::geometry)
+$$) as (c gtype);
+
+--
+-- GEOS
+--
+
+--
 -- ST_Intersection
 --
 SELECT ST_Intersection('MULTIPOINT ((0 0), (1 1))'::geometry, 'MULTIPOINT ((0 0), (1 1))'::geometry);

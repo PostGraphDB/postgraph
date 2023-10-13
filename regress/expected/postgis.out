@@ -478,9 +478,9 @@ SELECT ST_Z('POINT (0 0)'::geometry);
 (1 row)
 
 SELECT * FROM cypher('postgis', $$RETURN ST_Z('POINT (0 0)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7f96014dcf70 returned NULL
+ERROR:  function 0x7f1e978dcf70 returned NULL
 SELECT * FROM cypher('postgis', $$RETURN Z('POINT (0 0)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7f96014dcf70 returned NULL
+ERROR:  function 0x7f1e978dcf70 returned NULL
 SELECT ST_Z('POINTZ (1 2 3)'::geometry);
  st_z 
 ------
@@ -506,9 +506,9 @@ SELECT ST_Z('POINTM (6 7 8)'::geometry);
 (1 row)
 
 SELECT * FROM cypher('postgis', $$RETURN ST_Z('POINTM (6 7 8)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7f96014dcf70 returned NULL
+ERROR:  function 0x7f1e978dcf70 returned NULL
 SELECT * FROM cypher('postgis', $$RETURN Z('POINTM (6 7 8)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7f96014dcf70 returned NULL
+ERROR:  function 0x7f1e978dcf70 returned NULL
 SELECT ST_Z('POINTZM (10 11 12 13)'::geometry);
  st_z 
 ------
@@ -561,9 +561,9 @@ SELECT ST_M('POINT (0 0)'::geometry);
 (1 row)
 
 SELECT * FROM cypher('postgis', $$RETURN ST_M('POINT (0 0)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7f96014dcff0 returned NULL
+ERROR:  function 0x7f1e978dcff0 returned NULL
 SELECT * FROM cypher('postgis', $$RETURN M('POINT (0 0)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7f96014dcff0 returned NULL
+ERROR:  function 0x7f1e978dcff0 returned NULL
 SELECT ST_M('POINTZ (1 2 3)'::geometry);
  st_m 
 ------
@@ -571,9 +571,9 @@ SELECT ST_M('POINTZ (1 2 3)'::geometry);
 (1 row)
 
 SELECT * FROM cypher('postgis', $$RETURN ST_M('POINTZ (1 2 3)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7f96014dcff0 returned NULL
+ERROR:  function 0x7f1e978dcff0 returned NULL
 SELECT * FROM cypher('postgis', $$RETURN M('POINTZ (1 2 3)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7f96014dcff0 returned NULL
+ERROR:  function 0x7f1e978dcff0 returned NULL
 SELECT ST_M('POINTM (6 7 8)'::geometry);
  st_m 
 ------
@@ -634,6 +634,90 @@ SELECT * FROM cypher('postgis', $$RETURN ST_M('GEOMETRYCOLLECTION (POINT(0 1), L
 ERROR:  Argument to ST_M() must have type POINT
 SELECT * FROM cypher('postgis', $$RETURN M('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry) $$) AS r(c gtype);
 ERROR:  Argument to ST_M() must have type POINT
+--
+-- Temporal
+--
+--
+-- ST_ClosestPointOfApproach
+--
+-- Converging
+select ST_ClosestPointOfApproach( 'LINESTRINGZM(0 0 0 0, 10 10 10 10)', 'LINESTRINGZM(0 0 0 1, 10 10 10 10)'::geometry);
+ st_closestpointofapproach 
+---------------------------
+                        10
+(1 row)
+
+select * FROM cypher('postgis', $$
+    RETURN ST_ClosestPointOfApproach( 'LINESTRINGZM(0 0 0 0, 10 10 10 10)'::geometry, 'LINESTRINGZM(0 0 0 1, 10 10 10 10)')
+$$) as (c gtype);
+  c   
+------
+ 10.0
+(1 row)
+
+-- Following
+select ST_ClosestPointOfApproach( 'LINESTRINGZM(0 0 0 0, 10 10 10 10)', 'LINESTRINGZM(0 0 0 5, 10 10 10 15)'::geometry);
+ st_closestpointofapproach 
+---------------------------
+                         5
+(1 row)
+
+select * FROM cypher('postgis', $$
+    RETURN ST_ClosestPointOfApproach( 'LINESTRINGZM(0 0 0 0, 10 10 10 10)', 'LINESTRINGZM(0 0 0 5, 10 10 10 15)'::geometry)
+$$) as (c gtype);
+  c  
+-----
+ 5.0
+(1 row)
+
+-- Crossing
+select ST_ClosestPointOfApproach( 'LINESTRINGZM(0 0 0 0, 0 0 0 10)', 'LINESTRINGZM(-30 0 5 4, 10 0 5 6)'::geometry);
+ st_closestpointofapproach 
+---------------------------
+                       5.5
+(1 row)
+
+select * FROM cypher('postgis', $$
+    RETURN ST_ClosestPointOfApproach( 'LINESTRINGZM(0 0 0 0, 0 0 0 10)', 'LINESTRINGZM(-30 0 5 4, 10 0 5 6)'::geometry)
+$$) as (c gtype);
+  c  
+-----
+ 5.5
+(1 row)
+
+-- Meeting
+select ST_ClosestPointOfApproach( 'LINESTRINGZM(0 0 0 0, 0 0 0 10)', 'LINESTRINGZM(0 5 0 10, 10 0 5 11)'::geometry);
+ st_closestpointofapproach 
+---------------------------
+                        10
+(1 row)
+
+select * FROM cypher('postgis', $$
+    RETURN ST_ClosestPointOfApproach( 'LINESTRINGZM(0 0 0 0, 0 0 0 10)', 'LINESTRINGZM(0 5 0 10, 10 0 5 11)'::geometry)
+$$) as (c gtype);
+  c   
+------
+ 10.0
+(1 row)
+
+-- Disjoint
+select ST_ClosestPointOfApproach( 'LINESTRINGM(0 0 0, 0 0 4)', 'LINESTRINGM(0 0 5, 0 0 10)'::geometry);
+ st_closestpointofapproach 
+---------------------------
+                          
+(1 row)
+
+select * FROM cypher('postgis', $$
+    RETURN ST_ClosestPointOfApproach('LINESTRINGM(0 0 0, 0 0 4)', 'LINESTRINGM(0 0 5, 0 0 10)'::geometry)
+$$) as (c gtype);
+ c 
+---
+ 
+(1 row)
+
+--
+-- GEOS
+--
 --
 -- ST_Intersection
 --

@@ -81,19 +81,6 @@ PG_FUNCTION_INFO_V1(ellipsoid_in);
 
 static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqltype);
 
-void gbox_init(GBOX *gbox)
-{
-        memset(gbox, 0, sizeof(GBOX));
-}
-
-GBOX* gbox_copy(const GBOX *box)
-{
-        GBOX *copy = (GBOX*)palloc(sizeof(GBOX));
-        memcpy(copy, box, sizeof(GBOX));
-        return copy;
-}
-
-
 /*
  * Use the WKT definition of an ellipsoid
  * ie. SPHEROID["name",A,rf] or SPHEROID("name",A,rf)

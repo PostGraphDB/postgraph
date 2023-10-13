@@ -29,6 +29,7 @@
 #include "utils/snapmgr.h"
 
 //PostGIS
+#include "liblwgeom/liblwgeom.h"
 
 //PostGraph
 #include "utils/gtype.h"
@@ -125,6 +126,33 @@ gtype_st_intersection(PG_FUNCTION_ARGS) {
     Datum d = DirectFunctionCall3(ST_Intersection, d1, d2, d3);
 
     gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.gserialized = DatumGetPointer(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+PG_FUNCTION_INFO_V1(ST_ClosestPointOfApproach);
+
+PG_FUNCTION_INFO_V1(gtype_ST_ClosestPointOfApproach);
+Datum
+gtype_ST_ClosestPointOfApproach(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+
+    GSERIALIZED *d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    GSERIALIZED *d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+
+    LWGEOM *g0 = lwgeom_from_gserialized(d1);
+    LWGEOM *g1 = lwgeom_from_gserialized(d2);
+    float8 mindist;
+    float8 m = lwgeom_tcpa(g0, g1, &mindist);
+    
+    lwgeom_free(g0);
+    lwgeom_free(g1);
+    
+    if ( m < 0 )
+        PG_RETURN_NULL();
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = m };
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
