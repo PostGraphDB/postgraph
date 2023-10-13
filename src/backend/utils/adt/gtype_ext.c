@@ -25,6 +25,8 @@
 #include "utils/gtype.h"
 #include "utils/graphid.h"
 
+#include "liblwgeom/liblwgeom.h"
+
 /* define the type and size of the agt_header */
 #define GT_HEADER_TYPE uint32
 #define GT_HEADER_SIZE sizeof(GT_HEADER_TYPE)
@@ -199,6 +201,17 @@ bool ag_serialize_extended_type(StringInfo buffer, gtentry *gtentry,
 
         *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
         break;
+
+    case AGTV_GSERIALIZED:
+        padlen = ag_serialize_header(buffer, GT_HEADER_GSERIALIZED);
+
+        numlen = ((GSERIALIZED *)scalar_val->val.gserialized)->size / 4;
+        offset = reserve_from_buffer(buffer, numlen);
+        memcpy(buffer->data + offset, scalar_val->val.gserialized, ((GSERIALIZED *)scalar_val->val.gserialized)->size / 4);
+
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
+        break;
+
     default:
         return false;
     }
@@ -280,6 +293,10 @@ void ag_deserialize_extended_type(char *base_addr, uint32 offset, gtype_value *r
     case GT_HEADER_SPHEROID:
         result->type = AGTV_SPHEROID;
         memcpy(&result->val.gbox, base + GT_HEADER_SIZE, sizeof(SPHEROID));
+        break;
+    case GT_HEADER_GSERIALIZED:
+        result->type = AGTV_GSERIALIZED;
+	result->val.gserialized = (base + GT_HEADER_SIZE);
         break;
     default:
         elog(ERROR, "Invalid AGT header value.");

@@ -61,6 +61,7 @@ OBJS = src/backend/postgraph.o \
        src/backend/utils/adt/gtype_network.o \
        src/backend/utils/adt/gtype_ops.o \
        src/backend/utils/adt/gtype_parser.o \
+       src/backend/utils/adt/gtype_postgis.o \
        src/backend/utils/adt/gtype_temporal.o \
        src/backend/utils/adt/gtype_typecasting.o \
        src/backend/utils/adt/gtype_util.o \

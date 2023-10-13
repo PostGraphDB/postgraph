@@ -17,7 +17,8 @@
  */
 SET extra_float_digits = 0;
 LOAD 'postgraph';
-SET search_path TO postgraph;
+LOAD 'postgis-3';
+SET search_path TO postgraph, public;
 set timezone TO 'GMT';
 SELECT * FROM create_graph('postgis');
 NOTICE:  graph "postgis" has been created
@@ -42,6 +43,166 @@ SELECT * FROM cypher('postgis', $$RETURN 'SPHEROID["WGS 84",6378137,298.25722356
                     c                     
 ------------------------------------------
  SPHEROID("WGS 84",6378137,298.257223563)
+(1 row)
+
+--
+-- I/O Routines
+--
+-- NOTE: The first two queries for each type is the PostGIS Geometry type, used to validate I/O is exactly the same
+--
+-- Point (2 Dimensional) I/O
+SELECT 'POINT( 1 2 )'::geometry;
+                  geometry                  
+--------------------------------------------
+ 0101000000000000000000F03F0000000000000040
+(1 row)
+
+SELECT ST_AsEWKT('POINT( 1 2 )'::geometry);
+ st_asewkt  
+------------
+ POINT(1 2)
+(1 row)
+
+SELECT * FROM cypher('postgis', $$RETURN 'POINT( 1 2 )'::geometry$$) AS r(c gtype);
+                     c                      
+--------------------------------------------
+ 0101000000000000000000F03F0000000000000040
+(1 row)
+
+SELECT * FROM cypher('postgis', $$RETURN ST_AsEWKT('POINT( 1 2 )'::geometry) $$) AS r(c gtype);
+      c       
+--------------
+ "POINT(1 2)"
+(1 row)
+
+SELECT * FROM cypher('postgis', $$RETURN ST_AsEWKT('POINT( 1 2 )') $$) AS r(c gtype);
+      c       
+--------------
+ "POINT(1 2)"
+(1 row)
+
+-- Point (3 Dimensional) I/O
+SELECT 'POINT( 1 2 3 )'::geometry;
+                          geometry                          
+------------------------------------------------------------
+ 0101000080000000000000F03F00000000000000400000000000000840
+(1 row)
+
+SELECT ST_AsEWKT('POINT( 1 2 3)'::geometry);
+  st_asewkt   
+--------------
+ POINT(1 2 3)
+(1 row)
+
+SELECT * FROM cypher('postgis', $$RETURN 'POINT( 1 2 3 )'::geometry$$) AS r(c gtype);
+                             c                              
+------------------------------------------------------------
+ 0101000080000000000000F03F00000000000000400000000000000840
+(1 row)
+
+SELECT * FROM cypher('postgis', $$RETURN ST_AsEWKT('POINT( 1 2 3 )'::geometry) $$) AS r(c gtype);
+       c        
+----------------
+ "POINT(1 2 3)"
+(1 row)
+
+SELECT * FROM cypher('postgis', $$RETURN ST_AsEWKT('POINT( 1 2 3 )') $$) AS r(c gtype);
+       c        
+----------------
+ "POINT(1 2 3)"
+(1 row)
+
+-- LineString (2D, 4 Points) I/O
+SELECT 'LINESTRING (0 0, 1 1, 2 2, 3 3 , 4 4)'::geometry;
+                                                                                      geometry                                                                                      
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 01020000000500000000000000000000000000000000000000000000000000F03F000000000000F03F000000000000004000000000000000400000000000000840000000000000084000000000000010400000000000001040
+(1 row)
+
+SELECT ST_AsEWKT('LINESTRING (0 0, 1 1, 2 2, 3 3 , 4 4)'::geometry);
+            st_asewkt            
+---------------------------------
+ LINESTRING(0 0,1 1,2 2,3 3,4 4)
+(1 row)
+
+SELECT * FROM cypher('postgis', $$RETURN 'LINESTRING (0 0, 1 1, 2 2, 3 3 , 4 4)'::geometry$$) AS r(c gtype);
+                                                                                         c                                                                                          
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 01020000000500000000000000000000000000000000000000000000000000F03F000000000000F03F000000000000004000000000000000400000000000000840000000000000084000000000000010400000000000001040
+(1 row)
+
+SELECT * FROM cypher('postgis', $$RETURN ST_AsEWKT('LINESTRING (0 0, 1 1, 2 2, 3 3 , 4 4)'::geometry) $$) AS r(c gtype);
+                 c                 
+-----------------------------------
+ "LINESTRING(0 0,1 1,2 2,3 3,4 4)"
+(1 row)
+
+SELECT * FROM cypher('postgis', $$RETURN ST_AsEWKT('LINESTRING (0 0, 1 1, 2 2, 3 3 , 4 4)') $$) AS r(c gtype);
+                 c                 
+-----------------------------------
+ "LINESTRING(0 0,1 1,2 2,3 3,4 4)"
+(1 row)
+
+-- LineString (3D, 4 Points) I/O
+SELECT 'LINESTRING (0 0 0, 1 1 1, 2 2 2, 3 3 3, 4 4 4)'::geometry;
+                                                                                                                              geometry                                                                                                                              
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 010200008005000000000000000000000000000000000000000000000000000000000000000000F03F000000000000F03F000000000000F03F000000000000004000000000000000400000000000000040000000000000084000000000000008400000000000000840000000000000104000000000000010400000000000001040
+(1 row)
+
+SELECT ST_AsEWKT('LINESTRING (0 0 0, 1 1 1, 2 2 2, 3 3 3 , 4 4 4)'::geometry);
+                 st_asewkt                 
+-------------------------------------------
+ LINESTRING(0 0 0,1 1 1,2 2 2,3 3 3,4 4 4)
+(1 row)
+
+SELECT * FROM cypher('postgis', $$RETURN 'LINESTRING (0 0 0, 1 1 1, 2 2 2, 3 3 3 , 4 4 4)'::geometry$$) AS r(c gtype);
+                                                                                                                                 c                                                                                                                                  
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 010200008005000000000000000000000000000000000000000000000000000000000000000000F03F000000000000F03F000000000000F03F000000000000004000000000000000400000000000000040000000000000084000000000000008400000000000000840000000000000104000000000000010400000000000001040
+(1 row)
+
+SELECT * FROM cypher('postgis', $$RETURN ST_AsEWKT('LINESTRING (0 0 0, 1 1 1, 2 2 2, 3 3 3, 4 4 4)'::geometry) $$) AS r(c gtype);
+                      c                      
+---------------------------------------------
+ "LINESTRING(0 0 0,1 1 1,2 2 2,3 3 3,4 4 4)"
+(1 row)
+
+SELECT * FROM cypher('postgis', $$RETURN ST_AsEWKT('LINESTRING (0 0 0, 1 1 1, 2 2 2, 3 3 3 , 4 4 4)') $$) AS r(c gtype);
+                      c                      
+---------------------------------------------
+ "LINESTRING(0 0 0,1 1 1,2 2 2,3 3 3,4 4 4)"
+(1 row)
+
+-- LineString (3D, 2 Points) I/O
+SELECT 'LINESTRING (1 2 3, 10 20 30)'::geometry;
+                                                      geometry                                                      
+--------------------------------------------------------------------------------------------------------------------
+ 010200008002000000000000000000F03F00000000000000400000000000000840000000000000244000000000000034400000000000003E40
+(1 row)
+
+SELECT ST_AsEWKT('LINESTRING (1 2 3, 10 20 30)'::geometry);
+         st_asewkt          
+----------------------------
+ LINESTRING(1 2 3,10 20 30)
+(1 row)
+
+SELECT * FROM cypher('postgis', $$RETURN 'LINESTRING (1 2 3, 10 20 30)'::geometry$$) AS r(c gtype);
+                                                         c                                                          
+--------------------------------------------------------------------------------------------------------------------
+ 010200008002000000000000000000F03F00000000000000400000000000000840000000000000244000000000000034400000000000003E40
+(1 row)
+
+SELECT * FROM cypher('postgis', $$RETURN ST_AsEWKT('LINESTRING (1 2 3, 10 20 30)'::geometry) $$) AS r(c gtype);
+              c               
+------------------------------
+ "LINESTRING(1 2 3,10 20 30)"
+(1 row)
+
+SELECT * FROM cypher('postgis', $$RETURN ST_AsEWKT('LINESTRING (1 2 3, 10 20 30)') $$) AS r(c gtype);
+              c               
+------------------------------
+ "LINESTRING(1 2 3,10 20 30)"
 (1 row)
 
 SELECT * FROM drop_graph('postgis', true);

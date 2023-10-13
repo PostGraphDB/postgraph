@@ -145,6 +145,7 @@ Datum gtype_array_element_impl(FunctionCallInfo fcinfo, gtype *gtype_in, int ele
 PG_FUNCTION_INFO_V1(BOX2D_out);
 PG_FUNCTION_INFO_V1(BOX3D_out);
 PG_FUNCTION_INFO_V1(ellipsoid_out);
+PG_FUNCTION_INFO_V1(LWGEOM_out);
 
 PG_FUNCTION_INFO_V1(gtype_build_map_noargs);
 /*              
@@ -417,6 +418,10 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
         break;
     case AGTV_SPHEROID:
         numstr = DatumGetCString(DirectFunctionCall1(ellipsoid_out, PointerGetDatum(&scalar_val->val.spheroid)));
+        appendStringInfoString(out, numstr);
+        break;
+    case AGTV_GSERIALIZED:
+        numstr = DatumGetCString(DirectFunctionCall1(LWGEOM_out, PointerGetDatum(scalar_val->val.gserialized)));
         appendStringInfoString(out, numstr);
         break;
     case AGTV_BOOL:

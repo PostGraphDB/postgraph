@@ -313,6 +313,7 @@ typedef struct
 #define GT_HEADER_BOX2D       0x00000013
 #define GT_HEADER_BOX3D       0x00000014
 #define GT_HEADER_SPHEROID    0x00000015
+#define GT_HEADER_GSERIALIZED 0x00000016
 
 #define GT_IS_INTEGER(agte_) \
     (((agte_) == GT_HEADER_INTEGER))
@@ -357,6 +358,10 @@ typedef struct
 #define GT_IS_SPHEROID(agt) \
     (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_SPHEREOID)
 
+#define GT_IS_GSERIALIZED(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_GSERIALIZED)
+
+
 enum gtype_value_type
 {
     /* Scalar types */
@@ -379,6 +384,7 @@ enum gtype_value_type
     AGTV_BOX2D,
     AGTV_BOX3D,
     AGTV_SPHEROID,
+    AGTV_GSERIALIZED,
     /* Composite types */
     AGTV_ARRAY = 0x100,
     AGTV_OBJECT,
@@ -386,6 +392,15 @@ enum gtype_value_type
     /* Binary (i.e. struct gtype) AGTV_ARRAY/AGTV_OBJECT */
     AGTV_BINARY
 };
+
+typedef struct
+{
+    uint32_t size; // size of data
+    uint8_t srid[3]; // 24 bits of SRID
+    uint8_t gflags; // HasZ, HasM, HasBBox, IsGeodetic
+    uint8_t *data; // serialized postgis type
+} gtype_gserialized;
+
 
 /*
  * gtype_value: In-memory representation of gtype.  This is a convenient
@@ -414,6 +429,7 @@ struct gtype_value
         GBOX gbox;
         BOX3D box3d;
 	SPHEROID spheroid;
+	GSERIALIZED *gserialized;
 	struct { int len; gtype_container *data; } binary; // Array or object, in on-disk format
     } val;
 };

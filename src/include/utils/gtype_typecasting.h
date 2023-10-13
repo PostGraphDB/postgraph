@@ -37,6 +37,10 @@ Datum gtype_to_time_internal(gtype_value *agtv);
 Datum gtype_to_timetz_internal(gtype_value *agtv);
 Datum gtype_to_timestamptz_internal(gtype_value *agtv);
 Datum gtype_to_timestamp_internal(gtype_value *agtv);
+Datum gtype_to_box2d_internal(gtype_value *agtv);
+Datum gtype_to_box3d_internal(gtype_value *agtv);
+Datum gtype_to_spheroid_internal(gtype_value *agtv);
+Datum gtype_to_geometry_internal(gtype_value *agtv);
 
 Datum _gtype_toinet(Datum arg);
 
