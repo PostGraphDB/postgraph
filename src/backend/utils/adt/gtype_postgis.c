@@ -29,6 +29,7 @@
 #include "utils/snapmgr.h"
 
 //PostGIS
+#include "libpgcommon/lwgeom_pg.h"
 #include "liblwgeom/liblwgeom.h"
 
 //PostGraph
@@ -59,10 +60,17 @@ PG_FUNCTION_INFO_V1(gtype_x_point);
 Datum
 gtype_x_point(PG_FUNCTION_ARGS) {
     gtype *gt = AG_GET_ARG_GTYPE_P(0);
+    GSERIALIZED *geom = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt, "geometry"));
+    POINT4D pt;
 
-    Datum d = DirectFunctionCall1(LWGEOM_x_point, convert_to_scalar(gtype_to_geometry_internal, gt, "geometry"));
+    if (gserialized_get_type(geom) != POINTTYPE)
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                errmsg("Argument to ST_X() must have type POINT")));
 
-    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+    if (gserialized_peek_first_point(geom, &pt) == LW_FAILURE)
+                PG_RETURN_NULL();
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = pt.x };
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
@@ -73,10 +81,17 @@ PG_FUNCTION_INFO_V1(gtype_y_point);
 Datum
 gtype_y_point(PG_FUNCTION_ARGS) {
     gtype *gt = AG_GET_ARG_GTYPE_P(0);
+    GSERIALIZED *geom = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt, "geometry"));
+    POINT4D pt;
 
-    Datum d = DirectFunctionCall1(LWGEOM_y_point, convert_to_scalar(gtype_to_geometry_internal, gt, "geometry"));
+    if (gserialized_get_type(geom) != POINTTYPE)
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                errmsg("Argument to ST_Y() must have type POINT")));
 
-    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+    if (gserialized_peek_first_point(geom, &pt) == LW_FAILURE)
+        PG_RETURN_NULL();
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = pt.y };
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
@@ -87,10 +102,17 @@ PG_FUNCTION_INFO_V1(gtype_z_point);
 Datum
 gtype_z_point(PG_FUNCTION_ARGS) {
     gtype *gt = AG_GET_ARG_GTYPE_P(0);
+    GSERIALIZED *geom = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt, "geometry"));
+    POINT4D pt;
 
-    Datum d = DirectFunctionCall1(LWGEOM_z_point, convert_to_scalar(gtype_to_geometry_internal, gt, "geometry"));
+    if (gserialized_get_type(geom) != POINTTYPE)
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                errmsg("Argument to ST_Z() must have type POINT")));
 
-    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+    if (!gserialized_has_z(geom) || (gserialized_peek_first_point(geom, &pt) == LW_FAILURE))
+        PG_RETURN_NULL();
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = pt.z };
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
@@ -101,10 +123,17 @@ PG_FUNCTION_INFO_V1(gtype_m_point);
 Datum
 gtype_m_point(PG_FUNCTION_ARGS) {
     gtype *gt = AG_GET_ARG_GTYPE_P(0);
+    GSERIALIZED *geom = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt, "geometry"));
+    POINT4D pt;
 
-    Datum d = DirectFunctionCall1(LWGEOM_m_point, convert_to_scalar(gtype_to_geometry_internal, gt, "geometry"));
+    if (gserialized_get_type(geom) != POINTTYPE)
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                errmsg("Argument to ST_M() must have type POINT")));
 
-    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+    if (!gserialized_has_m(geom) || (gserialized_peek_first_point(geom, &pt) == LW_FAILURE))
+        PG_RETURN_NULL();
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = pt.m };
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }

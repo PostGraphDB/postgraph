@@ -478,9 +478,17 @@ SELECT ST_Z('POINT (0 0)'::geometry);
 (1 row)
 
 SELECT * FROM cypher('postgis', $$RETURN ST_Z('POINT (0 0)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7f66a8284f70 returned NULL
+ c 
+---
+ 
+(1 row)
+
 SELECT * FROM cypher('postgis', $$RETURN Z('POINT (0 0)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7f66a8284f70 returned NULL
+ c 
+---
+ 
+(1 row)
+
 SELECT ST_Z('POINTZ (1 2 3)'::geometry);
  st_z 
 ------
@@ -506,9 +514,17 @@ SELECT ST_Z('POINTM (6 7 8)'::geometry);
 (1 row)
 
 SELECT * FROM cypher('postgis', $$RETURN ST_Z('POINTM (6 7 8)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7f66a8284f70 returned NULL
+ c 
+---
+ 
+(1 row)
+
 SELECT * FROM cypher('postgis', $$RETURN Z('POINTM (6 7 8)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7f66a8284f70 returned NULL
+ c 
+---
+ 
+(1 row)
+
 SELECT ST_Z('POINTZM (10 11 12 13)'::geometry);
  st_z 
 ------
@@ -561,9 +577,17 @@ SELECT ST_M('POINT (0 0)'::geometry);
 (1 row)
 
 SELECT * FROM cypher('postgis', $$RETURN ST_M('POINT (0 0)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7f66a8284ff0 returned NULL
+ c 
+---
+ 
+(1 row)
+
 SELECT * FROM cypher('postgis', $$RETURN M('POINT (0 0)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7f66a8284ff0 returned NULL
+ c 
+---
+ 
+(1 row)
+
 SELECT ST_M('POINTZ (1 2 3)'::geometry);
  st_m 
 ------
@@ -571,9 +595,17 @@ SELECT ST_M('POINTZ (1 2 3)'::geometry);
 (1 row)
 
 SELECT * FROM cypher('postgis', $$RETURN ST_M('POINTZ (1 2 3)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7f66a8284ff0 returned NULL
+ c 
+---
+ 
+(1 row)
+
 SELECT * FROM cypher('postgis', $$RETURN M('POINTZ (1 2 3)'::geometry) $$) AS r(c gtype);
-ERROR:  function 0x7f66a8284ff0 returned NULL
+ c 
+---
+ 
+(1 row)
+
 SELECT ST_M('POINTM (6 7 8)'::geometry);
  st_m 
 ------
