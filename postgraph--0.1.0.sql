@@ -3087,6 +3087,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 COST 1
 AS 'MODULE_PATHNAME', 'gtype_x_point';
+COMMENT ON FUNCTION ST_X(gtype) IS 'args: a_point - Returns the X coordinate of a Point.';
 
 CREATE FUNCTION X (gtype)
 RETURNS gtype
@@ -3096,6 +3097,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 COST 1
 AS 'MODULE_PATHNAME', 'gtype_x_point';
+COMMENT ON FUNCTION X(gtype) IS 'args: a_point - Returns the X coordinate of a Point.';
 
 CREATE FUNCTION ST_Y (gtype)
 RETURNS gtype
@@ -3105,6 +3107,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 COST 1
 AS 'MODULE_PATHNAME', 'gtype_y_point';
+COMMENT ON FUNCTION ST_Y(gtype) IS 'args: a_point - Returns the Y coordinate of a Point.';
 
 CREATE FUNCTION Y (gtype)
 RETURNS gtype
@@ -3114,6 +3117,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 COST 1
 AS 'MODULE_PATHNAME', 'gtype_y_point';
+COMMENT ON FUNCTION Y(gtype) IS 'args: a_point - Returns the Y coordinate of a Point.';
 
 CREATE FUNCTION ST_Z (gtype)
 RETURNS gtype
@@ -3123,6 +3127,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 COST 1
 AS 'MODULE_PATHNAME', 'gtype_z_point';
+COMMENT ON FUNCTION ST_Z(gtype) IS 'args: a_point - Returns the Z coordinate of a Point.';
 
 CREATE FUNCTION Z (gtype)
 RETURNS gtype
@@ -3132,6 +3137,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 COST 1
 AS 'MODULE_PATHNAME', 'gtype_z_point';
+COMMENT ON FUNCTION Z(gtype) IS 'args: a_point - Returns the Z coordinate of a Point.';
 
 CREATE FUNCTION ST_M (gtype)
 RETURNS gtype
@@ -3141,7 +3147,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 COST 1
 AS 'MODULE_PATHNAME', 'gtype_m_point';
-
+COMMENT ON FUNCTION ST_M(gtype) IS 'args: a_point - Returns the M coordinate of a Point.';
 CREATE FUNCTION M (gtype)
 RETURNS gtype
 LANGUAGE c
@@ -3150,6 +3156,19 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 COST 1
 AS 'MODULE_PATHNAME', 'gtype_m_point';
+COMMENT ON FUNCTION M(gtype) IS 'args: a_point - Returns the M coordinate of a Point.';
+
+--
+-- PostGIS Functions - Measures
+--
+CREATE FUNCTION ST_3DLength(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 50
+AS 'MODULE_PATHNAME', 'gtype_length_linestring';
 
 --
 -- PostGIS Functions - Temporal
