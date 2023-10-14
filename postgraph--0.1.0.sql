@@ -3188,6 +3188,24 @@ PARALLEL SAFE
 COST 50
 AS 'MODULE_PATHNAME', 'gtype_length2d_linestring';
 
+CREATE FUNCTION ST_LengthSpheroid(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 250
+AS 'MODULE_PATHNAME', 'gtype_length_ellipsoid_linestring';
+
+CREATE FUNCTION ST_Length2DSpheroid(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 250
+AS 'MODULE_PATHNAME', 'gtype_length2d_ellipsoid';
+
 --
 -- PostGIS Functions - Temporal
 --
