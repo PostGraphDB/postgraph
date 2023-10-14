@@ -229,6 +229,12 @@ SELECT * FROM cypher('postgis', $$RETURN ST_M('GEOMETRYCOLLECTION (POINT(0 1), L
 SELECT * FROM cypher('postgis', $$RETURN M('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry) $$) AS r(c gtype);
 
 --
+-- Measures
+--
+SELECT ST_3DLength('LINESTRING (0 0, 1 1)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_3DLength('LINESTRING (0 0, 1 1)'::geometry) $$) AS r(c gtype);
+
+--
 -- Temporal
 --
 

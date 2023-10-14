@@ -667,6 +667,21 @@ ERROR:  Argument to ST_M() must have type POINT
 SELECT * FROM cypher('postgis', $$RETURN M('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry) $$) AS r(c gtype);
 ERROR:  Argument to ST_M() must have type POINT
 --
+-- Measures
+--
+SELECT ST_3DLength('LINESTRING (0 0, 1 1)'::geometry);
+   st_3dlength   
+-----------------
+ 1.4142135623731
+(1 row)
+
+SELECT * FROM cypher('postgis', $$RETURN ST_3DLength('LINESTRING (0 0, 1 1)'::geometry) $$) AS r(c gtype);
+        c        
+-----------------
+ 1.4142135623731
+(1 row)
+
+--
 -- Temporal
 --
 --
