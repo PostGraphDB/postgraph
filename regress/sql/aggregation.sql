@@ -45,6 +45,7 @@ SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN regr_slope(u.gpa, u.age) $$) AS
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN regr_intercept(u.gpa, u.age) $$) AS (covar_samp gtype);
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN regr_avgx(u.gpa, u.age) $$) AS (covar_samp gtype);
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN regr_avgy(u.gpa, u.age) $$) AS (covar_samp gtype);
+SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN regr_r2(u.gpa, u.age) $$) AS (covar_samp gtype);
 
 SELECT * FROM cypher('UCSC', $$
     MATCH (u)
