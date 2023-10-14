@@ -3446,6 +3446,18 @@ gtype_regr_avgx_final(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(gtype_regr_avgy_final);
+Datum
+gtype_regr_avgy_final(PG_FUNCTION_ARGS) {
+    Datum result = (*float8_regr_avgy) (fcinfo);
+
+    if (fcinfo->isnull)
+        PG_RETURN_NULL();
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(result) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
 
 PG_FUNCTION_INFO_V1(gtype_stddev_samp_final);
 
