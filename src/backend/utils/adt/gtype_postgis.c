@@ -261,6 +261,26 @@ Datum gtype_perimeter_poly(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+/**
+ *  @brief find the "perimeter of a geometry"
+ *      perimeter(point) = 0
+ *      perimeter(line) = 0
+ *      perimeter(polygon) = sum of ring perimeters
+ *      uses euclidian 2d computation even if input is 3d
+ */
+PG_FUNCTION_INFO_V1(LWGEOM_perimeter2d_poly);
+PG_FUNCTION_INFO_V1(gtype_perimeter2d_poly);
+Datum gtype_perimeter2d_poly(PG_FUNCTION_ARGS)
+{
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d = DirectFunctionCall1(LWGEOM_perimeter2d_poly,
+                                  convert_to_scalar(gtype_to_geometry_internal, gt, "geometry"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
 
 PG_FUNCTION_INFO_V1(ST_Intersection);
 
