@@ -35,17 +35,12 @@ SELECT * FROM cypher('UCSC', $$ CREATE (:students {name: "Ann", gpa: 3.8::numeri
 SELECT * FROM cypher('UCSC', $$ CREATE (:students {name: "Derek", gpa: 4.0, age: 19, zip: 90210}) $$) AS (a gtype);
 SELECT * FROM cypher('UCSC', $$ CREATE (:students {name: "Jessica", gpa: 3.9::numeric, age: 20}) $$) AS (a gtype);
 
-SELECT * FROM cypher('UCSC', $$
-    MATCH (u) RETURN corr(u.gpa, u.age)
-$$) AS (corr gtype);
-
-SELECT * FROM cypher('UCSC', $$
-    MATCH (u) RETURN covar_pop(u.gpa, u.age)
-$$) AS (covar_pop gtype);
-
-SELECT * FROM cypher('UCSC', $$
-    MATCH (u) RETURN covar_samp(u.gpa, u.age)
-$$) AS (covar_samp gtype);
+SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN corr(u.gpa, u.age) $$) AS (corr gtype);
+SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN covar_pop(u.gpa, u.age) $$) AS (covar_pop gtype);
+SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN covar_samp(u.gpa, u.age) $$) AS (covar_samp gtype);
+SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN regr_sxx(u.gpa, u.age) $$) AS (covar_samp gtype);
+SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN regr_syy(u.gpa, u.age) $$) AS (covar_samp gtype);
+SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN regr_sxy(u.gpa, u.age) $$) AS (covar_samp gtype);
 
 SELECT * FROM cypher('UCSC', $$
     MATCH (u)
