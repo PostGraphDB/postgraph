@@ -3206,6 +3206,17 @@ PARALLEL SAFE
 COST 250
 AS 'MODULE_PATHNAME', 'gtype_length2d_ellipsoid';
 
+
+CREATE FUNCTION ST_3DPerimeter(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 250
+AS 'MODULE_PATHNAME', 'gtype_perimeter_poly';
+
+
 --
 -- PostGIS Functions - Temporal
 --
