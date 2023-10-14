@@ -215,6 +215,22 @@ Datum gtype_length_ellipsoid_linestring(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(LWGEOM_length2d_ellipsoid);
+PG_FUNCTION_INFO_V1(gtype_length2d_ellipsoid);
+Datum gtype_length2d_ellipsoid(PG_FUNCTION_ARGS)
+{
+    gtype *gt0 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt1 = AG_GET_ARG_GTYPE_P(1);
+
+    Datum d = DirectFunctionCall2(LWGEOM_length2d_ellipsoid,
+                                  convert_to_scalar(gtype_to_geometry_internal, gt0, "geometry"),
+                                  convert_to_scalar(gtype_to_spheroid_internal, gt1, "spheroid"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
 
 PG_FUNCTION_INFO_V1(ST_Intersection);
 

@@ -238,7 +238,7 @@ SELECT * FROM cypher('postgis', $$RETURN ST_3DLength('LINESTRING (0 0 0, 1 1 1)'
 
 SELECT ST_Length2D('LINESTRING (0 0, 1 1)'::geometry);
 SELECT * FROM cypher('postgis', $$RETURN ST_Length2D('LINESTRING (0 0, 1 1)'::geometry) $$) AS r(c gtype);
-
+-- ST_LengthSperoid
 select ST_LengthSpheroid(
 		'MULTILINESTRING((-118.584 38.374,-118.583 38.5),(-71.05957 42.3589 , -71.061 43))'::geometry,
 		'SPHEROID["GRS_1980",6378137,298.257222101]'::spheroid
@@ -262,6 +262,33 @@ select  * FROM cypher('postgis', $$
 $$) AS r(c gtype);
 select  * FROM cypher('postgis', $$
     RETURN ST_LengthSpheroid('LINESTRING(0 0 0, 0 0 100)'::geometry,
+                             'SPHEROID["GRS_1980",6378137,298.257222101]')
+$$) AS r(c gtype);
+
+-- Length2DSpheroid
+select ST_Length2DSpheroid(
+                'MULTILINESTRING((-118.584 38.374,-118.583 38.5),(-71.05957 42.3589 , -71.061 43))'::geometry,
+                'SPHEROID["GRS_1980",6378137,298.257222101]'::spheroid
+        );
+select ST_Length2DSpheroid(
+                'MULTILINESTRING((-118.584 38.374,-118.583 38.5),(-71.05957 42.3589 , -71.061 43))'::geometry,
+                'SPHEROID["GRS_1980",6378137,298.257222101]'::spheroid
+        );
+select ST_Length2DSpheroid('LINESTRING(0 0 0, 0 0 100)'::geometry, 'SPHEROID["GRS_1980",6378137,298.257222101]');
+select  * FROM cypher('postgis', $$RETURN
+    ST_Length2DSpheroid(
+                'MULTILINESTRING((-118.584 38.374,-118.583 38.5),(-71.05957 42.3589 , -71.061 43))'::geometry,
+                'SPHEROID["GRS_1980",6378137,298.257222101]'::spheroid
+          )
+$$) AS r(c gtype);
+select  * FROM cypher('postgis', $$
+    RETURN ST_Length2DSpheroid(
+                    'MULTILINESTRING((-118.584 38.374,-118.583 38.5),(-71.05957 42.3589 , -71.061 43))'::geometry,
+                    'SPHEROID["GRS_1980",6378137,298.257222101]'::spheroid
+                 )
+$$) AS r(c gtype);
+select  * FROM cypher('postgis', $$
+    RETURN ST_Length2DSpheroid('LINESTRING(0 0 0, 0 0 100)'::geometry,
                              'SPHEROID["GRS_1980",6378137,298.257222101]')
 $$) AS r(c gtype);
 
