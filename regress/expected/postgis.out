@@ -681,6 +681,30 @@ SELECT * FROM cypher('postgis', $$RETURN ST_3DLength('LINESTRING (0 0, 1 1)'::ge
  1.4142135623731
 (1 row)
 
+SELECT ST_3DLength('LINESTRING (0 0 0, 1 1 1)'::geometry);
+   st_3dlength    
+------------------
+ 1.73205080756888
+(1 row)
+
+SELECT * FROM cypher('postgis', $$RETURN ST_3DLength('LINESTRING (0 0 0, 1 1 1)'::geometry) $$) AS r(c gtype);
+        c         
+------------------
+ 1.73205080756888
+(1 row)
+
+SELECT ST_Length2D('LINESTRING (0 0, 1 1)'::geometry);
+   st_length2d   
+-----------------
+ 1.4142135623731
+(1 row)
+
+SELECT * FROM cypher('postgis', $$RETURN ST_Length2D('LINESTRING (0 0, 1 1)'::geometry) $$) AS r(c gtype);
+        c        
+-----------------
+ 1.4142135623731
+(1 row)
+
 --
 -- Temporal
 --
