@@ -190,7 +190,7 @@ Datum gtype_length2d_linestring(PG_FUNCTION_ARGS)
 }
 
 /*
- * Find the "length of a geometry"
+ * @brief Find the "length of a geometry"
  *
  * length2d_spheroid(point, sphere) = 0
  * length2d_spheroid(line, sphere) = length of line
@@ -215,6 +215,15 @@ Datum gtype_length_ellipsoid_linestring(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+/*
+ * @brief Find the "length of a geometry"
+ * length2d_spheroid(point, sphere) = 0
+ * length2d_spheroid(line, sphere) = length of line
+ * length2d_spheroid(polygon, sphere) = 0
+ *      -- could make sense to return sum(ring perimeter)
+ * uses ellipsoidal math to find the distance
+ * x's are longitude, and y's are latitude - both in decimal degrees
+ */
 PG_FUNCTION_INFO_V1(LWGEOM_length2d_ellipsoid);
 PG_FUNCTION_INFO_V1(gtype_length2d_ellipsoid);
 Datum gtype_length2d_ellipsoid(PG_FUNCTION_ARGS)
@@ -225,6 +234,27 @@ Datum gtype_length2d_ellipsoid(PG_FUNCTION_ARGS)
     Datum d = DirectFunctionCall2(LWGEOM_length2d_ellipsoid,
                                   convert_to_scalar(gtype_to_geometry_internal, gt0, "geometry"),
                                   convert_to_scalar(gtype_to_spheroid_internal, gt1, "spheroid"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+/**
+ *  @brief find the "perimeter of a geometry"
+ *      perimeter(point) = 0
+ *      perimeter(line) = 0
+ *      perimeter(polygon) = sum of ring perimeters
+ *      uses euclidian 3d/2d computation depending on input dimension.
+ */
+PG_FUNCTION_INFO_V1(LWGEOM_perimeter_poly);
+PG_FUNCTION_INFO_V1(gtype_perimeter_poly);
+Datum gtype_perimeter_poly(PG_FUNCTION_ARGS)
+{
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d = DirectFunctionCall1(LWGEOM_perimeter_poly,
+                                  convert_to_scalar(gtype_to_geometry_internal, gt, "geometry"));
 
     gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
 
