@@ -4085,6 +4085,24 @@ CREATE AGGREGATE regr_syy(gtype, gtype) (
     parallel = SAFE
 );
 
+CREATE FUNCTION gtype_regr_sxy_final(float8[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE regr_sxy(gtype, gtype) (
+    stype = float8[],
+    sfunc = gtype_regr_accum,
+    finalfunc = gtype_regr_sxy_final,
+    combinefunc = float8_regr_combine,
+    finalfunc_modify = READ_ONLY,
+    initcond = '{0,0,0,0,0,0}',
+    parallel = SAFE
+);
+
 CREATE FUNCTION vle (IN gtype, IN vertex, IN vertex, IN gtype, IN gtype,
                      IN gtype, IN gtype, IN gtype, OUT edges variable_edge)
 RETURNS SETOF variable_edge 
