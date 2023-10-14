@@ -189,6 +189,32 @@ Datum gtype_length2d_linestring(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+/*
+ * Find the "length of a geometry"
+ *
+ * length2d_spheroid(point, sphere) = 0
+ * length2d_spheroid(line, sphere) = length of line
+ * length2d_spheroid(polygon, sphere) = 0
+ *      -- could make sense to return sum(ring perimeter)
+ * uses ellipsoidal math to find the distance
+ * x's are longitude, and y's are latitude - both in decimal degrees
+ */
+PG_FUNCTION_INFO_V1(LWGEOM_length_ellipsoid_linestring);
+PG_FUNCTION_INFO_V1(gtype_length_ellipsoid_linestring);
+Datum gtype_length_ellipsoid_linestring(PG_FUNCTION_ARGS)
+{
+    gtype *gt0 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt1 = AG_GET_ARG_GTYPE_P(1);
+
+    Datum d = DirectFunctionCall2(LWGEOM_length_ellipsoid_linestring,
+                                  convert_to_scalar(gtype_to_geometry_internal, gt0, "geometry"),
+				  convert_to_scalar(gtype_to_spheroid_internal, gt1, "spheroid"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
 
 PG_FUNCTION_INFO_V1(ST_Intersection);
 
