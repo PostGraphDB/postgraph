@@ -101,6 +101,12 @@ SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN regr_sxy(u.gpa, u.age) $$) AS (
  1.81214285714286
 (1 row)
 
+SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN regr_slope(u.gpa, u.age) $$) AS (covar_samp gtype);
+      covar_samp      
+----------------------
+ -0.00740740740740741
+(1 row)
+
 SELECT * FROM cypher('UCSC', $$
     MATCH (u)
     RETURN avg(u.gpa),
