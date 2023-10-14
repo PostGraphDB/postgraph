@@ -127,7 +127,7 @@ GEN_KEYWORDLIST = $(PERL) -I ./tools/ ./tools/gen_keywordlist.pl
 GEN_KEYWORDLIST_DEPS = ./tools/gen_keywordlist.pl tools/PerfectHash.pm
 
 ag_include_dir = $(srcdir)/src/include
-PG_CPPFLAGS = -w -I$(ag_include_dir) -I$(ag_include_dir)/parser -I$(POSTGIS_DIR)
+PG_CPPFLAGS = -w -I$(ag_include_dir) -I$(ag_include_dir)/parser -I$(POSTGIS_DIR) -I$(POSTGIS_DIR)/liblwgeom
 PG_LDFLAGS = -lgeos_c
 SHLIB_LINK=  $(POSTGIS_DIR)/liblwgeom/.libs/liblwgeom.a -Wl,--no-as-needed -Wl,-l:postgis-3.so
 
