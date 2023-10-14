@@ -3987,6 +3987,67 @@ CREATE AGGREGATE collect(edge, gtype) (
     parallel = safe
 );
 
+CREATE FUNCTION gtype_regr_accum(float8[], gtype, gtype)
+RETURNS float8[]
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION gtype_corr_final(float8[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE corr(gtype, gtype) (
+    stype = float8[],
+    sfunc = gtype_regr_accum,
+    finalfunc = gtype_corr_final,
+    combinefunc = float8_regr_combine,
+    finalfunc_modify = READ_ONLY,
+    initcond = '{0,0,0,0,0,0}',
+    parallel = SAFE
+);
+
+CREATE FUNCTION gtype_covar_pop_final(float8[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE covar_pop(gtype, gtype) (
+    stype = float8[],
+    sfunc = gtype_regr_accum,
+    finalfunc = gtype_covar_pop_final,
+    combinefunc = float8_regr_combine,
+    finalfunc_modify = READ_ONLY,
+    initcond = '{0,0,0,0,0,0}',
+    parallel = SAFE
+);
+
+CREATE FUNCTION gtype_covar_samp_final(float8[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE covar_samp(gtype, gtype) (
+    stype = float8[],
+    sfunc = gtype_regr_accum,
+    finalfunc = gtype_covar_samp_final,
+    combinefunc = float8_regr_combine,
+    finalfunc_modify = READ_ONLY,
+    initcond = '{0,0,0,0,0,0}',
+    parallel = SAFE
+);
 
 CREATE FUNCTION vle (IN gtype, IN vertex, IN vertex, IN gtype, IN gtype,
                      IN gtype, IN gtype, IN gtype, OUT edges variable_edge)
