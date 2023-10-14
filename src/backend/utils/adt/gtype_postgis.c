@@ -168,6 +168,28 @@ Datum gtype_length_linestring(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+/**
+ * @brief find the "length of a geometry"
+ *      length2d(point) = 0
+ *      length2d(line) = length of line
+ *      length2d(polygon) = 0  -- could make sense to return sum(ring perimeter)
+ *      uses euclidian 2d length (even if input is 3d)
+ */
+PG_FUNCTION_INFO_V1(LWGEOM_length2d_linestring);
+PG_FUNCTION_INFO_V1(gtype_length2d_linestring);
+Datum gtype_length2d_linestring(PG_FUNCTION_ARGS)
+{
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d = DirectFunctionCall1(LWGEOM_length2d_linestring,
+                                  convert_to_scalar(gtype_to_geometry_internal, gt, "geometry"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+
 PG_FUNCTION_INFO_V1(ST_Intersection);
 
 PG_FUNCTION_INFO_V1(gtype_st_intersection);
