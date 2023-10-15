@@ -3764,6 +3764,101 @@ PARALLEL SAFE
 AS 'MODULE_PATHNAME', 'gtype_lcm';
 
 --
+-- PostGIS Affine Functions
+--
+CREATE FUNCTION ST_Affine (gtype, gtype, gtype, gtype, gtype, gtype, gtype, gtype, gtype, gtype, gtype, gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 50
+AS 'MODULE_PATHNAME', 'gtype_affine';
+
+CREATE OR REPLACE FUNCTION ST_Affine(gtype, gtype, gtype, gtype, gtype, gtype, gtype)
+RETURNS gtype
+AS 'SELECT ST_Affine($1,  $2, $3, 0,  $4, $5, 0,  0, 0, 1,  $6, $7, 0)'
+LANGUAGE 'sql'
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 50;
+
+CREATE OR REPLACE FUNCTION ST_Rotate(gtype, gtype)
+RETURNS gtype
+AS 'SELECT ST_Affine($1,  cos($2), -sin($2), 0,  sin($2), cos($2), 0,  0, 0, 1,  0, 0, 0)'
+LANGUAGE 'sql'
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE
+COST 50;
+
+CREATE OR REPLACE FUNCTION ST_Rotate(gtype, gtype, gtype, gtype)
+RETURNS gtype
+AS 'SELECT ST_Affine($1,  cos($2), -sin($2), 0,  sin($2),  cos($2), 0, 0, 0, 1, $3 - cos($2) * $3 + sin($2) * $4, $4 - sin($2) * $3 - cos($2) * $4, 0)'
+LANGUAGE 'sql' 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 50;
+
+CREATE OR REPLACE FUNCTION ST_Rotate(gtype, gtype, gtype)
+RETURNS gtype
+AS 'SELECT ST_Affine($1,  cos($2), -sin($2), 0,  sin($2),  cos($2), 0, 0, 0, 1, ST_X($3) - cos($2) * ST_X($3) + sin($2) * ST_Y($3), ST_Y($3) - sin($2) * ST_X($3) - cos($2) * ST_Y($3), 0)'
+LANGUAGE 'sql'
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 50;
+
+CREATE OR REPLACE FUNCTION ST_RotateZ(gtype, gtype)
+RETURNS gtype
+AS 'SELECT ST_Rotate($1, $2)'
+LANGUAGE 'sql'
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 50;
+
+CREATE OR REPLACE FUNCTION ST_RotateX(gtype, gtype)
+RETURNS gtype
+AS 'SELECT ST_Affine($1, 1, 0, 0, 0, cos($2), -sin($2), 0, sin($2), cos($2), 0, 0, 0)'
+LANGUAGE 'sql'
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 50;
+
+CREATE OR REPLACE FUNCTION ST_RotateY(gtype, gtype)
+RETURNS gtype
+AS 'SELECT ST_Affine($1,  cos($2), 0, sin($2),  0, 1, 0,  -sin($2), 0, cos($2), 0,  0, 0)'
+LANGUAGE 'sql'
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 50;
+
+CREATE OR REPLACE FUNCTION ST_Translate(gtype, gtype, gtype, gtype)
+RETURNS gtype
+AS 'SELECT ST_Affine($1, 1, 0, 0, 0, 1, 0, 0, 0, 1, $2, $3, $4)'
+LANGUAGE 'sql'
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 50;
+
+CREATE OR REPLACE FUNCTION ST_Translate(gtype, gtype, gtype)
+RETURNS gtype
+AS 'SELECT ST_Translate($1, $2, $3, 0)'
+LANGUAGE 'sql'
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 50;
+
+
+
+--
 -- Agreggation
 --
 

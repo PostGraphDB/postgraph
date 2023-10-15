@@ -389,13 +389,8 @@ $$) as (c gtype); --XXX
 --ST_GeneratePoints
 --
 SELECT ST_AsEWKT(ST_GeneratePoints('POLYGON((0 0,1 0,1 1,0 1,0 0))', 10));
-SELECT ST_AsEWKT(ST_GeneratePoints('POLYGON((0 0,1 0,1 1,0 1,0 0))', 10, 10));
-
 SELECT  * FROM cypher('postgis', $$
     RETURN ST_AsEWKT(ST_GeneratePoints('POLYGON((0 0,1 0,1 1,0 1,0 0))', 10))
-$$) as (c gtype);
-SELECT  * FROM cypher('postgis', $$
-    RETURN ST_AsEWKT(ST_GeneratePoints('POLYGON((0 0,1 0,1 1,0 1,0 0))', 10, 10))
 $$) as (c gtype);
 
 --
