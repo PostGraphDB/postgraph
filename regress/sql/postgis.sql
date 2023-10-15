@@ -296,6 +296,43 @@ select * FROM cypher('postgis', $$
     RETURN ST_DistanceCPA('LINESTRINGM(0 0 0, 0 0 4)', 'LINESTRINGM(0 0 5, 0 0 10)'::geometry)
 $$) as (c gtype);
 
+--
+-- ST_IsValidTrajectory
+--
+SELECT ST_IsValidTrajectory('POINTM(0 0 0)'::geometry);
+SELECT ST_IsValidTrajectory('LINESTRINGZ(0 0 0,1 1 1)'::geometry);
+SELECT ST_IsValidTrajectory('LINESTRINGM(0 0 0,1 1 0)'::geometry);
+SELECT ST_IsValidTrajectory('LINESTRINGM(0 0 1,1 1 0)'::geometry);
+SELECT ST_IsValidTrajectory('LINESTRINGM(0 0 0,1 1 1,1 1 2,1 0 1)'::geometry);
+
+SELECT ST_IsValidTrajectory('LINESTRINGM(0 0 0,1 1 1)'::geometry);
+SELECT ST_IsValidTrajectory('LINESTRINGM EMPTY'::geometry);
+SELECT ST_IsValidTrajectory('LINESTRINGM(0 0 0,1 1 1,1 1 2)'::geometry);
+
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsValidTrajectory('POINTM(0 0 0)'::geometry)
+$$) as (c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsValidTrajectory('LINESTRINGZ(0 0 0,1 1 1)'::geometry)
+$$) as (c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsValidTrajectory('LINESTRINGM(0 0 0,1 1 0)'::geometry)
+$$) as (c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsValidTrajectory('LINESTRINGM(0 0 1,1 1 0)'::geometry)
+$$) as (c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsValidTrajectory('LINESTRINGM(0 0 0,1 1 1,1 1 2,1 0 1)'::geometry)
+$$) as (c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsValidTrajectory('LINESTRINGM(0 0 0,1 1 1)'::geometry)
+$$) as (c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsValidTrajectory('LINESTRINGM EMPTY'::geometry)
+$$) as (c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsValidTrajectory('LINESTRINGM(0 0 0,1 1 1,1 1 2)'::geometry)
+$$) as (c gtype);
 
 
 --

@@ -238,3 +238,20 @@ gtype_ST_DistanceCPA(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+
+PG_FUNCTION_INFO_V1(ST_IsValidTrajectory);
+PG_FUNCTION_INFO_V1(gtype_st_isvalidtrajectory);
+Datum
+gtype_st_isvalidtrajectory(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+
+
+    Datum d = DirectFunctionCall1(ST_IsValidTrajectory, d1);
+
+    gtype_value gtv = { .type = AGTV_BOOL, .val.boolean = DatumGetBool(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+

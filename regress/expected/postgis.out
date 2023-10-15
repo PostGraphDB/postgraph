@@ -841,6 +841,131 @@ $$) as (c gtype);
 (1 row)
 
 --
+-- ST_IsValidTrajectory
+--
+SELECT ST_IsValidTrajectory('POINTM(0 0 0)'::geometry);
+NOTICE:  Geometry is not a LINESTRING
+ st_isvalidtrajectory 
+----------------------
+ f
+(1 row)
+
+SELECT ST_IsValidTrajectory('LINESTRINGZ(0 0 0,1 1 1)'::geometry);
+NOTICE:  Line does not have M dimension
+ st_isvalidtrajectory 
+----------------------
+ f
+(1 row)
+
+SELECT ST_IsValidTrajectory('LINESTRINGM(0 0 0,1 1 0)'::geometry);
+NOTICE:  Measure of vertex 1 (0) not bigger than measure of vertex 0 (0)
+ st_isvalidtrajectory 
+----------------------
+ f
+(1 row)
+
+SELECT ST_IsValidTrajectory('LINESTRINGM(0 0 1,1 1 0)'::geometry);
+NOTICE:  Measure of vertex 1 (0) not bigger than measure of vertex 0 (1)
+ st_isvalidtrajectory 
+----------------------
+ f
+(1 row)
+
+SELECT ST_IsValidTrajectory('LINESTRINGM(0 0 0,1 1 1,1 1 2,1 0 1)'::geometry);
+NOTICE:  Measure of vertex 3 (1) not bigger than measure of vertex 2 (2)
+ st_isvalidtrajectory 
+----------------------
+ f
+(1 row)
+
+SELECT ST_IsValidTrajectory('LINESTRINGM(0 0 0,1 1 1)'::geometry);
+ st_isvalidtrajectory 
+----------------------
+ t
+(1 row)
+
+SELECT ST_IsValidTrajectory('LINESTRINGM EMPTY'::geometry);
+ st_isvalidtrajectory 
+----------------------
+ t
+(1 row)
+
+SELECT ST_IsValidTrajectory('LINESTRINGM(0 0 0,1 1 1,1 1 2)'::geometry);
+ st_isvalidtrajectory 
+----------------------
+ t
+(1 row)
+
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsValidTrajectory('POINTM(0 0 0)'::geometry)
+$$) as (c gtype);
+NOTICE:  Geometry is not a LINESTRING
+   c   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsValidTrajectory('LINESTRINGZ(0 0 0,1 1 1)'::geometry)
+$$) as (c gtype);
+NOTICE:  Line does not have M dimension
+   c   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsValidTrajectory('LINESTRINGM(0 0 0,1 1 0)'::geometry)
+$$) as (c gtype);
+NOTICE:  Measure of vertex 1 (0) not bigger than measure of vertex 0 (0)
+   c   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsValidTrajectory('LINESTRINGM(0 0 1,1 1 0)'::geometry)
+$$) as (c gtype);
+NOTICE:  Measure of vertex 1 (0) not bigger than measure of vertex 0 (1)
+   c   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsValidTrajectory('LINESTRINGM(0 0 0,1 1 1,1 1 2,1 0 1)'::geometry)
+$$) as (c gtype);
+NOTICE:  Measure of vertex 3 (1) not bigger than measure of vertex 2 (2)
+   c   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsValidTrajectory('LINESTRINGM(0 0 0,1 1 1)'::geometry)
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsValidTrajectory('LINESTRINGM EMPTY'::geometry)
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsValidTrajectory('LINESTRINGM(0 0 0,1 1 1,1 1 2)'::geometry)
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+--
 -- GEOS
 --
 --

@@ -3209,6 +3209,15 @@ PARALLEL SAFE
 COST 5000
 AS 'MODULE_PATHNAME', 'gtype_ST_DistanceCPA';
 
+CREATE FUNCTION ST_IsValidTrajectory (gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 5000
+AS 'MODULE_PATHNAME', 'gtype_st_isvalidtrajectory';
+
 --
 -- PostGIS Functions - GEOS
 --
