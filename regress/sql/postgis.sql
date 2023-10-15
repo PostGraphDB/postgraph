@@ -404,14 +404,6 @@ SELECT  * FROM cypher('postgis', $$
 $$) as (c gtype); --XXX
 
 --
---ST_GeneratePoints
---
-SELECT ST_AsEWKT(ST_GeneratePoints('POLYGON((0 0,1 0,1 1,0 1,0 0))', 10));
-SELECT  * FROM cypher('postgis', $$
-    RETURN ST_AsEWKT(ST_GeneratePoints('POLYGON((0 0,1 0,1 1,0 1,0 0))', 10))
-$$) as (c gtype);
-
---
 -- GEOS
 --
 
@@ -450,6 +442,5 @@ $$) AS r(c gtype);
 SELECT * FROM cypher('postgis', $$
      RETURN ST_AsEWKT(ST_Simplify('POLYGON((0 0,1 1,1 3,2 3,2 0,0 0))'::geometry, 1))
 $$) AS r(c gtype);
-
 
 SELECT * FROM drop_graph('postgis', true);

@@ -461,3 +461,52 @@ Datum gtype_makepoint3dm(PG_FUNCTION_ARGS)
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
+
+PG_FUNCTION_INFO_V1(LWGEOM_snaptogrid_pointoff);
+PG_FUNCTION_INFO_V1(gtype_snaptogrid_pointoff);
+Datum
+gtype_snaptogrid_pointoff(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+    gtype *gt_3 = AG_GET_ARG_GTYPE_P(2);
+    gtype *gt_4 = AG_GET_ARG_GTYPE_P(3);
+    gtype *gt_5 = AG_GET_ARG_GTYPE_P(4);
+    gtype *gt_6 = AG_GET_ARG_GTYPE_P(5);
+
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+    Datum d3 = convert_to_scalar(gtype_to_float8_internal, gt_3, "float");
+    Datum d4 = convert_to_scalar(gtype_to_float8_internal, gt_4, "float");
+    Datum d5 = convert_to_scalar(gtype_to_float8_internal, gt_5, "float");
+    Datum d6 = convert_to_scalar(gtype_to_float8_internal, gt_6, "float");
+
+    Datum d = DirectFunctionCall6(LWGEOM_snaptogrid_pointoff, d1, d2, d3, d4, d5, d6);
+
+    gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.boolean = DatumGetPointer(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+PG_FUNCTION_INFO_V1(LWGEOM_snaptogrid);
+PG_FUNCTION_INFO_V1(gtype_snaptogrid);
+Datum
+gtype_snaptogrid(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+    gtype *gt_3 = AG_GET_ARG_GTYPE_P(2);
+    gtype *gt_4 = AG_GET_ARG_GTYPE_P(3);
+    gtype *gt_5 = AG_GET_ARG_GTYPE_P(4);
+
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_float8_internal, gt_2, "float");
+    Datum d3 = convert_to_scalar(gtype_to_float8_internal, gt_3, "float");
+    Datum d4 = convert_to_scalar(gtype_to_float8_internal, gt_4, "float");
+    Datum d5 = convert_to_scalar(gtype_to_float8_internal, gt_5, "float");
+
+    Datum d = DirectFunctionCall5(LWGEOM_snaptogrid, d1, d2, d3, d4, d5);
+
+    gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.boolean = DatumGetPointer(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
