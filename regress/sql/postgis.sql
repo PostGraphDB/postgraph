@@ -318,6 +318,37 @@ select * FROM cypher('postgis', $$
 $$) as (c gtype);
 
 --
+-- |=| Operator
+--
+-- Converging
+select 'LINESTRINGZM(0 0 0 0, 10 10 10 10)' |=| 'LINESTRINGZM(0 0 0 1, 10 10 10 10)'::geometry;
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRINGZM(0 0 0 0, 10 10 10 10)'::geometry |=| 'LINESTRINGZM(0 0 0 1, 10 10 10 10)'
+$$) as (c gtype);
+-- Following
+select 'LINESTRINGZM(0 0 0 0, 10 10 10 10)' |=| 'LINESTRINGZM(0 0 0 5, 10 10 10 15)'::geometry;
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRINGZM(0 0 0 0, 10 10 10 10)' |=| 'LINESTRINGZM(0 0 0 5, 10 10 10 15)'::geometry
+$$) as (c gtype);
+-- Crossing
+select 'LINESTRINGZM(0 0 0 0, 0 0 0 10)' |=| 'LINESTRINGZM(-30 0 5 4, 10 0 5 6)'::geometry;
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRINGZM(0 0 0 0, 0 0 0 10)' |=| 'LINESTRINGZM(-30 0 5 4, 10 0 5 6)'::geometry
+$$) as (c gtype);
+-- Meeting 
+select 'LINESTRINGZM(0 0 0 0, 0 0 0 10)' |=| 'LINESTRINGZM(0 5 0 10, 10 0 5 11)'::geometry;
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRINGZM(0 0 0 0, 0 0 0 10)' |=| 'LINESTRINGZM(0 5 0 10, 10 0 5 11)'::geometry
+$$) as (c gtype);
+-- Disjoint
+select 'LINESTRINGM(0 0 0, 0 0 4)' |=| 'LINESTRINGM(0 0 5, 0 0 10)'::geometry;
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRINGM(0 0 0, 0 0 4)' |=| 'LINESTRINGM(0 0 5, 0 0 10)'::geometry
+$$) as (c gtype);
+
+
+
+--
 -- ST_IsValidTrajectory
 --
 SELECT ST_IsValidTrajectory('POINTM(0 0 0)'::geometry);

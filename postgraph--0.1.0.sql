@@ -3250,6 +3250,13 @@ PARALLEL SAFE
 COST 5000
 AS 'MODULE_PATHNAME', 'gtype_ST_DistanceCPA';
 
+-- Availability: 2.2.0
+CREATE OPERATOR |=| (
+    LEFTARG = gtype, RIGHTARG = gtype,
+    PROCEDURE = ST_DistanceCPA,
+    COMMUTATOR = '|=|'
+);
+
 CREATE FUNCTION ST_IsValidTrajectory (gtype)
 RETURNS gtype
 LANGUAGE c
