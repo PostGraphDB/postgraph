@@ -1347,7 +1347,9 @@ gtype_to_box2d_internal(gtype_value *agtv) {
 
 Datum
 gtype_to_box3d_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_STRING){
+    if (agtv->type == AGTV_BOX3D) {
+        return PointerGetDatum(&agtv->val.box3d);	    
+    }else if (agtv->type == AGTV_STRING){
         return DirectFunctionCall1(BOX3D_in, CStringGetDatum(agtv->val.string.val));
     }  else
         cannot_cast_gtype_value(agtv->type, "box3d");

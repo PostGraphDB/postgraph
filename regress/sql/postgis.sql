@@ -30,6 +30,20 @@ SELECT * FROM cypher('postgis', $$RETURN 'BOX3D(1 2 3, 4 5 6)'::box3d$$) AS r(c 
 SELECT * FROM cypher('postgis', $$RETURN 'SPHEROID["WGS 84",6378137,298.257223563]'::spheroid$$) AS r(c gtype);
 
 --
+-- Box3D
+--
+WITH u AS (SELECT 'BOX3D(1 2 3, 4 5 6)'::box3d AS g)
+SELECT ST_XMin((g)), ST_YMin(g), ST_ZMin(g), ST_XMax(g), ST_YMax(g), ST_ZMax(g)from u;
+SELECT * FROM cypher('postgis', $$
+     WITH 'BOX3D(1 2 3, 4 5 6)'::box3d AS g	
+     RETURN ST_XMin((g)), ST_YMin(g), ST_ZMin(g), ST_XMax(g), ST_YMax(g), ST_ZMax(g)
+$$) AS (xmin gtype, ymin gtype, zmin gtype, xmax gtype, ymax gtype, zmax gtype);
+
+--
+-- Geometry
+--
+
+--
 -- I/O Routines
 --
 -- NOTE: The first two queries for each type is the PostGIS Geometry type, used to validate I/O is exactly the same

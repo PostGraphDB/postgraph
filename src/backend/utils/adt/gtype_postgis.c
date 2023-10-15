@@ -168,6 +168,86 @@ gtype_m_point(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(BOX3D_xmin);
+PG_FUNCTION_INFO_V1(gtype_xmin);
+Datum
+gtype_xmin(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d = DirectFunctionCall1(BOX3D_xmin, convert_to_scalar(gtype_to_box3d_internal, gt_1, "box3d"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+PG_FUNCTION_INFO_V1(BOX3D_xmax);
+PG_FUNCTION_INFO_V1(gtype_xmax);
+Datum
+gtype_xmax(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d = DirectFunctionCall1(BOX3D_xmax, convert_to_scalar(gtype_to_box3d_internal, gt_1, "box3d"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+PG_FUNCTION_INFO_V1(BOX3D_ymin);
+PG_FUNCTION_INFO_V1(gtype_ymin);
+Datum
+gtype_ymin(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d = DirectFunctionCall1(BOX3D_ymin, convert_to_scalar(gtype_to_box3d_internal, gt_1, "box3d"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+PG_FUNCTION_INFO_V1(BOX3D_zmin);
+PG_FUNCTION_INFO_V1(gtype_zmin);
+Datum
+gtype_zmin(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d = DirectFunctionCall1(BOX3D_zmin, convert_to_scalar(gtype_to_box3d_internal, gt_1, "box3d"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+
+PG_FUNCTION_INFO_V1(BOX3D_ymax);
+PG_FUNCTION_INFO_V1(gtype_ymax);
+Datum
+gtype_ymax(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d = DirectFunctionCall1(BOX3D_ymax, convert_to_scalar(gtype_to_box3d_internal, gt_1, "box3d"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+PG_FUNCTION_INFO_V1(BOX3D_zmax);
+PG_FUNCTION_INFO_V1(gtype_zmax);
+Datum
+gtype_zmax(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d = DirectFunctionCall1(BOX3D_zmax, convert_to_scalar(gtype_to_box3d_internal, gt_1, "box3d"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+
 PG_FUNCTION_INFO_V1(ST_Intersection);
 
 PG_FUNCTION_INFO_V1(gtype_st_intersection);

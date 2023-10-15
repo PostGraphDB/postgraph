@@ -46,6 +46,28 @@ SELECT * FROM cypher('postgis', $$RETURN 'SPHEROID["WGS 84",6378137,298.25722356
 (1 row)
 
 --
+-- Box3D
+--
+WITH u AS (SELECT 'BOX3D(1 2 3, 4 5 6)'::box3d AS g)
+SELECT ST_XMin((g)), ST_YMin(g), ST_ZMin(g), ST_XMax(g), ST_YMax(g), ST_ZMax(g)from u;
+ st_xmin | st_ymin | st_zmin | st_xmax | st_ymax | st_zmax 
+---------+---------+---------+---------+---------+---------
+       1 |       2 |       3 |       4 |       5 |       6
+(1 row)
+
+SELECT * FROM cypher('postgis', $$
+     WITH 'BOX3D(1 2 3, 4 5 6)'::box3d AS g	
+     RETURN ST_XMin((g)), ST_YMin(g), ST_ZMin(g), ST_XMax(g), ST_YMax(g), ST_ZMax(g)
+$$) AS (xmin gtype, ymin gtype, zmin gtype, xmax gtype, ymax gtype, zmax gtype);
+ xmin | ymin | zmin | xmax | ymax | zmax 
+------+------+------+------+------+------
+ 1.0  | 2.0  | 3.0  | 4.0  | 5.0  | 6.0
+(1 row)
+
+--
+-- Geometry
+--
+--
 -- I/O Routines
 --
 -- NOTE: The first two queries for each type is the PostGIS Geometry type, used to validate I/O is exactly the same
