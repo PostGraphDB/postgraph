@@ -3061,6 +3061,37 @@ AS 'MODULE_PATHNAME', 'gtype_macaddr8_set7bit';
 --
 -- PostGIS Functions
 --
+
+--
+-- PostGIS Constructors
+--
+CREATE FUNCTION ST_MakePoint (gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 50
+AS 'MODULE_PATHNAME', 'gtype_makepoint';
+
+CREATE FUNCTION ST_MakePoint (gtype, gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 50
+AS 'MODULE_PATHNAME', 'gtype_makepoint';
+
+CREATE FUNCTION ST_MakePoint (gtype, gtype, gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 50
+AS 'MODULE_PATHNAME', 'gtype_makepoint';
+
 CREATE FUNCTION ST_asEWKT (gtype)
 RETURNS gtype
 LANGUAGE c

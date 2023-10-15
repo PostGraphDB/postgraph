@@ -414,3 +414,32 @@ Datum gtype_affine(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(gtype_makepoint);
+Datum gtype_makepoint(PG_FUNCTION_ARGS)
+{
+    double x, y, z, m;
+    LWPOINT *point;
+    GSERIALIZED *result;
+
+    POSTGIS_DEBUG(2, "gtype_makepoint called");
+
+    x = DatumGetFloat8(convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(0), "float"));
+    y = DatumGetFloat8(convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(1), "float"));
+
+    if (PG_NARGS() == 2)
+                point = lwpoint_make2d(SRID_UNKNOWN, x, y);
+    else if (PG_NARGS() == 3) {
+        z = DatumGetFloat8(convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(2), "float"));
+        point = lwpoint_make3dz(SRID_UNKNOWN, x, y, z);
+    } else if (PG_NARGS() == 4) {
+        z = DatumGetFloat8(convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(2), "float"));
+        m = DatumGetFloat8(convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(3), "float"));
+        point = lwpoint_make4d(SRID_UNKNOWN, x, y, z, m);
+    } else {
+        elog(ERROR, "gtype_makepoint: unsupported number of args: %d", PG_NARGS());
+    }
+
+    gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.gserialized = geometry_serialize((LWGEOM *)point) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}

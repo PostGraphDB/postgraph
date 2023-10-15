@@ -85,6 +85,21 @@ SELECT * FROM cypher('postgis', $$RETURN ST_AsEWKT('POLYGON( (0 0 1 , 10 0 1, 10
 SELECT * FROM cypher('postgis', $$RETURN ST_AsEWKT('POLYGON( (0 0 1 , 10 0 1, 10 10 1, 0 10 1, 0 0 1) )') $$) AS r(c gtype);
 
 --
+-- Constructors
+--
+
+--
+-- ST_MakePoint
+--
+SELECT ST_MakePoint(1, 0);
+SELECT ST_MakePoint(1, 0, 2);
+SELECT ST_MakePoint(1, 0, 2, 3);
+
+SELECT * FROM cypher('postgis', $$ RETURN ST_MakePoint(1, 0) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$ RETURN ST_MakePoint(1, 0, 2) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$ RETURN ST_MakePoint(1, 0, 2, 3) $$) AS r(c gtype);
+
+--
 -- addbbox
 --
 SELECT ST_AsEwkt(postgis_addbbox('SRID=4326;POINT(1e+15 1e+15)'::geometry));
@@ -335,12 +350,9 @@ SELECT * FROM cypher('postgis', $$
 $$) as (c gtype);
 
 
-----------------------------------------
 --
 -- ST_CPAWithin
 --
-----------------------------------------
-
 SELECT ST_CPAWithin( 'LINESTRINGM(0 0 0, 1 0 1)'::geometry ,'LINESTRINGM(0 0 0, 1 0 1)'::geometry, 0.0);
 SELECT ST_CPAWithin( 'LINESTRINGM(0 0 0, 1 0 1)'::geometry ,'LINESTRINGM(0 0 0, 1 0 1)'::geometry, 1.0);
 SELECT ST_CPAWithin( 'LINESTRINGM(0 0 0, 1 0 1)'::geometry ,'LINESTRINGM(0 0 0, 1 0 1)'::geometry, 0.5);
