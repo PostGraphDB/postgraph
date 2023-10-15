@@ -289,6 +289,11 @@ GSERIALIZED* geometry_serialize(LWGEOM *lwgeom)
         return g;
 }
 
+/*
+* Generate a field of random points within the area of a
+* polygon or multipolygon. Throws an error for other geometry
+* types.
+*/
 PG_FUNCTION_INFO_V1(gtype_st_generatepoints);
 Datum
 gtype_st_generatepoints(PG_FUNCTION_ARGS) {
@@ -324,6 +329,47 @@ gtype_st_generatepoints(PG_FUNCTION_ARGS) {
 
     gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.gserialized = geometry_serialize(lwgeom_result) };
     lwgeom_free(lwgeom_result);
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+
+
+PG_FUNCTION_INFO_V1(gtype_ST_Simplify);
+Datum gtype_ST_Simplify(PG_FUNCTION_ARGS)
+{
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+
+    GSERIALIZED *geom = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry"));
+    double dist = DatumGetFloat8(convert_to_scalar(gtype_to_float8_internal, gt_2, "float"));
+    GSERIALIZED *result;
+    int type = gserialized_get_type(geom);
+    LWGEOM *in;
+    bool preserve_collapsed = false;
+    int modified = LW_FALSE;
+
+    /* Can't simplify points! */
+    if ( type == POINTTYPE || type == MULTIPOINTTYPE ) {
+         gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.gserialized = geom };
+         AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+    }
+
+    /* Handle optional argument to preserve collapsed features */
+    if (PG_NARGS() > 2 && !PG_ARGISNULL(2))
+        preserve_collapsed = DatumGetBool(convert_to_scalar(gtype_to_boolean_internal,
+					                    AG_GET_ARG_GTYPE_P(2), "boolean"));
+
+    in = lwgeom_from_gserialized(geom);
+
+    modified = lwgeom_simplify_in_place(in, dist, preserve_collapsed);
+    if (!modified)
+        PG_RETURN_POINTER(geom);
+
+    if (!in || lwgeom_is_empty(in))
+        PG_RETURN_NULL();
+
+    gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.gserialized = geometry_serialize(in) };
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }

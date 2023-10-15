@@ -3260,6 +3260,27 @@ AS 'MODULE_PATHNAME', 'gtype_st_generatepoints';
 
 
 --
+-- Algorithms
+--
+CREATE FUNCTION ST_Simplify (gtype, gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 50
+AS 'MODULE_PATHNAME', 'gtype_ST_Simplify';
+
+CREATE FUNCTION ST_Simplify (gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 50
+AS 'MODULE_PATHNAME', 'gtype_ST_Simplify';
+
+--
 -- Scalar Functions
 --
 CREATE FUNCTION head (gtype) 

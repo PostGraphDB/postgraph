@@ -421,4 +421,22 @@ SELECT * FROM cypher('postgis', $$
 $$) AS r(c gtype);
 
 
+--
+-- Algorithms
+-- 
+
+--
+-- ST_Simplify
+--
+SELECT ST_AsEWKT(ST_Simplify('POLYGON((0 0,1 1,1 3,0 4,-2 3,-1 1,0 0))'::geometry, 1));
+SELECT ST_AsEWKT(ST_Simplify('POLYGON((0 0,1 1,1 3,2 3,2 0,0 0))'::geometry, 1));
+
+SELECT * FROM cypher('postgis', $$
+     RETURN ST_AsEWKT(ST_Simplify('POLYGON((0 0,1 1,1 3,0 4,-2 3,-1 1,0 0))', 1))
+$$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$
+     RETURN ST_AsEWKT(ST_Simplify('POLYGON((0 0,1 1,1 3,2 3,2 0,0 0))'::geometry, 1))
+$$) AS r(c gtype);
+
+
 SELECT * FROM drop_graph('postgis', true);

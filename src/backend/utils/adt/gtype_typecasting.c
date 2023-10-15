@@ -1091,6 +1091,19 @@ gtype_to_float8_internal(gtype_value *agtv) {
     return 0;
 }
 
+
+Datum
+gtype_to_boolean_internal(gtype_value *agtv) {
+    if (agtv->type == AGTV_BOOL)
+        return BoolGetDatum(agtv->val.boolean);
+    else
+        cannot_cast_gtype_value(agtv->type, "float8");
+
+    // unreachable
+    return 0;
+}
+
+
 Datum
 gtype_to_float4_internal(gtype_value *agtv) {
     if (agtv->type == AGTV_FLOAT)
