@@ -3240,6 +3240,25 @@ PARALLEL SAFE
 COST 5000
 AS 'MODULE_PATHNAME', 'gtype_st_intersection';
 
+CREATE FUNCTION ST_GeneratePoints (area gtype, npoints gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 250
+AS 'MODULE_PATHNAME', 'gtype_st_generatepoints';
+
+CREATE FUNCTION ST_GeneratePoints (area gtype, npoints gtype, seed gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 250
+AS 'MODULE_PATHNAME', 'gtype_st_generatepoints';
+
+
 --
 -- Scalar Functions
 --

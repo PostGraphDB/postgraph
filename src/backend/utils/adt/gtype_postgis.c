@@ -31,6 +31,7 @@
 //PostGIS
 #include "libpgcommon/lwgeom_pg.h"
 #include "liblwgeom/liblwgeom.h"
+#include "libpgcommon/lwgeom_pg.h"
 
 //PostGraph
 #include "utils/gtype.h"
@@ -273,3 +274,57 @@ gtype_ST_CPAWithin(PG_FUNCTION_ARGS) {
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
+                        
+/**
+* Utility method to call the serialization and then set the
+* PgSQL varsize header appropriately with the serialized size.
+*/                      
+GSERIALIZED* geometry_serialize(LWGEOM *lwgeom)
+{
+        size_t ret_size;
+        GSERIALIZED *g;
+        
+        g = gserialized_from_lwgeom(lwgeom, &ret_size);
+        SET_VARSIZE(g, ret_size);
+        return g;
+}
+
+PG_FUNCTION_INFO_V1(gtype_st_generatepoints);
+Datum
+gtype_st_generatepoints(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+    GSERIALIZED *gser_input = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry"));
+    GSERIALIZED *gser_result;
+    LWGEOM *lwgeom_input;
+    LWGEOM *lwgeom_result;
+    int32 npoints = DatumGetInt32(convert_to_scalar(gtype_to_int4_internal, gt_2, "int4"));
+    int32 seed = 0;
+
+    if (npoints < 0)
+        PG_RETURN_NULL();
+
+    if (PG_NARGS() > 2 && ! PG_ARGISNULL(2)) {
+	gtype *gt_3 = AG_GET_ARG_GTYPE_P(2);
+        seed = DatumGetInt32(convert_to_scalar(gtype_to_int4_internal, gt_3, "int4"));
+        if (seed < 1)
+            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                            errmsg("ST_GeneratePoints: seed must be greater than zero")));
+
+    }
+
+    // Types get checked in the code, we'll keep things small out there
+    lwgeom_input = lwgeom_from_gserialized(gser_input);
+    lwgeom_result = (LWGEOM*)lwgeom_to_points(lwgeom_input, npoints, seed);
+    lwgeom_free(lwgeom_input);
+    PG_FREE_IF_COPY(gser_input, 0);
+
+    if (!lwgeom_result)
+        PG_RETURN_NULL();
+
+    gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.gserialized = geometry_serialize(lwgeom_result) };
+    lwgeom_free(lwgeom_result);
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
