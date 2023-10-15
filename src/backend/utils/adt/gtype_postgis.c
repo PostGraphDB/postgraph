@@ -443,3 +443,21 @@ Datum gtype_makepoint(PG_FUNCTION_ARGS)
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
+
+PG_FUNCTION_INFO_V1(gtype_makepoint3dm);
+Datum gtype_makepoint3dm(PG_FUNCTION_ARGS)
+{
+    double x, y, m;
+    LWPOINT *point;
+
+    POSTGIS_DEBUG(2, "LWGEOM_makepoint3dm called.");
+
+    x = DatumGetFloat8(convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(0), "float"));
+    y = DatumGetFloat8(convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(1), "float"));
+    m = DatumGetFloat8(convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(2), "float"));
+
+    point = lwpoint_make3dm(SRID_UNKNOWN, x, y, m);
+    gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.gserialized = geometry_serialize((LWGEOM *)point) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}

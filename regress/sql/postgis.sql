@@ -100,6 +100,12 @@ SELECT * FROM cypher('postgis', $$ RETURN ST_MakePoint(1, 0, 2) $$) AS r(c gtype
 SELECT * FROM cypher('postgis', $$ RETURN ST_MakePoint(1, 0, 2, 3) $$) AS r(c gtype);
 
 --
+-- ST_MakePointM
+--
+SELECT ST_MakePointM(1, 0, 2);
+SELECT * FROM cypher('postgis', $$ RETURN ST_MakePointM(1, 0, 2) $$) AS r(c gtype);
+
+--
 -- addbbox
 --
 SELECT ST_AsEwkt(postgis_addbbox('SRID=4326;POINT(1e+15 1e+15)'::geometry));
