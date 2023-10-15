@@ -70,7 +70,10 @@ gtype_addBBOX(PG_FUNCTION_ARGS) {
 
 
 PG_FUNCTION_INFO_V1(LWGEOM_x_point);
-
+/**
+ * X(GEOMETRY) -- return X value of the point.
+ * @return an error if input is not a point.
+ */
 PG_FUNCTION_INFO_V1(gtype_x_point);
 Datum
 gtype_x_point(PG_FUNCTION_ARGS) {
@@ -90,8 +93,10 @@ gtype_x_point(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
-PG_FUNCTION_INFO_V1(LWGEOM_y_point);
-
+/**
+ * Y(GEOMETRY) -- return Y value of the point.
+ *      Raise an error if input is not a point.
+ */
 PG_FUNCTION_INFO_V1(gtype_y_point);
 Datum
 gtype_y_point(PG_FUNCTION_ARGS) {
@@ -111,8 +116,11 @@ gtype_y_point(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
-PG_FUNCTION_INFO_V1(LWGEOM_z_point);
-
+/**
+ * Z(GEOMETRY) -- return Z value of the point.
+ * @return NULL if there is no Z in the point.
+ *              Raise an error if input is not a point.
+ */
 PG_FUNCTION_INFO_V1(gtype_z_point);
 Datum
 gtype_z_point(PG_FUNCTION_ARGS) {
@@ -132,8 +140,10 @@ gtype_z_point(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
-PG_FUNCTION_INFO_V1(LWGEOM_m_point);
-
+/**  M(GEOMETRY) -- find the first POINT(..) in GEOMETRY, returns its M value.
+ * @return NULL if there is no POINT(..) in GEOMETRY.
+ *              Return NULL if there is no M in this geometry.
+ */
 PG_FUNCTION_INFO_V1(gtype_m_point);
 Datum
 gtype_m_point(PG_FUNCTION_ARGS) {
@@ -149,6 +159,141 @@ gtype_m_point(PG_FUNCTION_ARGS) {
         PG_RETURN_NULL();
 
     gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = pt.m };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+/**
+ * @brief find the "length of a geometry"
+ *      length(point) = 0
+ *      length(line) = length of line
+ *      length(polygon) = 0  -- could make sense to return sum(ring perimeter)
+ *      uses euclidian 3d/2d length depending on input dimensions.
+ */
+PG_FUNCTION_INFO_V1(LWGEOM_length_linestring);
+PG_FUNCTION_INFO_V1(gtype_length_linestring);
+Datum gtype_length_linestring(PG_FUNCTION_ARGS)
+{
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d = DirectFunctionCall1(LWGEOM_length_linestring,
+		                  convert_to_scalar(gtype_to_geometry_internal, gt, "geometry"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+/**
+ * @brief find the "length of a geometry"
+ *      length2d(point) = 0
+ *      length2d(line) = length of line
+ *      length2d(polygon) = 0  -- could make sense to return sum(ring perimeter)
+ *      uses euclidian 2d length (even if input is 3d)
+ */
+PG_FUNCTION_INFO_V1(LWGEOM_length2d_linestring);
+PG_FUNCTION_INFO_V1(gtype_length2d_linestring);
+Datum gtype_length2d_linestring(PG_FUNCTION_ARGS)
+{
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d = DirectFunctionCall1(LWGEOM_length2d_linestring,
+                                  convert_to_scalar(gtype_to_geometry_internal, gt, "geometry"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+/*
+ * @brief Find the "length of a geometry"
+ *
+ * length2d_spheroid(point, sphere) = 0
+ * length2d_spheroid(line, sphere) = length of line
+ * length2d_spheroid(polygon, sphere) = 0
+ *      -- could make sense to return sum(ring perimeter)
+ * uses ellipsoidal math to find the distance
+ * x's are longitude, and y's are latitude - both in decimal degrees
+ */
+PG_FUNCTION_INFO_V1(LWGEOM_length_ellipsoid_linestring);
+PG_FUNCTION_INFO_V1(gtype_length_ellipsoid_linestring);
+Datum gtype_length_ellipsoid_linestring(PG_FUNCTION_ARGS)
+{
+    gtype *gt0 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt1 = AG_GET_ARG_GTYPE_P(1);
+
+    Datum d = DirectFunctionCall2(LWGEOM_length_ellipsoid_linestring,
+                                  convert_to_scalar(gtype_to_geometry_internal, gt0, "geometry"),
+				  convert_to_scalar(gtype_to_spheroid_internal, gt1, "spheroid"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+/*
+ * @brief Find the "length of a geometry"
+ * length2d_spheroid(point, sphere) = 0
+ * length2d_spheroid(line, sphere) = length of line
+ * length2d_spheroid(polygon, sphere) = 0
+ *      -- could make sense to return sum(ring perimeter)
+ * uses ellipsoidal math to find the distance
+ * x's are longitude, and y's are latitude - both in decimal degrees
+ */
+PG_FUNCTION_INFO_V1(LWGEOM_length2d_ellipsoid);
+PG_FUNCTION_INFO_V1(gtype_length2d_ellipsoid);
+Datum gtype_length2d_ellipsoid(PG_FUNCTION_ARGS)
+{
+    gtype *gt0 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt1 = AG_GET_ARG_GTYPE_P(1);
+
+    Datum d = DirectFunctionCall2(LWGEOM_length2d_ellipsoid,
+                                  convert_to_scalar(gtype_to_geometry_internal, gt0, "geometry"),
+                                  convert_to_scalar(gtype_to_spheroid_internal, gt1, "spheroid"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+/**
+ *  @brief find the "perimeter of a geometry"
+ *      perimeter(point) = 0
+ *      perimeter(line) = 0
+ *      perimeter(polygon) = sum of ring perimeters
+ *      uses euclidian 3d/2d computation depending on input dimension.
+ */
+PG_FUNCTION_INFO_V1(LWGEOM_perimeter_poly);
+PG_FUNCTION_INFO_V1(gtype_perimeter_poly);
+Datum gtype_perimeter_poly(PG_FUNCTION_ARGS)
+{
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d = DirectFunctionCall1(LWGEOM_perimeter_poly,
+                                  convert_to_scalar(gtype_to_geometry_internal, gt, "geometry"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+/**
+ *  @brief find the "perimeter of a geometry"
+ *      perimeter(point) = 0
+ *      perimeter(line) = 0
+ *      perimeter(polygon) = sum of ring perimeters
+ *      uses euclidian 2d computation even if input is 3d
+ */
+PG_FUNCTION_INFO_V1(LWGEOM_perimeter2d_poly);
+PG_FUNCTION_INFO_V1(gtype_perimeter2d_poly);
+Datum gtype_perimeter2d_poly(PG_FUNCTION_ARGS)
+{
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d = DirectFunctionCall1(LWGEOM_perimeter2d_poly,
+                                  convert_to_scalar(gtype_to_geometry_internal, gt, "geometry"));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }

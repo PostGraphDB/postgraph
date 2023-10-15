@@ -1346,7 +1346,9 @@ gtype_to_box3d_internal(gtype_value *agtv) {
 PG_FUNCTION_INFO_V1(LWGEOM_in);
 Datum
 gtype_to_spheroid_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_STRING){
+    if (agtv->type == AGTV_SPHEROID) {
+	return PointerGetDatum(&agtv->val.spheroid);
+    } else if (agtv->type == AGTV_STRING){
         return DirectFunctionCall1(ellipsoid_in, CStringGetDatum(agtv->val.string.val));
     }  else
         cannot_cast_gtype_value(agtv->type, "spheroid");

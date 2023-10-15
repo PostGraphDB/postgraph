@@ -235,6 +235,82 @@ SELECT * FROM cypher('postgis', $$RETURN ST_M('GEOMETRYCOLLECTION (POINT(0 1), L
 SELECT * FROM cypher('postgis', $$RETURN M('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry) $$) AS r(c gtype);
 
 --
+-- Measures
+--
+SELECT ST_3DLength('LINESTRING (0 0, 1 1)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_3DLength('LINESTRING (0 0, 1 1)'::geometry) $$) AS r(c gtype);
+SELECT ST_3DLength('LINESTRING (0 0 0, 1 1 1)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_3DLength('LINESTRING (0 0 0, 1 1 1)'::geometry) $$) AS r(c gtype);
+
+SELECT ST_Length2D('LINESTRING (0 0, 1 1)'::geometry);
+SELECT * FROM cypher('postgis', $$RETURN ST_Length2D('LINESTRING (0 0, 1 1)'::geometry) $$) AS r(c gtype);
+-- ST_LengthSperoid
+select ST_LengthSpheroid(
+		'MULTILINESTRING((-118.584 38.374,-118.583 38.5),(-71.05957 42.3589 , -71.061 43))'::geometry,
+		'SPHEROID["GRS_1980",6378137,298.257222101]'::spheroid
+	);
+select ST_LengthSpheroid(
+		'MULTILINESTRING((-118.584 38.374,-118.583 38.5),(-71.05957 42.3589 , -71.061 43))'::geometry,
+		'SPHEROID["GRS_1980",6378137,298.257222101]'::spheroid
+	);
+select ST_LengthSpheroid('LINESTRING(0 0 0, 0 0 100)'::geometry, 'SPHEROID["GRS_1980",6378137,298.257222101]');
+select  * FROM cypher('postgis', $$RETURN
+    ST_LengthSpheroid(
+                'MULTILINESTRING((-118.584 38.374,-118.583 38.5),(-71.05957 42.3589 , -71.061 43))'::geometry,
+                'SPHEROID["GRS_1980",6378137,298.257222101]'::spheroid
+          )
+$$) AS r(c gtype);
+select  * FROM cypher('postgis', $$
+    RETURN ST_LengthSpheroid(
+                    'MULTILINESTRING((-118.584 38.374,-118.583 38.5),(-71.05957 42.3589 , -71.061 43))'::geometry,
+                    'SPHEROID["GRS_1980",6378137,298.257222101]'::spheroid
+                 )
+$$) AS r(c gtype);
+select  * FROM cypher('postgis', $$
+    RETURN ST_LengthSpheroid('LINESTRING(0 0 0, 0 0 100)'::geometry,
+                             'SPHEROID["GRS_1980",6378137,298.257222101]')
+$$) AS r(c gtype);
+
+-- Length2DSpheroid
+select ST_Length2DSpheroid(
+                'MULTILINESTRING((-118.584 38.374,-118.583 38.5),(-71.05957 42.3589 , -71.061 43))'::geometry,
+                'SPHEROID["GRS_1980",6378137,298.257222101]'::spheroid
+        );
+select ST_Length2DSpheroid(
+                'MULTILINESTRING((-118.584 38.374,-118.583 38.5),(-71.05957 42.3589 , -71.061 43))'::geometry,
+                'SPHEROID["GRS_1980",6378137,298.257222101]'::spheroid
+        );
+select ST_Length2DSpheroid('LINESTRING(0 0 0, 0 0 100)'::geometry, 'SPHEROID["GRS_1980",6378137,298.257222101]');
+select  * FROM cypher('postgis', $$RETURN
+    ST_Length2DSpheroid(
+                'MULTILINESTRING((-118.584 38.374,-118.583 38.5),(-71.05957 42.3589 , -71.061 43))'::geometry,
+                'SPHEROID["GRS_1980",6378137,298.257222101]'::spheroid
+          )
+$$) AS r(c gtype);
+select  * FROM cypher('postgis', $$
+    RETURN ST_Length2DSpheroid(
+                    'MULTILINESTRING((-118.584 38.374,-118.583 38.5),(-71.05957 42.3589 , -71.061 43))'::geometry,
+                    'SPHEROID["GRS_1980",6378137,298.257222101]'::spheroid
+                 )
+$$) AS r(c gtype);
+select  * FROM cypher('postgis', $$
+    RETURN ST_Length2DSpheroid('LINESTRING(0 0 0, 0 0 100)'::geometry,
+                             'SPHEROID["GRS_1980",6378137,298.257222101]')
+$$) AS r(c gtype);
+
+-- ST_3DPerimeter
+select ST_3DPerimeter('MULTIPOLYGON( ((0 0 0, 10 0 0, 10 10 0, 0 10 0, 0 0 0)),( (0 0 0, 10 0 0, 10 10 0, 0 10 0, 0 0 0),(5 5 0, 7 5 0, 7 7  0, 5 7 0, 5 5 0) ) ,( (0 0 1, 10 0 1, 10 10 1, 0 10 1, 0 0 1),(5 5 1, 7 5 1, 7 7 1, 5 7 1, 5 5 1),(1 1 1,2 1 1, 2 2 1, 1 2 1, 1 1 1) ) )'::geometry);
+select  * FROM cypher('postgis', $$
+    RETURN ST_3DPerimeter('MULTIPOLYGON( ((0 0 0, 10 0 0, 10 10 0, 0 10 0, 0 0 0)),( (0 0 0, 10 0 0, 10 10 0, 0 10 0, 0 0 0),(5 5 0, 7 5 0, 7 7  0, 5 7 0, 5 5 0) ) ,( (0 0 1, 10 0 1, 10 10 1, 0 10 1, 0 0 1),(5 5 1, 7 5 1, 7 7 1, 5 7 1, 5 5 1),(1 1 1,2 1 1, 2 2 1, 1 2 1, 1 1 1) ) )'::GEOMETRY)
+$$) AS r(c gtype);
+
+-- ST_Perimeter
+select ST_perimeter2d('MULTIPOLYGON( ((0 0, 10 0, 10 10, 0 10, 0 0)),( (0 0, 10 0, 10 10, 0 10, 0 0),(5 5, 7 5, 7 7 , 5 7, 5 5) ) ,( (0 0, 10 0, 10 10, 0 10, 0 0),(5 5, 7 5, 7 7, 5 7, 5 5),(1 1,2 1, 2 2, 1 2, 1 1) ) )'::GEOMETRY) as value;
+select   * FROM cypher('postgis', $$
+    RETURN ST_perimeter2d('MULTIPOLYGON( ((0 0, 10 0, 10 10, 0 10, 0 0)),( (0 0, 10 0, 10 10, 0 10, 0 0),(5 5, 7 5, 7 7 , 5 7, 5 5) ) ,( (0 0, 10 0, 10 10, 0 10, 0 0),(5 5, 7 5, 7 7, 5 7, 5 5),(1 1,2 1, 2 2, 1 2, 1 1) ) )'::GEOMETRY)
+$$) AS r(c gtype);
+
+--
 -- Temporal
 --
 

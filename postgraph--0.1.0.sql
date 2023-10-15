@@ -3105,6 +3105,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 COST 1
 AS 'MODULE_PATHNAME', 'gtype_x_point';
+COMMENT ON FUNCTION ST_X(gtype) IS 'args: a_point - Returns the X coordinate of a Point.';
 
 CREATE FUNCTION X (gtype)
 RETURNS gtype
@@ -3114,6 +3115,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 COST 1
 AS 'MODULE_PATHNAME', 'gtype_x_point';
+COMMENT ON FUNCTION X(gtype) IS 'args: a_point - Returns the X coordinate of a Point.';
 
 CREATE FUNCTION ST_Y (gtype)
 RETURNS gtype
@@ -3123,6 +3125,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 COST 1
 AS 'MODULE_PATHNAME', 'gtype_y_point';
+COMMENT ON FUNCTION ST_Y(gtype) IS 'args: a_point - Returns the Y coordinate of a Point.';
 
 CREATE FUNCTION Y (gtype)
 RETURNS gtype
@@ -3132,6 +3135,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 COST 1
 AS 'MODULE_PATHNAME', 'gtype_y_point';
+COMMENT ON FUNCTION Y(gtype) IS 'args: a_point - Returns the Y coordinate of a Point.';
 
 CREATE FUNCTION ST_Z (gtype)
 RETURNS gtype
@@ -3141,6 +3145,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 COST 1
 AS 'MODULE_PATHNAME', 'gtype_z_point';
+COMMENT ON FUNCTION ST_Z(gtype) IS 'args: a_point - Returns the Z coordinate of a Point.';
 
 CREATE FUNCTION Z (gtype)
 RETURNS gtype
@@ -3150,6 +3155,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 COST 1
 AS 'MODULE_PATHNAME', 'gtype_z_point';
+COMMENT ON FUNCTION Z(gtype) IS 'args: a_point - Returns the Z coordinate of a Point.';
 
 CREATE FUNCTION ST_M (gtype)
 RETURNS gtype
@@ -3159,7 +3165,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 COST 1
 AS 'MODULE_PATHNAME', 'gtype_m_point';
-
+COMMENT ON FUNCTION ST_M(gtype) IS 'args: a_point - Returns the M coordinate of a Point.';
 CREATE FUNCTION M (gtype)
 RETURNS gtype
 LANGUAGE c
@@ -3168,6 +3174,84 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 COST 1
 AS 'MODULE_PATHNAME', 'gtype_m_point';
+COMMENT ON FUNCTION M(gtype) IS 'args: a_point - Returns the M coordinate of a Point.';
+
+--
+-- PostGIS Functions - Measures
+--
+CREATE FUNCTION ST_3DLength(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 50
+AS 'MODULE_PATHNAME', 'gtype_length_linestring';
+
+CREATE FUNCTION ST_Length2D(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 50
+AS 'MODULE_PATHNAME', 'gtype_length2d_linestring';
+
+CREATE FUNCTION ST_Length(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 50
+AS 'MODULE_PATHNAME', 'gtype_length2d_linestring';
+
+CREATE FUNCTION ST_LengthSpheroid(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 250
+AS 'MODULE_PATHNAME', 'gtype_length_ellipsoid_linestring';
+
+CREATE FUNCTION ST_Length2DSpheroid(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 250
+AS 'MODULE_PATHNAME', 'gtype_length2d_ellipsoid';
+
+
+CREATE FUNCTION ST_3DPerimeter(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 250
+AS 'MODULE_PATHNAME', 'gtype_perimeter_poly';
+
+CREATE FUNCTION ST_Perimeter2D(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 250
+AS 'MODULE_PATHNAME', 'gtype_perimeter2d_poly';
+
+CREATE FUNCTION ST_Perimeter(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 250
+AS 'MODULE_PATHNAME', 'gtype_perimeter2d_poly';
+
 
 --
 -- PostGIS Functions - Temporal
