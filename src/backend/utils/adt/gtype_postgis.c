@@ -68,6 +68,20 @@ gtype_addBBOX(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(LWGEOM_dropBBOX);
+
+PG_FUNCTION_INFO_V1(gtype_dropBBOX);
+Datum
+gtype_dropBBOX(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d = DirectFunctionCall1(LWGEOM_dropBBOX, convert_to_scalar(gtype_to_geometry_internal, gt, "geometry"));
+
+    gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.gserialized = DatumGetPointer(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
 
 PG_FUNCTION_INFO_V1(LWGEOM_x_point);
 
