@@ -85,6 +85,12 @@ SELECT * FROM cypher('postgis', $$RETURN ST_AsEWKT('POLYGON( (0 0 1 , 10 0 1, 10
 SELECT * FROM cypher('postgis', $$RETURN ST_AsEWKT('POLYGON( (0 0 1 , 10 0 1, 10 10 1, 0 10 1, 0 0 1) )') $$) AS r(c gtype);
 
 --
+-- addbbox
+--
+SELECT ST_AsEwkt(postgis_addbbox('SRID=4326;POINT(1e+15 1e+15)'::geometry));
+SELECT * FROM cypher('postgis', $$RETURN ST_AsEwkt(postgis_addbbox('SRID=4326;POINT(1e+15 1e+15)'::geometry)) $$) AS r(c gtype);
+
+--
 -- Point Cordinates
 --
 

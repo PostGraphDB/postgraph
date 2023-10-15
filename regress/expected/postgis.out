@@ -268,6 +268,21 @@ SELECT * FROM cypher('postgis', $$RETURN ST_AsEWKT('POLYGON( (0 0 1 , 10 0 1, 10
 (1 row)
 
 --
+-- addbbox
+--
+SELECT ST_AsEwkt(postgis_addbbox('SRID=4326;POINT(1e+15 1e+15)'::geometry));
+          st_asewkt           
+------------------------------
+ SRID=4326;POINT(1e+15 1e+15)
+(1 row)
+
+SELECT * FROM cypher('postgis', $$RETURN ST_AsEwkt(postgis_addbbox('SRID=4326;POINT(1e+15 1e+15)'::geometry)) $$) AS r(c gtype);
+               c                
+--------------------------------
+ "SRID=4326;POINT(1e+15 1e+15)"
+(1 row)
+
+--
 -- Point Cordinates
 --
 --
