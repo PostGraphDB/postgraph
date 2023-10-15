@@ -255,3 +255,21 @@ gtype_st_isvalidtrajectory(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(ST_CPAWithin);
+PG_FUNCTION_INFO_V1(gtype_ST_CPAWithin);
+Datum
+gtype_ST_CPAWithin(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+    gtype *gt_3 = AG_GET_ARG_GTYPE_P(2);
+
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+    Datum d3 = convert_to_scalar(gtype_to_float8_internal, gt_3, "float");
+
+    Datum d = DirectFunctionCall3(ST_IsValidTrajectory, d1, d2, d3);
+
+    gtype_value gtv = { .type = AGTV_BOOL, .val.boolean = DatumGetBool(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}

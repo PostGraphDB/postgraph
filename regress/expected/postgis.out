@@ -965,6 +965,150 @@ $$) as (c gtype);
  true
 (1 row)
 
+----------------------------------------
+--
+-- ST_CPAWithin
+--
+----------------------------------------
+SELECT ST_CPAWithin( 'LINESTRINGM(0 0 0, 1 0 1)'::geometry ,'LINESTRINGM(0 0 0, 1 0 1)'::geometry, 0.0);
+ st_cpawithin 
+--------------
+ t
+(1 row)
+
+SELECT ST_CPAWithin( 'LINESTRINGM(0 0 0, 1 0 1)'::geometry ,'LINESTRINGM(0 0 0, 1 0 1)'::geometry, 1.0);
+ st_cpawithin 
+--------------
+ t
+(1 row)
+
+SELECT ST_CPAWithin( 'LINESTRINGM(0 0 0, 1 0 1)'::geometry ,'LINESTRINGM(0 0 0, 1 0 1)'::geometry, 0.5);
+ st_cpawithin 
+--------------
+ t
+(1 row)
+
+SELECT ST_CPAWithin( 'LINESTRINGM(0 0 0, 1 0 1)'::geometry ,'LINESTRINGM(0 0 0, 1 0 1)'::geometry, 1);
+ st_cpawithin 
+--------------
+ t
+(1 row)
+
+SELECT ST_CPAWithin( 'LINESTRINGM(0 0 0, 1 0 1)'::geometry ,'LINESTRINGM(0 0 0, 1 0 1)'::geometry, 2);
+ st_cpawithin 
+--------------
+ t
+(1 row)
+
+SELECT ST_CPAWithin( 'LINESTRINGM(0 0 0, 1 0 1)'::geometry ,'LINESTRINGM(0 0 0, 1 0 1)'::geometry, 1.9);
+ st_cpawithin 
+--------------
+ t
+(1 row)
+
+SELECT ST_CPAWithin( 'LINESTRINGM(0 0 0, 1 0 1)'::geometry ,'LINESTRINGM(0 0 0, 1 0 1)'::geometry, 2);
+ st_cpawithin 
+--------------
+ t
+(1 row)
+
+SELECT ST_CPAWithin( 'LINESTRINGM(0 0 0, 1 0 1)'::geometry ,'LINESTRINGM(0 0 0, 1 0 1)'::geometry, 2.0001);
+ st_cpawithin 
+--------------
+ t
+(1 row)
+
+-- temporary disjoint
+SELECT ST_CPAWithin( 'LINESTRINGM(0 0 0, 10 0 10)'::geometry ,'LINESTRINGM(10 0 11, 10 10 20)'::geometry, 1e15);
+ st_cpawithin 
+--------------
+ f
+(1 row)
+
+SELECT ST_CPAWithin( 'LINESTRING(0 0 0, 1 0 0)'::geometry ,'LINESTRING(0 0 3 0, 1 0 2 1)'::geometry, 1e16);
+ERROR:  Both input geometries must have a measure dimension
+SELECT  * FROM cypher('postgis', $$
+    RETURN ST_CPAWithin( 'LINESTRINGM(0 0 0, 1 0 1)'::geometry ,'LINESTRINGM(0 0 0, 1 0 1)'::geometry, 0.0)
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+SELECT  * FROM cypher('postgis', $$
+    RETURN ST_CPAWithin( 'LINESTRINGM(0 0 0, 1 0 1)'::geometry ,'LINESTRINGM(0 0 0, 1 0 1)'::geometry, 1.0)
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+SELECT  * FROM cypher('postgis', $$
+    RETURN ST_CPAWithin( 'LINESTRINGM(0 0 0, 1 0 1)'::geometry ,'LINESTRINGM(0 0 0, 1 0 1)'::geometry, 0.5)
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+SELECT  * FROM cypher('postgis', $$
+    RETURN ST_CPAWithin( 'LINESTRINGM(0 0 0, 1 0 1)'::geometry ,'LINESTRINGM(0 0 0, 1 0 1)'::geometry, 1)
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+SELECT  * FROM cypher('postgis', $$
+    RETURN ST_CPAWithin( 'LINESTRINGM(0 0 0, 1 0 1)'::geometry ,'LINESTRINGM(0 0 0, 1 0 1)'::geometry, 2)
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+SELECT  * FROM cypher('postgis', $$
+    RETURN ST_CPAWithin( 'LINESTRINGM(0 0 0, 1 0 1)'::geometry ,'LINESTRINGM(0 0 0, 1 0 1)'::geometry, 1.9)
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+SELECT  * FROM cypher('postgis', $$
+    RETURN ST_CPAWithin( 'LINESTRINGM(0 0 0, 1 0 1)'::geometry ,'LINESTRINGM(0 0 0, 1 0 1)'::geometry, 2)
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+SELECT  * FROM cypher('postgis', $$
+    RETURN ST_CPAWithin( 'LINESTRINGM(0 0 0, 1 0 1)'::geometry ,'LINESTRINGM(0 0 0, 1 0 1)'::geometry, 2.0001)
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+-- temporary disjoint
+SELECT  * FROM cypher('postgis', $$
+    RETURN ST_CPAWithin( 'LINESTRINGM(0 0 0, 10 0 10)'::geometry ,'LINESTRINGM(10 0 11, 10 10 20)'::geometry, 1e15)
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+SELECT  * FROM cypher('postgis', $$
+    RETURN ST_CPAWithin( 'LINESTRING(0 0 0, 1 0 0)'::geometry ,'LINESTRING(0 0 3 0, 1 0 2 1)'::geometry, 1e16)
+$$) as (c gtype);
+NOTICE:  Line does not have M dimension
+   c   
+-------
+ false
+(1 row)
+
 --
 -- GEOS
 --
