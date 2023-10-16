@@ -3310,6 +3310,19 @@ COST 1
 AS 'MODULE_PATHNAME', 'gtype_m_point';
 
 --
+-- PostGIS Functions - Measures
+--
+CREATE FUNCTION ST_IsPolygonCW (gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 50
+AS 'MODULE_PATHNAME', 'gtype_ST_IsPolygonCW';
+
+
+--
 -- PostGIS Functions - Temporal
 --
 CREATE FUNCTION ST_ClosestPointOfApproach (gtype, gtype)

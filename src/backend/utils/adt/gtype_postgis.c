@@ -247,6 +247,10 @@ gtype_zmax(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+
+/*
+ * 2D Geometry Operators
+ */
 PG_FUNCTION_INFO_V1(gserialized_same_2d);
 PG_FUNCTION_INFO_V1(gtype_same_2d);
 Datum
@@ -601,6 +605,25 @@ gtype_snaptogrid(PG_FUNCTION_ARGS) {
     Datum d = DirectFunctionCall5(LWGEOM_snaptogrid, d1, d2, d3, d4, d5);
 
     gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.boolean = DatumGetPointer(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+PG_FUNCTION_INFO_V1(gtype_ST_IsPolygonCW);
+Datum
+gtype_ST_IsPolygonCW(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    GSERIALIZED* geom = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry"));
+    LWGEOM* input;
+    bool is_clockwise;
+
+    input = lwgeom_from_gserialized(geom);
+
+    is_clockwise = lwgeom_is_clockwise(input);
+
+    lwgeom_free(input);
+
+    gtype_value gtv = { .type = AGTV_BOOL, .val.boolean = is_clockwise };
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
