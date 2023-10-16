@@ -628,3 +628,22 @@ gtype_ST_IsPolygonCW(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(gtype_ST_IsPolygonCCW);
+Datum
+gtype_ST_IsPolygonCCW(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    GSERIALIZED* geom = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry"));
+    LWGEOM* input;
+    bool is_ccw;
+
+    input = lwgeom_from_gserialized(geom);
+    lwgeom_reverse_in_place(input);
+    is_ccw = lwgeom_is_clockwise(input);
+
+    lwgeom_free(input);
+
+    gtype_value gtv = { .type = AGTV_BOOL, .val.boolean = is_ccw };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+

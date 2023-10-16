@@ -326,6 +326,11 @@ SELECT * FROM cypher('postgis', $$RETURN M('GEOMETRYCOLLECTION (POINT(0 1), LINE
 --
 -- Measures
 --
+
+
+--
+-- ST_IsPolygonCW
+--
 -- Non-applicable types
 SELECT ST_IsPolygonCW('POINT (0 0)'::geometry);
 SELECT ST_IsPolygonCW('MULTIPOINT ((0 0), (1 1))'::geometry);
@@ -405,6 +410,87 @@ SELECT * FROM cypher('postgis', $$
     RETURN ST_IsPolygonCW( 'MULTIPOLYGON (((0 0, 1 0, 1 1, 0 0)), ((100 0, 101 1, 101 0, 100 0)))'::geometry)
 $$) as (c gtype);
 
+--
+-- ST_IsPolygonCCW
+--
+-- Non-applicable types
+SELECT ST_IsPolygonCCW('POINT (0 0)'::geometry);
+SELECT ST_IsPolygonCCW('MULTIPOINT ((0 0), (1 1))'::geometry);
+SELECT ST_IsPolygonCCW('LINESTRING (1 1, 2 2)'::geometry);
+SELECT ST_IsPolygonCCW('MULTILINESTRING ((1 1, 2 2), (3 3, 0 0))'::geometry);
+-- EMPTY handling
+SELECT ST_IsPolygonCCW('POLYGON EMPTY'::geometry);
+-- Single polygon, ccw exterior ring only
+SELECT ST_IsPolygonCCW('POLYGON ((0 0, 1 0, 1 1, 0 0))'::geometry);
+-- Single polygon, cw exterior ring only
+SELECT ST_IsPolygonCCW('POLYGON ((0 0, 1 1, 1 0, 0 0))'::geometry);
+-- Single polygon, ccw exterior ring, cw interior rings
+SELECT ST_IsPolygonCCW('POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0), (1 1, 1 2, 2 2, 1 1), (5 5, 5 7, 7 7, 5 5))'::geometry);
+-- Single polygon, cw exterior ring, ccw interior rings
+SELECT ST_IsPolygonCCW( 'POLYGON ((0 0, 0 10, 10 10, 10 0, 0 0), (1 1, 2 2, 1 2, 1 1), (5 5, 7 7, 5 7, 5 5))'::geometry);
+-- Single polygon, ccw exerior ring, mixed interior rings
+SELECT ST_IsPolygonCCW( 'POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0), (1 1, 1 2, 2 2, 1 1), (5 5, 7 7, 5 7, 5 5))'::geometry);
+-- Single polygon, cw exterior ring, mixed interior rings
+SELECT ST_IsPolygonCCW( 'POLYGON ((0 0, 0 10, 10 10, 10 0, 0 0), (1 1, 2 2, 1 2, 1 1), (5 5, 5 7, 7 7, 5 5))'::geometry);
+-- MultiPolygon, ccw exterior rings only
+SELECT ST_IsPolygonCCW( 'MULTIPOLYGON (((0 0, 1 0, 1 1, 0 0)), ((100 0, 101 0, 101 1, 100 0)))'::geometry);
+-- MultiPolygon, cw exterior rings only
+SELECT ST_IsPolygonCCW( 'MULTIPOLYGON (((0 0, 1 1, 1 0, 0 0)), ((100 0, 101 1, 101 0, 100 0)))'::geometry);
+-- MultiPolygon, mixed exterior rings
+SELECT ST_IsPolygonCCW( 'MULTIPOLYGON (((0 0, 1 0, 1 1, 0 0)), ((100 0, 101 1, 101 0, 100 0)))'::geometry);
+
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsPolygonCCW('POINT (0 0)'::geometry)
+$$) as (c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsPolygonCCW('MULTIPOINT ((0 0), (1 1))'::geometry)
+$$) as (c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsPolygonCCW('LINESTRING (1 1, 2 2)'::geometry)
+$$) as (c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsPolygonCCW('MULTILINESTRING ((1 1, 2 2), (3 3, 0 0))'::geometry)
+$$) as (c gtype);
+-- EMPTY handling
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsPolygonCCW('POLYGON EMPTY'::geometry)
+$$) as (c gtype);
+-- Single polygon, ccw exterior ring only
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsPolygonCCW('POLYGON ((0 0, 1 0, 1 1, 0 0))'::geometry)
+$$) as (c gtype);
+-- Single polygon, cw exterior ring only
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsPolygonCCW('POLYGON ((0 0, 1 1, 1 0, 0 0))'::geometry)
+$$) as (c gtype);
+-- Single polygon, ccw exterior ring, cw interior rings
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsPolygonCCW('POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0), (1 1, 1 2, 2 2, 1 1), (5 5, 5 7, 7 7, 5 5))'::geometry)
+$$) as (c gtype);
+-- Single polygon, cw exterior ring, ccw interior rings
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsPolygonCCW( 'POLYGON ((0 0, 0 10, 10 10, 10 0, 0 0), (1 1, 2 2, 1 2, 1 1), (5 5, 7 7, 5 7, 5 5))'::geometry)
+$$) as (c gtype);
+-- Single polygon, ccw exerior ring, mixed interior rings
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsPolygonCCW( 'POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0), (1 1, 1 2, 2 2, 1 1), (5 5, 7 7, 5 7, 5 5))'::geometry)
+$$) as (c gtype);
+-- Single polygon, cw exterior ring, mixed interior rings
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsPolygonCCW( 'POLYGON ((0 0, 0 10, 10 10, 10 0, 0 0), (1 1, 2 2, 1 2, 1 1), (5 5, 5 7, 7 7, 5 5))'::geometry)
+$$) as (c gtype);
+-- MultiPolygon, ccw exterior rings only
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsPolygonCCW( 'MULTIPOLYGON (((0 0, 1 0, 1 1, 0 0)), ((100 0, 101 0, 101 1, 100 0)))'::geometry)
+$$) as (c gtype);
+-- MultiPolygon, cw exterior rings only
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsPolygonCCW( 'MULTIPOLYGON (((0 0, 1 1, 1 0, 0 0)), ((100 0, 101 1, 101 0, 100 0)))'::geometry)
+$$) as (c gtype);
+-- MultiPolygon, mixed exterior rings
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_IsPolygonCCW( 'MULTIPOLYGON (((0 0, 1 0, 1 1, 0 0)), ((100 0, 101 1, 101 0, 100 0)))'::geometry)
+$$) as (c gtype);
 
 --
 -- Temporal
