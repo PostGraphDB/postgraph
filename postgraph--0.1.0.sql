@@ -3330,6 +3330,16 @@ PARALLEL SAFE
 COST 50
 AS 'MODULE_PATHNAME', 'gtype_ST_IsPolygonCCW';
 
+CREATE FUNCTION ST_azimuth (gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 50
+AS 'MODULE_PATHNAME', 'gtype_azimuth';
+
+
 --
 -- PostGIS Functions - Temporal
 --

@@ -647,3 +647,65 @@ gtype_ST_IsPolygonCCW(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+
+/**
+ * Compute the azimuth of segment defined by the two
+ * given Point geometries.
+ * @return NULL on exception (same point).
+ *              Return radians otherwise.
+ */
+PG_FUNCTION_INFO_V1(gtype_azimuth);
+Datum
+gtype_azimuth(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    GSERIALIZED* geom = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry"));
+    LWPOINT *lwpoint;
+    POINT2D p1, p2;
+    double result;
+    int32_t srid;
+
+    /* Extract first point */
+    lwpoint = lwgeom_as_lwpoint(lwgeom_from_gserialized(geom));
+    if (!lwpoint)
+	ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                            errmsg("Argument must be POINT geometries")));   
+   
+    srid = lwpoint->srid;
+    if (!getPoint2d_p(lwpoint->point, 0, &p1))
+	ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                            errmsg("Error extracting point")));   
+   
+    lwpoint_free(lwpoint);
+
+    /* Extract second point */
+    geom = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, AG_GET_ARG_GTYPE_P(1), "geometry"));
+    lwpoint = lwgeom_as_lwpoint(lwgeom_from_gserialized(geom));
+    if (!lwpoint)
+	ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                            errmsg("Argument must be POINT geometries")));   
+    
+    if (lwpoint->srid != srid)
+	ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                            errmsg("Operation on mixed SRID geometries")));   
+    
+    if (!getPoint2d_p(lwpoint->point, 0, &p2))
+            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                            errmsg("Error extracting point")));	    
+    
+    lwpoint_free(lwpoint);
+    PG_FREE_IF_COPY(geom, 1);
+
+    /* Standard return value for equality case */
+    if ((p1.x == p2.x) && (p1.y == p2.y))
+        PG_RETURN_NULL();
+
+    /* Compute azimuth */
+    if (!azimuth_pt_pt(&p1, &p2, &result))
+        PG_RETURN_NULL();
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = result };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+
+}
+
