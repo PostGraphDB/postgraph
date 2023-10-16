@@ -709,3 +709,27 @@ gtype_azimuth(PG_FUNCTION_ARGS) {
 
 }
 
+PG_FUNCTION_INFO_V1(LWGEOM_distance_ellipsoid);
+PG_FUNCTION_INFO_V1(gtype_distance_ellipsoid);
+Datum gtype_distance_ellipsoid(PG_FUNCTION_ARGS)
+{
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+
+    POSTGIS_DEBUG(2, "gtype_distance_ellipsoid called");
+
+    Datum d;
+    if (PG_NARGS() == 2) {
+        d = DirectFunctionCall2(LWGEOM_distance_ellipsoid, d1, d2);
+    } else {
+        Datum d3 = convert_to_scalar(gtype_to_spheroid_internal, AG_GET_ARG_GTYPE_P(2), "geometry");
+        d = DirectFunctionCall3(LWGEOM_distance_ellipsoid, d1, d2, d3);
+    }
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+

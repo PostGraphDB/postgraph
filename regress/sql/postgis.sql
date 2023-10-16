@@ -493,6 +493,25 @@ SELECT * FROM cypher('postgis', $$
 $$) as (c gtype);
 
 --
+-- ST_DistanceSpheroid
+--
+SELECT round(ST_DistanceSpheroid('MULTIPOLYGON(((-10 40,-10 55,-10 70,5 40,-10 40)))'::geometry,
+		                 'MULTIPOINT(20 40,20 55,20 70,35 40,35 55,35 70,50 40,50 55,50 70)',
+			         'SPHEROID["GRS_1980",6378137,298.257222101]'));
+SELECT round(ST_DistanceSpheroid('MULTIPOLYGON(((-10 40,-10 55,-10 70,5 40,-10 40)))'::geometry,
+                                 'MULTIPOINT(20 40,20 55,20 70,35 40,35 55,35 70,50 40,50 55,50 70)'));
+SELECT * FROM cypher('postgis', $$
+    RETURN round(ST_DistanceSpheroid('MULTIPOLYGON(((-10 40,-10 55,-10 70,5 40,-10 40)))'::geometry,
+                                 'MULTIPOINT(20 40,20 55,20 70,35 40,35 55,35 70,50 40,50 55,50 70)',
+                                 'SPHEROID["GRS_1980",6378137,298.257222101]'))
+$$) as (c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN round(ST_DistanceSpheroid('MULTIPOLYGON(((-10 40,-10 55,-10 70,5 40,-10 40)))'::geometry,
+                                 'MULTIPOINT(20 40,20 55,20 70,35 40,35 55,35 70,50 40,50 55,50 70)'))
+$$) as (c gtype);
+
+
+--
 -- Temporal
 --
 
