@@ -362,6 +362,177 @@ SELECT * FROM cypher('postgis', $$RETURN ST_AsEwkt(postgis_addbbox('SRID=4326;PO
 (1 row)
 
 --
+-- 2D Operators
+--
+select 'POINT(1 1)'::GEOMETRY ~= 'POINT(1 1)'::GEOMETRY;
+ ?column? 
+----------
+ t
+(1 row)
+
+select 'POINT(1 1 0)'::GEOMETRY ~= 'POINT(1 1)'::GEOMETRY;
+ ?column? 
+----------
+ t
+(1 row)
+
+select 'POINT(1 1 0)'::GEOMETRY ~= 'POINT(1 1 0)'::GEOMETRY;
+ ?column? 
+----------
+ t
+(1 row)
+
+select 'MULTIPOINT(1 1,2 2)'::GEOMETRY ~= 'MULTIPOINT(1 1,2 2)'::GEOMETRY;
+ ?column? 
+----------
+ t
+(1 row)
+
+select 'MULTIPOINT(2 2, 1 1)'::GEOMETRY ~= 'MULTIPOINT(1 1,2 2)'::GEOMETRY;
+ ?column? 
+----------
+ t
+(1 row)
+
+select 'GEOMETRYCOLLECTION(POINT( 1 2 3),POINT(4 5 6))'::GEOMETRY ~= 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::GEOMETRY;
+ ?column? 
+----------
+ t
+(1 row)
+
+select 'MULTIPOINT(4 5 6, 1 2 3)'::GEOMETRY ~= 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::GEOMETRY;
+ ?column? 
+----------
+ t
+(1 row)
+
+select 'MULTIPOINT(1 2 3, 4 5 6)'::GEOMETRY ~= 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::GEOMETRY;
+ ?column? 
+----------
+ t
+(1 row)
+
+select 'MULTIPOINT(1 2 3, 4 5 6)'::GEOMETRY ~= 'GEOMETRYCOLLECTION(MULTIPOINT(1 2 3, 4 5 6))'::GEOMETRY;
+ ?column? 
+----------
+ t
+(1 row)
+
+select 'LINESTRING(1 1,2 2)'::GEOMETRY ~= 'POINT(1 1)'::GEOMETRY;
+ ?column? 
+----------
+ f
+(1 row)
+
+select 'LINESTRING(1 1, 2 2)'::GEOMETRY ~= 'LINESTRING(2 2, 1 1)'::GEOMETRY;
+ ?column? 
+----------
+ t
+(1 row)
+
+select 'LINESTRING(1 1, 2 2)'::GEOMETRY ~= 'LINESTRING(1 1, 2 2, 3 3)'::GEOMETRY;
+ ?column? 
+----------
+ f
+(1 row)
+
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1)'::GEOMETRY ~= 'POINT(1 1)'::GEOMETRY
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1 0)'::GEOMETRY ~= 'POINT(1 1)'::GEOMETRY
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1 0)'::GEOMETRY ~= 'POINT(1 1 0)'::GEOMETRY
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 1,2 2)'::GEOMETRY ~= 'MULTIPOINT(1 1,2 2)'::GEOMETRY
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(2 2, 1 1)'::GEOMETRY ~= 'MULTIPOINT(1 1,2 2)'::GEOMETRY
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+select * FROM cypher('postgis', $$
+    RETURN 'GEOMETRYCOLLECTION(POINT( 1 2 3),POINT(4 5 6))'::GEOMETRY ~= 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::GEOMETRY
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(4 5 6, 1 2 3)'::GEOMETRY ~= 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::GEOMETRY
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 2 3, 4 5 6)'::GEOMETRY ~= 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::GEOMETRY
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 2 3, 4 5 6)'::GEOMETRY ~= 'GEOMETRYCOLLECTION(MULTIPOINT(1 2 3, 4 5 6))'::GEOMETRY
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1,2 2)'::GEOMETRY ~= 'POINT(1 1)'::GEOMETRY
+$$) as (c gtype);
+   c   
+-------
+ false
+(1 row)
+
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1, 2 2)'::GEOMETRY ~= 'LINESTRING(2 2, 1 1)'::GEOMETRY
+$$) as (c gtype);
+  c   
+------
+ true
+(1 row)
+
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1, 2 2)'::GEOMETRY ~= 'LINESTRING(1 1, 2 2, 3 3)'::GEOMETRY
+$$) as (c gtype);
+   c   
+-------
+ false
+(1 row)
+
+--
 -- Point Cordinates
 --
 --

@@ -3117,6 +3117,28 @@ AS 'MODULE_PATHNAME', 'gtype_zmax';
 
 
 --
+-- PostGIS 2D Geometry Operators
+--
+CREATE OR REPLACE FUNCTION gtype_geometry_same(geom1 gtype, geom2 gtype)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 1
+AS 'MODULE_PATHNAME', 'gtype_same_2d';
+
+
+CREATE OPERATOR ~= (
+    LEFTARG = gtype, 
+    RIGHTARG = gtype,
+    PROCEDURE = gtype_geometry_same,
+    RESTRICT = contsel,
+    JOIN = contjoinsel
+);
+
+
+--
 -- PostGIS Functions
 --
 

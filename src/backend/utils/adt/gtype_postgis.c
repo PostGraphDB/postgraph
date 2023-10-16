@@ -247,6 +247,21 @@ gtype_zmax(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(gserialized_same_2d);
+PG_FUNCTION_INFO_V1(gtype_same_2d);
+Datum
+gtype_same_2d(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+
+    Datum d = DirectFunctionCall2(gserialized_same_2d, d1, d2);
+
+    PG_RETURN_BOOL(DatumGetBool(d));
+}
+
 
 PG_FUNCTION_INFO_V1(ST_Intersection);
 
