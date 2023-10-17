@@ -117,6 +117,12 @@ REGRESS = scan \
 srcdir=`pwd`
 POSTGIS_DIR ?= postgis_dir
 
+.PHONY:all
+
+all: postgraph--0.1.0.sql
+
+postgraph--0.1.0.sql: postgraph.sql.in
+	cat $^ > $@
 ag_regress_dir = $(srcdir)/regress
 REGRESS_OPTS = --load-extension=postgis --load-extension=postgraph --inputdir=$(ag_regress_dir) --outputdir=$(ag_regress_dir) --temp-instance=$(ag_regress_dir)/instance --port=61958 --encoding=UTF-8
 
