@@ -2495,6 +2495,41 @@ AS 'MODULE_PATHNAME';
 
 CREATE CAST (gtype as cidr) WITH FUNCTION gtype_to_cidr(gtype);
 
+
+-- gtype -> geometry
+CREATE FUNCTION gtype_to_geometry(gtype)
+RETURNS public.geometry
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype as public.geometry) WITH FUNCTION gtype_to_geometry(gtype);
+
+-- gtype -> box3d
+CREATE FUNCTION gtype_to_box3d(gtype)
+RETURNS public.box3d
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype as public.box3d) WITH FUNCTION gtype_to_box3d(gtype);
+
+-- gtype -> box2d
+CREATE FUNCTION gtype_to_box2d(gtype)
+RETURNS public.box2d
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype as public.box2d) WITH FUNCTION gtype_to_box2d(gtype);
+
+
 --
 -- gtype - typecasting to other gtype types
 --

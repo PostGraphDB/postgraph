@@ -1093,4 +1093,41 @@ SELECT * FROM cypher('postgis', $$
      RETURN ST_AsEWKT(ST_Simplify('POLYGON((0 0,1 1,1 3,2 3,2 0,0 0))'::geometry, 1))
 $$) AS r(c gtype);
 
+--
+-- Typecasting
+--
+
+--
+-- From Box3D
+--
+-- gtype Box3D to box3d
+SELECT c FROM cypher('postgis', $$RETURN toBox3D('BOX3D(1 2 3, 4 5 6)')$$) AS (c box3d);
+
+-- gtype string to box3d
+SELECT c FROM cypher('postgis', $$RETURN 'BOX3D(1 2 3, 4 5 6)' $$) AS (c box3d);
+
+-- gtype Box3D to gtype box2d
+SELECT c FROM cypher('postgis', $$RETURN toBox3D('BOX3D(1 2 3, 4 5 6)')::box2d $$) AS (c gtype);
+
+-- gtype Box3D to gtype geometry
+SELECT ST_AsEWKT(c) FROM cypher('postgis', $$RETURN toBox3D('BOX3D(1 2 3, 4 5 6)')::geometry$$) AS (c gtype);
+
+-- gtype Box3D to geometry 
+SELECT ST_AsEWKT(c) FROM cypher('postgis', $$RETURN toBox3D('BOX3D(1 2 3, 4 5 6)')$$) AS (c geometry);
+
+--
+-- From Box2D
+--
+-- gtype Box2d to Box2d
+SELECT ST_AsEWKT(c) FROM cypher('postgis', $$RETURN toBox2D('box(1 2, 5 6)') $$) AS (c box2D);
+
+-- gtype string to Box2d
+SELECT ST_AsEWKT(c) FROM cypher('postgis', $$RETURN 'box(1 2, 5 6)' $$) AS (c box2D);
+
+-- gtype Box2d to geometry
+SELECT ST_AsEWKT(c) FROM cypher('postgis', $$RETURN toBox2D('box(1 2, 5 6)') $$) AS (c geometry);
+
+-- gtype Box3D to box2d
+SELECT ST_AsEWKT(c) FROM cypher('postgis', $$RETURN toBox3D('BOX3D(1 2 3, 4 5 6)') $$) AS (c box2d);
+
 SELECT * FROM drop_graph('postgis', true);

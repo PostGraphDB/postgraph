@@ -805,6 +805,48 @@ gtype_to_cidr(PG_FUNCTION_ARGS) {
     PG_RETURN_DATUM(d);
 }
 
+PG_FUNCTION_INFO_V1(gtype_to_geometry);
+// gtype -> geometry
+Datum
+gtype_to_geometry(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    Datum d = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, agt, "geometry"));
+
+    PG_RETURN_DATUM(d);
+}   
+
+PG_FUNCTION_INFO_V1(gtype_to_box3d);
+// gtype -> box3d
+Datum
+gtype_to_box3d(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    Datum d = DatumGetPointer(convert_to_scalar(gtype_to_box3d_internal, agt, "box3d"));
+
+    PG_RETURN_DATUM(d);
+}
+
+PG_FUNCTION_INFO_V1(gtype_to_box2d);
+// gtype -> box2d
+Datum
+gtype_to_box2d(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    Datum d = DatumGetPointer(convert_to_scalar(gtype_to_box2d_internal, agt, "box2d"));
+
+    PG_RETURN_DATUM(d);
+}
+
 /*
  * Postgres types to gtype
  */
@@ -1334,9 +1376,18 @@ gtype_to_macaddr8_internal(gtype_value *agtv) {
     return CStringGetDatum("");
 }
 
+PG_FUNCTION_INFO_V1(BOX3D_to_BOX2D);
+PG_FUNCTION_INFO_V1(LWGEOM_to_BOX2D);
+
 Datum
 gtype_to_box2d_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_STRING){
+    if (agtv->type == AGTV_BOX2D) {
+        return PointerGetDatum(&agtv->val.gbox);
+    } else if (agtv->type == AGTV_BOX3D) {
+        return DirectFunctionCall1(BOX3D_to_BOX2D, PointerGetDatum(&agtv->val.box3d));
+    } else if (agtv->type == AGTV_GSERIALIZED) {
+        return DirectFunctionCall1(LWGEOM_to_BOX2D, PointerGetDatum(agtv->val.gserialized));
+    } else if (agtv->type == AGTV_STRING) {
         return DirectFunctionCall1(BOX2D_in, CStringGetDatum(agtv->val.string.val));
     }  else
         cannot_cast_gtype_value(agtv->type, "box2d");
@@ -1345,11 +1396,18 @@ gtype_to_box2d_internal(gtype_value *agtv) {
     return CStringGetDatum("");
 }
 
+PG_FUNCTION_INFO_V1(BOX2D_to_BOX3D);
+PG_FUNCTION_INFO_V1(LWGEOM_to_BOX3D);
+
 Datum
 gtype_to_box3d_internal(gtype_value *agtv) {
     if (agtv->type == AGTV_BOX3D) {
         return PointerGetDatum(&agtv->val.box3d);	    
-    }else if (agtv->type == AGTV_STRING){
+    } else if (agtv->type == AGTV_BOX3D) {
+        return DirectFunctionCall1(BOX2D_to_BOX3D, PointerGetDatum(&agtv->val.gbox));
+    } else if (agtv->type == AGTV_GSERIALIZED) {
+        return DirectFunctionCall1(LWGEOM_to_BOX3D, PointerGetDatum(agtv->val.gserialized));
+    } else if (agtv->type == AGTV_STRING){
         return DirectFunctionCall1(BOX3D_in, CStringGetDatum(agtv->val.string.val));
     }  else
         cannot_cast_gtype_value(agtv->type, "box3d");
@@ -1358,7 +1416,6 @@ gtype_to_box3d_internal(gtype_value *agtv) {
     return CStringGetDatum("");
 }
 
-PG_FUNCTION_INFO_V1(LWGEOM_in);
 Datum
 gtype_to_spheroid_internal(gtype_value *agtv) {
     if (agtv->type == AGTV_STRING){
@@ -1370,10 +1427,18 @@ gtype_to_spheroid_internal(gtype_value *agtv) {
     return CStringGetDatum("");
 }
 
+PG_FUNCTION_INFO_V1(LWGEOM_in);
+PG_FUNCTION_INFO_V1(BOX3D_to_LWGEOM);
+PG_FUNCTION_INFO_V1(BOX2D_to_LWGEOM);
+
 Datum
 gtype_to_geometry_internal(gtype_value *agtv) {
     if (agtv->type == AGTV_GSERIALIZED) {
 	return PointerGetDatum(agtv->val.gserialized);
+    } else if (agtv->type == AGTV_BOX3D) {
+        return DirectFunctionCall1(BOX3D_to_LWGEOM, PointerGetDatum(&agtv->val.box3d));
+    } else if (agtv->type == AGTV_BOX2D) {
+        return DirectFunctionCall1(BOX2D_to_LWGEOM, PointerGetDatum(&agtv->val.gbox));
     } else if (agtv->type == AGTV_STRING){
         return DirectFunctionCall1(LWGEOM_in, CStringGetDatum(agtv->val.string.val));
     }  else
