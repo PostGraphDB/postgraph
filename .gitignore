@@ -5,3 +5,4 @@ build.sh
 .deps
 .DS_Store
 .vscode
+postgraph--*.sql
