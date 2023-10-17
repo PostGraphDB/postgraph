@@ -3128,7 +3128,6 @@ PARALLEL SAFE
 COST 1
 AS 'MODULE_PATHNAME', 'gtype_same_2d';
 
-
 CREATE OPERATOR ~= (
     LEFTARG = gtype, 
     RIGHTARG = gtype,
@@ -3137,6 +3136,131 @@ CREATE OPERATOR ~= (
     JOIN = contjoinsel
 );
 
+CREATE OR REPLACE FUNCTION gtype_geometry_within(geom1 gtype, geom2 gtype)
+RETURNS bool
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 1
+AS 'MODULE_PATHNAME', 'gtype_within_2d';
+
+CREATE OPERATOR @ (
+LEFTARG = gtype,
+RIGHTARG = gtype,
+PROCEDURE = gtype_geometry_within--,
+-- Updated: 3.4.0 to use selectivity estimator
+--RESTRICT = gserialized_gist_sel_2d,
+-- Updated: 3.4.0 to use join selectivity estimator
+--JOIN = gserialized_gist_joinsel_2d
+);
+
+CREATE OR REPLACE FUNCTION gtype_geometry_overleft(geom1 gtype, geom2 gtype)
+RETURNS bool
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 1
+AS 'MODULE_PATHNAME', 'gtype_overleft_2d';
+
+CREATE OPERATOR &< (
+LEFTARG = gtype,
+RIGHTARG = gtype,
+PROCEDURE = gtype_geometry_overleft,
+RESTRICT = positionsel,
+JOIN = positionjoinsel
+);
+
+CREATE OR REPLACE FUNCTION gtype_geometry_below(geom1 gtype, geom2 gtype)
+RETURNS bool
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 1
+AS 'MODULE_PATHNAME', 'gtype_below_2d';
+
+
+CREATE OPERATOR <<| (
+LEFTARG = gtype,
+RIGHTARG = gtype,
+PROCEDURE = gtype_geometry_below,
+--COMMuTAOR = '<<|',
+RESTRICT = positionsel,
+JOIN = positionjoinsel
+);
+
+
+CREATE OR REPLACE FUNCTION gtype_geometry_overbelow(geom1 gtype, geom2 gtype)
+RETURNS bool
+LANGUAGE c
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 1
+AS 'MODULE_PATHNAME', 'gtype_overbelow_2d';
+
+CREATE OPERATOR &<| (
+LEFTARG = gtype,
+RIGHTARG = gtype,
+PROCEDURE = gtype_geometry_overbelow,
+RESTRICT = positionsel,
+JOIN = positionjoinsel
+);
+
+
+CREATE OR REPLACE FUNCTION gtype_geometry_overright(geom1 gtype, geom2 gtype)
+RETURNS bool
+LANGUAGE c
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 1
+AS 'MODULE_PATHNAME', 'gtype_overright_2d';
+
+CREATE OPERATOR &> (
+LEFTARG = gtype,
+RIGHTARG = gtype,
+PROCEDURE = gtype_geometry_overright,
+RESTRICT = positionsel,
+JOIN = positionjoinsel
+);
+
+CREATE OR REPLACE FUNCTION gtype_geometry_above(geom1 gtype, geom2 gtype)
+RETURNS bool
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 1
+AS 'MODULE_PATHNAME', 'gtype_above_2d';
+
+CREATE OPERATOR |>> (
+LEFTARG = gtype,
+RIGHTARG = gtype,
+PROCEDURE = gtype_geometry_above,
+--COMMuTAOR = '<<|',
+RESTRICT = positionsel,
+JOIN = positionjoinsel
+);
+
+CREATE OR REPLACE FUNCTION gtype_geometry_overabove(geom1 gtype, geom2 gtype)
+RETURNS bool
+LANGUAGE c
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 1
+AS 'MODULE_PATHNAME', 'gtype_overabove_2d';
+
+CREATE OPERATOR |&> (
+LEFTARG = gtype,
+RIGHTARG = gtype,
+PROCEDURE = gtype_geometry_overabove,
+RESTRICT = positionsel,
+JOIN = positionjoinsel
+);
 
 --
 -- PostGIS Functions

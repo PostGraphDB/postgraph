@@ -251,6 +251,7 @@ gtype_zmax(PG_FUNCTION_ARGS) {
 /*
  * 2D Geometry Operators
  */
+// ~=
 PG_FUNCTION_INFO_V1(gserialized_same_2d);
 PG_FUNCTION_INFO_V1(gtype_same_2d);
 Datum
@@ -262,6 +263,121 @@ gtype_same_2d(PG_FUNCTION_ARGS) {
     Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
 
     Datum d = DirectFunctionCall2(gserialized_same_2d, d1, d2);
+
+    PG_RETURN_BOOL(DatumGetBool(d));
+}
+
+// @
+PG_FUNCTION_INFO_V1(gserialized_within_2d);
+PG_FUNCTION_INFO_V1(gtype_within_2d);
+Datum
+gtype_within_2d(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+
+    Datum d = DirectFunctionCall2(gserialized_within_2d, d1, d2);
+
+    PG_RETURN_BOOL(DatumGetBool(d));
+}
+
+
+// &<
+PG_FUNCTION_INFO_V1(gserialized_overleft_2d);
+PG_FUNCTION_INFO_V1(gtype_overleft_2d);
+Datum
+gtype_overleft_2d(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+
+    Datum d = DirectFunctionCall2(gserialized_overleft_2d, d1, d2);
+
+    PG_RETURN_BOOL(DatumGetBool(d));
+}
+
+// <<|
+PG_FUNCTION_INFO_V1(gserialized_below_2d);
+PG_FUNCTION_INFO_V1(gtype_below_2d);
+Datum
+gtype_below_2d(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+
+    Datum d = DirectFunctionCall2(gserialized_below_2d, d1, d2);
+
+    PG_RETURN_BOOL(DatumGetBool(d));
+}
+
+// &<|
+PG_FUNCTION_INFO_V1(gserialized_overbelow_2d);
+PG_FUNCTION_INFO_V1(gtype_overbelow_2d);
+Datum
+gtype_overbelow_2d(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+
+    Datum d = DirectFunctionCall2(gserialized_overbelow_2d, d1, d2);
+
+    PG_RETURN_BOOL(DatumGetBool(d));
+}
+
+
+// &>
+PG_FUNCTION_INFO_V1(gserialized_overright_2d);
+PG_FUNCTION_INFO_V1(gtype_overright_2d);
+Datum
+gtype_overright_2d(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+
+    Datum d = DirectFunctionCall2(gserialized_overright_2d, d1, d2);
+
+    PG_RETURN_BOOL(DatumGetBool(d));
+}
+
+
+// |&>
+PG_FUNCTION_INFO_V1(gserialized_overabove_2d);
+PG_FUNCTION_INFO_V1(gtype_overabove_2d);
+Datum
+gtype_overabove_2d(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+
+    Datum d = DirectFunctionCall2(gserialized_overabove_2d, d1, d2);
+
+    PG_RETURN_BOOL(DatumGetBool(d));
+}
+
+// |>>
+PG_FUNCTION_INFO_V1(gserialized_above_2d);
+PG_FUNCTION_INFO_V1(gtype_above_2d);
+Datum
+gtype_above_2d(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+
+    Datum d = DirectFunctionCall2(gserialized_above_2d, d1, d2);
 
     PG_RETURN_BOOL(DatumGetBool(d));
 }

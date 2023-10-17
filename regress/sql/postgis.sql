@@ -129,54 +129,417 @@ SELECT * FROM cypher('postgis', $$RETURN ST_AsEwkt(postgis_addbbox('SRID=4326;PO
 --
 -- 2D Operators
 --
-select 'POINT(1 1)'::GEOMETRY ~= 'POINT(1 1)'::GEOMETRY;
-select 'POINT(1 1 0)'::GEOMETRY ~= 'POINT(1 1)'::GEOMETRY;
-select 'POINT(1 1 0)'::GEOMETRY ~= 'POINT(1 1 0)'::GEOMETRY;
-select 'MULTIPOINT(1 1,2 2)'::GEOMETRY ~= 'MULTIPOINT(1 1,2 2)'::GEOMETRY;
-select 'MULTIPOINT(2 2, 1 1)'::GEOMETRY ~= 'MULTIPOINT(1 1,2 2)'::GEOMETRY;
-select 'GEOMETRYCOLLECTION(POINT( 1 2 3),POINT(4 5 6))'::GEOMETRY ~= 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::GEOMETRY;
-select 'MULTIPOINT(4 5 6, 1 2 3)'::GEOMETRY ~= 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::GEOMETRY;
-select 'MULTIPOINT(1 2 3, 4 5 6)'::GEOMETRY ~= 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::GEOMETRY;
-select 'MULTIPOINT(1 2 3, 4 5 6)'::GEOMETRY ~= 'GEOMETRYCOLLECTION(MULTIPOINT(1 2 3, 4 5 6))'::GEOMETRY;
-select 'LINESTRING(1 1,2 2)'::GEOMETRY ~= 'POINT(1 1)'::GEOMETRY;
-select 'LINESTRING(1 1, 2 2)'::GEOMETRY ~= 'LINESTRING(2 2, 1 1)'::GEOMETRY;
-select 'LINESTRING(1 1, 2 2)'::GEOMETRY ~= 'LINESTRING(1 1, 2 2, 3 3)'::GEOMETRY;
+-- ~=
+select 'POINT(1 1)'::geometry ~= 'POINT(1 1)'::geometry;
+select 'POINT(1 1 0)'::geometry ~= 'POINT(1 1)'::geometry;
+select 'POINT(1 1 0)'::geometry ~= 'POINT(1 1 0)'::geometry;
+select 'MULTIPOINT(1 1,2 2)'::geometry ~= 'MULTIPOINT(1 1,2 2)'::geometry;
+select 'MULTIPOINT(2 2, 1 1)'::geometry ~= 'MULTIPOINT(1 1,2 2)'::geometry;
+select 'GEOMETRYCOLLECTION(POINT( 1 2 3),POINT(4 5 6))'::geometry ~= 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(4 5 6, 1 2 3)'::geometry ~= 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(1 2 3, 4 5 6)'::geometry ~= 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(1 2 3, 4 5 6)'::geometry ~= 'GEOMETRYCOLLECTION(MULTIPOINT(1 2 3, 4 5 6))'::geometry;
+select 'LINESTRING(1 1,2 2)'::geometry ~= 'POINT(1 1)'::geometry;
+select 'LINESTRING(1 1, 2 2)'::geometry ~= 'LINESTRING(2 2, 1 1)'::geometry;
+select 'LINESTRING(1 1, 2 2)'::geometry ~= 'LINESTRING(1 1, 2 2, 3 3)'::geometry;
 
 select * FROM cypher('postgis', $$
-    RETURN 'POINT(1 1)'::GEOMETRY ~= 'POINT(1 1)'::GEOMETRY
+    RETURN 'POINT(1 1)'::geometry ~= 'POINT(1 1)'::geometry
 $$) as (c gtype);
 select * FROM cypher('postgis', $$
-    RETURN 'POINT(1 1 0)'::GEOMETRY ~= 'POINT(1 1)'::GEOMETRY
+    RETURN 'POINT(1 1 0)'::geometry ~= 'POINT(1 1)'::geometry
 $$) as (c gtype);
 select * FROM cypher('postgis', $$
-    RETURN 'POINT(1 1 0)'::GEOMETRY ~= 'POINT(1 1 0)'::GEOMETRY
+    RETURN 'POINT(1 1 0)'::geometry ~= 'POINT(1 1 0)'::geometry
 $$) as (c gtype);
 select * FROM cypher('postgis', $$
-    RETURN 'MULTIPOINT(1 1,2 2)'::GEOMETRY ~= 'MULTIPOINT(1 1,2 2)'::GEOMETRY
+    RETURN 'MULTIPOINT(1 1,2 2)'::geometry ~= 'MULTIPOINT(1 1,2 2)'::geometry
 $$) as (c gtype);
 select * FROM cypher('postgis', $$
-    RETURN 'MULTIPOINT(2 2, 1 1)'::GEOMETRY ~= 'MULTIPOINT(1 1,2 2)'::GEOMETRY
+    RETURN 'MULTIPOINT(2 2, 1 1)'::geometry ~= 'MULTIPOINT(1 1,2 2)'::geometry
 $$) as (c gtype);
 select * FROM cypher('postgis', $$
-    RETURN 'GEOMETRYCOLLECTION(POINT( 1 2 3),POINT(4 5 6))'::GEOMETRY ~= 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::GEOMETRY
+    RETURN 'GEOMETRYCOLLECTION(POINT( 1 2 3),POINT(4 5 6))'::geometry ~= 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
 $$) as (c gtype);
 select * FROM cypher('postgis', $$
-    RETURN 'MULTIPOINT(4 5 6, 1 2 3)'::GEOMETRY ~= 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::GEOMETRY
+    RETURN 'MULTIPOINT(4 5 6, 1 2 3)'::geometry ~= 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
 $$) as (c gtype);
 select * FROM cypher('postgis', $$
-    RETURN 'MULTIPOINT(1 2 3, 4 5 6)'::GEOMETRY ~= 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::GEOMETRY
+    RETURN 'MULTIPOINT(1 2 3, 4 5 6)'::geometry ~= 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
 $$) as (c gtype);
 select * FROM cypher('postgis', $$
-    RETURN 'MULTIPOINT(1 2 3, 4 5 6)'::GEOMETRY ~= 'GEOMETRYCOLLECTION(MULTIPOINT(1 2 3, 4 5 6))'::GEOMETRY
+    RETURN 'MULTIPOINT(1 2 3, 4 5 6)'::geometry ~= 'GEOMETRYCOLLECTION(MULTIPOINT(1 2 3, 4 5 6))'::geometry
 $$) as (c gtype);
 select * FROM cypher('postgis', $$
-    RETURN 'LINESTRING(1 1,2 2)'::GEOMETRY ~= 'POINT(1 1)'::GEOMETRY
+    RETURN 'LINESTRING(1 1,2 2)'::geometry ~= 'POINT(1 1)'::geometry
 $$) as (c gtype);
 select * FROM cypher('postgis', $$
-    RETURN 'LINESTRING(1 1, 2 2)'::GEOMETRY ~= 'LINESTRING(2 2, 1 1)'::GEOMETRY
+    RETURN 'LINESTRING(1 1, 2 2)'::geometry ~= 'LINESTRING(2 2, 1 1)'::geometry
 $$) as (c gtype);
 select * FROM cypher('postgis', $$
-    RETURN 'LINESTRING(1 1, 2 2)'::GEOMETRY ~= 'LINESTRING(1 1, 2 2, 3 3)'::GEOMETRY
+    RETURN 'LINESTRING(1 1, 2 2)'::geometry ~= 'LINESTRING(1 1, 2 2, 3 3)'::geometry
+$$) as (c gtype);
+
+-- @
+select 'POINT(1 1)'::geometry @ 'POINT(1 1)'::geometry;
+select 'POINT(1 1 0)'::geometry @ 'POINT(1 1)'::geometry;
+select 'POINT(1 1 0)'::geometry @ 'POINT(1 1 0)'::geometry;
+select 'MULTIPOINT(1 1,2 2)'::geometry @ 'MULTIPOINT(1 1,2 2)'::geometry;
+select 'MULTIPOINT(2 2, 1 1)'::geometry @ 'MULTIPOINT(1 1,2 2)'::geometry;
+select 'GEOMETRYCOLLECTION(POINT( 1 2 3),POINT(4 5 6))'::geometry @ 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(4 5 6, 1 2 3)'::geometry @ 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(1 2 3, 4 5 6)'::geometry @ 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(1 2 3, 4 5 6)'::geometry @ 'GEOMETRYCOLLECTION(MULTIPOINT(1 2 3, 4 5 6))'::geometry;
+select 'LINESTRING(1 1,2 2)'::geometry @ 'POINT(1 1)'::geometry;
+select 'LINESTRING(1 1, 2 2)'::geometry @ 'LINESTRING(2 2, 1 1)'::geometry;
+select 'LINESTRING(1 1, 2 2)'::geometry @ 'LINESTRING(1 1, 2 2, 3 3)'::geometry;
+
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1)'::geometry @ 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1 0)'::geometry @ 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1 0)'::geometry @ 'POINT(1 1 0)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 1,2 2)'::geometry @ 'MULTIPOINT(1 1,2 2)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(2 2, 1 1)'::geometry @ 'MULTIPOINT(1 1,2 2)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'GEOMETRYCOLLECTION(POINT( 1 2 3),POINT(4 5 6))'::geometry @ 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(4 5 6, 1 2 3)'::geometry @ 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 2 3, 4 5 6)'::geometry @ 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 2 3, 4 5 6)'::geometry @ 'GEOMETRYCOLLECTION(MULTIPOINT(1 2 3, 4 5 6))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1,2 2)'::geometry @ 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1, 2 2)'::geometry @ 'LINESTRING(2 2, 1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1, 2 2)'::geometry @ 'LINESTRING(1 1, 2 2, 3 3)'::geometry
+$$) as (c gtype);
+
+-- &<
+select 'POINT(1 1)'::geometry &< 'POINT(1 1)'::geometry;
+select 'POINT(1 1 0)'::geometry &< 'POINT(1 1)'::geometry;
+select 'POINT(1 1 0)'::geometry &< 'POINT(1 1 0)'::geometry;
+select 'MULTIPOINT(1 1,2 2)'::geometry &< 'MULTIPOINT(1 1,2 2)'::geometry;
+select 'MULTIPOINT(2 2, 1 1)'::geometry &< 'MULTIPOINT(1 1,2 2)'::geometry;
+select 'GEOMETRYCOLLECTION(POINT( 1 2 3),POINT(4 5 6))'::geometry &< 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(4 5 6, 1 2 3)'::geometry &< 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(1 2 3, 4 5 6)'::geometry &< 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(1 2 3, 4 5 6)'::geometry &< 'GEOMETRYCOLLECTION(MULTIPOINT(1 2 3, 4 5 6))'::geometry;
+select 'LINESTRING(1 1,2 2)'::geometry &< 'POINT(1 1)'::geometry;
+select 'LINESTRING(1 1, 2 2)'::geometry &< 'LINESTRING(2 2, 1 1)'::geometry;
+select 'LINESTRING(1 1, 2 2)'::geometry &< 'LINESTRING(1 1, 2 2, 3 3)'::geometry;
+
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1)'::geometry &< 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1 0)'::geometry &< 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1 0)'::geometry &< 'POINT(1 1 0)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 1,2 2)'::geometry &< 'MULTIPOINT(1 1,2 2)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(2 2, 1 1)'::geometry &< 'MULTIPOINT(1 1,2 2)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'GEOMETRYCOLLECTION(POINT( 1 2 3),POINT(4 5 6))'::geometry &< 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(4 5 6, 1 2 3)'::geometry &< 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 2 3, 4 5 6)'::geometry &< 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 2 3, 4 5 6)'::geometry &< 'GEOMETRYCOLLECTION(MULTIPOINT(1 2 3, 4 5 6))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1,2 2)'::geometry &< 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1, 2 2)'::geometry &< 'LINESTRING(2 2, 1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1, 2 2)'::geometry &< 'LINESTRING(1 1, 2 2, 3 3)'::geometry
+$$) as (c gtype);
+
+
+--<<|
+select 'POINT(1 1)'::geometry <<| 'POINT(1 1)'::geometry;
+select 'POINT(1 1 0)'::geometry <<| 'POINT(1 1)'::geometry;
+select 'POINT(1 1 0)'::geometry <<| 'POINT(1 1 0)'::geometry;
+select 'MULTIPOINT(1 1,2 2)'::geometry <<| 'MULTIPOINT(1 1,2 2)'::geometry;
+select 'MULTIPOINT(2 2, 1 1)'::geometry <<| 'MULTIPOINT(1 1,2 2)'::geometry;
+select 'GEOMETRYCOLLECTION(POINT( 1 2 3),POINT(4 5 6))'::geometry <<| 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(4 5 6, 1 2 3)'::geometry <<| 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(1 2 3, 4 5 6)'::geometry <<| 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(1 2 3, 4 5 6)'::geometry <<| 'GEOMETRYCOLLECTION(MULTIPOINT(1 2 3, 4 5 6))'::geometry;
+select 'LINESTRING(1 1,2 2)'::geometry <<| 'POINT(1 1)'::geometry;
+select 'LINESTRING(1 1, 2 2)'::geometry <<| 'LINESTRING(2 2, 1 1)'::geometry;
+select 'LINESTRING(1 1, 2 2)'::geometry <<| 'LINESTRING(1 1, 2 2, 3 3)'::geometry;
+
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1)'::geometry <<| 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1 0)'::geometry <<| 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1 0)'::geometry <<| 'POINT(1 1 0)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 1,2 2)'::geometry <<| 'MULTIPOINT(1 1,2 2)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(2 2, 1 1)'::geometry <<| 'MULTIPOINT(1 1,2 2)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'GEOMETRYCOLLECTION(POINT( 1 2 3),POINT(4 5 6))'::geometry <<| 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(4 5 6, 1 2 3)'::geometry <<| 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 2 3, 4 5 6)'::geometry <<| 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 2 3, 4 5 6)'::geometry <<| 'GEOMETRYCOLLECTION(MULTIPOINT(1 2 3, 4 5 6))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1,2 2)'::geometry <<| 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1, 2 2)'::geometry <<| 'LINESTRING(2 2, 1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1, 2 2)'::geometry <<| 'LINESTRING(1 1, 2 2, 3 3)'::geometry
+$$) as (c gtype);
+
+-- &<|
+select 'POINT(1 1)'::geometry &<| 'POINT(1 1)'::geometry;
+select 'POINT(1 1 0)'::geometry &<| 'POINT(1 1)'::geometry;
+select 'POINT(1 1 0)'::geometry &<| 'POINT(1 1 0)'::geometry;
+select 'MULTIPOINT(1 1,2 2)'::geometry &<| 'MULTIPOINT(1 1,2 2)'::geometry;
+select 'MULTIPOINT(2 2, 1 1)'::geometry &<| 'MULTIPOINT(1 1,2 2)'::geometry;
+select 'GEOMETRYCOLLECTION(POINT( 1 2 3),POINT(4 5 6))'::geometry &<| 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(4 5 6, 1 2 3)'::geometry &<| 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(1 2 3, 4 5 6)'::geometry &<| 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(1 2 3, 4 5 6)'::geometry &<| 'GEOMETRYCOLLECTION(MULTIPOINT(1 2 3, 4 5 6))'::geometry;
+select 'LINESTRING(1 1,2 2)'::geometry &<| 'POINT(1 1)'::geometry;
+select 'LINESTRING(1 1, 2 2)'::geometry &<| 'LINESTRING(2 2, 1 1)'::geometry;
+select 'LINESTRING(1 1, 2 2)'::geometry &<| 'LINESTRING(1 1, 2 2, 3 3)'::geometry;
+
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1)'::geometry &<| 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1 0)'::geometry &<| 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1 0)'::geometry &<| 'POINT(1 1 0)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 1,2 2)'::geometry &<| 'MULTIPOINT(1 1,2 2)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(2 2, 1 1)'::geometry &<| 'MULTIPOINT(1 1,2 2)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'GEOMETRYCOLLECTION(POINT( 1 2 3),POINT(4 5 6))'::geometry &<| 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(4 5 6, 1 2 3)'::geometry &<| 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 2 3, 4 5 6)'::geometry &<| 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 2 3, 4 5 6)'::geometry &<| 'GEOMETRYCOLLECTION(MULTIPOINT(1 2 3, 4 5 6))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1,2 2)'::geometry &<| 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1, 2 2)'::geometry &<| 'LINESTRING(2 2, 1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1, 2 2)'::geometry &<| 'LINESTRING(1 1, 2 2, 3 3)'::geometry
+$$) as (c gtype);
+
+
+-- &>
+select 'POINT(1 1)'::geometry &> 'POINT(1 1)'::geometry;
+select 'POINT(1 1 0)'::geometry &> 'POINT(1 1)'::geometry;
+select 'POINT(1 1 0)'::geometry &> 'POINT(1 1 0)'::geometry;
+select 'MULTIPOINT(1 1,2 2)'::geometry &> 'MULTIPOINT(1 1,2 2)'::geometry;
+select 'MULTIPOINT(2 2, 1 1)'::geometry &> 'MULTIPOINT(1 1,2 2)'::geometry;
+select 'GEOMETRYCOLLECTION(POINT( 1 2 3),POINT(4 5 6))'::geometry &> 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(4 5 6, 1 2 3)'::geometry &> 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(1 2 3, 4 5 6)'::geometry &> 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(1 2 3, 4 5 6)'::geometry &> 'GEOMETRYCOLLECTION(MULTIPOINT(1 2 3, 4 5 6))'::geometry;
+select 'LINESTRING(1 1,2 2)'::geometry &> 'POINT(1 1)'::geometry;
+select 'LINESTRING(1 1, 2 2)'::geometry &> 'LINESTRING(2 2, 1 1)'::geometry;
+select 'LINESTRING(1 1, 2 2)'::geometry &> 'LINESTRING(1 1, 2 2, 3 3)'::geometry;
+
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1)'::geometry &> 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1 0)'::geometry &> 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1 0)'::geometry &> 'POINT(1 1 0)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 1,2 2)'::geometry &> 'MULTIPOINT(1 1,2 2)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(2 2, 1 1)'::geometry &> 'MULTIPOINT(1 1,2 2)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'GEOMETRYCOLLECTION(POINT( 1 2 3),POINT(4 5 6))'::geometry &> 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(4 5 6, 1 2 3)'::geometry &> 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 2 3, 4 5 6)'::geometry &> 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 2 3, 4 5 6)'::geometry &> 'GEOMETRYCOLLECTION(MULTIPOINT(1 2 3, 4 5 6))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1,2 2)'::geometry &> 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1, 2 2)'::geometry &> 'LINESTRING(2 2, 1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1, 2 2)'::geometry &> 'LINESTRING(1 1, 2 2, 3 3)'::geometry
+$$) as (c gtype);
+
+
+-- |&>
+select 'POINT(1 1)'::geometry |&> 'POINT(1 1)'::geometry;
+select 'POINT(1 1 0)'::geometry |&> 'POINT(1 1)'::geometry;
+select 'POINT(1 1 0)'::geometry |&> 'POINT(1 1 0)'::geometry;
+select 'MULTIPOINT(1 1,2 2)'::geometry |&> 'MULTIPOINT(1 1,2 2)'::geometry;
+select 'MULTIPOINT(2 2, 1 1)'::geometry |&> 'MULTIPOINT(1 1,2 2)'::geometry;
+select 'GEOMETRYCOLLECTION(POINT( 1 2 3),POINT(4 5 6))'::geometry |&> 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(4 5 6, 1 2 3)'::geometry |&> 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(1 2 3, 4 5 6)'::geometry |&> 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(1 2 3, 4 5 6)'::geometry |&> 'GEOMETRYCOLLECTION(MULTIPOINT(1 2 3, 4 5 6))'::geometry;
+select 'LINESTRING(1 1,2 2)'::geometry |&> 'POINT(1 1)'::geometry;
+select 'LINESTRING(1 1, 2 2)'::geometry |&> 'LINESTRING(2 2, 1 1)'::geometry;
+select 'LINESTRING(1 1, 2 2)'::geometry |&> 'LINESTRING(1 1, 2 2, 3 3)'::geometry;
+
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1)'::geometry |&> 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1 0)'::geometry |&> 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1 0)'::geometry |&> 'POINT(1 1 0)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 1,2 2)'::geometry |&> 'MULTIPOINT(1 1,2 2)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(2 2, 1 1)'::geometry |&> 'MULTIPOINT(1 1,2 2)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'GEOMETRYCOLLECTION(POINT( 1 2 3),POINT(4 5 6))'::geometry |&> 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(4 5 6, 1 2 3)'::geometry |&> 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 2 3, 4 5 6)'::geometry |&> 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 2 3, 4 5 6)'::geometry |&> 'GEOMETRYCOLLECTION(MULTIPOINT(1 2 3, 4 5 6))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1,2 2)'::geometry |&> 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1, 2 2)'::geometry |&> 'LINESTRING(2 2, 1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1, 2 2)'::geometry |&> 'LINESTRING(1 1, 2 2, 3 3)'::geometry
+$$) as (c gtype);
+
+--
+-- |>>
+--
+select 'POINT(1 1)'::geometry |>> 'POINT(1 1)'::geometry;
+select 'POINT(1 1 0)'::geometry |>> 'POINT(1 1)'::geometry;
+select 'POINT(1 1 0)'::geometry |>> 'POINT(1 1 0)'::geometry;
+select 'MULTIPOINT(1 1,2 2)'::geometry |>> 'MULTIPOINT(1 1,2 2)'::geometry;
+select 'MULTIPOINT(2 2, 1 1)'::geometry |>> 'MULTIPOINT(1 1,2 2)'::geometry;
+select 'GEOMETRYCOLLECTION(POINT( 1 2 3),POINT(4 5 6))'::geometry |>> 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(4 5 6, 1 2 3)'::geometry |>> 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(1 2 3, 4 5 6)'::geometry |>> 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry;
+select 'MULTIPOINT(1 2 3, 4 5 6)'::geometry |>> 'GEOMETRYCOLLECTION(MULTIPOINT(1 2 3, 4 5 6))'::geometry;
+select 'LINESTRING(1 1,2 2)'::geometry |>> 'POINT(1 1)'::geometry;
+select 'LINESTRING(1 1, 2 2)'::geometry |>> 'LINESTRING(2 2, 1 1)'::geometry;
+select 'LINESTRING(1 1, 2 2)'::geometry |>> 'LINESTRING(1 1, 2 2, 3 3)'::geometry;
+
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1)'::geometry |>> 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1 0)'::geometry |>> 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1 0)'::geometry |>> 'POINT(1 1 0)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 1,2 2)'::geometry |>> 'MULTIPOINT(1 1,2 2)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(2 2, 1 1)'::geometry |>> 'MULTIPOINT(1 1,2 2)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'GEOMETRYCOLLECTION(POINT( 1 2 3),POINT(4 5 6))'::geometry |>> 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(4 5 6, 1 2 3)'::geometry |>> 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 2 3, 4 5 6)'::geometry |>> 'GEOMETRYCOLLECTION(POINT( 4 5 6),POINT(1 2 3))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'MULTIPOINT(1 2 3, 4 5 6)'::geometry |>> 'GEOMETRYCOLLECTION(MULTIPOINT(1 2 3, 4 5 6))'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1,2 2)'::geometry |>> 'POINT(1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1, 2 2)'::geometry |>> 'LINESTRING(2 2, 1 1)'::geometry
+$$) as (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN 'LINESTRING(1 1, 2 2)'::geometry |>> 'LINESTRING(1 1, 2 2, 3 3)'::geometry
 $$) as (c gtype);
 
 --
