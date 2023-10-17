@@ -687,6 +687,40 @@ SELECT * FROM cypher('postgis', $$RETURN ST_M('GEOMETRYCOLLECTION (POINT(0 1), L
 SELECT * FROM cypher('postgis', $$RETURN M('GEOMETRYCOLLECTION (POINT(0 1), LINESTRING(0 0, 1 1))'::geometry) $$) AS r(c gtype);
 
 --
+-- Affines
+--
+-- ST_Scale
+select ST_asewkt(ST_Scale('POINT(1 1)'::geometry, 5, 5));
+select ST_asewkt(ST_Scale('POINT(1 1)'::geometry, 3, 2));
+select ST_asewkt(ST_Scale('POINT(10 20 -5)'::geometry, 4, 2, -8));
+select ST_asewkt(ST_Scale('POINT(10 20 -5 3)'::geometry, ST_MakePoint(4, 2, -8)));
+select ST_asewkt(ST_Scale('POINT(-2 -1 3 2)'::geometry, ST_MakePointM(-2, 3, 4)));
+select ST_asewkt(ST_Scale('POINT(10 20 -5 3)'::geometry, ST_MakePoint(-3, 2, -1, 3)));
+select st_astext(st_scale('LINESTRING(1 1, 2 2)'::geometry, 'POINT(2 2)'::geometry, 'POINT(1 1)'::geometry));
+
+select * FROM cypher('postgis', $$
+    RETURN ST_asewkt(ST_Scale('POINT(1 1)'::geometry, 5, 5))
+$$) AS (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN ST_asewkt(ST_Scale('POINT(1 1)'::geometry, 3, 2))
+$$) AS (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN ST_asewkt(ST_Scale('POINT(10 20 -5)'::geometry, 4, 2, -8))
+$$) AS (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN ST_asewkt(ST_Scale('POINT(10 20 -5 3)'::geometry, ST_MakePoint(4, 2, -8)))
+$$) AS (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN ST_asewkt(ST_Scale('POINT(-2 -1 3 2)'::geometry, ST_MakePointM(-2, 3, 4)))
+$$) AS (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN ST_asewkt(ST_Scale('POINT(10 20 -5 3)'::geometry, ST_MakePoint(-3, 2, -1, 3)))
+$$) AS (c gtype);
+select * FROM cypher('postgis', $$
+    RETURN ST_asewkt(st_scale('LINESTRING(1 1, 2 2)'::geometry, 'POINT(2 2)'::geometry, 'POINT(1 1)'::geometry))
+$$) AS (c gtype);
+
+--
 -- Measures
 --
 

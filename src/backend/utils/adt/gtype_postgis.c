@@ -629,6 +629,45 @@ Datum gtype_affine(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(ST_Scale);
+PG_FUNCTION_INFO_V1(gtype_st_scale_2_args);
+Datum
+gtype_st_scale_2_args(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+
+
+    Datum d = DirectFunctionCall2(ST_Scale, d1, d2);
+
+    gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.gserialized = DatumGetPointer(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+PG_FUNCTION_INFO_V1(gtype_st_scale);
+Datum 
+gtype_st_scale(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+    gtype *gt_3 = AG_GET_ARG_GTYPE_P(2);
+
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+    Datum d3 = convert_to_scalar(gtype_to_geometry_internal, gt_3, "geometry");
+
+
+    Datum d = DirectFunctionCall3(ST_Scale, d1, d2, d3);
+
+    gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.gserialized = DatumGetPointer(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+
+
 PG_FUNCTION_INFO_V1(gtype_makepoint);
 Datum gtype_makepoint(PG_FUNCTION_ARGS)
 {
