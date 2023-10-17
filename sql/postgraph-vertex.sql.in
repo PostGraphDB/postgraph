@@ -1,0 +1,332 @@
+/*
+ * Copyright (C) 2023 PostGraphDB
+ *  
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+--
+-- vertex - equality operators (=, <>)
+--
+CREATE FUNCTION vertex_eq(vertex, vertex)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR = (
+    FUNCTION = vertex_eq,
+    LEFTARG = vertex,
+    RIGHTARG = vertex, 
+    COMMUTATOR = =, 
+    NEGATOR = <>, 
+    RESTRICT = eqsel, 
+    JOIN = eqjoinsel,
+    HASHES, 
+    MERGES
+);
+
+CREATE FUNCTION vertex_ne(vertex, vertex)
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <> (
+    FUNCTION = vertex_ne, 
+    LEFTARG = vertex, 
+    RIGHTARG = vertex, 
+    COMMUTATOR = <>, 
+    NEGATOR = =, 
+    RESTRICT = neqsel, 
+    JOIN = neqjoinsel
+);
+
+CREATE FUNCTION vertex_lt(vertex, vertex)
+RETURNS boolean
+LANGUAGE c 
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR < (
+    FUNCTION = vertex_lt, 
+    LEFTARG = vertex, 
+    RIGHTARG = vertex, 
+    COMMUTATOR = >, 
+    NEGATOR = >=, 
+    RESTRICT = scalarltsel, 
+    JOIN = scalarltjoinsel
+);
+
+CREATE FUNCTION vertex_gt(vertex, vertex)
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR > (
+    FUNCTION = vertex_gt, 
+    LEFTARG = vertex, 
+    RIGHTARG = vertex, 
+    COMMUTATOR = <, 
+    NEGATOR = <=, 
+    RESTRICT = scalargtsel, 
+    JOIN = scalargtjoinsel
+);
+
+CREATE FUNCTION vertex_le(vertex, vertex)
+RETURNS boolean
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <= (
+    FUNCTION = vertex_le, 
+    LEFTARG = vertex, 
+    RIGHTARG = vertex, 
+    COMMUTATOR = >=, 
+    NEGATOR = >, 
+    RESTRICT = scalarlesel, 
+    JOIN = scalarlejoinsel
+);
+
+CREATE FUNCTION vertex_ge(vertex, vertex)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR >= (
+    FUNCTION = vertex_ge, 
+    LEFTARG = vertex, 
+    RIGHTARG = vertex, 
+    COMMUTATOR = <=, 
+    NEGATOR = <, 
+    RESTRICT = scalargesel, 
+    JOIN = scalargejoinsel
+);
+
+CREATE FUNCTION vertex_btree_cmp(vertex, vertex)
+RETURNS INTEGER 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'vertex_btree_cmp';
+
+CREATE OPERATOR CLASS vertex_ops_btree
+DEFAULT FOR TYPE vertex 
+USING btree 
+AS 
+OPERATOR 1 <, 
+OPERATOR 2 <=, 
+OPERATOR 3 =, 
+OPERATOR 4 >, 
+OPERATOR 5 >=,
+FUNCTION 1 vertex_btree_cmp(vertex, vertex);
+
+--
+-- vertex - access operators (->, ->> )
+--
+CREATE FUNCTION vertex_property_access(vertex, text) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR -> (
+    LEFTARG = vertex, 
+    RIGHTARG = text, 
+    FUNCTION = vertex_property_access
+);
+
+CREATE FUNCTION vertex_property_access_gtype(vertex, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR -> (
+    LEFTARG = vertex, 
+    RIGHTARG = gtype, 
+    FUNCTION = vertex_property_access_gtype
+);
+
+CREATE FUNCTION vertex_property_access_text(vertex, text) 
+RETURNS text 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR ->> (
+    LEFTARG = vertex, 
+    RIGHTARG = text, 
+    FUNCTION = vertex_property_access_text
+);
+
+
+--
+-- vertex - contains operators (@>, <@)
+--
+CREATE FUNCTION vertex_contains(vertex, gtype) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR @> (
+    LEFTARG = vertex, 
+    RIGHTARG = gtype, 
+    FUNCTION = vertex_contains, 
+    COMMUTATOR = '<@', 
+    RESTRICT = contsel, 
+    JOIN = contjoinsel
+);
+
+CREATE FUNCTION vertex_contained_by(gtype, vertex) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <@ (
+    LEFTARG = gtype, 
+    RIGHTARG = vertex, 
+    FUNCTION = vertex_contained_by, 
+    COMMUTATOR = '@>', 
+    RESTRICT = contsel, 
+    JOIN = contjoinsel
+);
+
+--
+-- vertex - key existence operators (?, ?|, ?&)
+--
+CREATE FUNCTION vertex_exists(vertex, text)
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR ? (
+    LEFTARG = vertex, 
+    RIGHTARG = text, 
+    FUNCTION = vertex_exists, 
+    COMMUTATOR = '?', 
+    RESTRICT = contsel, 
+    JOIN = contjoinsel
+);
+
+CREATE FUNCTION vertex_exists_any(vertex, text[]) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR ?| (
+    LEFTARG = vertex, 
+    RIGHTARG = text[], 
+    FUNCTION = vertex_exists_any, 
+    RESTRICT = contsel, 
+    JOIN = contjoinsel
+);
+
+CREATE FUNCTION vertex_exists_all(vertex, text[]) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR ?& (
+    LEFTARG = vertex, 
+    RIGHTARG = text[], 
+    FUNCTION = vertex_exists_all, 
+    RESTRICT = contsel, 
+    JOIN = contjoinsel
+);
+
+--
+-- vertex functions
+--
+CREATE FUNCTION id(vertex) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'vertex_id';
+
+CREATE FUNCTION label(vertex) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'vertex_label';
+
+CREATE FUNCTION properties(vertex) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'vertex_properties';
+
+CREATE FUNCTION age_properties(vertex) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'vertex_properties';
+
+CREATE FUNCTION type(vertex) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME','vertex_label';
+
+CREATE FUNCTION keys(vertex) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE AS 'MODULE_PATHNAME', 'vertex_keys';

@@ -1,0 +1,549 @@
+/*
+ * Copyright (C) 2023 PostGraphDB
+ *  
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+ 
+--
+-- graphid typecasting
+--
+CREATE FUNCTION graphid_to_gtype(graphid) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (graphid AS gtype) WITH FUNCTION graphid_to_gtype(graphid);
+
+CREATE FUNCTION gtype_to_graphid(gtype) 
+RETURNS graphid 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype AS graphid) WITH FUNCTION gtype_to_graphid(gtype) AS IMPLICIT;
+
+
+--
+-- gtype typecasting
+--
+-- gtype -> text
+CREATE FUNCTION gtype_to_text(gtype) 
+RETURNS text 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype AS text) 
+WITH FUNCTION gtype_to_text(gtype);
+
+-- gtype -> text[]
+CREATE FUNCTION gtype_to_text_array(gtype)
+RETURNS text[]
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype AS text[])
+WITH FUNCTION gtype_to_text_array(gtype);
+
+
+-- text -> gtype
+CREATE FUNCTION text_to_gtype(text) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (text AS gtype) 
+WITH FUNCTION text_to_gtype(text);
+
+-- gtype -> boolean
+CREATE FUNCTION gtype_to_bool(gtype) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype AS boolean) 
+WITH FUNCTION gtype_to_bool(gtype) 
+AS IMPLICIT;
+
+-- boolean -> gtype
+CREATE FUNCTION bool_to_gtype(boolean) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (boolean AS gtype) 
+WITH FUNCTION bool_to_gtype(boolean);
+
+-- float8 -> gtype
+CREATE FUNCTION float8_to_gtype(float8) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (float8 AS gtype) 
+WITH FUNCTION float8_to_gtype(float8);
+
+-- gtype -> float8
+CREATE FUNCTION gtype_to_float8(gtype) 
+RETURNS float8 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype AS float8) 
+WITH FUNCTION gtype_to_float8(gtype);
+
+-- gtype -> float8[]
+CREATE FUNCTION gtype_to_float8_array(gtype)
+RETURNS float8[]
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype AS float8[])
+WITH FUNCTION gtype_to_float8_array(gtype);
+
+-- gtype -> float4[]
+CREATE FUNCTION gtype_to_float4_array(gtype)
+RETURNS float4[]
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype AS float4[])
+WITH FUNCTION gtype_to_float4_array(gtype);
+
+-- gtype -> numeric
+CREATE FUNCTION gtype_to_numeric(gtype)
+RETURNS numeric
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype AS numeric)
+WITH FUNCTION gtype_to_numeric(gtype);
+
+-- gtype -> numeric[]
+CREATE FUNCTION gtype_to_numeric_array(gtype)
+RETURNS numeric[]
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype AS numeric[])
+WITH FUNCTION gtype_to_numeric_array(gtype);
+
+-- int8 -> gtype
+CREATE FUNCTION int8_to_gtype(int8) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (int8 AS gtype) 
+WITH FUNCTION int8_to_gtype(int8);
+
+-- gtype -> int8
+CREATE FUNCTION gtype_to_int8(gtype) 
+RETURNS bigint 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype AS bigint) 
+WITH FUNCTION gtype_to_int8(gtype) 
+AS ASSIGNMENT;
+
+-- timestamp -> gtype
+CREATE FUNCTION timestamp_to_gtype(timestamp) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (timestamp AS gtype) 
+WITH FUNCTION timestamp_to_gtype(timestamp);
+
+-- timestamptz -> gtype
+CREATE FUNCTION timestamptz_to_gtype(timestamptz) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (timestamptz AS gtype) 
+WITH FUNCTION timestamptz_to_gtype(timestamptz);
+
+-- date -> gtype
+CREATE FUNCTION date_to_gtype(date) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (date AS gtype) 
+WITH FUNCTION date_to_gtype(date);
+
+-- time -> gtype
+CREATE FUNCTION time_to_gtype(time) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (time AS gtype) 
+WITH FUNCTION time_to_gtype(time);
+
+-- timetz -> gtype
+CREATE FUNCTION timetz_to_gtype(timetz) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (timetz AS gtype) 
+WITH FUNCTION timetz_to_gtype(timetz);
+
+-- gtype -> int8[]
+CREATE FUNCTION gtype_to_int8_array(gtype) 
+RETURNS bigint[] 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype AS bigint[]) 
+WITH FUNCTION gtype_to_int8_array(gtype);
+
+-- gtype -> int4
+CREATE FUNCTION gtype_to_int4(gtype) 
+RETURNS int 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype AS int) WITH FUNCTION gtype_to_int4(gtype);
+
+-- gtype -> int2
+CREATE FUNCTION gtype_to_int2(gtype) 
+RETURNS smallint 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype AS smallint) 
+WITH FUNCTION gtype_to_int2(gtype);
+
+-- gtype -> int2[]
+CREATE FUNCTION gtype_to_int2_array(gtype)
+RETURNS smallint[]
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype AS smallint[]) WITH FUNCTION gtype_to_int2_array(gtype);
+
+-- gtype -> int4[]
+CREATE FUNCTION gtype_to_int4_array(gtype) 
+RETURNS int[] 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype AS int[]) WITH FUNCTION gtype_to_int4_array(gtype);
+
+-- inet -> gtype
+CREATE FUNCTION inet_to_gtype(inet)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (inet as gtype) WITH FUNCTION inet_to_gtype(inet);
+
+-- gtype -> inet
+CREATE FUNCTION gtype_to_inet(gtype)
+RETURNS inet
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype as inet) WITH FUNCTION gtype_to_inet(gtype);
+
+-- gtype -> cidr
+CREATE FUNCTION gtype_to_cidr(gtype)
+RETURNS cidr
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype as cidr) WITH FUNCTION gtype_to_cidr(gtype);
+
+
+-- gtype -> geometry
+CREATE FUNCTION gtype_to_geometry(gtype)
+RETURNS public.geometry
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype as public.geometry) WITH FUNCTION gtype_to_geometry(gtype);
+
+-- gtype -> box3d
+CREATE FUNCTION gtype_to_box3d(gtype)
+RETURNS public.box3d
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype as public.box3d) WITH FUNCTION gtype_to_box3d(gtype);
+
+-- gtype -> box2d
+CREATE FUNCTION gtype_to_box2d(gtype)
+RETURNS public.box2d
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype as public.box2d) WITH FUNCTION gtype_to_box2d(gtype);
+
+
+--
+-- gtype - typecasting to other gtype types
+--
+CREATE FUNCTION toboolean (gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_toboolean';
+
+CREATE FUNCTION tofloat (gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_tofloat';
+
+CREATE FUNCTION tointeger(gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_tointeger';
+
+CREATE FUNCTION tostring (gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_tostring';
+
+CREATE FUNCTION tonumeric (gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+RETURNS NULL ON NULL INPUT 
+AS 'MODULE_PATHNAME', 'gtype_tonumeric';
+
+CREATE FUNCTION totimestamp (gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+RETURNS NULL ON NULL INPUT 
+AS 'MODULE_PATHNAME', 'gtype_totimestamp';
+
+CREATE FUNCTION totimestamptz (gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+RETURNS NULL ON NULL INPUT 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION totime(gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+RETURNS NULL ON NULL INPUT 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION totimetz(gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+RETURNS NULL ON NULL INPUT 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION tointerval(gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+RETURNS NULL ON NULL INPUT 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION todate(gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+RETURNS NULL ON NULL INPUT 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION tovector(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION toinet(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME', 'gtype_toinet';
+
+CREATE FUNCTION tocidr(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME', 'gtype_tocidr';
+
+CREATE FUNCTION tomacaddr(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME', 'gtype_tomacaddr';
+
+CREATE FUNCTION tomacaddr8(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME', 'gtype_tomacaddr8';
+
+CREATE FUNCTION tobox2d(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME', 'gtype_tobox2d';
+
+CREATE FUNCTION tobox3d(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME', 'gtype_tobox3d';
+
+CREATE FUNCTION tospheroid(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME', 'gtype_tospheroid';
+
+CREATE FUNCTION togeometry(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME', 'gtype_togeometry';

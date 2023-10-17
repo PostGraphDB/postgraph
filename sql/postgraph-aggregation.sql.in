@@ -1,0 +1,542 @@
+/*
+ * Copyright (C) 2023 PostGraphDB
+ *  
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+--
+-- Agreggation
+--
+
+-- accumlates floats into an array for aggregation
+CREATE FUNCTION gtype_accum(float8[], gtype)
+RETURNS float8[]
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+--
+-- count
+--
+CREATE AGGREGATE count(*) (
+     stype = int8,
+     sfunc = int8inc,
+     finalfunc = int8_to_gtype,
+     combinefunc = int8pl,
+     finalfunc_modify = READ_ONLY,
+     initcond = 0,
+     parallel = SAFE
+);
+
+CREATE AGGREGATE count(gtype) (
+     stype = int8,
+     sfunc = int8inc_any,
+     finalfunc = int8_to_gtype,
+     combinefunc = int8pl,
+     finalfunc_modify = READ_ONLY,
+     initcond = 0,
+     parallel = SAFE
+);
+
+CREATE AGGREGATE count(vertex) (
+    stype = int8, 
+    sfunc = int8inc_any, 
+    finalfunc = int8_to_gtype, 
+    combinefunc = int8pl, 
+    finalfunc_modify = READ_ONLY, 
+    initcond = 0, 
+    parallel = SAFE
+);
+
+CREATE AGGREGATE count(edge) (
+    stype = int8,
+    sfunc = int8inc_any, 
+    finalfunc = int8_to_gtype, 
+    combinefunc = int8pl, 
+    finalfunc_modify = READ_ONLY, 
+    initcond = 0, parallel = SAFE
+);
+
+CREATE AGGREGATE count(traversal) (
+    stype = int8,
+    sfunc = int8inc_any,
+    finalfunc = int8_to_gtype,
+    combinefunc = int8pl,
+    finalfunc_modify = READ_ONLY,
+    initcond = 0,
+    parallel = SAFE
+);
+
+CREATE AGGREGATE count(variable_edge) (
+    stype = int8,
+    sfunc = int8inc_any,
+    finalfunc = int8_to_gtype,
+    combinefunc = int8pl,
+    finalfunc_modify = READ_ONLY,
+    initcond = 0,
+    parallel = SAFE
+);
+
+--
+-- stdev
+--
+CREATE FUNCTION gtype_stddev_samp_final(float8[]) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE stdev(gtype) (
+    stype = float8[],
+    sfunc = gtype_accum, 
+    finalfunc = gtype_stddev_samp_final, 
+    combinefunc = float8_combine, 
+    finalfunc_modify = READ_ONLY, 
+    initcond = '{0,0,0}',
+    parallel = SAFE
+);
+
+--
+-- stdevp
+--
+CREATE FUNCTION gtype_stddev_pop_final(float8[])
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+CALLED ON NULL INPUT
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE stdevp(gtype) (
+    stype = float8[],
+    sfunc = gtype_accum, 
+    finalfunc = gtype_stddev_pop_final, 
+    combinefunc = float8_combine, 
+    finalfunc_modify = READ_ONLY, 
+    initcond = '{0,0,0}', 
+    parallel = SAFE
+);
+
+--
+-- avg
+--
+CREATE AGGREGATE avg(gtype) (
+    stype = float8[], 
+    sfunc = gtype_accum, 
+    finalfunc = float8_avg, 
+    combinefunc = float8_combine, 
+    finalfunc_modify = READ_ONLY, 
+    initcond = '{0,0,0}', 
+    parallel = SAFE
+);
+
+--
+-- sum
+--
+CREATE FUNCTION gtype_sum (gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+STRICT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_gtype_sum';
+
+CREATE AGGREGATE sum(gtype) (
+    stype = gtype, 
+    sfunc = gtype_sum, 
+    combinefunc = gtype_sum, 
+    finalfunc_modify = READ_ONLY, 
+    parallel = SAFE
+);
+
+--
+-- max
+--
+CREATE FUNCTION gtype_max_trans(gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE max(gtype) (
+    stype = gtype, 
+    sfunc = gtype_max_trans, 
+    combinefunc = gtype_max_trans, 
+    finalfunc_modify = READ_ONLY, 
+    parallel = SAFE
+);
+
+--
+-- min
+--
+CREATE FUNCTION gtype_min_trans(gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE min(gtype) (
+    stype = gtype, 
+    sfunc = gtype_min_trans, 
+    combinefunc = gtype_min_trans, 
+    finalfunc_modify = READ_ONLY, 
+    parallel = SAFE
+);
+
+--
+-- percentileCont and percentileDisc
+--
+CREATE FUNCTION percentile_aggtransfn (internal, gtype, gtype) 
+RETURNS internal 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_percentile_aggtransfn';
+
+CREATE FUNCTION percentile_cont_aggfinalfn (internal) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_percentile_cont_aggfinalfn';
+
+CREATE FUNCTION percentile_disc_aggfinalfn (internal) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_percentile_disc_aggfinalfn';
+
+CREATE AGGREGATE percentilecont(gtype, gtype) (
+    stype = internal, 
+    sfunc = percentile_aggtransfn, 
+    finalfunc = percentile_cont_aggfinalfn, 
+    parallel = SAFE
+);
+
+CREATE AGGREGATE percentiledisc(gtype, gtype) (
+    stype = internal,
+    sfunc = percentile_aggtransfn, 
+    finalfunc = percentile_disc_aggfinalfn, 
+    parallel = SAFE
+);
+
+--
+-- collect
+--
+CREATE FUNCTION collect_aggtransfn (internal, gtype)
+RETURNS internal 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_collect_aggtransfn';
+
+CREATE FUNCTION collect_aggfinalfn (internal) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_collect_aggfinalfn';
+
+CREATE AGGREGATE collect(gtype) (
+    stype = internal, 
+    sfunc = collect_aggtransfn, 
+    finalfunc = collect_aggfinalfn, 
+    parallel = safe
+);
+
+CREATE FUNCTION vertex_collect_transfn(internal, vertex)
+RETURNS internal
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+
+CREATE FUNCTION vertex_collect_finalfn(internal)
+RETURNS vertex[] 
+LANGUAGE c  
+IMMUTABLE
+PARALLEL SAFE AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE collect(vertex) (
+    stype = internal,
+    sfunc = vertex_collect_transfn,
+    finalfunc = vertex_collect_finalfn, 
+    parallel = safe 
+);
+
+CREATE FUNCTION vertex_collect_transfn_w_limit(internal, vertex, gtype)
+RETURNS internal
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE collect(vertex, gtype) (
+    stype = internal,
+    sfunc = vertex_collect_transfn_w_limit,
+    finalfunc = vertex_collect_finalfn,
+    parallel = safe
+); 
+
+
+CREATE FUNCTION edge_collect_transfn(internal, edge)
+RETURNS internal
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+
+CREATE FUNCTION edge_collect_finalfn(internal)
+RETURNS edge[]
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE collect(edge) (
+    stype = internal,
+    sfunc = edge_collect_transfn,
+    finalfunc = edge_collect_finalfn,
+    parallel = safe
+);
+
+CREATE FUNCTION edge_collect_transfn_w_limit(internal, edge, gtype)
+RETURNS internal
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE collect(edge, gtype) (
+    stype = internal,
+    sfunc = edge_collect_transfn_w_limit,
+    finalfunc = edge_collect_finalfn,
+    parallel = safe
+);
+
+CREATE FUNCTION gtype_regr_accum(float8[], gtype, gtype)
+RETURNS float8[]
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION gtype_corr_final(float8[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE corr(gtype, gtype) (
+    stype = float8[],
+    sfunc = gtype_regr_accum,
+    finalfunc = gtype_corr_final,
+    combinefunc = float8_regr_combine,
+    finalfunc_modify = READ_ONLY,
+    initcond = '{0,0,0,0,0,0}',
+    parallel = SAFE
+);
+
+CREATE FUNCTION gtype_covar_pop_final(float8[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE covar_pop(gtype, gtype) (
+    stype = float8[],
+    sfunc = gtype_regr_accum,
+    finalfunc = gtype_covar_pop_final,
+    combinefunc = float8_regr_combine,
+    finalfunc_modify = READ_ONLY,
+    initcond = '{0,0,0,0,0,0}',
+    parallel = SAFE
+);
+
+CREATE FUNCTION gtype_covar_samp_final(float8[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE covar_samp(gtype, gtype) (
+    stype = float8[],
+    sfunc = gtype_regr_accum,
+    finalfunc = gtype_covar_samp_final,
+    combinefunc = float8_regr_combine,
+    finalfunc_modify = READ_ONLY,
+    initcond = '{0,0,0,0,0,0}',
+    parallel = SAFE
+);
+
+CREATE FUNCTION gtype_regr_sxx_final(float8[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE regr_sxx(gtype, gtype) (
+    stype = float8[],
+    sfunc = gtype_regr_accum,
+    finalfunc = gtype_regr_sxx_final,
+    combinefunc = float8_regr_combine,
+    finalfunc_modify = READ_ONLY,
+    initcond = '{0,0,0,0,0,0}',
+    parallel = SAFE
+);
+
+CREATE FUNCTION gtype_regr_syy_final(float8[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE regr_syy(gtype, gtype) (
+    stype = float8[],
+    sfunc = gtype_regr_accum,
+    finalfunc = gtype_regr_syy_final,
+    combinefunc = float8_regr_combine,
+    finalfunc_modify = READ_ONLY,
+    initcond = '{0,0,0,0,0,0}',
+    parallel = SAFE
+);
+
+CREATE FUNCTION gtype_regr_sxy_final(float8[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE regr_sxy(gtype, gtype) (
+    stype = float8[],
+    sfunc = gtype_regr_accum,
+    finalfunc = gtype_regr_sxy_final,
+    combinefunc = float8_regr_combine,
+    finalfunc_modify = READ_ONLY,
+    initcond = '{0,0,0,0,0,0}',
+    parallel = SAFE
+);
+
+CREATE FUNCTION gtype_regr_slope_final(float8[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE regr_slope(gtype, gtype) (
+    stype = float8[],
+    sfunc = gtype_regr_accum,
+    finalfunc = gtype_regr_slope_final,
+    combinefunc = float8_regr_combine,
+    finalfunc_modify = READ_ONLY,
+    initcond = '{0,0,0,0,0,0}',
+    parallel = SAFE
+);
+
+CREATE FUNCTION gtype_regr_intercept_final(float8[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE regr_intercept(gtype, gtype) (
+    stype = float8[],
+    sfunc = gtype_regr_accum,
+    finalfunc = gtype_regr_intercept_final,
+    combinefunc = float8_regr_combine,
+    finalfunc_modify = READ_ONLY,
+    initcond = '{0,0,0,0,0,0}',
+    parallel = SAFE
+);
+
+CREATE FUNCTION gtype_regr_avgx_final(float8[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE            
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE regr_avgx(gtype, gtype) (
+    stype = float8[],
+    sfunc = gtype_regr_accum,
+    finalfunc = gtype_regr_avgx_final,
+    combinefunc = float8_regr_combine,
+    finalfunc_modify = READ_ONLY,
+    initcond = '{0,0,0,0,0,0}',
+    parallel = SAFE
+);
+
+CREATE FUNCTION gtype_regr_avgy_final(float8[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE            
+CALLED ON NULL INPUT 
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE regr_avgy(gtype, gtype) (
+    stype = float8[],
+    sfunc = gtype_regr_accum,
+    finalfunc = gtype_regr_avgy_final,
+    combinefunc = float8_regr_combine,
+    finalfunc_modify = READ_ONLY,
+    initcond = '{0,0,0,0,0,0}',
+    parallel = SAFE
+);
+
+CREATE FUNCTION gtype_regr_r2_final(float8[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE AGGREGATE regr_r2(gtype, gtype) (
+    stype = float8[],
+    sfunc = gtype_regr_accum,
+    finalfunc = gtype_regr_avgy_final,
+    combinefunc = float8_regr_combine,
+    finalfunc_modify = READ_ONLY,
+    initcond = '{0,0,0,0,0,0}',
+    parallel = SAFE
+);
+

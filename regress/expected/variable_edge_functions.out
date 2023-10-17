@@ -51,8 +51,8 @@ SELECT * FROM cypher('variable_edge_functions', $$
 $$) AS (e vertex[]);
                                                                          e                                                                         
 ---------------------------------------------------------------------------------------------------------------------------------------------------
- {"{\"id\": 1407374883553281, \"label\": \"middle\", \"properties\": {}}","{\"id\": 1407374883553282, \"label\": \"middle\", \"properties\": {}}"}
- {"{\"id\": 1407374883553281, \"label\": \"middle\", \"properties\": {}}","{\"id\": 1407374883553282, \"label\": \"middle\", \"properties\": {}}"}
+ {"{\"id\": 1407374883553281, \"label\": \"middle\", \"properties\": {}}","{\"id\": 1407374883553281, \"label\": \"middle\", \"properties\": {}}"}
+ {"{\"id\": 1407374883553281, \"label\": \"middle\", \"properties\": {}}","{\"id\": 1407374883553281, \"label\": \"middle\", \"properties\": {}}"}
 (2 rows)
 
 SELECT e[1] FROM cypher('variable_edge_functions', $$
@@ -69,8 +69,8 @@ SELECT e[array_length(e, 1)] FROM cypher('variable_edge_functions', $$
 $$) AS (e vertex[]);
                                e                               
 ---------------------------------------------------------------
- {"id": 1407374883553282, "label": "middle", "properties": {}}
- {"id": 1407374883553282, "label": "middle", "properties": {}}
+ {"id": 1407374883553281, "label": "middle", "properties": {}}
+ {"id": 1407374883553281, "label": "middle", "properties": {}}
 (2 rows)
 
 SELECT * FROM cypher('variable_edge_functions', $$

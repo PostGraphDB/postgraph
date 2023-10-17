@@ -1,0 +1,572 @@
+
+/*
+ * Copyright (C) 2023 PostGraphDB
+ *  
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+--
+-- gtype - map literal (`{key: expr, ...}`)
+--
+CREATE FUNCTION gtype_build_map(VARIADIC "any") 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+CALLED ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION gtype_build_map() 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_build_map_noargs';
+
+--
+-- gtype - access operators
+--
+-- for series of `map.key` and `container[expr]`
+CREATE FUNCTION gtype_field_access(gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR -> (
+    LEFTARG = gtype, 
+    RIGHTARG = gtype, 
+    FUNCTION = gtype_field_access
+);
+
+--
+-- gtype - mathematical operators (+, -, *, /, %, ^)
+--
+CREATE FUNCTION gtype_add(gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR + (FUNCTION = gtype_add, LEFTARG = gtype, RIGHTARG = gtype, COMMUTATOR = +);
+
+CREATE FUNCTION gtype_sub(gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR - (FUNCTION = gtype_sub, LEFTARG = gtype, RIGHTARG = gtype);
+
+CREATE FUNCTION gtype_neg(gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR - (FUNCTION = gtype_neg, RIGHTARG = gtype);
+
+CREATE FUNCTION gtype_mul(gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR * (FUNCTION = gtype_mul, LEFTARG = gtype, RIGHTARG = gtype, COMMUTATOR = *);
+
+CREATE FUNCTION gtype_div(gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR / (FUNCTION = gtype_div, LEFTARG = gtype, RIGHTARG = gtype);
+
+CREATE FUNCTION gtype_mod(gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR % (FUNCTION = gtype_mod, LEFTARG = gtype, RIGHTARG = gtype);
+
+CREATE FUNCTION gtype_pow(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR ^ (FUNCTION = gtype_pow, LEFTARG = gtype, RIGHTARG = gtype);
+
+--
+-- Vector Operators
+--
+CREATE FUNCTION l2_distance(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <-> (FUNCTION = l2_distance, LEFTARG = gtype, RIGHTARG = gtype, COMMUTATOR = <->);
+
+CREATE FUNCTION inner_product(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_inner_product';
+
+CREATE FUNCTION negative_inner_product(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_negative_inner_product';
+
+CREATE OPERATOR <#> (FUNCTION = negative_inner_product, LEFTARG = gtype, RIGHTARG = gtype, COMMUTATOR = <#>);
+
+CREATE FUNCTION cosine_distance(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_cosine_distance';
+
+CREATE OPERATOR <=> (FUNCTION = cosine_distance, LEFTARG = gtype, RIGHTARG = gtype, COMMUTATOR = <=>);
+
+CREATE FUNCTION l1_distance(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_l1_distance';
+
+CREATE FUNCTION spherical_distance(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_spherical_distance';
+
+CREATE FUNCTION dims(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_dims';
+
+CREATE FUNCTION norm(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE AS 'MODULE_PATHNAME', 'gtype_norm';
+
+CREATE FUNCTION l2_squared_distance(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_l2_squared_distance';
+
+CREATE FUNCTION gtype_lt(gtype, gtype) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION gtype_gt(gtype, gtype) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION gtype_le(gtype, gtype) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION gtype_ge(gtype, gtype) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+--
+-- gtype - comparison operators (=, <>, <, >, <=, >=)
+--
+CREATE FUNCTION gtype_eq(gtype, gtype) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR = (
+    FUNCTION = gtype_eq, 
+    LEFTARG = gtype, 
+    RIGHTARG = gtype, 
+    COMMUTATOR = =, 
+    NEGATOR = <>, 
+    RESTRICT = eqsel, 
+    JOIN = eqjoinsel, 
+    HASHES
+);
+
+CREATE FUNCTION gtype_ne(gtype, gtype) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <> (
+    FUNCTION = gtype_ne, 
+    LEFTARG = gtype, 
+    RIGHTARG = gtype, 
+    COMMUTATOR = <>, 
+    NEGATOR = =, 
+    RESTRICT = neqsel, 
+    JOIN = neqjoinsel
+);
+
+
+CREATE FUNCTION gtype_btree_cmp(gtype, gtype) 
+RETURNS INTEGER 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+
+CREATE OPERATOR < (
+    FUNCTION = gtype_lt, 
+    LEFTARG = gtype, 
+    RIGHTARG = gtype, 
+    COMMUTATOR = >, 
+    NEGATOR = >=, 
+    RESTRICT = scalarltsel, 
+    JOIN = scalarltjoinsel
+);
+
+CREATE OPERATOR > (
+    FUNCTION = gtype_gt, 
+    LEFTARG = gtype, 
+    RIGHTARG = gtype, 
+    COMMUTATOR = <, 
+    NEGATOR = <=, 
+    RESTRICT = scalargtsel, 
+    JOIN = scalargtjoinsel
+);
+
+CREATE OPERATOR <= (
+    FUNCTION = gtype_le, 
+    LEFTARG = gtype, 
+    RIGHTARG = gtype, 
+    COMMUTATOR = >=, 
+    NEGATOR = >, 
+    RESTRICT = scalarlesel, 
+    JOIN = scalarlejoinsel
+);
+
+CREATE OPERATOR >= (
+    FUNCTION = gtype_ge, 
+    LEFTARG = gtype, 
+    RIGHTARG = gtype, 
+    COMMUTATOR = <=, 
+    NEGATOR = <, 
+    RESTRICT = scalargesel, 
+    JOIN = scalargejoinsel
+);
+
+
+--
+-- gtype - btree operator class
+--
+CREATE OPERATOR CLASS gtype_ops_btree
+DEFAULT FOR TYPE gtype
+USING btree
+AS 
+    OPERATOR 1 <,
+    OPERATOR 2 <=,
+    OPERATOR 3 =, 
+    OPERATOR 4 >,
+    OPERATOR 5 >=, 
+    FUNCTION 1 gtype_btree_cmp(gtype, gtype);
+
+--
+-- gtype - ivfflat Operator Classes
+--
+CREATE OPERATOR CLASS gtype_l2_ops
+DEFAULT FOR TYPE gtype
+USING ivfflat AS 
+OPERATOR 1 <-> (gtype, gtype) FOR ORDER BY gtype_ops_btree,
+FUNCTION 1 l2_squared_distance(gtype, gtype),
+FUNCTION 3 l2_distance(gtype, gtype);
+
+CREATE OPERATOR CLASS gtype_ip_ops
+FOR TYPE gtype USING ivfflat AS
+OPERATOR 1 <#> (gtype, gtype) FOR ORDER BY gtype_ops_btree,
+FUNCTION 1 negative_inner_product(gtype, gtype),
+FUNCTION 3 spherical_distance(gtype, gtype),
+FUNCTION 4 norm(gtype);
+
+CREATE OPERATOR CLASS gtype_cosine_ops
+FOR TYPE gtype USING ivfflat AS
+OPERATOR 1 <=> (gtype, gtype) FOR ORDER BY gtype_ops_btree,
+FUNCTION 1 negative_inner_product(gtype, gtype),
+FUNCTION 2 norm(gtype),
+FUNCTION 3 spherical_distance(gtype, gtype),
+FUNCTION 4 norm(gtype);
+
+
+--
+-- gtype - hash operator class
+--
+CREATE FUNCTION gtype_hash_cmp(gtype) 
+RETURNS INTEGER 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR CLASS gtype_ops_hash 
+DEFAULT FOR TYPE gtype 
+USING hash 
+AS 
+     OPERATOR 1 =, 
+     FUNCTION 1 gtype_hash_cmp(gtype);
+
+--
+-- gtype - access operators (->, ->>)
+--
+CREATE FUNCTION gtype_object_field(gtype, text) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR -> (LEFTARG = gtype, RIGHTARG = text, FUNCTION = gtype_object_field);
+
+CREATE FUNCTION gtype_object_field_text(gtype, text) 
+RETURNS text 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR ->> (LEFTARG = gtype, RIGHTARG = text, FUNCTION = gtype_object_field_text);
+
+CREATE FUNCTION gtype_array_element(gtype, int4) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR -> (LEFTARG = gtype, RIGHTARG = int4, FUNCTION = gtype_array_element);
+
+CREATE FUNCTION gtype_array_element_text(gtype, int4) 
+RETURNS text 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR ->> (LEFTARG = gtype, RIGHTARG = int4, FUNCTION = gtype_array_element_text);
+
+--
+-- gtype - contains operators (@>, <@)
+--
+CREATE FUNCTION gtype_contains(gtype, gtype) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR @> (
+    LEFTARG = gtype, 
+    RIGHTARG = gtype, 
+    FUNCTION = gtype_contains, 
+    COMMUTATOR = '<@', 
+    RESTRICT = contsel, 
+    JOIN = contjoinsel
+);
+
+CREATE FUNCTION gtype_contained_by(gtype, gtype) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <@ (
+    LEFTARG = gtype, 
+    RIGHTARG = gtype, 
+    FUNCTION = gtype_contained_by, 
+    COMMUTATOR = '@>', 
+    RESTRICT = contsel, 
+    JOIN = contjoinsel
+);
+
+--
+-- Key Existence Operators (?, ?|, ?&)
+--
+CREATE FUNCTION gtype_exists(gtype, gtype) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR ? (
+    LEFTARG = gtype, 
+    RIGHTARG = gtype, 
+    FUNCTION = gtype_exists, 
+    COMMUTATOR = '?', 
+    RESTRICT = contsel, 
+    JOIN = contjoinsel
+);
+
+CREATE FUNCTION gtype_exists_any(gtype, gtype) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR ?| (
+    LEFTARG = gtype, 
+    RIGHTARG = gtype, 
+    FUNCTION = gtype_exists_any, 
+    RESTRICT = contsel, 
+    JOIN = contjoinsel
+);
+
+CREATE FUNCTION gtype_exists_all(gtype, gtype) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR ?& (
+    LEFTARG = gtype, 
+    RIGHTARG = gtype, 
+    FUNCTION = gtype_exists_all, 
+    RESTRICT = contsel, 
+    JOIN = contjoinsel
+);
+
+--
+-- gtype GIN support
+--
+CREATE FUNCTION gin_compare_gtype(text, text) 
+RETURNS int 
+AS 'MODULE_PATHNAME' 
+LANGUAGE C 
+IMMUTABLE STRICT 
+PARALLEL SAFE;
+
+CREATE FUNCTION gin_extract_gtype(gtype, internal) RETURNS internal 
+AS 'MODULE_PATHNAME' 
+LANGUAGE C 
+IMMUTABLE 
+STRICT 
+PARALLEL SAFE;
+
+CREATE FUNCTION gin_extract_gtype_query(gtype, internal, int2, internal, internal) 
+RETURNS internal 
+AS 'MODULE_PATHNAME' 
+LANGUAGE C 
+IMMUTABLE 
+STRICT 
+PARALLEL SAFE;
+
+CREATE FUNCTION gin_consistent_gtype(internal, int2, gtype, int4, internal, internal) 
+RETURNS bool 
+AS 'MODULE_PATHNAME' 
+LANGUAGE C 
+IMMUTABLE 
+STRICT 
+PARALLEL SAFE;
+
+CREATE FUNCTION gin_triconsistent_gtype(internal, int2, gtype, int4, internal, internal, internal) 
+RETURNS bool 
+LANGUAGE C 
+IMMUTABLE 
+STRICT 
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR CLASS gin_gtype_ops 
+DEFAULT FOR TYPE gtype 
+USING gin 
+AS
+    OPERATOR 7 @>,
+    OPERATOR 9 ?(gtype, gtype),
+    /*OPERATOR 10 ?|(gtype, gtype),
+    OPERATOR 11 ?&(gtype, gtype),*/
+    FUNCTION 1 gin_compare_gtype,
+    FUNCTION 2 gin_extract_gtype,
+    FUNCTION 3 gin_extract_gtype_query,
+    FUNCTION 4 gin_consistent_gtype,
+    FUNCTION 6 gin_triconsistent_gtype,
+STORAGE text;

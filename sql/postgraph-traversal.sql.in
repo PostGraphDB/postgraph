@@ -1,0 +1,183 @@
+/*
+ * Copyright (C) 2023 PostGraphDB
+ *  
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+
+--
+-- traversal - equality operators (=, <>, >)
+--
+CREATE FUNCTION traversal_eq(traversal, traversal) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR = (
+  FUNCTION = traversal_eq,
+  LEFTARG = traversal,
+  RIGHTARG = traversal,
+  COMMUTATOR = =,
+  NEGATOR = <>,
+  RESTRICT = eqsel,
+  JOIN = eqjoinsel,
+  HASHES
+);
+
+CREATE FUNCTION traversal_ne(traversal, traversal) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <> (
+  FUNCTION = traversal_ne,
+  LEFTARG = traversal,
+  RIGHTARG = traversal,
+  COMMUTATOR = <>,
+  NEGATOR = =,
+  RESTRICT = neqsel,
+  JOIN = neqjoinsel,
+  HASHES
+);
+
+CREATE FUNCTION traversal_gt(traversal, traversal) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR > (
+  FUNCTION = traversal_gt,
+  LEFTARG = traversal,
+  RIGHTARG = traversal,
+  COMMUTATOR = >,
+  NEGATOR = <=,
+  RESTRICT = scalargtsel,
+  JOIN = scalargtjoinsel
+);
+
+CREATE FUNCTION traversal_ge(traversal, traversal) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR >= (
+  FUNCTION = traversal_ge,
+  LEFTARG = traversal,
+  RIGHTARG = traversal,
+  COMMUTATOR = >=,
+  NEGATOR = <,
+  RESTRICT = scalargesel,
+  JOIN = scalargejoinsel
+);
+
+
+CREATE FUNCTION traversal_lt(traversal, traversal) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR < (
+  FUNCTION = traversal_lt,
+  LEFTARG = traversal,
+  RIGHTARG = traversal,
+  COMMUTATOR = <,
+  NEGATOR = >=,
+  RESTRICT = scalarltsel,
+  JOIN = scalarltjoinsel
+);
+
+CREATE FUNCTION traversal_le(traversal, traversal) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <= (
+  FUNCTION = traversal_le,
+  LEFTARG = traversal,
+  RIGHTARG = traversal,
+  COMMUTATOR = <=,
+  NEGATOR = >,
+  RESTRICT = scalarlesel,
+  JOIN = scalarlejoinsel
+);
+
+--
+-- traversal - B-tree support functions
+--
+-- comparison support
+CREATE FUNCTION traversal_btree_cmp(traversal, traversal)
+RETURNS int
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+-- sort support
+CREATE FUNCTION traversal_btree_sort(internal)
+RETURNS void
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE AS 'MODULE_PATHNAME';
+
+--
+-- define operator classes for graphid
+--
+CREATE OPERATOR CLASS traversal_ops
+DEFAULT FOR TYPE traversal
+USING btree AS
+    OPERATOR 1 <,
+    OPERATOR 2 <=,
+    OPERATOR 3 =,
+    OPERATOR 4 >=,
+    OPERATOR 5 >,
+    FUNCTION 1 traversal_btree_cmp (traversal, traversal),
+    FUNCTION 2 traversal_btree_sort (internal);
+
+--
+-- traversal functions
+--
+CREATE FUNCTION relationships(traversal) RETURNS edge[]
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'traversal_edges';
+
+CREATE FUNCTION nodes(traversal) RETURNS vertex[]
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'traversal_nodes';
+
+CREATE FUNCTION size(traversal) RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'traversal_size';

@@ -1,0 +1,260 @@
+/*
+ * Copyright (C) 2023 PostGraphDB
+ *  
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+
+--
+-- edge access opertators
+--
+CREATE FUNCTION edge_property_access_gtype(edge, gtype) 
+RETURNS gtype
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR -> (LEFTARG = edge, RIGHTARG = gtype, FUNCTION = edge_property_access_gtype);
+
+
+--
+-- edge equality operators
+--
+CREATE FUNCTION edge_eq(edge, edge) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR = (
+    FUNCTION = edge_eq, 
+    LEFTARG = edge, 
+    RIGHTARG = edge, 
+    COMMUTATOR = =, 
+    NEGATOR = <>, 
+    RESTRICT = eqsel, 
+    JOIN = eqjoinsel, 
+    HASHES, 
+    MERGES
+);
+
+CREATE FUNCTION edge_ne(edge, edge) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <> (
+    FUNCTION = edge_ne, 
+    LEFTARG = edge, 
+    RIGHTARG = edge, 
+    COMMUTATOR = <>, 
+    NEGATOR = =, 
+    RESTRICT = neqsel, 
+    JOIN = neqjoinsel
+);
+
+CREATE FUNCTION edge_gt(edge, edge) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR > (
+  FUNCTION = edge_gt,
+  LEFTARG = edge,
+  RIGHTARG = edge,
+  COMMUTATOR = >,
+  NEGATOR = <=,
+  RESTRICT = scalargtsel,
+  JOIN = scalargtjoinsel
+);
+
+CREATE FUNCTION edge_ge(edge, edge) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR >= (
+  FUNCTION = edge_ge,
+  LEFTARG = edge,
+  RIGHTARG = edge,
+  COMMUTATOR = >=,
+  NEGATOR = <,
+  RESTRICT = scalargesel,
+  JOIN = scalargejoinsel
+);
+
+
+CREATE FUNCTION edge_lt(edge, edge) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR < (
+  FUNCTION = edge_lt,
+  LEFTARG = edge,
+  RIGHTARG = edge,
+  COMMUTATOR = <,
+  NEGATOR = >=,
+  RESTRICT = scalarltsel,
+  JOIN = scalarltjoinsel
+);
+
+CREATE FUNCTION edge_le(edge, edge) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <= (
+  FUNCTION = edge_le,
+  LEFTARG = edge,
+  RIGHTARG = edge,
+  COMMUTATOR = <=,
+  NEGATOR = >,
+  RESTRICT = scalarlesel,
+  JOIN = scalarlejoinsel
+);
+
+--
+-- edge - B-tree support functions
+--
+-- comparison support
+CREATE FUNCTION edge_btree_cmp(edge, edge)
+RETURNS int
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+-- sort support
+CREATE FUNCTION edge_btree_sort(internal)
+RETURNS void
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE AS 'MODULE_PATHNAME';
+
+--
+-- define operator classes for graphid
+--
+CREATE OPERATOR CLASS edge_ops
+DEFAULT FOR TYPE edge
+USING btree AS
+    OPERATOR 1 <,
+    OPERATOR 2 <=,
+    OPERATOR 3 =,
+    OPERATOR 4 >=,
+    OPERATOR 5 >,
+    FUNCTION 1 edge_btree_cmp (edge, edge),
+    FUNCTION 2 edge_btree_sort (internal);
+
+--
+-- edge functions
+--
+CREATE FUNCTION id(edge) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'edge_id';
+
+CREATE FUNCTION start_id(edge) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'edge_start_id';
+
+CREATE FUNCTION end_id(edge) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'edge_end_id';
+
+CREATE FUNCTION label(edge) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS 
+NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'edge_label';
+
+CREATE FUNCTION properties(edge) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'edge_properties';
+
+CREATE FUNCTION age_properties(edge) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'edge_properties';
+
+CREATE FUNCTION startnode(edge) 
+RETURNS vertex 
+LANGUAGE c 
+STABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'edge_startnode';
+
+CREATE FUNCTION endnode(edge) 
+RETURNS vertex 
+LANGUAGE c 
+STABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'edge_endnode';
+
+
+CREATE FUNCTION type(edge) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME','edge_label';
+
+CREATE FUNCTION keys(edge) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'edge_keys';

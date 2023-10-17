@@ -1,0 +1,151 @@
+/*
+ * Copyright (C) 2023 PostGraphDB
+ *  
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+ 
+--
+-- Temporal Functions
+--
+CREATE FUNCTION age(gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_age_w2args';
+
+CREATE FUNCTION age(gtype) 
+RETURNS gtype 
+LANGUAGE c 
+STABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_age_today';
+
+CREATE FUNCTION "extract"(gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_extract';
+
+CREATE FUNCTION date_part(gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_date_part';
+
+CREATE FUNCTION date_bin(gtype, gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_date_bin';
+
+CREATE FUNCTION date_trunc(gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_date_trunc';
+
+CREATE FUNCTION date_trunc(gtype, gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_date_trunc_zone';
+
+CREATE FUNCTION overlaps(gtype, gtype, gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_overlaps';
+
+CREATE FUNCTION isfinite(gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_isfinite';
+
+CREATE FUNCTION justify_hours(gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_justify_hours';
+
+CREATE FUNCTION justify_days(gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_justify_days';
+
+CREATE FUNCTION justify_interval(gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_justify_interval';
+
+CREATE FUNCTION make_date(gtype, gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_make_date';
+
+CREATE FUNCTION make_time(gtype, gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_make_time';
+
+CREATE FUNCTION make_timestamp(gtype, gtype, gtype, gtype, gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_make_timestamp';
+
+CREATE FUNCTION make_timestamptz(gtype, gtype, gtype, gtype, gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+STABLE 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_make_timestamptz';
+
+CREATE FUNCTION make_timestamptz(gtype, gtype, gtype, gtype, gtype, gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+STABLE 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME','gtype_make_timestamptz_wtimezone';
+

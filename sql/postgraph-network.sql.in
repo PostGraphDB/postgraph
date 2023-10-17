@@ -1,0 +1,205 @@
+/*
+ * Copyright (C) 2023 PostGraphDB
+ *  
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+CREATE FUNCTION gtype_bitwise_not(gtype) 
+RETURNS gtype
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR ~ (FUNCTION = gtype_bitwise_not, RIGHTARG = gtype);
+
+CREATE FUNCTION gtype_bitwise_and(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR & (FUNCTION = gtype_bitwise_and, LEFTARG = gtype, RIGHTARG = gtype);
+
+CREATE FUNCTION gtype_bitwise_or(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR | (FUNCTION = gtype_bitwise_or, LEFTARG = gtype, RIGHTARG = gtype);
+
+CREATE FUNCTION gtype_inet_subnet_strict_contains(gtype, gtype)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR << (FUNCTION = gtype_inet_subnet_strict_contains, LEFTARG = gtype, RIGHTARG = gtype);
+
+CREATE FUNCTION gtype_inet_subnet_contains(gtype, gtype)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <<= (FUNCTION = gtype_inet_subnet_contains, LEFTARG = gtype, RIGHTARG = gtype);
+
+CREATE FUNCTION gtype_inet_subnet_strict_contained_by(gtype, gtype)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR >> (FUNCTION = gtype_inet_subnet_strict_contained_by, LEFTARG = gtype, RIGHTARG = gtype);
+
+
+CREATE FUNCTION gtype_inet_subnet_contained_by(gtype, gtype)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR >>= (FUNCTION = gtype_inet_subnet_contained_by, LEFTARG = gtype, RIGHTARG = gtype);
+
+CREATE FUNCTION gtype_inet_subnet_contain_both(gtype, gtype)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR && (FUNCTION = gtype_inet_subnet_contain_both, LEFTARG = gtype, RIGHTARG = gtype);
+ 
+--
+-- Network Functions
+--
+CREATE FUNCTION abbrev(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_abbrev';
+
+CREATE FUNCTION broadcast(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_broadcast';
+
+CREATE FUNCTION family(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_family';
+
+CREATE FUNCTION host(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_host';
+
+CREATE FUNCTION hostmask(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_hostmask';
+
+CREATE FUNCTION inet_merge(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_inet_merge';
+
+CREATE FUNCTION inet_same_family(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_inet_same_family';
+
+CREATE FUNCTION masklen(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_masklen';
+
+CREATE FUNCTION netmask(gtype) 
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_netmask';
+
+CREATE FUNCTION network(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_network';
+
+
+CREATE FUNCTION set_masklen(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_set_masklen';
+
+CREATE FUNCTION trunc(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_trunc';
+
+CREATE FUNCTION macaddr8_set7bit(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_macaddr8_set7bit';

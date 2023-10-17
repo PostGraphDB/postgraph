@@ -548,7 +548,7 @@ gtype_value *get_gtype_value(char *funcname, gtype *agt_arg, enum gtype_value_ty
 bool is_gtype_null(gtype *agt_arg);
 gtype_value *string_to_gtype_value(char *s);
 void add_gtype(Datum val, bool is_null, gtype_in_state *result, Oid val_type, bool key_scalar);
-
+void array_to_gtype_internal(Datum array, gtype_in_state *result);
 Datum gtype_to_float8(PG_FUNCTION_ARGS);
 
 #define GTYPEOID \

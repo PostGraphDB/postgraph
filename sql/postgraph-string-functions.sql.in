@@ -1,0 +1,203 @@
+/*
+ * Copyright (C) 2023 PostGraphDB
+ *  
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+ 
+ --
+-- gtype - string matching (`STARTS WITH`, `ENDS WITH`, `CONTAINS`, & =~)
+--
+-- TODO: Operators ^=, $=, @=, PostGres Regex
+--
+CREATE FUNCTION gtype_string_match_starts_with(gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION gtype_string_match_ends_with(gtype, gtype)
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION gtype_string_match_contains(gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+--
+-- Regex
+--
+CREATE FUNCTION regex_match_case_sensitive(gtype, gtype) 
+RETURNS boolean 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME', 'gtype_eq_tilde';
+
+CREATE OPERATOR ~ (
+    FUNCTION = regex_match_case_sensitive, 
+    LEFTARG = gtype,  
+    RIGHTARG = gtype
+);
+
+CREATE FUNCTION regex_match_case_insensitive(gtype, gtype)
+RETURNS boolean  
+LANGUAGE c  
+IMMUTABLE 
+PARALLEL SAFE  
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME', 'gtype_match_case_insensitive';
+
+CREATE OPERATOR ~* (
+    FUNCTION = regex_match_case_insensitive,
+    LEFTARG = gtype, 
+    RIGHTARG = gtype
+);
+
+CREATE FUNCTION regex_not_cs(gtype, gtype) 
+RETURNS boolean
+LANGUAGE c  
+IMMUTABLE 
+PARALLEL SAFE  
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME', 'gtype_regex_not_cs';
+
+CREATE OPERATOR !~ (
+    FUNCTION = regex_not_cs,
+    LEFTARG = gtype,
+    RIGHTARG = gtype
+);
+
+CREATE FUNCTION regex_not_ci(gtype, gtype)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME', 'gtype_regex_not_ci';
+
+CREATE OPERATOR !~* (
+    FUNCTION = regex_not_ci,
+    LEFTARG = gtype,
+    RIGHTARG = gtype
+);
+
+--
+-- String functions
+--
+CREATE FUNCTION reverse (gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_reverse';
+
+CREATE FUNCTION toupper (gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_toupper';
+
+CREATE FUNCTION tolower (gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_tolower';
+
+CREATE FUNCTION ltrim (gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_ltrim';
+
+CREATE FUNCTION rtrim (gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_rtrim';
+
+CREATE FUNCTION "trim" (gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'gtype_trim';
+
+CREATE FUNCTION right (gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+RETURNS NULL ON NULL INPUT 
+AS 'MODULE_PATHNAME', 'gtype_right';
+
+CREATE FUNCTION left (gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+RETURNS NULL ON NULL INPUT 
+AS 'MODULE_PATHNAME', 'gtype_left';
+
+CREATE FUNCTION "substring" (gtype, gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME', 'gtype_substring_w_len';
+
+CREATE FUNCTION "substring" (gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME', 'gtype_substring';
+
+CREATE FUNCTION split (gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+RETURNS NULL ON NULL INPUT 
+AS 'MODULE_PATHNAME', 'gtype_split';
+
+CREATE FUNCTION replace (gtype, gtype, gtype) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE
+RETURNS NULL ON NULL INPUT
+AS 'MODULE_PATHNAME', 'gtype_replace';

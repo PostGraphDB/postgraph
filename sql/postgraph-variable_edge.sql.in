@@ -1,0 +1,233 @@
+/*
+ * Copyright (C) 2023 PostGraphDB
+ *  
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+--
+-- variable edge - equality operators (=, <>, >)
+--
+CREATE FUNCTION variable_edge_eq(variable_edge, variable_edge) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR = (
+  FUNCTION = variable_edge_eq,
+  LEFTARG = variable_edge,
+  RIGHTARG = variable_edge,
+  COMMUTATOR = =,
+  NEGATOR = <>,
+  RESTRICT = eqsel,
+  JOIN = eqjoinsel,
+  HASHES
+);
+
+CREATE FUNCTION variable_edge_ne(variable_edge, variable_edge) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <> (
+  FUNCTION = variable_edge_ne,
+  LEFTARG = variable_edge,
+  RIGHTARG = variable_edge,
+  COMMUTATOR = <>,
+  NEGATOR = =,
+  RESTRICT = neqsel,
+  JOIN = neqjoinsel,
+  HASHES
+);
+
+CREATE FUNCTION variable_edge_gt(variable_edge, variable_edge) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR > (
+  FUNCTION = variable_edge_gt,
+  LEFTARG = variable_edge,
+  RIGHTARG = variable_edge,
+  COMMUTATOR = >,
+  NEGATOR = <=,
+  RESTRICT = scalargtsel,
+  JOIN = scalargtjoinsel
+);
+
+CREATE FUNCTION variable_edge_ge(variable_edge, variable_edge) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR >= (
+  FUNCTION = variable_edge_ge,
+  LEFTARG = variable_edge,
+  RIGHTARG = variable_edge,
+  COMMUTATOR = >=,
+  NEGATOR = <,
+  RESTRICT = scalargesel,
+  JOIN = scalargejoinsel
+);
+
+
+CREATE FUNCTION variable_edge_lt(variable_edge, variable_edge) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR < (
+  FUNCTION = variable_edge_lt,
+  LEFTARG = variable_edge,
+  RIGHTARG = variable_edge,
+  COMMUTATOR = <,
+  NEGATOR = >=,
+  RESTRICT = scalarltsel,
+  JOIN = scalarltjoinsel
+);
+
+CREATE FUNCTION variable_edge_le(variable_edge, variable_edge) RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <= (
+  FUNCTION = variable_edge_le,
+  LEFTARG = variable_edge,
+  RIGHTARG = variable_edge,
+  COMMUTATOR = <=,
+  NEGATOR = >,
+  RESTRICT = scalarlesel,
+  JOIN = scalarlejoinsel
+);
+
+--
+-- edge - B-tree support functions
+--
+-- comparison support
+CREATE FUNCTION variable_edge_btree_cmp(variable_edge, variable_edge)
+RETURNS int
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+-- sort support
+CREATE FUNCTION variable_edge_btree_sort(internal)
+RETURNS void
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE AS 'MODULE_PATHNAME';
+
+--
+-- define operator classes for graphid
+--
+CREATE OPERATOR CLASS variable_edge_ops
+DEFAULT FOR TYPE variable_edge
+USING btree AS
+    OPERATOR 1 <,
+    OPERATOR 2 <=,
+    OPERATOR 3 =,
+    OPERATOR 4 >=,
+    OPERATOR 5 >,
+    FUNCTION 1 variable_edge_btree_cmp (variable_edge, variable_edge),
+    FUNCTION 2 variable_edge_btree_sort (internal);
+
+--  
+-- variable_edge containment operators (@>, @<, @@)
+--  
+CREATE FUNCTION edge_contained_in_variable_edge(edge, variable_edge)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR @> (
+  FUNCTION = edge_contained_in_variable_edge,
+  LEFTARG = edge,
+  RIGHTARG = variable_edge,
+  --COMMUTATOR = '<@',
+  RESTRICT = contsel,  
+  JOIN = contjoinsel
+);  
+    
+CREATE FUNCTION variable_edge_contains_edge(variable_edge, edge)
+RETURNS boolean 
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR <@ (
+  FUNCTION = variable_edge_contains_edge,
+  LEFTARG = variable_edge,
+  RIGHTARG = edge,
+  COMMUTATOR = '@>',
+  RESTRICT = contsel,
+  JOIN = contjoinsel 
+);  
+
+CREATE FUNCTION variable_edge_edges_overlap(variable_edge, variable_edge)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR && (
+  FUNCTION = variable_edge_edges_overlap,
+  LEFTARG = variable_edge,
+  RIGHTARG = variable_edge
+);
+
+--
+-- variable_edge functions
+--
+CREATE FUNCTION nodes(variable_edge) RETURNS vertex[]
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'variable_edge_nodes';
+
+CREATE FUNCTION relationships(variable_edge) RETURNS edge[]
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'variable_edge_edges';
+
+CREATE FUNCTION edges(variable_edge) RETURNS edge[]
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'variable_edge_edges';

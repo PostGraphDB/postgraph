@@ -1,0 +1,510 @@
+/*
+ * PostGraph
+ * Copyright (C) 2023 by PostGraph
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
+ * Portions Copyright (c) 2020-2023, Apache Software Foundation
+ * Portions Copyright (c) 2019-2020, Bitnine Global
+ */
+
+-- complain if script is sourced in psql, rather than via CREATE EXTENSION
+\echo Use "CREATE EXTENSION age" to load this file. \quit
+
+--
+-- catalog tables
+--
+CREATE TABLE ag_graph (
+    graphid oid NOT NULL, 
+    name name NOT NULL, 
+    namespace regnamespace NOT NULL
+);
+
+CREATE UNIQUE INDEX ag_graph_graphid_index 
+ON ag_graph 
+USING btree (graphid);
+
+CREATE UNIQUE INDEX ag_graph_name_index 
+ON ag_graph 
+USING btree (name);
+
+CREATE UNIQUE INDEX ag_graph_namespace_index 
+ON ag_graph 
+USING btree (namespace);
+
+-- 0 is an invalid label ID
+CREATE DOMAIN label_id
+AS int 
+NOT NULL 
+CHECK (VALUE > 0 AND VALUE <= 65535);
+
+CREATE DOMAIN label_kind 
+AS "char" 
+NOT NULL 
+CHECK (VALUE = 'v' OR VALUE = 'e');
+
+CREATE TABLE ag_label (
+    name name NOT NULL, 
+    graph oid NOT NULL, 
+    id label_id, 
+    kind label_kind, 
+    relation regclass NOT NULL, 
+    CONSTRAINT fk_graph_oid FOREIGN KEY(graph) REFERENCES ag_graph(graphid)
+);
+
+CREATE UNIQUE INDEX ag_label_name_graph_index 
+ON ag_label 
+USING btree (name, graph);
+
+CREATE UNIQUE INDEX ag_label_graph_oid_index 
+ON ag_label 
+USING btree (graph, id);
+
+CREATE UNIQUE INDEX ag_label_relation_index 
+ON ag_label 
+USING btree (relation);
+
+--
+-- catalog lookup functions
+--
+CREATE FUNCTION _label_id(graph_name name, label_name name) 
+RETURNS label_id 
+LANGUAGE c 
+STABLE 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+--
+-- utility functions
+--
+CREATE FUNCTION create_graph(graph_name name)
+RETURNS void 
+LANGUAGE c 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION create_graph_if_not_exists(graph_name name) 
+RETURNS void 
+LANGUAGE c 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION drop_graph(graph_name name, cascade boolean = false) 
+RETURNS void 
+LANGUAGE c 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION create_vlabel(graph_name name, label_name name) 
+RETURNS void 
+LANGUAGE c 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION create_elabel(graph_name name, label_name name) 
+RETURNS void 
+LANGUAGE c 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION alter_graph(graph_name name, operation cstring, new_value name) 
+RETURNS void 
+LANGUAGE c 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION drop_label(graph_name name, label_name name, force boolean = false) 
+RETURNS void 
+LANGUAGE c 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION create_ivfflat_l2_ops_index(graph_name name, label_name name, property_name name, dimensions int, lists int)
+RETURNS void
+LANGUAGE c
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION create_ivfflat_ip_ops_index(graph_name name, label_name name, property_name name, dimensions int, lists int)
+RETURNS void
+LANGUAGE c
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION create_unique_properties_constraint(graph_name name, label_name name)
+RETURNS void
+LANGUAGE c
+AS 'MODULE_PATHNAME';
+
+
+CREATE FUNCTION create_property_index(graph_name name, label_name name, property_name name, is_unique boolean = false)
+RETURNS void
+LANGUAGE c
+AS 'MODULE_PATHNAME';
+
+--
+-- graphid type
+--
+CREATE TYPE graphid;
+
+CREATE FUNCTION graphid_in(cstring) 
+RETURNS graphid 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION graphid_out(graphid) 
+RETURNS cstring 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+-- binary I/O functions
+CREATE FUNCTION graphid_send(graphid) 
+RETURNS bytea 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION graphid_recv(internal) 
+RETURNS graphid 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE TYPE graphid (
+    INPUT = graphid_in, 
+    OUTPUT = graphid_out, 
+    SEND = graphid_send, 
+    RECEIVE = graphid_recv, 
+    INTERNALLENGTH = 8, 
+    PASSEDBYVALUE, 
+    ALIGNMENT = float8, 
+    STORAGE = plain
+);
+
+--
+-- gtype type and its I/O Routines
+--
+CREATE TYPE gtype;
+
+CREATE FUNCTION gtype_in(cstring)
+RETURNS gtype
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION gtype_out(gtype) 
+RETURNS cstring 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+-- binary I/O functions
+CREATE FUNCTION gtype_send(gtype) 
+RETURNS bytea 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION gtype_recv(internal) 
+RETURNS gtype 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE TYPE gtype (
+    INPUT = gtype_in,
+    OUTPUT = gtype_out,
+    SEND = gtype_send,
+    RECEIVE = gtype_recv,
+    LIKE = jsonb,
+    STORAGE = extended
+);
+
+--
+-- vertex type and its I/O Routines
+--
+CREATE TYPE vertex;
+
+-- throws an error
+CREATE FUNCTION vertex_in(cstring)
+RETURNS vertex
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION vertex_out(vertex) 
+RETURNS cstring 
+LANGUAGE c 
+STABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION build_vertex(graphid, oid, gtype) 
+RETURNS vertex 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE TYPE vertex (INPUT = vertex_in, OUTPUT = vertex_out, LIKE = jsonb);
+
+--
+-- edge
+--
+CREATE TYPE edge;
+
+CREATE FUNCTION edge_in(cstring) 
+RETURNS edge 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION edge_out(edge) 
+RETURNS cstring 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION build_edge(graphid, graphid, graphid, oid, gtype) 
+RETURNS edge 
+LANGUAGE c 
+STABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE TYPE edge (INPUT = edge_in, OUTPUT = edge_out, LIKE = jsonb);
+
+
+--
+-- path
+--
+CREATE TYPE traversal;
+
+CREATE FUNCTION traversal_in(cstring) 
+RETURNS traversal 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION traversal_out(traversal) 
+RETURNS cstring 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION build_traversal(variadic "any") 
+RETURNS traversal 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE TYPE traversal (INPUT = traversal_in, OUTPUT = traversal_out, LIKE = jsonb);
+
+--
+-- partial traversal
+--
+CREATE TYPE variable_edge;
+
+CREATE FUNCTION variable_edge_in(cstring) 
+RETURNS variable_edge 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION variable_edge_out(variable_edge) 
+RETURNS cstring 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION build_variable_edge(variadic "any") 
+RETURNS variable_edge 
+LANGUAGE c 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE TYPE variable_edge (INPUT = variable_edge_in, OUTPUT = variable_edge_out, LIKE = jsonb);
+
+--
+-- Access Methods
+--
+
+CREATE FUNCTION ivfflathandler(internal) RETURNS index_am_handler AS 'MODULE_PATHNAME' LANGUAGE C;
+
+CREATE ACCESS METHOD ivfflat TYPE INDEX HANDLER ivfflathandler;
+
+COMMENT ON ACCESS METHOD ivfflat IS 'ivfflat index access method';
+
+
+--
+-- MATCH edge uniqueness
+--
+CREATE FUNCTION _ag_enforce_edge_uniqueness(VARIADIC "any")
+RETURNS bool 
+LANGUAGE c 
+IMMUTABLE 
+PARALLEL SAFE 
+RETURNS NULL ON NULL INPUT 
+as 'MODULE_PATHNAME';
+
+
+--
+-- There are times when the optimizer might eliminate
+-- functions we need. Wrap the function with this to
+-- prevent that from happening
+--
+CREATE FUNCTION gtype_volatile_wrapper(agt gtype) RETURNS gtype AS $return_value$
+BEGIN RETURN agt; END;
+$return_value$ LANGUAGE plpgsql
+VOLATILE
+CALLED ON NULL INPUT
+PARALLEL SAFE;
+
+CREATE FUNCTION gtype_volatile_wrapper(agt edge) RETURNS edge AS $return_value$
+BEGIN RETURN agt; END;
+$return_value$ LANGUAGE plpgsql
+VOLATILE
+CALLED ON NULL INPUT
+PARALLEL SAFE;
+
+CREATE FUNCTION gtype_volatile_wrapper(agt vertex) RETURNS vertex AS $return_value$
+BEGIN RETURN agt; END;
+$return_value$ LANGUAGE plpgsql
+VOLATILE
+CALLED ON NULL INPUT
+PARALLEL SAFE;
+
+CREATE FUNCTION gtype_volatile_wrapper(agt variable_edge) RETURNS variable_edge AS $return_value$
+BEGIN RETURN agt; END;
+$return_value$ LANGUAGE plpgsql
+VOLATILE
+CALLED ON NULL INPUT
+PARALLEL SAFE;
+
+CREATE FUNCTION gtype_volatile_wrapper(agt traversal) RETURNS traversal
+AS $return_value$
+BEGIN RETURN agt; END;
+$return_value$
+LANGUAGE plpgsql
+VOLATILE
+CALLED ON NULL INPUT
+PARALLEL SAFE;
+
+--
+-- functions for updating clauses
+--
+-- This function is defined as a VOLATILE function to prevent the optimizer
+-- from pulling up Query's for CREATE clauses.
+CREATE FUNCTION _cypher_create_clause(internal) RETURNS void LANGUAGE c AS 'MODULE_PATHNAME';
+CREATE FUNCTION _cypher_set_clause(internal)    RETURNS void LANGUAGE c AS 'MODULE_PATHNAME';
+CREATE FUNCTION _cypher_delete_clause(internal) RETURNS void LANGUAGE c AS 'MODULE_PATHNAME';
+CREATE FUNCTION _cypher_merge_clause(internal)  RETURNS void LANGUAGE c AS 'MODULE_PATHNAME';
+
+--
+-- query functions
+--
+CREATE FUNCTION cypher(graph_name name, query_string cstring, params gtype = NULL) 
+RETURNS SETOF record 
+LANGUAGE c 
+AS 'MODULE_PATHNAME';
+
+CREATE FUNCTION get_cypher_keywords(OUT word text, OUT catcode "char", OUT catdesc text) 
+RETURNS SETOF record 
+LANGUAGE c 
+STABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+COST 10 ROWS 60 
+AS 'MODULE_PATHNAME';
+
+--
+-- Unnest (UNWIND Clause) Functions
+--
+CREATE FUNCTION unnest (gtype, block_types boolean = false)
+RETURNS SETOF gtype
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_unnest';
+
+CREATE FUNCTION unnest (vertex[], block_types boolean = false)
+RETURNS SETOF vertex
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'vertex_unnest';
+
+CREATE FUNCTION unnest (edge[], block_types boolean = false)
+RETURNS SETOF edge
+LANGUAGE c
+IMMUTABLE
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME', 'edge_unnest';
+
+
+
+CREATE FUNCTION vle (IN gtype, IN vertex, IN vertex, IN gtype, IN gtype,
+                     IN gtype, IN gtype, IN gtype, OUT edges variable_edge)
+RETURNS SETOF variable_edge 
+LANGUAGE C 
+STABLE 
+CALLED ON NULL INPUT 
+PARALLEL UNSAFE 
+AS 'MODULE_PATHNAME', 'gtype_vle';
+
+CREATE FUNCTION match_vles(variable_edge, variable_edge) 
+RETURNS boolean 
+LANGUAGE C 
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT 
+PARALLEL SAFE 
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR !!= (FUNCTION = match_vles, LEFTARG = variable_edge, RIGHTARG = variable_edge);
+
+

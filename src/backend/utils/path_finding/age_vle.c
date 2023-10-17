@@ -372,11 +372,7 @@ static graphid get_next_vertex(path_finding_context *path_ctx, edge_entry *ee)
 }
 
 /*
- * find one path BETWEEN two vertices.
- *
- * Note: On the very first entry into this function, the starting vertex's edges
- * should have already been loaded into the edge queue (this should have been
- * done by the SRF initialization phase).
+ * find one path between two vertices.
  *
  * This function will always return on either a valid path found (true) or none
  * found (false). If one is found, the position (vertex & edge) will still be in
@@ -426,7 +422,7 @@ static bool dfs_find_a_path_between(path_finding_context *path_ctx)
             // now remove it from the edge queue 
             pop_graphid_queue(edge_queue);
 
-	    /*
+	        /*
              * Remove its source vertex, if we are looking at edges as
              * bi-directional. We only maintain the vertex queue when the
              * edge_direction is CYPHER_REL_DIR_NONE. This is to save space
@@ -650,9 +646,7 @@ static path_container *build_path_container(path_finding_context *path_ctx) {
     for (index = 1; index < vpc->graphid_array_size - 1; index += 2) {
         edge_entry *ee = get_edge_entry(path_ctx->ggctx, graphid_array[index]);
         
-	vid = (vid == get_start_id(ee)) ? get_end_id(ee) : get_start_id(ee);
-        
-	graphid_array[index+1] = vid;
+	    graphid_array[index+1] = (vid == get_start_id(ee)) ? get_end_id(ee) : get_start_id(ee);
     }
 
     // return the container 
@@ -667,8 +661,7 @@ static path_container *build_path_container(path_finding_context *path_ctx) {
  *     4 - gtype OPTIONAL lidx (lower range index)
  *     5 - gtype OPTIONAL uidx (upper range index)
  *     6 - gtype REQUIRED edge direction (enum) as an integer. REQUIRED
- 
-*/
+ */
 PG_FUNCTION_INFO_V1(gtype_vle);
 Datum gtype_vle(PG_FUNCTION_ARGS) {
     FuncCallContext *funcctx;
@@ -688,7 +681,6 @@ Datum gtype_vle(PG_FUNCTION_ARGS) {
 
         //if (((path_finding_context *)funcctx->user_fctx)->lidx == 0)
           //  SRF_RETURN_NEXT(funcctx, PointerGetDatum(build_path_container(funcctx->user_fctx)));
-
           //  SRF_RETURN_NEXT(funcctx, PointerGetDatum(gtype_value_to_gtype(agtv_materialize_vle_path(build_path_container(funcctx->user_fctx)))));
 
     }
@@ -802,8 +794,7 @@ Datum _ag_enforce_edge_uniqueness(PG_FUNCTION_ARGS) {
     for (int i = 0; i < nargs; i++) {
 
         if (nulls[i])
-             ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                      errmsg("_ag_enforce_edge_uniqueness argument %d must not be NULL", i)));
+            continue;
 
         if (types[i] == GRAPHIDOID) {
             graphid edge_id = DatumGetInt64(args[i]);
@@ -819,7 +810,7 @@ Datum _ag_enforce_edge_uniqueness(PG_FUNCTION_ARGS) {
 
             continue;
         }
-	else if (types[i] == VARIABLEEDGEOID) {
+	    else if (types[i] == VARIABLEEDGEOID) {
             VariableEdge *ve = DATUM_GET_VARIABLE_EDGE(args[i]);
             char *ptr = &ve->children[1];
             for (int i = 0; i < ve->children[0]; i++, ptr = ptr + VARSIZE(ptr)) {
@@ -833,10 +824,9 @@ Datum _ag_enforce_edge_uniqueness(PG_FUNCTION_ARGS) {
                     (int64 *)hash_search(exists_hash, (void *)&i, HASH_ENTER, &found);
                     if (found)
                         PG_RETURN_BOOL(false);
-	        }
+	            }
             }
-
-	}
+	   }
     }
 
     PG_RETURN_BOOL(true);

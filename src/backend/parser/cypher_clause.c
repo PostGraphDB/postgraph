@@ -266,8 +266,8 @@ static Query *transform_cypher_union(cypher_parsestate *cpstate, cypher_clause *
     int leftmostRTI;
     Query *leftmostQuery;
     SetOperationStmt *cypher_union_statement;
-    Node *skip = NULL; /* equivalent to postgres limitOffset */
-    Node *limit = NULL; /* equivalent to postgres limitCount */
+    Node *skip = NULL; // equivalent to postgres limitOffset 
+    Node *limit = NULL; // equivalent to postgres limitCount 
     List *order_by = NIL;
     Node *node;
     cypher_return *self = (cypher_return *)clause->self;
@@ -381,14 +381,14 @@ static Query *transform_cypher_union(cypher_parsestate *cpstate, cypher_clause *
     sv_namespace = pstate->p_namespace;
     pstate->p_namespace = NIL;
 
-    /* add jrte to column namespace only */
+    // add jrte to column namespace only 
     addNSItemToQuery(pstate, nsitem, false, false, true);
 
     tllen = list_length(qry->targetList);
 
     qry->sortClause = transformSortClause(pstate, order_by, &qry->targetList, EXPR_KIND_ORDER_BY, false);
 
-    /* restore namespace, remove jrte from rtable */
+    // restore namespace, remove jrte from rtable 
     pstate->p_namespace = sv_namespace;
     pstate->p_rtable = list_truncate(pstate->p_rtable, sv_rtable_length);
 
@@ -407,7 +407,7 @@ static Query *transform_cypher_union(cypher_parsestate *cpstate, cypher_clause *
 
     assign_query_collations(pstate, qry);
 
-    /* this must be done after collations, for reliable comparison of exprs */
+    // this must be done after collations, for reliable comparison of exprs 
     if (pstate->p_hasAggs || qry->groupClause || qry->groupingSets || qry->havingQual)
         parse_check_aggregates(pstate, qry);
 
@@ -439,7 +439,7 @@ transform_cypher_union_tree(cypher_parsestate *cpstate, cypher_clause *clause, b
     cypher_return *cmp;
     ParseNamespaceItem *pnsi;
 
-    /* Guard against queue overflow due to overly complex set-expressions */
+    // Guard against queue overflow due to overly complex set-expressions 
     check_stack_depth();
 
     if (IsA(clause, List))
@@ -468,7 +468,7 @@ transform_cypher_union_tree(cypher_parsestate *cpstate, cypher_clause *clause, b
     }
 
     if (isLeaf) {
-        /*process leaf return */
+        //process leaf return 
         Query *returnQuery;
         char returnName[32];
         RangeTblEntry *rte PG_USED_FOR_ASSERTS_ONLY;
@@ -529,14 +529,14 @@ transform_cypher_union_tree(cypher_parsestate *cpstate, cypher_clause *clause, b
         pnsi = addRangeTableEntryForSubquery(pstate, returnQuery, makeAlias(returnName, NIL), false, false);
         rte = pnsi->p_rte;
         rtr = makeNode(RangeTblRef);
-        /* assume new rte is at end */
+        // assume new rte is at end 
         rtr->rtindex = list_length(pstate->p_rtable);
         Assert(rte == rt_fetch(rtr->rtindex, pstate->p_rtable));
         return (Node *) rtr;
     }
-    else /*is not a leaf */
+    else //is not a leaf 
     {
-        /* Process an internal node (set operation node) */
+        // Process an internal node (set operation node) 
         SetOperationStmt *op = makeNode(SetOperationStmt);
         List *ltargetlist;
         List *rtargetlist;
@@ -603,10 +603,10 @@ transform_cypher_union_tree(cypher_parsestate *cpstate, cypher_clause *clause, b
             int32 rescoltypmod;
             Oid rescolcoll;
 
-            /* select common type, same as CASE et al */
+            // select common type, same as CASE et al 
             rescoltype = select_common_type(pstate, list_make2(lcolnode, rcolnode), context, &bestexpr);
             bestlocation = exprLocation(bestexpr);
-            /* if same type and same typmod, use typmod; else default */
+            // if same type and same typmod, use typmod; else default 
             if (lcoltype == rcoltype && lcoltypmod == rcoltypmod)
                 rescoltypmod = lcoltypmod;
             else
@@ -661,7 +661,7 @@ transform_cypher_union_tree(cypher_parsestate *cpstate, cypher_clause *clause, b
             rescolcoll = select_common_collation(pstate, list_make2(lcolnode, rcolnode),
                                                  (op->op == SETOP_UNION && op->all));
 
-            /* emit results */
+            // emit results 
             op->colTypes = lappend_oid(op->colTypes, rescoltype);
             op->colTypmods = lappend_int(op->colTypmods, rescoltypmod);
             op->colCollations = lappend_oid(op->colCollations, rescolcoll);
@@ -690,11 +690,11 @@ transform_cypher_union_tree(cypher_parsestate *cpstate, cypher_clause *clause, b
                 get_sort_group_operators(rescoltype, false, true, false, &sortop, &eqop, NULL, NULL);
                 cancel_parser_errposition_callback(&pcbstate);
 
-                /* we don't have a tlist yet, so can't assign sortgrouprefs */
+                // we don't have a tlist yet, so can't assign sortgrouprefs 
                 grpcl->tleSortGroupRef = 0;
                 grpcl->eqop = eqop;
                 grpcl->sortop = sortop;
-                grpcl->nulls_first = false; /* OK with or without sortop */
+                grpcl->nulls_first = false; // OK with or without sortop 
                 grpcl->hashable = hashable;
 
                 op->groupClauses = lappend(op->groupClauses, grpcl);
@@ -1158,7 +1158,7 @@ cypher_update_information *transform_cypher_set_item_list(cypher_parsestate *cps
 }
 
 static Node *flatten_grouping_sets(Node *expr, bool toplevel, bool *hasGroupingSets) {
-    /* just in case of pathological input */
+    // just in case of pathological input 
     check_stack_depth();
 
     if (expr == (Node *) NIL)
@@ -1204,18 +1204,18 @@ static Node *flatten_grouping_sets(Node *expr, bool toplevel, bool *hasGroupingS
     return expr;
 }
 
-/* from PG's addTargetToGroupList */
+// from PG's addTargetToGroupList 
 static List *add_target_to_group_list(cypher_parsestate *cpstate, TargetEntry *tle, List *grouplist, List *targetlist, int location) {
     ParseState *pstate = &cpstate->pstate;
     Oid restype = exprType((Node *) tle->expr);
 
-    /* if tlist item is an UNKNOWN literal, change it to TEXT */
+    // if tlist item is an UNKNOWN literal, change it to TEXT 
     if (restype == UNKNOWNOID) {
         tle->expr = (Expr *) coerce_type(pstate, (Node *) tle->expr, restype, GTYPEOID, -1, COERCION_IMPLICIT, COERCE_IMPLICIT_CAST, -1);
         restype = GTYPEOID;
     }
 
-    /* avoid making duplicate grouplist entries */
+    // avoid making duplicate grouplist entries 
     if (!targetIsInSortList(tle, InvalidOid, grouplist)) {
         SortGroupClause *grpcl = makeNode(SortGroupClause);
         Oid sortop;
@@ -1223,7 +1223,7 @@ static List *add_target_to_group_list(cypher_parsestate *cpstate, TargetEntry *t
         bool hashable;
         ParseCallbackState pcbstate;
 
-        /* determine the eqop and optional sortop */
+        // determine the eqop and optional sortop 
         setup_parser_errposition_callback(&pcbstate, pstate, location);
 	get_sort_group_operators(restype, false, true, false, &sortop, &eqop, NULL, &hashable);
         cancel_parser_errposition_callback(&pcbstate);
@@ -1231,7 +1231,7 @@ static List *add_target_to_group_list(cypher_parsestate *cpstate, TargetEntry *t
         grpcl->tleSortGroupRef = assignSortGroupRef(tle, targetlist);
         grpcl->eqop = eqop;
         grpcl->sortop = sortop;
-        grpcl->nulls_first = false; /* OK with or without sortop */
+        grpcl->nulls_first = false; // OK with or without sortop 
         grpcl->hashable = hashable;
 
         grouplist = lappend(grouplist, grpcl);
@@ -1240,7 +1240,7 @@ static List *add_target_to_group_list(cypher_parsestate *cpstate, TargetEntry *t
     return grouplist;
 }
 
-/* from PG's transformGroupClauseExpr */
+// from PG's transformGroupClauseExpr 
 static Index transform_group_clause_expr(List **flatresult, Bitmapset *seen_local, cypher_parsestate *cpstate, Node *gexpr, List **targetlist, List *sortClause, ParseExprKind exprKind, bool toplevel) {
     TargetEntry *tle = NULL;
     bool found = false;
@@ -1309,7 +1309,7 @@ static Index transform_group_clause_expr(List **flatresult, Bitmapset *seen_loca
     if (!found)
         *flatresult = add_target_to_group_list(cpstate, tle, *flatresult, *targetlist, exprLocation(gexpr));
 
-    /* _something_ must have assigned us a sortgroupref by now... */
+    // _something_ must have assigned us a sortgroupref by now... 
 
     return tle->ressortgroupref;
 }
@@ -1398,7 +1398,7 @@ static Query *transform_cypher_return(cypher_parsestate *cpstate, cypher_clause 
 
     assign_query_collations(pstate, query);
 
-    /* this must be done after collations, for reliable comparison of exprs */
+    // this must be done after collations, for reliable comparison of exprs 
     if (pstate->p_hasAggs || query->groupClause || query->groupingSets || query->havingQual)
         parse_check_aggregates(pstate, query);
 
@@ -1665,7 +1665,7 @@ static RangeTblEntry *transform_cypher_optional_match_clause(cypher_parsestate *
 
     pstate->p_joinlist = lappend(pstate->p_joinlist, j);
 
-    /* add jrte to column namespace only */
+    // add jrte to column namespace only 
     addNSItemToQuery(pstate, jnsitem, false, false, true);
 
     return jnsitem->p_rte;
@@ -1756,7 +1756,7 @@ static List *makeTargetListFromPNSItem(ParseState *pstate, ParseNamespaceItem *p
     Assert(pnsi->p_rte);
     rte = pnsi->p_rte;
 
-    /* right now this is only for subqueries */
+    // right now this is only for subqueries 
     AssertArg(rte->rtekind == RTE_SUBQUERY);
 
     rtindex = pnsi->p_rtindex;
@@ -1774,7 +1774,7 @@ static List *makeTargetListFromPNSItem(ParseState *pstate, ParseNamespaceItem *p
 
         Assert(varattno == te->resno);
 
-        /* no transform here, just use `te->expr` */
+        // no transform here, just use `te->expr` 
         varnode = makeVar(rtindex, varattno, exprType((Node *) te->expr), exprTypmod((Node *) te->expr),
                           exprCollation((Node *) te->expr), 0);
 
@@ -1806,17 +1806,17 @@ static Query *transform_cypher_sub_pattern(cypher_parsestate *cpstate, cypher_cl
     p_child_parse_state->p_expr_kind = pstate->p_expr_kind;
 
 
-    /* create a cypher match node and assign it the sub pattern */
+    // create a cypher match node and assign it the sub pattern 
     match = make_ag_node(cypher_match);
     match->pattern = subpat->pattern;
     match->where = NULL;
-    /* wrap it in a clause */
+    // wrap it in a clause 
     c = palloc(sizeof(cypher_clause));
     c->self = (Node *)match;
     c->prev = NULL;
     c->next = NULL;
 
-    /* set up a select query and run it as a sub query to the parent match */
+    // set up a select query and run it as a sub query to the parent match 
     qry = makeNode(Query);
     qry->commandType = CMD_SELECT;
 
@@ -1829,7 +1829,7 @@ static Query *transform_cypher_sub_pattern(cypher_parsestate *cpstate, cypher_cl
     qry->rtable = p_child_parse_state->p_rtable;
     qry->jointree = makeFromExpr(p_child_parse_state->p_joinlist, NULL);
 
-    /* the state will be destroyed so copy the data we need */
+    // the state will be destroyed so copy the data we need 
     qry->hasSubLinks = p_child_parse_state->p_hasSubLinks;
     qry->hasTargetSRFs = p_child_parse_state->p_hasTargetSRFs;
     qry->hasAggs = p_child_parse_state->p_hasAggs;
@@ -1961,12 +1961,12 @@ static transform_entity *handle_vertex(cypher_parsestate *cpstate, Query *query,
             node->name = get_next_default_alias(cpstate);
     }
 
-    /* transform vertex */
+    // transform vertex 
     expr = transform_cypher_node(cpstate, node, &query->targetList, INCLUDE_NODE_IN_JOIN_TREE(path, node));
 
     entity = make_transform_entity(cpstate, ENT_VERTEX, (Node *)node, expr);
 
-    /* transform properties if they exist */
+    // transform properties if they exist 
     if (node->props)
     {
         Node *n = NULL;
@@ -2081,7 +2081,7 @@ static ParseNamespaceItem *transform_RangeFunction(cypher_parsestate *cpstate, R
     Assert(!pstate->p_lateral_active);
     pstate->p_lateral_active = true;
 
-    /* transform the raw expressions */
+    // transform the raw expressions 
     foreach(lc, r->functions)
     {
         List *pair = (List*)lfirst(lc);
@@ -2090,18 +2090,18 @@ static ParseNamespaceItem *transform_RangeFunction(cypher_parsestate *cpstate, R
         Node *newfexpr;
         Node *last_srf;
 
-        /* Disassemble the function-call/column-def-list pairs */
+        // Disassemble the function-call/column-def-list pairs 
         Assert(list_length(pair) == 2);
         fexpr = (Node*) linitial(pair);
         coldeflist = (List*) lsecond(pair);
 
-        /* normal case ... */
+        // normal case ... 
         last_srf = pstate->p_last_srf;
 
-        /* transform the function expression */
+        // transform the function expression 
         newfexpr = transform_cypher_expr(cpstate, fexpr, EXPR_KIND_FROM_FUNCTION);
 
-        /* nodeFunctionscan.c requires SRFs to be at top level */
+        // nodeFunctionscan.c requires SRFs to be at top level 
         if (pstate->p_last_srf != last_srf && pstate->p_last_srf != newfexpr)
             ereport(ERROR,
                     (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
@@ -2128,13 +2128,13 @@ static ParseNamespaceItem *transform_RangeFunction(cypher_parsestate *cpstate, R
      */
     assign_list_collations(pstate, funcexprs);
 
-    /* currently this is not used by the VLE */
+    // currently this is not used by the VLE 
     Assert(r->coldeflist == NULL);
 
-    /* mark the RTE as LATERAL */
+    // mark the RTE as LATERAL 
     is_lateral = r->lateral || contain_vars_of_level((Node *) funcexprs, 0);
 
-    /* build an RTE for the function */
+    // build an RTE for the function 
     pnsi = addRangeTableEntryForFunction(pstate, funcnames, funcexprs, coldeflists, r, is_lateral, true);
 
     return pnsi;
@@ -3078,7 +3078,7 @@ static Expr *transform_cypher_node(cypher_parsestate *cpstate, cypher_node *node
 
     expr = (Expr *)make_vertex_expr(cpstate, pnsi);
 
-    /* make target entry and add it */
+    // make target entry and add it 
     te = makeTargetEntry(expr, resno, node->name, false);
     *target_list = lappend(*target_list, te);
 
@@ -4071,7 +4071,7 @@ transform_merge_make_lateral_join(cypher_parsestate *cpstate, Query *query, cyph
 
     pstate->p_expr_kind = tmp;
 
-    /* add jnsitem to column namespace only */
+    // add jnsitem to column namespace only 
     addNSItemToQuery(pstate, jnsitem, false, true, true);
 
     /*
