@@ -92,6 +92,93 @@ Datum convert_to_scalar(coearce_function func, gtype *agt, char *type) {
     return d;
 }
 
+Datum integer_to_gtype(int64 i) {
+    gtype_value agtv;
+    gtype *agt;
+
+    agtv.type = AGTV_INTEGER;
+    agtv.val.int_value = i;
+    agt = gtype_value_to_gtype(&agtv);
+
+    return GTYPE_P_GET_DATUM(agt);
+}
+
+Datum float_to_gtype(float8 f) {
+    gtype_value agtv;
+    gtype *agt;
+
+    agtv.type = AGTV_FLOAT;
+    agtv.val.float_value = f;
+    agt = gtype_value_to_gtype(&agtv);
+
+    return GTYPE_P_GET_DATUM(agt);
+}
+
+/*
+ * s must be a UTF-8 encoded, unescaped, and null-terminated string which is
+ * a valid string for internal storage of gtype.
+ */
+Datum string_to_gtype(char *s) {
+    gtype_value agtv;
+    gtype *agt;
+
+    agtv.type = AGTV_STRING;
+    agtv.val.string.len = check_string_length(strlen(s));
+    agtv.val.string.val = s;
+    agt = gtype_value_to_gtype(&agtv);
+
+    return GTYPE_P_GET_DATUM(agt);
+}
+
+Datum boolean_to_gtype(bool b) {
+    gtype_value agtv;
+    gtype *agt;
+
+    agtv.type = AGTV_BOOL;
+    agtv.val.boolean = b;
+    agt = gtype_value_to_gtype(&agtv);
+
+    return GTYPE_P_GET_DATUM(agt);
+}
+
+/*
+ * Extract scalar value from raw-scalar pseudo-array gtype.
+ */
+static bool gtype_extract_scalar(gtype_container *agtc, gtype_value *res)
+{
+    gtype_iterator *it;
+    gtype_iterator_token tok PG_USED_FOR_ASSERTS_ONLY;
+    gtype_value tmp;
+
+    if (!GTYPE_CONTAINER_IS_ARRAY(agtc) || !GTYPE_CONTAINER_IS_SCALAR(agtc))
+    {
+        // inform caller about actual type of container 
+        res->type = GTYPE_CONTAINER_IS_ARRAY(agtc) ? AGTV_ARRAY : AGTV_OBJECT;
+        return false;
+    }
+
+    /*
+     * A root scalar is stored as an array of one element, so we get the array
+     * and then its first (and only) member.
+     */
+    it = gtype_iterator_init(agtc);
+
+    tok = gtype_iterator_next(&it, &tmp, true);
+    Assert(tok == WGT_BEGIN_ARRAY);
+    Assert(tmp.val.array.num_elems == 1 && tmp.val.array.raw_scalar);
+
+    tok = gtype_iterator_next(&it, res, true);
+    Assert(tok == WGT_ELEM);
+    Assert(IS_A_GTYPE_SCALAR(res));
+
+    tok = gtype_iterator_next(&it, &tmp, true);
+    Assert(tok == WGT_END_ARRAY);
+
+    tok = gtype_iterator_next(&it, &tmp, true);
+    Assert(tok == WGT_DONE);
+
+    return true;
+}
 
 /*
  * gtype to and from graphid
@@ -773,6 +860,23 @@ gtype_to_text(PG_FUNCTION_ARGS) {
     PG_RETURN_DATUM(d);
 }
 
+PG_FUNCTION_INFO_V1(gtype_to_bool);
+/*
+ * Cast gtype to boolean
+ */
+Datum gtype_to_bool(PG_FUNCTION_ARGS)
+{
+    gtype *gtype_in = AG_GET_ARG_GTYPE_P(0);
+    gtype_value agtv;
+
+    if (!gtype_extract_scalar(&gtype_in->root, &agtv) || agtv.type != AGTV_BOOL)
+        cannot_cast_gtype_value(agtv.type, "boolean");
+
+    PG_FREE_IF_COPY(gtype_in, 0);
+
+    PG_RETURN_BOOL(agtv.val.boolean);
+}
+
 PG_FUNCTION_INFO_V1(gtype_to_inet);
 // gtype -> inet
 Datum
@@ -850,6 +954,28 @@ gtype_to_box2d(PG_FUNCTION_ARGS) {
 /*
  * Postgres types to gtype
  */
+
+PG_FUNCTION_INFO_V1(bool_to_gtype);
+// boolean -> gtype
+Datum
+bool_to_gtype(PG_FUNCTION_ARGS) {
+    return boolean_to_gtype(PG_GETARG_BOOL(0));
+}
+
+PG_FUNCTION_INFO_V1(float8_to_gtype);
+// float8 -> gtype
+Datum
+float8_to_gtype(PG_FUNCTION_ARGS) {
+    return float_to_gtype(PG_GETARG_FLOAT8(0));
+}
+
+PG_FUNCTION_INFO_V1(int8_to_gtype);
+// int8 -> gtype.
+Datum
+int8_to_gtype(PG_FUNCTION_ARGS) {
+    return integer_to_gtype(PG_GETARG_INT64(0));
+}
+
 PG_FUNCTION_INFO_V1(text_to_gtype);
 //text -> gtype
 Datum

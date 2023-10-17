@@ -70,29 +70,29 @@
 #include "utils/graphid.h"
 #include "utils/numeric.h"
 
-/* State structure for Percentile aggregate functions */
+// State structure for Percentile aggregate functions 
 typedef struct PercentileGroupAggState
 {
-    /* percentile value */
+    // percentile value 
     float8 percentile;
-    /* Sort object we're accumulating data in: */
+    // Sort object we're accumulating data in: 
     Tuplesortstate *sortstate;
-    /* Number of normal rows inserted into sortstate: */
+    // Number of normal rows inserted into sortstate: 
     int64 number_of_rows;
-    /* Have we already done tuplesort_performsort? */
+    // Have we already done tuplesort_performsort? 
     bool sort_done;
 } PercentileGroupAggState;
 
-typedef enum /* type categories for datum_to_gtype */
+typedef enum // type categories for datum_to_gtype 
 {
-    AGT_TYPE_NULL, /* null, so we didn't bother to identify */
-    AGT_TYPE_BOOL, /* boolean (built-in types only) */
-    AGT_TYPE_INTEGER, /* Cypher Integer type */
-    AGT_TYPE_FLOAT, /* Cypher Float type */
-    AGT_TYPE_NUMERIC, /* numeric (ditto) */
-    AGT_TYPE_DATE, /* we use special formatting for datetimes */
-    AGT_TYPE_TIMESTAMP, /* we use special formatting for timestamp */
-    AGT_TYPE_TIMESTAMPTZ, /* ... and timestamptz */
+    AGT_TYPE_NULL, // null, so we didn't bother to identify 
+    AGT_TYPE_BOOL, // boolean (built-in types only) 
+    AGT_TYPE_INTEGER, // Cypher Integer type 
+    AGT_TYPE_FLOAT, // Cypher Float type 
+    AGT_TYPE_NUMERIC, // numeric (ditto) 
+    AGT_TYPE_DATE, // we use special formatting for datetimes 
+    AGT_TYPE_TIMESTAMP, // we use special formatting for timestamp 
+    AGT_TYPE_TIMESTAMPTZ, // ... and timestamptz 
     AGT_TYPE_TIME,
     AGT_TYPE_TIMETZ,
     AGT_TYPE_INTERVAL,
@@ -101,14 +101,14 @@ typedef enum /* type categories for datum_to_gtype */
     AGT_TYPE_CIDR,
     AGT_TYPE_MAC,
     AGT_TYPE_MAC8,
-    AGT_TYPE_GTYPE, /* GTYPE */
-    AGT_TYPE_JSON, /* JSON */
-    AGT_TYPE_JSONB, /* JSONB */
-    AGT_TYPE_ARRAY, /* array */
-    AGT_TYPE_COMPOSITE, /* composite */
-    AGT_TYPE_JSONCAST, /* something with an explicit cast to JSON */
+    AGT_TYPE_GTYPE, // GTYPE 
+    AGT_TYPE_JSON, // JSON 
+    AGT_TYPE_JSONB, // JSONB 
+    AGT_TYPE_ARRAY, // array 
+    AGT_TYPE_COMPOSITE, // composite 
+    AGT_TYPE_JSONCAST, // something with an explicit cast to JSON 
     AGT_TYPE_VERTEX,
-    AGT_TYPE_OTHER /* all else */
+    AGT_TYPE_OTHER // all else 
 } agt_type_category;
 
 size_t check_string_length(size_t len);
@@ -129,11 +129,8 @@ static void datum_to_gtype(Datum val, bool is_null, gtype_in_state *result, agt_
 static char *gtype_to_cstring_worker(StringInfo out, gtype_container *in, int estimated_len, bool indent);
 static text *gtype_value_to_text(gtype_value *scalar_val, bool err_not_scalar);
 static void add_indent(StringInfo out, bool indent, int level);
-static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqltype);
-static bool gtype_extract_scalar(gtype_container *agtc, gtype_value *res);
 static gtype_value *execute_array_access_operator_internal(gtype *array, int64 array_index);
 static gtype_iterator *get_next_object_key(gtype_iterator *it, gtype_container *agtc, gtype_value *key);
-gtype_value *gtype_composite_to_gtype_value_binary(gtype *a);
 static Datum process_access_operator_result(FunctionCallInfo fcinfo, gtype_value *agtv, bool as_text);
 static Datum process_access_operator_result(FunctionCallInfo fcinfo, gtype_value *agtv, bool as_text);
 Datum gtype_array_element_impl(FunctionCallInfo fcinfo, gtype *gtype_in, int element, bool as_text);
@@ -162,7 +159,7 @@ Datum gtype_build_map_noargs(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(result.res));
 }    
 
-/* fast helper function to test for AGTV_NULL in an gtype */
+// fast helper function to test for AGTV_NULL in an gtype 
 bool is_gtype_null(gtype *agt_arg)
 {
     gtype_container *agtc = &agt_arg->root;
@@ -291,7 +288,7 @@ Datum gtype_from_cstring(char *str, int len)
 
     parse_gtype(lex, &sem);
 
-    /* after parsing, the item member has the composed gtype structure */
+    // after parsing, the item member has the composed gtype structure 
     PG_RETURN_POINTER(gtype_value_to_gtype(state.res));
 }
 
@@ -679,13 +676,13 @@ static void gtype_in_scalar(void *pstate, char *token, gtype_token_type tokentyp
         v.type = AGTV_NULL;
         break;
     default:
-        /* should not be possible */
+        // should not be possible 
         elog(ERROR, "invalid gtype token type");
         break;
     }
 
     if (_state->parse_state == NULL) {
-        /* single scalar */
+        // single scalar 
         gtype_value va;
 
         va.type = AGTV_ARRAY;
@@ -746,7 +743,7 @@ static char *gtype_to_cstring_worker(StringInfo out, gtype_container *in, int es
     int level = 0;
     bool redo_switch = false;
 
-    /* If we are indenting, don't add a space after a comma */
+    // If we are indenting, don't add a space after a comma 
     int ispaces = indent ? 1 : 2;
 
     /*
@@ -812,7 +809,7 @@ static char *gtype_to_cstring_worker(StringInfo out, gtype_container *in, int es
 
             add_indent(out, use_indent, level);
 
-            /* gtype rules guarantee this is a string */
+            // gtype rules guarantee this is a string 
             gtype_put_escaped_value(out, &v);
             appendBinaryStringInfo(out, ": ", 2);
 
@@ -918,55 +915,6 @@ static void add_indent(StringInfo out, bool indent, int level) {
     }
 }
 
-Datum integer_to_gtype(int64 i) {
-    gtype_value agtv;
-    gtype *agt;
-
-    agtv.type = AGTV_INTEGER;
-    agtv.val.int_value = i;
-    agt = gtype_value_to_gtype(&agtv);
-
-    return GTYPE_P_GET_DATUM(agt);
-}
-
-Datum float_to_gtype(float8 f) {
-    gtype_value agtv;
-    gtype *agt;
-
-    agtv.type = AGTV_FLOAT;
-    agtv.val.float_value = f;
-    agt = gtype_value_to_gtype(&agtv);
-
-    return GTYPE_P_GET_DATUM(agt);
-}
-
-/*
- * s must be a UTF-8 encoded, unescaped, and null-terminated string which is
- * a valid string for internal storage of gtype.
- */
-Datum string_to_gtype(char *s) {
-    gtype_value agtv;
-    gtype *agt;
-
-    agtv.type = AGTV_STRING;
-    agtv.val.string.len = check_string_length(strlen(s));
-    agtv.val.string.val = s;
-    agt = gtype_value_to_gtype(&agtv);
-
-    return GTYPE_P_GET_DATUM(agt);
-}
-
-Datum boolean_to_gtype(bool b) {
-    gtype_value agtv;
-    gtype *agt;
-
-    agtv.type = AGTV_BOOL;
-    agtv.val.boolean = b;
-    agt = gtype_value_to_gtype(&agtv);
-
-    return GTYPE_P_GET_DATUM(agt);
-}
-
 /*
  * Determine how we want to render values of a given type in datum_to_gtype.
  *
@@ -977,7 +925,7 @@ Datum boolean_to_gtype(bool b) {
 static void gtype_categorize_type(Oid typoid, agt_type_category *tcategory, Oid *outfuncoid) {
     bool typisvarlena;
 
-    /* Look through any domain */
+    // Look through any domain 
     typoid = getBaseType(typoid);
 
     *outfuncoid = InvalidOid;
@@ -1054,18 +1002,18 @@ static void gtype_categorize_type(Oid typoid, agt_type_category *tcategory, Oid 
         break;
 
     default:
-        /* Check for arrays and composites */
+        // Check for arrays and composites 
         if (typoid == GTYPEOID) {
             *tcategory = AGT_TYPE_GTYPE;
         } else if (OidIsValid(get_element_type(typoid)) || typoid == ANYARRAYOID || typoid == RECORDARRAYOID) {
             *tcategory = AGT_TYPE_ARRAY;
-        } else if (type_is_rowtype(typoid)) /* includes RECORDOID */ {
+        } else if (type_is_rowtype(typoid)) {// includes RECORDOID  {
             *tcategory = AGT_TYPE_COMPOSITE;
         } else if (typoid == GRAPHIDOID) {
             getTypeOutputInfo(typoid, outfuncoid, &typisvarlena);
             *tcategory = AGT_TYPE_INTEGER;
         } else {
-            /* It's probably the general case ... */
+            // It's probably the general case ... 
             *tcategory = AGT_TYPE_OTHER;
 
             /*
@@ -1081,11 +1029,11 @@ static void gtype_categorize_type(Oid typoid, agt_type_category *tcategory, Oid 
                     *tcategory = AGT_TYPE_JSONCAST;
                     *outfuncoid = castfunc;
                 } else {
-                    /* not a cast type, so just get the usual output func */
+                    // not a cast type, so just get the usual output func 
                     getTypeOutputInfo(typoid, outfuncoid, &typisvarlena);
                 }
             } else {
-                /* any other builtin type */
+                // any other builtin type 
                 getTypeOutputInfo(typoid, outfuncoid, &typisvarlena);
             }
             break;
@@ -1110,7 +1058,7 @@ static void datum_to_gtype(Datum val, bool is_null, gtype_in_state *result, agt_
 
     check_stack_depth();
 
-    /* Convert val to an gtype_value in agtv (in most cases) */
+    // Convert val to an gtype_value in agtv (in most cases) 
     if (is_null) {
         Assert(!key_scalar);
         agtv.type = AGTV_NULL;
@@ -1171,7 +1119,7 @@ static void datum_to_gtype(Datum val, bool is_null, gtype_in_state *result, agt_
         case AGT_TYPE_NUMERIC:
             outputstr = OidOutputFunctionCall(outfuncoid, val);
             if (key_scalar) {
-                /* always quote keys */
+                // always quote keys 
                 agtv.type = AGTV_STRING;
                 agtv.val.string.len = strlen(outputstr);
                 agtv.val.string.val = outputstr;
@@ -1305,12 +1253,12 @@ static void datum_to_gtype(Datum val, bool is_null, gtype_in_state *result, agt_
         }
     }
 
-    /* Now insert agtv into result, unless we did it recursively */
+    // Now insert agtv into result, unless we did it recursively 
     if (!is_null && !scalar_gtype && tcategory >= AGT_TYPE_GTYPE && tcategory <= AGT_TYPE_JSONCAST) {
-        /* work has been done recursively */
+        // work has been done recursively 
         return;
     } else if (result->parse_state == NULL) {
-        /* single root scalar */
+        // single root scalar 
         gtype_value va;
 
         va.type = AGTV_ARRAY;
@@ -1419,12 +1367,12 @@ static void composite_to_gtype(Datum composite, gtype_in_state *result)
 
     td = DatumGetHeapTupleHeader(composite);
 
-    /* Extract rowtype info and find a tupdesc */
+    // Extract rowtype info and find a tupdesc 
     tup_type = HeapTupleHeaderGetTypeId(td);
     tup_typmod = HeapTupleHeaderGetTypMod(td);
     tupdesc = lookup_rowtype_tupdesc(tup_type, tup_typmod);
 
-    /* Build a temporary HeapTuple control structure */
+    // Build a temporary HeapTuple control structure 
     tmptup.t_len = HeapTupleHeaderGetDatumLength(td);
     tmptup.t_data = td;
     tuple = &tmptup;
@@ -1527,7 +1475,7 @@ Datum gtype_build_map(PG_FUNCTION_ARGS)
     bool *nulls;
     Oid *types;
 
-    /* build argument values to build the object */
+    // build argument values to build the object 
     nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
 
     if (nargs < 0)
@@ -1549,7 +1497,7 @@ Datum gtype_build_map(PG_FUNCTION_ARGS)
 
     for (i = 0; i < nargs; i += 2)
     {
-        /* process key */
+        // process key 
         if (nulls[i])
         {
             ereport(ERROR,
@@ -1559,7 +1507,7 @@ Datum gtype_build_map(PG_FUNCTION_ARGS)
 
         add_gtype(args[i], false, &result, types[i], true);
 
-        /* process value */
+        // process value 
         add_gtype(args[i + 1], nulls[i + 1], &result, types[i + 1], false);
     }
 
@@ -1582,7 +1530,7 @@ Datum gtype_build_list(PG_FUNCTION_ARGS)
     bool *nulls;
     Oid *types;
 
-    /*build argument values to build the array */
+    //build argument values to build the array 
     nargs = extract_variadic_args(fcinfo, 0, true, &args, &types, &nulls);
 
     if (nargs < 0)
@@ -1618,122 +1566,11 @@ Datum gtype_build_list_noargs(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(result.res));
 }
 
-/*
- * Extract scalar value from raw-scalar pseudo-array gtype.
- */
-static bool gtype_extract_scalar(gtype_container *agtc, gtype_value *res)
-{
-    gtype_iterator *it;
-    gtype_iterator_token tok PG_USED_FOR_ASSERTS_ONLY;
-    gtype_value tmp;
-
-    if (!GTYPE_CONTAINER_IS_ARRAY(agtc) || !GTYPE_CONTAINER_IS_SCALAR(agtc))
-    {
-        /* inform caller about actual type of container */
-        res->type = GTYPE_CONTAINER_IS_ARRAY(agtc) ? AGTV_ARRAY : AGTV_OBJECT;
-        return false;
-    }
-
-    /*
-     * A root scalar is stored as an array of one element, so we get the array
-     * and then its first (and only) member.
-     */
-    it = gtype_iterator_init(agtc);
-
-    tok = gtype_iterator_next(&it, &tmp, true);
-    Assert(tok == WGT_BEGIN_ARRAY);
-    Assert(tmp.val.array.num_elems == 1 && tmp.val.array.raw_scalar);
-
-    tok = gtype_iterator_next(&it, res, true);
-    Assert(tok == WGT_ELEM);
-    Assert(IS_A_GTYPE_SCALAR(res));
-
-    tok = gtype_iterator_next(&it, &tmp, true);
-    Assert(tok == WGT_END_ARRAY);
-
-    tok = gtype_iterator_next(&it, &tmp, true);
-    Assert(tok == WGT_DONE);
-
-    return true;
-}
-
-/*
- * Emit correct, translatable cast error message
- */
-static void cannot_cast_gtype_value(enum gtype_value_type type, const char *sqltype)
-{
-    static const struct
-    {
-        enum gtype_value_type type;
-        const char *msg;
-    } messages[] = {
-        {AGTV_NULL, gettext_noop("cannot cast gtype null to type %s")},
-        {AGTV_STRING, gettext_noop("cannot cast gtype string to type %s")},
-        {AGTV_NUMERIC, gettext_noop("cannot cast gtype numeric to type %s")},
-        {AGTV_INTEGER, gettext_noop("cannot cast gtype integer to type %s")},
-        {AGTV_FLOAT, gettext_noop("cannot cast gtype float to type %s")},
-        {AGTV_BOOL, gettext_noop("cannot cast gtype boolean to type %s")},
-        {AGTV_ARRAY, gettext_noop("cannot cast gtype array to type %s")},
-        {AGTV_OBJECT, gettext_noop("cannot cast gtype object to type %s")},
-        {AGTV_BINARY,
-         gettext_noop("cannot cast gtype array or object to type %s")}};
-    int i;
-
-    for (i = 0; i < lengthof(messages); i++)
-    {
-        if (messages[i].type == type)
-        {
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg(messages[i].msg, sqltype)));
-        }
-    }
-
-    // unreachable
-    elog(ERROR, "unknown gtype type: %d", (int)type);
-}
-
-PG_FUNCTION_INFO_V1(gtype_to_bool);
-/*
- * Cast gtype to boolean
- */
-Datum gtype_to_bool(PG_FUNCTION_ARGS)
-{
-    gtype *gtype_in = AG_GET_ARG_GTYPE_P(0);
-    gtype_value agtv;
-
-    if (!gtype_extract_scalar(&gtype_in->root, &agtv) || agtv.type != AGTV_BOOL)
-        cannot_cast_gtype_value(agtv.type, "boolean");
-
-    PG_FREE_IF_COPY(gtype_in, 0);
-
-    PG_RETURN_BOOL(agtv.val.boolean);
-}
-
-PG_FUNCTION_INFO_V1(bool_to_gtype);
-// boolean -> gtype
-Datum
-bool_to_gtype(PG_FUNCTION_ARGS) {
-    return boolean_to_gtype(PG_GETARG_BOOL(0));
-}
-
-PG_FUNCTION_INFO_V1(float8_to_gtype);
-// float8 -> gtype
-Datum
-float8_to_gtype(PG_FUNCTION_ARGS) {
-    return float_to_gtype(PG_GETARG_FLOAT8(0));
-}
-
-PG_FUNCTION_INFO_V1(int8_to_gtype);
-// int8 -> gtype.
-Datum
-int8_to_gtype(PG_FUNCTION_ARGS) {
-    return integer_to_gtype(PG_GETARG_INT64(0));
-}
-
 static gtype_value *execute_array_access_operator_internal(gtype *array, int64 array_index)
 {
     uint32 size;
 
-    /* get the size of the array, given the type of the input */
+    // get the size of the array, given the type of the input 
     if (AGT_ROOT_IS_ARRAY(array) && !AGT_ROOT_IS_SCALAR(array))
         size = AGT_ROOT_COUNT(array);
     else
@@ -1876,15 +1713,15 @@ Datum gtype_access_slice(PG_FUNCTION_ARGS)
     uint32 array_size = 0;
     int64 i = 0;
 
-    /* return null if the array to slice is null */
+    // return null if the array to slice is null 
     if (PG_ARGISNULL(0))
         PG_RETURN_NULL();
 
-    /* return an error if both indices are NULL */
+    // return an error if both indices are NULL 
     if (PG_ARGISNULL(1) && PG_ARGISNULL(2))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("slice start and/or end is required")));
 
-    /* get the array parameter and verify that it is a list */
+    // get the array parameter and verify that it is a list 
     array = AG_GET_ARG_GTYPE_P(0);
     if (!AGT_ROOT_IS_ARRAY(array) || AGT_ROOT_IS_SCALAR(array))
     {
@@ -1892,10 +1729,10 @@ Datum gtype_access_slice(PG_FUNCTION_ARGS)
                         errmsg("slice must access a list")));
     }
 
-    /* get its size */
+    // get its size 
     array_size = AGT_ROOT_COUNT(array);
 
-    /* if we don't have a lower bound, make it 0 */
+    // if we don't have a lower bound, make it 0 
     if (PG_ARGISNULL(1))
     {
         lower_index = 0;
@@ -1911,7 +1748,7 @@ Datum gtype_access_slice(PG_FUNCTION_ARGS)
         }
     }
 
-    /* if we don't have an upper bound, make it the size of the array */
+    // if we don't have an upper bound, make it the size of the array 
     if (PG_ARGISNULL(2))
     {
         upper_index = array_size;
@@ -1920,7 +1757,7 @@ Datum gtype_access_slice(PG_FUNCTION_ARGS)
     {
         uidx_value = get_ith_gtype_value_from_container(
             &(AG_GET_ARG_GTYPE_P(2))->root, 0);
-        /* adjust for AGTV_NULL */
+        // adjust for AGTV_NULL 
         if (uidx_value->type == AGTV_NULL)
         {
             upper_index = array_size;
@@ -1928,18 +1765,18 @@ Datum gtype_access_slice(PG_FUNCTION_ARGS)
         }
     }
 
-    /* if both indices are NULL (AGTV_NULL) return an error */
+    // if both indices are NULL (AGTV_NULL) return an error 
     if (lidx_value == NULL && uidx_value == NULL)
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("slice start and/or end is required")));
 
-    /* key must be an integer or NULL */
+    // key must be an integer or NULL 
     if ((lidx_value != NULL && lidx_value->type != AGTV_INTEGER) ||
         (uidx_value != NULL && uidx_value->type != AGTV_INTEGER))
         ereport(ERROR,
                 (errmsg("array slices must resolve to an integer value")));
 
-    /* set indices if not already set */
+    // set indices if not already set 
     if (lidx_value)
     {
         lower_index = lidx_value->val.int_value;
@@ -1949,7 +1786,7 @@ Datum gtype_access_slice(PG_FUNCTION_ARGS)
         upper_index = uidx_value->val.int_value;
     }
 
-    /* adjust for negative and out of bounds index values */
+    // adjust for negative and out of bounds index values 
     if (lower_index < 0)
         lower_index = array_size + lower_index;
     if (lower_index < 0)
@@ -1963,12 +1800,12 @@ Datum gtype_access_slice(PG_FUNCTION_ARGS)
     if (upper_index > array_size)
         upper_index = array_size;
 
-    /* build our result array */
+    // build our result array 
     memset(&result, 0, sizeof(gtype_in_state));
 
     result.res = push_gtype_value(&result.parse_state, WGT_BEGIN_ARRAY, NULL);
 
-    /* get array elements */
+    // get array elements 
     for (i = lower_index; i < upper_index; i++)
     {
         result.res = push_gtype_value(&result.parse_state, WGT_ELEM,
@@ -1993,62 +1830,62 @@ Datum gtype_in_operator(PG_FUNCTION_ARGS)
     bool result = false;
     uint32 i = 0;
 
-    /* return null if the array is null */
+    // return null if the array is null 
     if (PG_ARGISNULL(1))
         PG_RETURN_NULL();
 
-    /* get the array parameter and verify that it is a list */
+    // get the array parameter and verify that it is a list 
     agt_array = AG_GET_ARG_GTYPE_P(1);
     if (!AGT_ROOT_IS_ARRAY(agt_array))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("object of IN must be a list")));
 
-    /* init array iterator */
+    // init array iterator 
     it_array = gtype_iterator_init(&agt_array->root);
-    /* open array container */
+    // open array container 
     gtype_iterator_next(&it_array, &agtv_elem, false);
-    /* check for an array scalar value */
+    // check for an array scalar value 
     if (agtv_elem.type == AGTV_ARRAY && agtv_elem.val.array.raw_scalar)
     {
         gtype_iterator_next(&it_array, &agtv_elem, false);
-        /* check for GTYPE NULL */
+        // check for GTYPE NULL 
         if (agtv_elem.type == AGTV_NULL)
             PG_RETURN_NULL();
-        /* if it is a scalar, but not AGTV_NULL, error out */
+        // if it is a scalar, but not AGTV_NULL, error out 
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("object of IN must be a list")));
     }
 
     array_size = AGT_ROOT_COUNT(agt_array);
 
-    /* return null if the item to find is null */
+    // return null if the item to find is null 
     if (PG_ARGISNULL(0))
         PG_RETURN_NULL();
-    /* get the item to search for */
+    // get the item to search for 
     agt_item = AG_GET_ARG_GTYPE_P(0);
 
-    /* init item iterator */
+    // init item iterator 
     it_item = gtype_iterator_init(&agt_item->root);
 
-    /* get value of item */
+    // get value of item 
     gtype_iterator_next(&it_item, &agtv_item, false);
     if (agtv_item.type == AGTV_ARRAY && agtv_item.val.array.raw_scalar)
     {
         gtype_iterator_next(&it_item, &agtv_item, false);
-        /* check for GTYPE NULL */
+        // check for GTYPE NULL 
         if (agtv_item.type == AGTV_NULL)
             PG_RETURN_NULL();
     }
 
-    /* iterate through the array, but stop if we find it */
+    // iterate through the array, but stop if we find it 
     for (i = 0; i < array_size && !result; i++)
     {
-        /* get next element */
+        // get next element 
         gtype_iterator_next(&it_array, &agtv_elem, true);
-        /* if both are containers, compare containers */
+        // if both are containers, compare containers 
         if (!IS_A_GTYPE_SCALAR(&agtv_item) && !IS_A_GTYPE_SCALAR(&agtv_elem))
             result = (compare_gtype_containers_orderability( &agt_item->root, agtv_elem.val.binary.data) == 0);
-        /* if both are scalars and of the same type, compare scalars */
+        // if both are scalars and of the same type, compare scalars 
         else if (IS_A_GTYPE_SCALAR(&agtv_item) && IS_A_GTYPE_SCALAR(&agtv_elem) && agtv_item.type == agtv_elem.type)
             result = (compare_gtype_scalar_values(&agtv_item, &agtv_elem) == 0);
     }
@@ -2217,29 +2054,29 @@ Datum column_get_datum(TupleDesc tupdesc, HeapTuple tuple, int column,
     Datum result;
     bool _isnull = true;
 
-    /* build the heap tuple data */
+    // build the heap tuple data 
     hth = tuple->t_data;
     tmptup.t_len = HeapTupleHeaderGetDatumLength(hth);
     tmptup.t_data = hth;
     htd = &tmptup;
 
-    /* get the description for the column from the tuple descriptor */
+    // get the description for the column from the tuple descriptor 
     att = TupleDescAttr(tupdesc, column);
-    /* get the datum (attribute) for that column*/
+    // get the datum (attribute) for that column
     result = heap_getattr(htd, column + 1, tupdesc, &_isnull);
-    /* verify that the attribute typid is as expected */
+    // verify that the attribute typid is as expected 
     if (att->atttypid != typid)
         ereport(ERROR,
                 (errcode(ERRCODE_UNDEFINED_TABLE),
                  errmsg("Invalid attribute typid. Expected %d, found %d", typid,
                         att->atttypid)));
-    /* verify that the attribute name is as expected */
+    // verify that the attribute name is as expected 
     if (strcmp(att->attname.data, attname) != 0)
         ereport(ERROR,
                 (errcode(ERRCODE_UNDEFINED_TABLE),
                  errmsg("Invalid attribute name. Expected %s, found %s",
                         attname, att->attname.data)));
-    /* verify that if it is null, it is allowed to be null */
+    // verify that if it is null, it is allowed to be null 
     if (isnull == false && _isnull == true)
         ereport(ERROR,
                 (errcode(ERRCODE_UNDEFINED_TABLE),
@@ -2345,30 +2182,6 @@ Datum gtype_reverse(PG_FUNCTION_ARGS)
    }
 }
 
-
-/*
- * Converts an gtype object or array to a binary gtype_value.
- */
-gtype_value *gtype_composite_to_gtype_value_binary(gtype *a)
-{
-    gtype_value *result;
-
-    if (GTYPE_CONTAINER_IS_SCALAR(&a->root))
-    {
-        ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                        errmsg("cannot convert gtype scalar objects to binary gtype_value objects")));
-    }
-
-    result = palloc(sizeof(gtype_value));
-
-    // convert the gtype to a binary gtype_value
-    result->type = AGTV_BINARY;
-    result->val.binary.len = GTYPE_CONTAINER_SIZE(&a->root);
-    result->val.binary.data = &a->root;
-
-    return result;
-}
-
 /*
  * For the given properties, update the property with the key equal
  * to var_name with the value defined in new_v. If the remove_property
@@ -2472,8 +2285,11 @@ gtype_value *alter_property_value(gtype *properties, char *var_name,
             }
             else
             {
-                gtype_value *result = gtype_composite_to_gtype_value_binary(new_v);
+                gtype_value *result = palloc(sizeof(gtype_value)); 
 
+                result->type = AGTV_BINARY;
+                result->val.binary.len = GTYPE_CONTAINER_SIZE(&new_v->root);
+                result->val.binary.data = &new_v->root;
                 parsed_gtype_value = push_gtype_value(&parse_state, WGT_VALUE, result);
             }
 
@@ -2509,8 +2325,11 @@ gtype_value *alter_property_value(gtype *properties, char *var_name,
         }
         else
         {
-            gtype_value *result = gtype_composite_to_gtype_value_binary(new_v);
+            gtype_value *result = palloc(sizeof(gtype_value)); 
 
+            result->type = AGTV_BINARY;
+            result->val.binary.len = GTYPE_CONTAINER_SIZE(&new_v->root);
+            result->val.binary.data = &new_v->root;
             parsed_gtype_value = push_gtype_value(&parse_state, WGT_VALUE, result);
         }
     }
@@ -2580,7 +2399,7 @@ Datum gtype_regr_accum(PG_FUNCTION_ARGS)
 {
     PG_RETURN_DATUM(DirectFunctionCall3(float8_regr_accum, PG_GETARG_DATUM(0), 
 		                        convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(1), "float"),
-				        convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(2), "float")));
+				                convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(2), "float")));
 }   
 
 
@@ -2781,7 +2600,7 @@ Datum gtype_min_trans(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P((compare_gtype_containers_orderability(&lhs->root, &rhs->root) <= 0) ? lhs : rhs);
 }
 
-/* borrowed from PGs float8 routines for percentile_cont */
+// borrowed from PGs float8 routines for percentile_cont 
 static Datum float8_lerp(Datum lo, Datum hi, double pct)
 {
     double loval = DatumGetFloat8(lo);
@@ -2790,23 +2609,23 @@ static Datum float8_lerp(Datum lo, Datum hi, double pct)
     return Float8GetDatum(loval + (pct * (hival - loval)));
 }
 
-/* Code borrowed and adjusted from PG's ordered_set_transition function */
+// Code borrowed and adjusted from PG's ordered_set_transition function 
 PG_FUNCTION_INFO_V1(gtype_percentile_aggtransfn);
 
 Datum gtype_percentile_aggtransfn(PG_FUNCTION_ARGS)
 {
     PercentileGroupAggState *pgastate;
 
-    /* verify we are in an aggregate context */
+    // verify we are in an aggregate context 
     Assert(AggCheckCallContext(fcinfo, NULL) == AGG_CONTEXT_AGGREGATE);
 
-    /* if this is the first invocation, create the state */
+    // if this is the first invocation, create the state 
     if (PG_ARGISNULL(0))
     {
         MemoryContext old_mcxt;
         float8 percentile;
 
-        /* validate the percentile */
+        // validate the percentile 
         if (PG_ARGISNULL(2))
             ereport(ERROR, (errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
                 errmsg("percentile value NULL is not a valid numeric value")));
@@ -2819,9 +2638,9 @@ Datum gtype_percentile_aggtransfn(PG_FUNCTION_ARGS)
                         errmsg("percentile value %g is not between 0 and 1",
                                percentile)));
 
-        /* switch to the correct aggregate context */
+        // switch to the correct aggregate context 
         old_mcxt = MemoryContextSwitchTo(fcinfo->flinfo->fn_mcxt);
-        /* create and initialize the state */
+        // create and initialize the state 
         pgastate = palloc0(sizeof(PercentileGroupAggState));
         pgastate->percentile = percentile;
         /*
@@ -2837,14 +2656,14 @@ Datum gtype_percentile_aggtransfn(PG_FUNCTION_ARGS)
         pgastate->number_of_rows = 0;
         pgastate->sort_done = false;
 
-        /* restore the old context */
+        // restore the old context 
         MemoryContextSwitchTo(old_mcxt);
     }
-    /* otherwise, retrieve the state */
+    // otherwise, retrieve the state 
     else
         pgastate = (PercentileGroupAggState *) PG_GETARG_POINTER(0);
 
-    /* Load the datum into the tuplesort object, but only if it's not null */
+    // Load the datum into the tuplesort object, but only if it's not null 
     if (!PG_ARGISNULL(1))
     {
         Datum dfloat = DirectFunctionCall1(gtype_to_float8, PG_GETARG_DATUM(1));
@@ -2852,11 +2671,11 @@ Datum gtype_percentile_aggtransfn(PG_FUNCTION_ARGS)
         tuplesort_putdatum(pgastate->sortstate, dfloat, false);
         pgastate->number_of_rows++;
     }
-    /* return the state */
+    // return the state 
     PG_RETURN_POINTER(pgastate);
 }
 
-/* Code borrowed and adjusted from PG's percentile_cont_final function */
+// Code borrowed and adjusted from PG's percentile_cont_final function 
 PG_FUNCTION_INFO_V1(gtype_percentile_cont_aggfinalfn);
 
 Datum gtype_percentile_cont_aggfinalfn(PG_FUNCTION_ARGS)
@@ -2872,22 +2691,22 @@ Datum gtype_percentile_cont_aggfinalfn(PG_FUNCTION_ARGS)
     bool isnull;
     gtype_value agtv_float;
 
-    /* verify we are in an aggregate context */
+    // verify we are in an aggregate context 
     Assert(AggCheckCallContext(fcinfo, NULL) == AGG_CONTEXT_AGGREGATE);
 
-    /* If there were no regular rows, the result is NULL */
+    // If there were no regular rows, the result is NULL 
     if (PG_ARGISNULL(0))
         PG_RETURN_NULL();
 
-    /* retrieve the state and percentile */
+    // retrieve the state and percentile 
     pgastate = (PercentileGroupAggState *) PG_GETARG_POINTER(0);
     percentile = pgastate->percentile;
 
-    /* number_of_rows could be zero if we only saw NULL input values */
+    // number_of_rows could be zero if we only saw NULL input values 
     if (pgastate->number_of_rows == 0)
         PG_RETURN_NULL();
 
-    /* Finish the sort, or rescan if we already did */
+    // Finish the sort, or rescan if we already did 
     if (!pgastate->sort_done)
     {
         tuplesort_performsort(pgastate->sortstate);
@@ -2896,7 +2715,7 @@ Datum gtype_percentile_cont_aggfinalfn(PG_FUNCTION_ARGS)
     else
         tuplesort_rescan(pgastate->sortstate);
 
-    /* calculate the percentile cont*/
+    // calculate the percentile cont
     first_row = floor(percentile * (pgastate->number_of_rows - 1));
     second_row = ceil(percentile * (pgastate->number_of_rows - 1));
 
@@ -2926,14 +2745,14 @@ Datum gtype_percentile_cont_aggfinalfn(PG_FUNCTION_ARGS)
         val = float8_lerp(first_val, second_val, proportion);
     }
 
-    /* convert to an gtype float and return the result */
+    // convert to an gtype float and return the result 
     agtv_float.type = AGTV_FLOAT;
     agtv_float.val.float_value = DatumGetFloat8(val);
 
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_float));
 }
 
-/* Code borrowed and adjusted from PG's percentile_disc_final function */
+// Code borrowed and adjusted from PG's percentile_disc_final function 
 PG_FUNCTION_INFO_V1(gtype_percentile_disc_aggfinalfn);
 
 Datum gtype_percentile_disc_aggfinalfn(PG_FUNCTION_ARGS)
@@ -2947,18 +2766,18 @@ Datum gtype_percentile_disc_aggfinalfn(PG_FUNCTION_ARGS)
 
     Assert(AggCheckCallContext(fcinfo, NULL) == AGG_CONTEXT_AGGREGATE);
 
-    /* If there were no regular rows, the result is NULL */
+    // If there were no regular rows, the result is NULL 
     if (PG_ARGISNULL(0))
         PG_RETURN_NULL();
 
     pgastate = (PercentileGroupAggState *) PG_GETARG_POINTER(0);
     percentile = pgastate->percentile;
 
-    /* number_of_rows could be zero if we only saw NULL input values */
+    // number_of_rows could be zero if we only saw NULL input values 
     if (pgastate->number_of_rows == 0)
         PG_RETURN_NULL();
 
-    /* Finish the sort, or rescan if we already did */
+    // Finish the sort, or rescan if we already did 
     if (!pgastate->sort_done)
     {
         tuplesort_performsort(pgastate->sortstate);
@@ -2985,23 +2804,23 @@ Datum gtype_percentile_disc_aggfinalfn(PG_FUNCTION_ARGS)
     if (!tuplesort_getdatum(pgastate->sortstate, true, &val, &isnull, NULL))
         elog(ERROR, "missing row in percentile_disc");
 
-    /* We shouldn't have stored any nulls, but do the right thing anyway */
+    // We shouldn't have stored any nulls, but do the right thing anyway 
     if (isnull)
         PG_RETURN_NULL();
 
-    /* convert to an gtype float and return the result */
+    // convert to an gtype float and return the result 
     agtv_float.type = AGTV_FLOAT;
     agtv_float.val.float_value = DatumGetFloat8(val);
 
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_float));
 }
 
-/* functions to support the aggregate function COLLECT() */
+// functions to support the aggregate function COLLECT() 
 PG_FUNCTION_INFO_V1(gtype_collect_aggtransfn);
 
 Datum gtype_collect_aggtransfn(PG_FUNCTION_ARGS)
 {
-    /* verify we are in an aggregate context */
+    // verify we are in an aggregate context 
     Assert(AggCheckCallContext(fcinfo, NULL) == AGG_CONTEXT_AGGREGATE);
 
     /*
@@ -3011,7 +2830,7 @@ Datum gtype_collect_aggtransfn(PG_FUNCTION_ARGS)
     MemoryContext old_mcxt = MemoryContextSwitchTo(fcinfo->flinfo->fn_mcxt);
 
 
-    /* if this is the first invocation, create the state */
+    // if this is the first invocation, create the state 
     gtype_in_state *castate;
     if (PG_ARGISNULL(0)) {
         castate = palloc0(sizeof(gtype_in_state));
@@ -3065,24 +2884,24 @@ gtype_value *get_gtype_value(char *funcname, gtype *agt_arg,
 {
     gtype_value *agtv_value = NULL;
 
-    /* we need these */
+    // we need these 
     Assert(funcname != NULL);
     Assert(agt_arg != NULL);
 
-    /* error if the argument is not a scalar */
+    // error if the argument is not a scalar 
     if (!GTYPE_CONTAINER_IS_SCALAR(&agt_arg->root))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("%s: gtype argument must be a scalar", funcname)));
 
-    /* is it AGTV_NULL? */
+    // is it AGTV_NULL? 
     if (error && is_gtype_null(agt_arg))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("%s: gtype argument must not be AGTV_NULL", funcname)));
 
-    /* get the gtype value */
+    // get the gtype value 
     agtv_value = get_ith_gtype_value_from_container(&agt_arg->root, 0);
 
-    /* is it the correct type? */
+    // is it the correct type? 
     if (error && agtv_value->type != type)
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("%s: gtype argument of wrong type", funcname)));
@@ -3098,32 +2917,32 @@ static gtype_iterator *get_next_object_key(gtype_iterator *it, gtype_container *
     gtype_iterator_token itok;
     gtype_value tmp;
 
-    /* verify input params */
+    // verify input params 
     Assert(agtc != NULL);
     Assert(key != NULL);
 
-    /* check to see if the container is empty */
+    // check to see if the container is empty 
     if (GTYPE_CONTAINER_SIZE(agtc) == 0)
         return NULL;
 
-    /* if the passed iterator is NULL, this is the first time, create it */
+    // if the passed iterator is NULL, this is the first time, create it 
     if (it == NULL) {
-        /* initial the iterator */
+        // initial the iterator 
         it = gtype_iterator_init(agtc);
-        /* get the first token */
+        // get the first token 
         itok = gtype_iterator_next(&it, &tmp, false);
-        /* it should be WGT_BEGIN_OBJECT */
+        // it should be WGT_BEGIN_OBJECT 
         Assert(itok == WGT_BEGIN_OBJECT);
     }
 
-    /* the next token should be a key or the end of the object */
+    // the next token should be a key or the end of the object 
     itok = gtype_iterator_next(&it, &tmp, false);
     Assert(itok == WGT_KEY || WGT_END_OBJECT);
-    /* if this is the end of the object return NULL */
+    // if this is the end of the object return NULL 
     if (itok == WGT_END_OBJECT)
         return NULL;
 
-    /* this should be the key, copy it */
+    // this should be the key, copy it 
     if (itok == WGT_KEY)
         memcpy(key, &tmp, sizeof(gtype_value));
 
@@ -3134,7 +2953,7 @@ static gtype_iterator *get_next_object_key(gtype_iterator *it, gtype_container *
     itok = gtype_iterator_next(&it, &tmp, true);
     Assert(itok == WGT_VALUE);
 
-    /* return the iterator */
+    // return the iterator 
     return it;
 }
 
@@ -3154,7 +2973,7 @@ Datum vertex_keys(PG_FUNCTION_ARGS)
     while ((it = get_next_object_key(it, &agt_arg->root, &obj_key)))
         agtv_result = push_gtype_value(&parse_state, WGT_ELEM, &obj_key);
 
-    /* push the end of the array*/
+    // push the end of the array
     agtv_result = push_gtype_value(&parse_state, WGT_END_ARRAY, NULL);
 
     Assert(agtv_result != NULL);
@@ -3180,7 +2999,7 @@ Datum edge_keys(PG_FUNCTION_ARGS)
     while ((it = get_next_object_key(it, &agt_arg->root, &obj_key)))
         agtv_result = push_gtype_value(&parse_state, WGT_ELEM, &obj_key);
 
-    /* push the end of the array*/
+    // push the end of the array
     agtv_result = push_gtype_value(&parse_state, WGT_END_ARRAY, NULL);
 
     Assert(agtv_result != NULL);
@@ -3214,7 +3033,7 @@ Datum gtype_keys(PG_FUNCTION_ARGS)
     while ((it = get_next_object_key(it, &agt_arg->root, &obj_key)))
         agtv_result = push_gtype_value(&parse_state, WGT_ELEM, &obj_key);
 
-    /* push the end of the array*/
+    // push the end of the array
     agtv_result = push_gtype_value(&parse_state, WGT_END_ARRAY, NULL);
 
     Assert(agtv_result != NULL);
@@ -3309,7 +3128,7 @@ Datum gtype_unnest(PG_FUNCTION_ARGS)
 
     rsi->returnMode = SFRM_Materialize;
 
-    /* it's a simple type, so don't use get_call_result_type() */
+    // it's a simple type, so don't use get_call_result_type() 
     tupdesc = rsi->expectedDesc;
 
     old_cxt = MemoryContextSwitchTo(rsi->econtext->ecxt_per_query_memory);
@@ -3335,7 +3154,7 @@ Datum gtype_unnest(PG_FUNCTION_ARGS)
             bool nulls[1] = {false};
             gtype *val = gtype_value_to_gtype(&v);
 
-            /* use the tmp context so we can clean up after each tuple is done */
+            // use the tmp context so we can clean up after each tuple is done 
             old_cxt = MemoryContextSwitchTo(tmp_cxt);
 
             values[0] = PointerGetDatum(val);
