@@ -32,6 +32,7 @@
 #include "utils/timestamp.h"
 
 #include "utils/gtype.h"
+#include "utils/gtype_typecasting.h"
 
 static void ereport_op_str(const char *op, gtype *lhs, gtype *rhs);
 static gtype *gtype_concat(gtype *agt1, gtype *agt2);
@@ -919,128 +920,34 @@ Datum gtype_bitwise_or(PG_FUNCTION_ARGS)
 
 
 PG_FUNCTION_INFO_V1(gtype_inet_subnet_strict_contains);
-Datum gtype_inet_subnet_strict_contains(PG_FUNCTION_ARGS)
-{
-    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
-    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
-    gtype_value *agtv_lhs;
-    gtype_value *agtv_rhs;
-    gtype_value agtv_result;
-
-    if (!(AGT_ROOT_IS_SCALAR(lhs)) || !(AGT_ROOT_IS_SCALAR(rhs)))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("must be scalar value, not array or object")));
-
-
-    agtv_lhs = get_ith_gtype_value_from_container(&lhs->root, 0);
-    agtv_rhs = get_ith_gtype_value_from_container(&rhs->root, 0);
-
-    if (agtv_lhs->type == AGTV_INET && agtv_rhs->type == AGTV_INET)
-    {
-        PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(network_sub, InetPGetDatum(&agtv_lhs->val.inet), Int64GetDatum(&agtv_rhs->val.inet))));
-
-    }
-    ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("Invalid type for gtype << gtype")));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+Datum
+gtype_inet_subnet_strict_contains(PG_FUNCTION_ARGS) {
+    PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(network_sub, GT_ARG_TO_INET_DATUM(0), GT_ARG_TO_INET_DATUM(1))));
 }
 
 PG_FUNCTION_INFO_V1(gtype_inet_subnet_contains);
-Datum gtype_inet_subnet_contains(PG_FUNCTION_ARGS)
-{
-    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
-    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
-    gtype_value *agtv_lhs;
-    gtype_value *agtv_rhs;
-    gtype_value agtv_result;
-
-    if (!(AGT_ROOT_IS_SCALAR(lhs)) || !(AGT_ROOT_IS_SCALAR(rhs)))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("must be scalar value, not array or object")));
-
-    agtv_lhs = get_ith_gtype_value_from_container(&lhs->root, 0);
-    agtv_rhs = get_ith_gtype_value_from_container(&rhs->root, 0);
-
-    if (agtv_lhs->type == AGTV_INET && agtv_rhs->type == AGTV_INET)
-        PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(network_subeq, InetPGetDatum(&agtv_lhs->val.inet), Int64GetDatum(&agtv_rhs->val.inet))));
-    
-    ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("Invalid type for gtype <<= gtype")));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+Datum
+gtype_inet_subnet_contains(PG_FUNCTION_ARGS) {
+    PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(network_subeq, GT_ARG_TO_INET_DATUM(0), GT_ARG_TO_INET_DATUM(1))));
 }
 
 PG_FUNCTION_INFO_V1(gtype_inet_subnet_strict_contained_by);
-Datum gtype_inet_subnet_strict_contained_by(PG_FUNCTION_ARGS)
-{
-    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
-    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
-    gtype_value *agtv_lhs;
-    gtype_value *agtv_rhs;
-    gtype_value agtv_result;
-
-    if (!(AGT_ROOT_IS_SCALAR(lhs)) || !(AGT_ROOT_IS_SCALAR(rhs)))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("must be scalar value, not array or object")));
-
-
-    agtv_lhs = get_ith_gtype_value_from_container(&lhs->root, 0);
-    agtv_rhs = get_ith_gtype_value_from_container(&rhs->root, 0);
-
-    if (agtv_lhs->type == AGTV_INET && agtv_rhs->type == AGTV_INET)
-    {
-        PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(network_sup, InetPGetDatum(&agtv_lhs->val.inet), Int64GetDatum(&agtv_rhs->val.inet))));
-
-    }
-    ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("Invalid type for gtype << gtype")));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+Datum
+gtype_inet_subnet_strict_contained_by(PG_FUNCTION_ARGS) {
+    PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(network_sup, GT_ARG_TO_INET_DATUM(0), GT_ARG_TO_INET_DATUM(1))));
 }
 
 PG_FUNCTION_INFO_V1(gtype_inet_subnet_contained_by);
-Datum gtype_inet_subnet_contained_by(PG_FUNCTION_ARGS)
-{
-    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
-    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
-    gtype_value *agtv_lhs;
-    gtype_value *agtv_rhs;
-    gtype_value agtv_result;
-
-    if (!(AGT_ROOT_IS_SCALAR(lhs)) || !(AGT_ROOT_IS_SCALAR(rhs)))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("must be scalar value, not array or object")));
-
-    agtv_lhs = get_ith_gtype_value_from_container(&lhs->root, 0);
-    agtv_rhs = get_ith_gtype_value_from_container(&rhs->root, 0);
-
-    if (agtv_lhs->type == AGTV_INET && agtv_rhs->type == AGTV_INET)
-        PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(network_supeq, InetPGetDatum(&agtv_lhs->val.inet), Int64GetDatum(&agtv_rhs->val.inet))));
-
-    ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("Invalid type for gtype <<= gtype")));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+Datum
+gtype_inet_subnet_contained_by(PG_FUNCTION_ARGS) {
+    PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(network_supeq, GT_ARG_TO_INET_DATUM(0), GT_ARG_TO_INET_DATUM(1))));
 }
-
 
 PG_FUNCTION_INFO_V1(gtype_inet_subnet_contain_both);
-Datum gtype_inet_subnet_contain_both(PG_FUNCTION_ARGS)
-{
-    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
-    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
-    gtype_value *agtv_lhs;
-    gtype_value *agtv_rhs;
-    gtype_value agtv_result;
-
-    if (!(AGT_ROOT_IS_SCALAR(lhs)) || !(AGT_ROOT_IS_SCALAR(rhs)))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("must be scalar value, not array or object")));
-
-    agtv_lhs = get_ith_gtype_value_from_container(&lhs->root, 0);
-    agtv_rhs = get_ith_gtype_value_from_container(&rhs->root, 0);
-
-    if (agtv_lhs->type == AGTV_INET && agtv_rhs->type == AGTV_INET)
-        PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(network_overlap, InetPGetDatum(&agtv_lhs->val.inet), Int64GetDatum(&agtv_rhs->val.inet))));
-
-    ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("Invalid type for gtype <<= gtype")));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+Datum
+gtype_inet_subnet_contain_both(PG_FUNCTION_ARGS) {
+    PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(network_overlap, GT_ARG_TO_INET_DATUM(0), GT_ARG_TO_INET_DATUM(1))));
 }
-
-
 
 PG_FUNCTION_INFO_V1(gtype_eq);
 
