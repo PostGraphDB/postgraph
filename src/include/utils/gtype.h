@@ -422,20 +422,20 @@ struct gtype_value
         float8 float_value; // 8-byte Float
         Numeric numeric;
         bool boolean;
-	Interval interval;
-	DateADT date;
-	TimeTzADT timetz;
+	    Interval interval;
+	    DateADT date;
+	    TimeTzADT timetz;
         struct { int len; char *val; /* Not necessarily null-terminated */ } string; // String primitive type
         struct { int num_elems; gtype_value *elems; bool raw_scalar; } array;       // Array container type
-	struct { int num_pairs; gtype_pair *pairs; } object;                        // Associative container type
+	    struct { int num_pairs; gtype_pair *pairs; } object;                        // Associative container type
         Vector vector;
-	inet inet;
-	macaddr mac;
+	    inet inet;
+	    macaddr mac;
         macaddr8 mac8;
         GBOX gbox;
         BOX3D box3d;
-	SPHEROID spheroid;
-	GSERIALIZED *gserialized;
+	    SPHEROID spheroid;
+	    GSERIALIZED *gserialized;
 	struct { int len; gtype_container *data; } binary; // Array or object, in on-disk format
     } val;
 };
