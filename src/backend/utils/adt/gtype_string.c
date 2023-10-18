@@ -16,47 +16,13 @@
  *
  */
 
-#include "postgres.h"
+#include "postgraph.h"
 
-#include <math.h>
-
-#include "access/genam.h"
-#include "access/htup_details.h"
-#include "catalog/namespace.h"
-#include "catalog/pg_collation.h"
-#include "catalog/pg_operator.h"
-#include "catalog/pg_type.h"
-#include "catalog/pg_aggregate_d.h"
 #include "catalog/pg_collation_d.h"
-#include "catalog/pg_operator_d.h"
-#include "executor/nodeAgg.h"
-#include "funcapi.h"
-#include "libpq/pqformat.h"
-#include "miscadmin.h"
-#include "parser/parse_coerce.h"
-#include "portability/instr_time.h"
-#include "nodes/pg_list.h"
 #include "utils/builtins.h"
-#include "utils/float.h"
-#include "utils/fmgroids.h"
-#include "utils/int8.h"
-#include "utils/lsyscache.h"
-#include "utils/rel.h"
-#include "utils/snapmgr.h"
-#include "utils/timestamp.h"
-#include "utils/typcache.h"
 
 #include "utils/gtype.h"
-#include "utils/edge.h"
-#include "utils/variable_edge.h"
-#include "utils/vector.h"
-#include "utils/vertex.h"
-#include "utils/gtype_parser.h"
 #include "utils/gtype_typecasting.h"
-#include "catalog/ag_graph.h"
-#include "catalog/ag_label.h"
-#include "utils/graphid.h"
-#include "utils/numeric.h"
 
 
 PG_FUNCTION_INFO_V1(gtype_toupper);
