@@ -44,6 +44,14 @@ Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
     convert_to_scalar(gtype_to_timetz_internal, (arg), "time")
 #define GT_TO_INTERVAL_DATUM(arg) \
     convert_to_scalar(gtype_to_interval_internal, (arg), "interval")
+#define GT_TO_CIDR_DATUM(arg) \
+    convert_to_scalar(gtype_to_cidr_internal, (arg), "cidr")
+#define GT_TO_INET_DATUM(arg) \
+    convert_to_scalar(gtype_to_inet_internal, (arg), "inet")
+#define GT_TO_MAC_DATUM(arg) \
+    convert_to_scalar(gtype_to_macaddr_internal, (arg), "mac")
+#define GT_TO_MAC8_DATUM(arg) \
+    convert_to_scalar(gtype_to_macaddr8_internal, (arg), "mac8")
 
 #define GT_ARG_TO_INT4_DATUM(arg) \
     convert_to_scalar(gtype_to_int4_internal, AG_GET_ARG_GTYPE_P(arg), "int4")
@@ -51,8 +59,10 @@ Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
     convert_to_scalar(gtype_to_int8_internal, AG_GET_ARG_GTYPE_P(arg), "int")
 #define GT_ARG_TO_TEXT_DATUM(arg) \
     convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(arg), "text")
-
-
+#define GT_ARG_TO_INET_DATUM(arg) \
+    convert_to_scalar(gtype_to_inet_internal, AG_GET_ARG_GTYPE_P(arg), "inet")
+#define GT_ARG_TO_MAC8_DATUM(arg) \
+    convert_to_scalar(gtype_to_macaddr8_internal, AG_GET_ARG_GTYPE_P(arg), "mac8")
 
 Datum gtype_to_int8_internal(gtype_value *agtv);
 Datum gtype_to_int4_internal(gtype_value *agtv);

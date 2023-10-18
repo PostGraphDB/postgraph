@@ -641,27 +641,27 @@ SELECT * FROM cypher('network', $$ RETURN inet_same_family(192.168.1.5/24, '::1'
 -- masklen
 --
 SELECT * FROM cypher('network', $$ RETURN masklen(192.168.1.5) $$) as (i gtype);
- i 
----
- 4
+ i  
+----
+ 32
 (1 row)
 
 SELECT * FROM cypher('network', $$ RETURN masklen(192.168.1/24) $$) as (i gtype);
- i 
----
- 4
+ i  
+----
+ 24
 (1 row)
 
 SELECT * FROM cypher('network', $$ RETURN masklen('::ffff:fff0:1'::inet) $$) as (i gtype);
- i 
----
- 6
+  i  
+-----
+ 128
 (1 row)
 
 SELECT * FROM cypher('network', $$ RETURN masklen(10.1.0.0/32) $$) as (i gtype);
- i 
----
- 4
+ i  
+----
+ 32
 (1 row)
 
 --
@@ -806,9 +806,9 @@ SELECT * FROM cypher('network', $$ RETURN set_masklen('10.1.0.0/32'::cidr, 4) $$
 -- abbrev
 --
 SELECT * FROM cypher('network', $$ RETURN trunc('12:34:56:78:90:ab'::macaddr) $$) as (i gtype);
-            i            
--------------------------
- 12:34:56:00:00:00:00:00
+         i         
+-------------------
+ 12:34:56:00:00:00
 (1 row)
 
 SELECT * FROM cypher('network', $$ RETURN trunc('12:34:56:78:90:ab:cd:ef'::macaddr8) $$) as (i gtype);

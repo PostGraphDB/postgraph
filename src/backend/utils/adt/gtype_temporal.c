@@ -17,9 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "postgres.h"
+#include "postgraph.h"
 
-#include "access/xact.h"
 #include "common/int128.h"
 #include "utils/builtins.h"
 #include "utils/date.h"
@@ -478,10 +477,7 @@ Datum gtype_make_timestamptz_wtimezone(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
 }
 
-
-
 PG_FUNCTION_INFO_V1(gtype_isfinite);
-
 Datum gtype_isfinite(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
@@ -686,8 +682,6 @@ gtype_date_trunc_zone(PG_FUNCTION_ARGS) {
 
     PG_RETURN_NULL();
 }
-
-
 
 PG_FUNCTION_INFO_V1(gtype_date_bin);
 Datum
