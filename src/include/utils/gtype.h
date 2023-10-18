@@ -322,6 +322,20 @@ typedef struct
 #define GT_IS_TIMESTAMP(agt) \
     (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_TIMESTAMP)
 
+#define GT_IS_TIMESTAMPTZ(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_TIMESTAMPTZ)
+
+#define GT_IS_DATE(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_DATE)
+
+#define GT_IS_INTERVAL(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_INTERVAL)
+
+#define GT_IS_TIME(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_TIME)
+
+#define GT_IS_TIMETZ(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_TIMETZ)
 
 #define GT_IS_INET(agt) \
     (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_INET)

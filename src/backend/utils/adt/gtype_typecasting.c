@@ -68,11 +68,6 @@
 
 static ArrayType *gtype_to_array(coearce_function func, gtype *agt, char *type, Oid type_oid, int type_len, bool elembyval); 
 
-Datum gtype_to_inet_internal(gtype_value *agtv);
-Datum gtype_to_cidr_internal(gtype_value *agtv);
-Datum gtype_to_macaddr_internal(gtype_value *agtv);
-Datum gtype_to_macaddr8_internal(gtype_value *agtv);
-Datum gtype_to_float4_internal(gtype_value *agtv);
 
 // PostGIS
 PG_FUNCTION_INFO_V1(BOX2D_in);
@@ -1417,6 +1412,8 @@ gtype_to_time_internal(gtype_value *agtv) {
         return TimeADTGetDatum(DirectFunctionCall1(interval_time, IntervalPGetDatum(&agtv->val.interval)));
     else if (agtv->type == AGTV_TIMETZ)
 	return TimeADTGetDatum(DirectFunctionCall1(timetz_time, TimeTzADTPGetDatum(&agtv->val.timetz)));
+    else if (agtv->type == AGTV_TIME)
+	    return TimeADTGetDatum(agtv->val.int_value);
     else
         cannot_cast_gtype_value(agtv->type, "time");
 
@@ -1443,6 +1440,23 @@ gtype_to_timetz_internal(gtype_value *agtv) {
     // unreachable
     return CStringGetDatum("");
 }  
+
+Datum
+gtype_to_interval_internal(gtype_value *agtv) {
+    if (agtv->type == AGTV_INTERVAL)
+        return IntervalPGetDatum(&agtv->val.interval);
+    else if (agtv->type == AGTV_STRING)
+        return IntervalPGetDatum(DirectFunctionCall3(interval_in,
+                                          CStringGetDatum(pnstrdup(agtv->val.string.val, agtv->val.string.len)),
+                                          ObjectIdGetDatum(InvalidOid),
+                                          Int32GetDatum(-1)));
+    else                 
+        cannot_cast_gtype_value(agtv->type, "interval");
+    
+    // unreachable
+    return CStringGetDatum("");
+}  
+
 
 Datum
 gtype_to_inet_internal(gtype_value *agtv) {
