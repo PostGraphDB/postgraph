@@ -17,8 +17,8 @@
  * Portions Copyright (c) 2020-2023, Apache Software Foundation
  */
 
-#ifndef AG_AGE_GLOBAL_GRAPH_H
-#define AG_AGE_GLOBAL_GRAPH_H
+#ifndef POSTGRAPH_GLOBAL_GRAPH_H
+#define POSTGRAPH_GLOBAL_GRAPH_H
 
 #include "utils/graphid.h"
 #include "utils/queue.h"
@@ -26,7 +26,7 @@
 /*
  * We declare the graph nodes and edges here, and in this way, so that it may be
  * used elsewhere. However, we keep the contents private by defining it in
- * age_global_graph.c
+ * global_graph.c
  */
 
 /* vertex entry for the vertex_hastable */
