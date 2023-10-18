@@ -17,8 +17,8 @@
  * under the License.
  */
 
-#ifndef AG_AGE_GRAPHID_DS_H
-#define AG_AGE_GRAPHID_DS_H
+#ifndef POSTGRAPH_GRAPHID_DS_H
+#define POSTGRAPH_GRAPHID_DS_H
 
 #include "utils/graphid.h"
 

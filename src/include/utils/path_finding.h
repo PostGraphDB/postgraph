@@ -21,7 +21,7 @@
 #define AG_GTYPE_VLE_H
 
 #include "utils/gtype.h"
-#include "utils/age_global_graph.h"
+#include "utils/global_graph.h"
 
 /*
  * We declare the path_container here, and in this way, so that it may be

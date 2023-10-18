@@ -17,8 +17,8 @@
  * under the License.
  */
 
-#ifndef AG_AGE_GRAPHID_DS_H
-#define AG_AGE_GRAPHID_DS_H
+#ifndef POSTGRAPH_GRAPHID_DS_H
+#define POSTGRAPH_GRAPHID_DS_H
 
 #include "utils/graphid.h"
 
@@ -30,7 +30,7 @@
 /*
  * We declare the GRAPHID data structures here, and in this way, so that they
  * may be used elsewhere. However, we keep the contents private by defining them
- * in age_graphid_ds.c
+ * in graphid_ds.c
  */
 
 /* declare the GraphIdNode */

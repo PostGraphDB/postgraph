@@ -36,7 +36,7 @@
 
 #include "catalog/ag_graph.h"
 #include "catalog/ag_label.h"
-#include "utils/age_global_graph.h"
+#include "utils/global_graph.h"
 #include "utils/queue.h"
 #include "utils/gtype.h"
 #include "catalog/ag_graph.h"

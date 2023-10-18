@@ -57,7 +57,6 @@
 #include "utils/timestamp.h"
 #include "utils/typcache.h"
 
-#include "utils/age_vle.h"
 #include "utils/gtype.h"
 #include "utils/edge.h"
 #include "utils/variable_edge.h"

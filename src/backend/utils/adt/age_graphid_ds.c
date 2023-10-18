@@ -20,7 +20,7 @@
 #include "postgres.h"
 
 #include "utils/graphid.h"
-#include "utils/age_graphid_ds.h"
+#include "utils/graphid_ds.h"
 
 /* defines */
 /*
