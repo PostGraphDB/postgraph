@@ -60,80 +60,32 @@
 
 
 PG_FUNCTION_INFO_V1(gtype_toupper);
-
+// toUpper(gtype)
 Datum gtype_toupper(PG_FUNCTION_ARGS)
 {
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+    Datum d = DirectFunctionCall1Coll(upper, C_COLLATION_OID, GT_ARG_TO_TEXT_DATUM(0));
 
-    if (!AGT_ROOT_IS_SCALAR(agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("toUpper() only supports scalar arguments")));
-
-    gtype_value *agtv_value = get_ith_gtype_value_from_container(&agt->root, 0);
-
-    char *string;
-    int string_len;
-    if (agtv_value->type == AGTV_NULL) {
-        PG_RETURN_NULL();
-    } else if (agtv_value->type == AGTV_STRING) {
-        string = agtv_value->val.string.val;
-        string_len = agtv_value->val.string.len;
-    } else {
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("toUpper() unsupported argument gtype %d", agtv_value->type)));
-    }
-
-    char *result = palloc(string_len);
-
-    for (int i = 0; i < string_len; i++)
-        result[i] = pg_toupper(string[i]);
-
-    gtype_value agtv_result = { .type = AGTV_STRING, .val.string = {string_len, result}};
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+    gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(d) }};
+ 
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_tolower);
-
+// toLower(gtype)
 Datum gtype_tolower(PG_FUNCTION_ARGS)
 {
-    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+    Datum d = DirectFunctionCall1Coll(lower, C_COLLATION_OID, GT_ARG_TO_TEXT_DATUM(0));
 
-    if (!AGT_ROOT_IS_SCALAR(agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("toLower() only supports scalar arguments")));
-
-    gtype_value *agtv_value = get_ith_gtype_value_from_container(&agt->root, 0);
-
-    char *string;
-    int string_len;
-    if (agtv_value->type == AGTV_NULL) {
-        PG_RETURN_NULL();
-    } else if (agtv_value->type == AGTV_STRING) {
-        string = agtv_value->val.string.val;
-        string_len = agtv_value->val.string.len;
-    } else {
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("toLower() unsupported argument gtype %d", agtv_value->type)));
-    }
-
-    char *result = palloc(string_len);
-
-    for (int i = 0; i < string_len; i++)
-        result[i] = pg_tolower(string[i]);
-
-    gtype_value agtv_result = { .type = AGTV_STRING, .val.string = {string_len, result}};
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
+    gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(d) }};
+ 
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_rtrim);
-
+// rtrim(gtype)
 Datum gtype_rtrim(PG_FUNCTION_ARGS)
 {
-    Datum x = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(0), "text");
-
-    Datum d = DirectFunctionCall1(rtrim1, x);
+    Datum d = DirectFunctionCall1(rtrim1, GT_ARG_TO_TEXT_DATUM(0));
 
     gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(d) }};
  
@@ -141,12 +93,10 @@ Datum gtype_rtrim(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(gtype_ltrim);
-
+//ltrim(gtype)
 Datum gtype_ltrim(PG_FUNCTION_ARGS)
 {
-    Datum x = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(0), "text");
-
-    Datum d = DirectFunctionCall1(ltrim1, x);
+    Datum d = DirectFunctionCall1(ltrim1, GT_ARG_TO_TEXT_DATUM(0));
 
     gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(d) }};
  
@@ -154,12 +104,10 @@ Datum gtype_ltrim(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(gtype_trim);
-
+// trim(gtype)
 Datum gtype_trim(PG_FUNCTION_ARGS)
 {
-    Datum x = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(0), "text");
-
-    Datum d = DirectFunctionCall1(btrim1, x);
+    Datum d = DirectFunctionCall1(btrim1, GT_ARG_TO_TEXT_DATUM(0));
 
     gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(d) }};
 
@@ -167,13 +115,10 @@ Datum gtype_trim(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(gtype_right);
-
+// gtype(gtype, gtype)
 Datum gtype_right(PG_FUNCTION_ARGS)
 {
-    Datum x = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(0), "text");
-    Datum y = convert_to_scalar(gtype_to_int8_internal, AG_GET_ARG_GTYPE_P(1), "int");
-
-    Datum d = DirectFunctionCall2(text_right, x, y);
+    Datum d = DirectFunctionCall2(text_right, GT_ARG_TO_TEXT_DATUM(0), GT_ARG_TO_INT8_DATUM(1));
 
     gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(d) }};
 
@@ -181,13 +126,10 @@ Datum gtype_right(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(gtype_left);
-
+// left(gtype, gtype)
 Datum gtype_left(PG_FUNCTION_ARGS)
 {
-    Datum x = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(0), "text");
-    Datum y = convert_to_scalar(gtype_to_int8_internal, AG_GET_ARG_GTYPE_P(1), "int");
-
-    Datum d = DirectFunctionCall2(text_left, x, y);
+    Datum d = DirectFunctionCall2(text_left, GT_ARG_TO_TEXT_DATUM(0), GT_ARG_TO_INT8_DATUM(1));
 
     gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(d) }};
 
@@ -196,13 +138,10 @@ Datum gtype_left(PG_FUNCTION_ARGS)
 
 
 PG_FUNCTION_INFO_V1(gtype_substring_w_len);
+// substring(gtype, gtype, gtype)
 Datum
 gtype_substring_w_len(PG_FUNCTION_ARGS) {
-    Datum x = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(0), "text");
-    Datum y = convert_to_scalar(gtype_to_int4_internal, AG_GET_ARG_GTYPE_P(1), "int4");
-    Datum z = convert_to_scalar(gtype_to_int4_internal, AG_GET_ARG_GTYPE_P(2), "int4");
-
-    Datum d = DirectFunctionCall3(text_substr, x, y, z);
+    Datum d = DirectFunctionCall3(text_substr, GT_ARG_TO_TEXT_DATUM(0), GT_ARG_TO_INT4_DATUM(1), GT_ARG_TO_INT4_DATUM(2));
 
     gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(DatumGetTextP(d)) }};
 
@@ -210,13 +149,10 @@ gtype_substring_w_len(PG_FUNCTION_ARGS) {
 }
 
 PG_FUNCTION_INFO_V1(gtype_substring);
-
+// substring(gtype, gtype)
 Datum gtype_substring(PG_FUNCTION_ARGS)
 {
-    Datum x = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(0), "text");
-    Datum y = convert_to_scalar(gtype_to_int4_internal, AG_GET_ARG_GTYPE_P(1), "int4");
-
-    Datum d = DirectFunctionCall2(text_substr_no_len, x, y);
+    Datum d = DirectFunctionCall2(text_substr_no_len, GT_ARG_TO_TEXT_DATUM(0), GT_ARG_TO_INT4_DATUM(1));
 
     gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(DatumGetTextP(d)) }};
 
@@ -224,15 +160,10 @@ Datum gtype_substring(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(gtype_split);
-
+// split(gtype, gtype)
 Datum gtype_split(PG_FUNCTION_ARGS)
 {
-    Datum x = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(0), "text");
-    Datum y = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(1), "text");
-
-    Datum d = DirectFunctionCall2(text_right, x, y);
-
-    Datum text_array = DirectFunctionCall2Coll(regexp_split_to_array, DEFAULT_COLLATION_OID, x, y);
+    Datum text_array = DirectFunctionCall2Coll(regexp_split_to_array, DEFAULT_COLLATION_OID, GT_ARG_TO_TEXT_DATUM(0), GT_ARG_TO_TEXT_DATUM(1));
 
     gtype_in_state in_state;
     memset(&in_state, 0, sizeof(gtype_in_state));
@@ -243,14 +174,10 @@ Datum gtype_split(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(gtype_replace);
-
+// replace(gtype, gtype, gtype)
 Datum gtype_replace(PG_FUNCTION_ARGS)
 {
-    Datum x = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(0), "text");
-    Datum y = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(1), "text");
-    Datum z = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(2), "text");
-
-    Datum d = DirectFunctionCall3Coll(replace_text, DEFAULT_COLLATION_OID, x, y, z);
+    Datum d = DirectFunctionCall3Coll(replace_text, DEFAULT_COLLATION_OID, GT_ARG_TO_TEXT_DATUM(0), GT_ARG_TO_TEXT_DATUM(1), GT_ARG_TO_TEXT_DATUM(2));
 
     gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(DatumGetTextP(d)) }};
 
@@ -258,134 +185,30 @@ Datum gtype_replace(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(gtype_eq_tilde);
-/*
- * function for =~ aka regular expression comparisons
- */
+// gtype ~ gtype
 Datum gtype_eq_tilde(PG_FUNCTION_ARGS)
 {
-    gtype *agt_string = AG_GET_ARG_GTYPE_P(0);
-    gtype *agt_pattern = AG_GET_ARG_GTYPE_P(1);
-
-    if (AGT_ROOT_IS_SCALAR(agt_string) && AGT_ROOT_IS_SCALAR(agt_pattern)) {
-        gtype_value *agtv_string;
-        gtype_value *agtv_pattern;
-
-        agtv_string = get_ith_gtype_value_from_container(&agt_string->root, 0);
-        agtv_pattern = get_ith_gtype_value_from_container(&agt_pattern->root, 0);
-
-        if (agtv_string->type == AGTV_NULL || agtv_pattern->type == AGTV_NULL)
-            PG_RETURN_NULL();
-
-        /* only strings can be compared, all others are errors */
-        if (agtv_string->type == AGTV_STRING && agtv_pattern->type == AGTV_STRING) {
-            text *string = cstring_to_text_with_len(agtv_string->val.string.val, agtv_string->val.string.len);
-            text *pattern = cstring_to_text_with_len(agtv_pattern->val.string.val, agtv_pattern->val.string.len);
-
-            Datum result = (DirectFunctionCall2Coll(textregexeq, C_COLLATION_OID, PointerGetDatum(string), PointerGetDatum(pattern)));
-            PG_RETURN_BOOL(DatumGetBool(result));
-        }
-    }
-
-    ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                    errmsg("gtype string values expected")));
+    PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2Coll(textregexeq, C_COLLATION_OID, GT_ARG_TO_TEXT_DATUM(0), GT_ARG_TO_TEXT_DATUM(1))));
 }
 
 PG_FUNCTION_INFO_V1(gtype_match_case_insensitive);
-/*
- * ~* Operator
- */
+// gtype ~* gtype
 Datum gtype_match_case_insensitive(PG_FUNCTION_ARGS) 
 {   
-    gtype *agt_string = AG_GET_ARG_GTYPE_P(0);
-    gtype *agt_pattern = AG_GET_ARG_GTYPE_P(1);
-
-    if (AGT_ROOT_IS_SCALAR(agt_string) && AGT_ROOT_IS_SCALAR(agt_pattern)) {
-        gtype_value *agtv_string;
-        gtype_value *agtv_pattern;
-    
-        agtv_string = get_ith_gtype_value_from_container(&agt_string->root, 0);
-        agtv_pattern = get_ith_gtype_value_from_container(&agt_pattern->root, 0);
-
-        if (agtv_string->type == AGTV_NULL || agtv_pattern->type == AGTV_NULL)
-            PG_RETURN_NULL();
-
-        /* only strings can be compared, all others are errors */
-        if (agtv_string->type == AGTV_STRING && agtv_pattern->type == AGTV_STRING) {
-            text *string = cstring_to_text_with_len(agtv_string->val.string.val, agtv_string->val.string.len);
-            text *pattern = cstring_to_text_with_len(agtv_pattern->val.string.val, agtv_pattern->val.string.len);
-
-            Datum result = (DirectFunctionCall2Coll(texticregexeq, C_COLLATION_OID, PointerGetDatum(string), PointerGetDatum(pattern)));
-            PG_RETURN_BOOL(DatumGetBool(result));
-	}
-    }
-
-    ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                    errmsg("gtype string values expected")));
+    PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2Coll(texticregexeq, C_COLLATION_OID, GT_ARG_TO_TEXT_DATUM(0), GT_ARG_TO_TEXT_DATUM(1))));
 }
 
 PG_FUNCTION_INFO_V1(gtype_regex_not_cs);
-/*
- * !~ Operator
- */
+// gtype !~ gtype
 Datum gtype_regex_not_cs(PG_FUNCTION_ARGS)
 {
-    gtype *agt_string = AG_GET_ARG_GTYPE_P(0);
-    gtype *agt_pattern = AG_GET_ARG_GTYPE_P(1);
-
-    if (AGT_ROOT_IS_SCALAR(agt_string) && AGT_ROOT_IS_SCALAR(agt_pattern)) {
-        gtype_value *agtv_string;
-        gtype_value *agtv_pattern;
-
-        agtv_string = get_ith_gtype_value_from_container(&agt_string->root, 0);
-        agtv_pattern = get_ith_gtype_value_from_container(&agt_pattern->root, 0);
-
-        if (agtv_string->type == AGTV_NULL || agtv_pattern->type == AGTV_NULL)
-            PG_RETURN_NULL();
-
-        /* only strings can be compared, all others are errors */
-        if (agtv_string->type == AGTV_STRING && agtv_pattern->type == AGTV_STRING) {
-            text *string = cstring_to_text_with_len(agtv_string->val.string.val, agtv_string->val.string.len);
-            text *pattern = cstring_to_text_with_len(agtv_pattern->val.string.val, agtv_pattern->val.string.len);
-
-            Datum result = (DirectFunctionCall2Coll(textregexne, C_COLLATION_OID, PointerGetDatum(string), PointerGetDatum(pattern)));
-            PG_RETURN_BOOL(DatumGetBool(result));
-        }
-    }
-
-    ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                    errmsg("gtype string values expected")));
+    PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2Coll(textregexne, C_COLLATION_OID, GT_ARG_TO_TEXT_DATUM(0), GT_ARG_TO_TEXT_DATUM(1))));
 }
 
 
 PG_FUNCTION_INFO_V1(gtype_regex_not_ci);
-/*
- * !~ Operator
- */
+// gtype !~ gtype
 Datum gtype_regex_not_ci(PG_FUNCTION_ARGS)
 {
-    gtype *agt_string = AG_GET_ARG_GTYPE_P(0);
-    gtype *agt_pattern = AG_GET_ARG_GTYPE_P(1);
-
-    if (AGT_ROOT_IS_SCALAR(agt_string) && AGT_ROOT_IS_SCALAR(agt_pattern)) {
-        gtype_value *agtv_string;
-        gtype_value *agtv_pattern;
-
-        agtv_string = get_ith_gtype_value_from_container(&agt_string->root, 0);
-        agtv_pattern = get_ith_gtype_value_from_container(&agt_pattern->root, 0);
-
-        if (agtv_string->type == AGTV_NULL || agtv_pattern->type == AGTV_NULL)
-            PG_RETURN_NULL();
-
-        /* only strings can be compared, all others are errors */
-        if (agtv_string->type == AGTV_STRING && agtv_pattern->type == AGTV_STRING) {
-            text *string = cstring_to_text_with_len(agtv_string->val.string.val, agtv_string->val.string.len);
-            text *pattern = cstring_to_text_with_len(agtv_pattern->val.string.val, agtv_pattern->val.string.len);
-
-            Datum result = (DirectFunctionCall2Coll(texticregexne, C_COLLATION_OID, PointerGetDatum(string), PointerGetDatum(pattern)));
-            PG_RETURN_BOOL(DatumGetBool(result));
-        }
-    }
-
-    ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                    errmsg("gtype string values expected")));
+    PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2Coll(texticregexne, C_COLLATION_OID, GT_ARG_TO_TEXT_DATUM(0), GT_ARG_TO_TEXT_DATUM(1))));
 }

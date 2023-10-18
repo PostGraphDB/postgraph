@@ -4115,7 +4115,11 @@ SELECT * FROM tolower(null);
 SELECT * FROM cypher('expr', $$
     RETURN toUpper(true)
 $$) AS (toUpper gtype);
-ERROR:  toUpper() unsupported argument gtype 5
+ toupper 
+---------
+ "TRUE"
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN toUpper()
 $$) AS (toUpper gtype);
@@ -4126,7 +4130,11 @@ HINT:  No function matches the given name and argument types. You might need to 
 SELECT * FROM cypher('expr', $$
     RETURN toLower(true)
 $$) AS (toLower gtype);
-ERROR:  toLower() unsupported argument gtype 5
+ tolower 
+---------
+ "true"
+(1 row)
+
 SELECT * FROM cypher('expr', $$
     RETURN toLower()
 $$) AS (toLower gtype);
