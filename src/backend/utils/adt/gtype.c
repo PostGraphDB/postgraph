@@ -422,7 +422,11 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
     case AGTV_TSVECTOR:
         numstr = DatumGetCString(DirectFunctionCall1(tsvectorout, PointerGetDatum(scalar_val->val.tsvector)));
         appendStringInfoString(out, numstr);
-        break;   
+        break;  
+    case AGTV_TSQUERY:
+        numstr = DatumGetCString(DirectFunctionCall1(tsqueryout, PointerGetDatum(scalar_val->val.tsquery)));
+        appendStringInfoString(out, numstr);
+        break;	
     case AGTV_BOOL:
         if (scalar_val->val.boolean)
             appendBinaryStringInfo(out, "true", 4);

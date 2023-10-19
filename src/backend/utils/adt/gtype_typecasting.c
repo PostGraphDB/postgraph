@@ -759,6 +759,26 @@ Datum gtype_totsvector(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
 }
 
+PG_FUNCTION_INFO_V1(gtype_totsquery);
+/*
+ * Execute function to typecast an agtype to an agtype timestamp
+ */
+Datum gtype_totsquery(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    TSQuery tsquery = DatumGetPointer(DirectFunctionCall1(tsqueryin,
+                                                  convert_to_scalar(gtype_to_string_internal, agt, "string")));
+
+    gtype_value agtv;
+    agtv.type = AGTV_TSQUERY;
+    agtv.val.tsquery = tsquery;
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+}
 
 /*
  * gtype to postgres functions

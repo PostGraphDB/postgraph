@@ -308,6 +308,7 @@ typedef struct
 #define GT_HEADER_SPHEROID    0x00000015
 #define GT_HEADER_GSERIALIZED 0x00000016
 #define GT_HEADER_TSVECTOR    0x00000017
+#define GT_HEADER_TSQUERY     0x00000018
 
 #define GT_IS_INTEGER(agte_) \
     (((agte_) == GT_HEADER_INTEGER))
@@ -372,6 +373,10 @@ typedef struct
 #define GT_IS_TSVECTOR(agt) \
     (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_TSVECTOR)
 
+#define GT_IS_TSQUERY(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_TSQUERY)
+
+
 enum gtype_value_type
 {
     /* Scalar types */
@@ -396,6 +401,7 @@ enum gtype_value_type
     AGTV_SPHEROID,
     AGTV_GSERIALIZED,
     AGTV_TSVECTOR,
+    AGTV_TSQUERY,
     /* Composite types */
     AGTV_ARRAY = 0x100,
     AGTV_OBJECT,
@@ -442,6 +448,7 @@ struct gtype_value
         SPHEROID spheroid;
         GSERIALIZED *gserialized;
 	TSVector tsvector;
+	TSQuery tsquery;
 	struct { int len; gtype_container *data; } binary; // Array or object, in on-disk format
     } val;
 };
