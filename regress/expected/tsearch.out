@@ -1,0 +1,644 @@
+/*
+ * Copyright (C) 2023 PostGraphDB
+ *  
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+LOAD 'postgraph';
+SET search_path TO postgraph;
+SELECT * FROM create_graph('tsearch');
+NOTICE:  graph "tsearch" has been created
+ create_graph 
+--------------
+ 
+(1 row)
+
+SELECT totsvector('"a fat cat sat on a mat and ate a fat rat"');
+                     totsvector                     
+----------------------------------------------------
+ 'a' 'and' 'ate' 'cat' 'fat' 'mat' 'on' 'rat' 'sat'
+(1 row)
+
+SELECT totsvector('"1"');
+ totsvector 
+------------
+ '1'
+(1 row)
+
+SELECT totsvector('"1 "');
+ totsvector 
+------------
+ '1'
+(1 row)
+
+SELECT totsvector('" 1"');
+ totsvector 
+------------
+ '1'
+(1 row)
+
+SELECT totsvector('" 1 "');
+ totsvector 
+------------
+ '1'
+(1 row)
+
+SELECT totsvector('"1 2"');
+ totsvector 
+------------
+ '1' '2'
+(1 row)
+
+SELECT totsvector('"''1 2''"');
+ totsvector 
+------------
+ '1 2'
+(1 row)
+
+SELECT totsvector('"''w'':4A,3B,2C,1D,5 a:8"');
+       totsvector       
+------------------------
+ 'a':8 'w':1,2C,3B,4A,5
+(1 row)
+
+SELECT totsquery('"1"');
+ totsquery 
+-----------
+ '1'
+(1 row)
+
+SELECT totsquery('"1 "');
+ totsquery 
+-----------
+ '1'
+(1 row)
+
+SELECT totsquery('" 1"');
+ totsquery 
+-----------
+ '1'
+(1 row)
+
+SELECT totsquery('" 1 "');
+ totsquery 
+-----------
+ '1'
+(1 row)
+
+SELECT totsquery('"''1 2''"');
+ totsquery 
+-----------
+ '1 2'
+(1 row)
+
+SELECT totsquery('"!1"');
+ totsquery 
+-----------
+ !'1'
+(1 row)
+
+SELECT totsquery('"1|2"');
+ totsquery 
+-----------
+ '1' | '2'
+(1 row)
+
+SELECT totsquery('"1|!2"');
+ totsquery  
+------------
+ '1' | !'2'
+(1 row)
+
+SELECT totsquery('"!1|2"');
+ totsquery  
+------------
+ !'1' | '2'
+(1 row)
+
+SELECT totsquery('"!1|!2"');
+  totsquery  
+-------------
+ !'1' | !'2'
+(1 row)
+
+SELECT totsquery('"!(!1|!2)"');
+    totsquery     
+------------------
+ !( !'1' | !'2' )
+(1 row)
+
+SELECT totsquery('"!(!1|2)"');
+    totsquery    
+-----------------
+ !( !'1' | '2' )
+(1 row)
+
+SELECT totsquery('"!(1|!2)"');
+    totsquery    
+-----------------
+ !( '1' | !'2' )
+(1 row)
+
+SELECT totsquery('"!(1|2)"');
+   totsquery    
+----------------
+ !( '1' | '2' )
+(1 row)
+
+SELECT totsquery('"1&2"');
+ totsquery 
+-----------
+ '1' & '2'
+(1 row)
+
+SELECT totsquery('"!1&2"');
+ totsquery  
+------------
+ !'1' & '2'
+(1 row)
+
+SELECT totsquery('"1&!2"');
+ totsquery  
+------------
+ '1' & !'2'
+(1 row)
+
+SELECT totsquery('"!1&!2"');
+  totsquery  
+-------------
+ !'1' & !'2'
+(1 row)
+
+SELECT totsquery('"(1&2)"');
+ totsquery 
+-----------
+ '1' & '2'
+(1 row)
+
+SELECT totsquery('"1&(2)"');
+ totsquery 
+-----------
+ '1' & '2'
+(1 row)
+
+SELECT totsquery('"!(1)&2"');
+ totsquery  
+------------
+ !'1' & '2'
+(1 row)
+
+SELECT totsquery('"!(1&2)"');
+   totsquery    
+----------------
+ !( '1' & '2' )
+(1 row)
+
+SELECT totsquery('"1|2&3"');
+    totsquery    
+-----------------
+ '1' | '2' & '3'
+(1 row)
+
+SELECT totsquery('"1|(2&3)"');
+    totsquery    
+-----------------
+ '1' | '2' & '3'
+(1 row)
+
+SELECT totsquery('"(1|2)&3"');
+      totsquery      
+---------------------
+ ( '1' | '2' ) & '3'
+(1 row)
+
+SELECT totsquery('"1|2&!3"');
+    totsquery     
+------------------
+ '1' | '2' & !'3'
+(1 row)
+
+SELECT totsquery('"1|!2&3"');
+    totsquery     
+------------------
+ '1' | !'2' & '3'
+(1 row)
+
+SELECT totsquery('"!1|2&3"');
+    totsquery     
+------------------
+ !'1' | '2' & '3'
+(1 row)
+
+SELECT totsquery('"!1|(2&3)"');
+    totsquery     
+------------------
+ !'1' | '2' & '3'
+(1 row)
+
+SELECT totsquery('"!(1|2)&3"');
+      totsquery       
+----------------------
+ !( '1' | '2' ) & '3'
+(1 row)
+
+SELECT totsquery('"(!1|2)&3"');
+      totsquery       
+----------------------
+ ( !'1' | '2' ) & '3'
+(1 row)
+
+SELECT totsquery('"1|(2|(4|(5|6)))"');
+          totsquery          
+-----------------------------
+ '1' | '2' | '4' | '5' | '6'
+(1 row)
+
+SELECT totsquery('"1|2|4|5|6"');
+          totsquery          
+-----------------------------
+ '1' | '2' | '4' | '5' | '6'
+(1 row)
+
+SELECT totsquery('"1&(2&(4&(5&6)))"');
+          totsquery          
+-----------------------------
+ '1' & '2' & '4' & '5' & '6'
+(1 row)
+
+SELECT totsquery('"1&2&4&5&6"');
+          totsquery          
+-----------------------------
+ '1' & '2' & '4' & '5' & '6'
+(1 row)
+
+SELECT totsquery('"1&(2&(4&(5|6)))"');
+            totsquery            
+---------------------------------
+ '1' & '2' & '4' & ( '5' | '6' )
+(1 row)
+
+SELECT totsquery('"1&(2&(4&(5|!6)))"');
+            totsquery             
+----------------------------------
+ '1' & '2' & '4' & ( '5' | !'6' )
+(1 row)
+
+SELECT totsquery('"a:* & nbb:*ac | doo:a* | goo"');
+              totsquery               
+--------------------------------------
+ 'a':* & 'nbb':*AC | 'doo':*A | 'goo'
+(1 row)
+
+SELECT totsquery('"!!b"');
+ totsquery 
+-----------
+ !!'b'
+(1 row)
+
+SELECT totsquery('"!!!b"');
+ totsquery 
+-----------
+ !!!'b'
+(1 row)
+
+SELECT totsquery('"!(!b)"');
+ totsquery 
+-----------
+ !!'b'
+(1 row)
+
+SELECT totsquery('"a & !!b"');
+  totsquery  
+-------------
+ 'a' & !!'b'
+(1 row)
+
+SELECT totsquery('"!!a & b"');
+  totsquery  
+-------------
+ !!'a' & 'b'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('a fat cat sat on a mat and ate a fat rat') $$) as (a gtype);
+                         a                          
+----------------------------------------------------
+ 'a' 'and' 'ate' 'cat' 'fat' 'mat' 'on' 'rat' 'sat'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1') $$) as (a gtype);
+  a  
+-----
+ '1'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1 ') $$) as (a gtype);
+  a  
+-----
+ '1'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector(' 1') $$) as (a gtype);
+  a  
+-----
+ '1'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector(' 1 ') $$) as (a gtype);
+  a  
+-----
+ '1'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1 2') $$) as (a gtype);
+    a    
+---------
+ '1' '2'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('''1 2''') $$) as (a gtype);
+ERROR:  syntax error at or near "'1 2'"
+LINE 1: ...T * FROM cypher('tsearch', $$ RETURN totsvector('''1 2''') $...
+                                                             ^
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('''w'':4A,3B,2C,1D,5 a:8') $$) as (a gtype);
+ERROR:  syntax error at or near "'w'"
+LINE 1: ...T * FROM cypher('tsearch', $$ RETURN totsvector('''w'':4A,3B...
+                                                             ^
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1') $$) as (a gtype);
+  a  
+-----
+ '1'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1 ') $$) as (a gtype);
+  a  
+-----
+ '1'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery(' 1') $$) as (a gtype);
+  a  
+-----
+ '1'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery(' 1 ') $$) as (a gtype);
+  a  
+-----
+ '1'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('''1 2''') $$) as (a gtype);
+ERROR:  syntax error at or near "'1 2'"
+LINE 1: ...CT * FROM cypher('tsearch', $$ RETURN totsquery('''1 2''') $...
+                                                             ^
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!1') $$) as (a gtype);
+  a   
+------
+ !'1'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1|2') $$) as (a gtype);
+     a     
+-----------
+ '1' | '2'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1|!2') $$) as (a gtype);
+     a      
+------------
+ '1' | !'2'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!1|2') $$) as (a gtype);
+     a      
+------------
+ !'1' | '2'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!1|!2') $$) as (a gtype);
+      a      
+-------------
+ !'1' | !'2'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!(!1|!2)') $$) as (a gtype);
+        a         
+------------------
+ !( !'1' | !'2' )
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!(!1|2)') $$) as (a gtype);
+        a        
+-----------------
+ !( !'1' | '2' )
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!(1|!2)') $$) as (a gtype);
+        a        
+-----------------
+ !( '1' | !'2' )
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!(1|2)') $$) as (a gtype);
+       a        
+----------------
+ !( '1' | '2' )
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1&2') $$) as (a gtype);
+     a     
+-----------
+ '1' & '2'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!1&2') $$) as (a gtype);
+     a      
+------------
+ !'1' & '2'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1&!2') $$) as (a gtype);
+     a      
+------------
+ '1' & !'2'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!1&!2') $$) as (a gtype);
+      a      
+-------------
+ !'1' & !'2'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('(1&2)') $$) as (a gtype);
+     a     
+-----------
+ '1' & '2'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1&(2)') $$) as (a gtype);
+     a     
+-----------
+ '1' & '2'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!(1)&2') $$) as (a gtype);
+     a      
+------------
+ !'1' & '2'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!(1&2)') $$) as (a gtype);
+       a        
+----------------
+ !( '1' & '2' )
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1|2&3') $$) as (a gtype);
+        a        
+-----------------
+ '1' | '2' & '3'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1|(2&3)') $$) as (a gtype);
+        a        
+-----------------
+ '1' | '2' & '3'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('(1|2)&3') $$) as (a gtype);
+          a          
+---------------------
+ ( '1' | '2' ) & '3'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1|2&!3') $$) as (a gtype);
+        a         
+------------------
+ '1' | '2' & !'3'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1|!2&3') $$) as (a gtype);
+        a         
+------------------
+ '1' | !'2' & '3'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!1|2&3') $$) as (a gtype);
+        a         
+------------------
+ !'1' | '2' & '3'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!1|(2&3)') $$) as (a gtype);
+        a         
+------------------
+ !'1' | '2' & '3'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!(1|2)&3') $$) as (a gtype);
+          a           
+----------------------
+ !( '1' | '2' ) & '3'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('(!1|2)&3') $$) as (a gtype);
+          a           
+----------------------
+ ( !'1' | '2' ) & '3'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1|(2|(4|(5|6)))') $$) as (a gtype);
+              a              
+-----------------------------
+ '1' | '2' | '4' | '5' | '6'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1|2|4|5|6') $$) as (a gtype);
+              a              
+-----------------------------
+ '1' | '2' | '4' | '5' | '6'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1&(2&(4&(5&6)))') $$) as (a gtype);
+              a              
+-----------------------------
+ '1' & '2' & '4' & '5' & '6'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1&2&4&5&6') $$) as (a gtype);
+              a              
+-----------------------------
+ '1' & '2' & '4' & '5' & '6'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1&(2&(4&(5|6)))') $$) as (a gtype);
+                a                
+---------------------------------
+ '1' & '2' & '4' & ( '5' | '6' )
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1&(2&(4&(5|!6)))') $$) as (a gtype);
+                a                 
+----------------------------------
+ '1' & '2' & '4' & ( '5' | !'6' )
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('a:* & nbb:*ac | doo:a* | goo') $$) as (a gtype);
+                  a                   
+--------------------------------------
+ 'a':* & 'nbb':*AC | 'doo':*A | 'goo'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!!b') $$) as (a gtype);
+   a   
+-------
+ !!'b'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!!!b') $$) as (a gtype);
+   a    
+--------
+ !!!'b'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!(!b)') $$) as (a gtype);
+   a   
+-------
+ !!'b'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('a & !!b') $$) as (a gtype);
+      a      
+-------------
+ 'a' & !!'b'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!!a & b') $$) as (a gtype);
+      a      
+-------------
+ !!'a' & 'b'
+(1 row)
+
+--
+-- Cleanup
+--
+SELECT drop_graph('tsearch', true);
+NOTICE:  drop cascades to 2 other objects
+DETAIL:  drop cascades to table tsearch._ag_label_vertex
+drop cascades to table tsearch._ag_label_edge
+NOTICE:  graph "tsearch" has been dropped
+ drop_graph 
+------------
+ 
+(1 row)
+

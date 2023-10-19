@@ -109,7 +109,8 @@ REGRESS = scan \
           cypher_merge \
 	  order_by \
 	  regex \
-	  aggregation \
+          tsearch \
+          aggregation \
           traversal_functions \
           variable_edge_functions \
           postgis \
