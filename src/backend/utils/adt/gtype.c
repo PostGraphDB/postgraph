@@ -419,6 +419,10 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
         numstr = DatumGetCString(DirectFunctionCall1(LWGEOM_out, PointerGetDatum(scalar_val->val.gserialized)));
         appendStringInfoString(out, numstr);
         break;
+    case AGTV_TSVECTOR:
+        numstr = DatumGetCString(DirectFunctionCall1(tsvectorout, PointerGetDatum(scalar_val->val.tsvector)));
+        appendStringInfoString(out, numstr);
+        break;   
     case AGTV_BOOL:
         if (scalar_val->val.boolean)
             appendBinaryStringInfo(out, "true", 4);

@@ -211,7 +211,15 @@ bool ag_serialize_extended_type(StringInfo buffer, gtentry *gtentry,
 
         *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
         break;
+    case AGTV_TSVECTOR:
+        padlen = ag_serialize_header(buffer, GT_HEADER_TSVECTOR);
 
+        numlen = (scalar_val->val.tsvector)->vl_len_ / 4;
+        offset = reserve_from_buffer(buffer, numlen);
+        memcpy(buffer->data + offset, scalar_val->val.tsvector, (scalar_val->val.tsvector)->vl_len_ / 4);
+
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
+        break;
     default:
         return false;
     }
@@ -297,6 +305,10 @@ void ag_deserialize_extended_type(char *base_addr, uint32 offset, gtype_value *r
     case GT_HEADER_GSERIALIZED:
         result->type = AGTV_GSERIALIZED;
 	result->val.gserialized = (base + GT_HEADER_SIZE);
+        break;
+    case GT_HEADER_TSVECTOR:
+        result->type = AGTV_TSVECTOR;
+        result->val.gserialized = (base + GT_HEADER_SIZE);
         break;
     default:
         elog(ERROR, "Invalid AGT header value.");

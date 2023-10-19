@@ -24,6 +24,17 @@ set timezone TO 'GMT';
 
 SELECT * FROM create_graph('expr');
 
+SELECT totsvector('"a fat cat sat on a mat and ate a fat rat"');
+SELECT totsvector('"1"');
+SELECT totsvector('"1 "');
+SELECT totsvector('" 1"');
+SELECT totsvector('" 1 "');
+SELECT totsvector('"1 2"');
+SELECT totsvector('"''1 2''"');
+SELECT totsvector('"''w'':4A,3B,2C,1D,5 a:8"');
+
+
+
 --
 -- map literal
 --

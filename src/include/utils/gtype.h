@@ -33,6 +33,7 @@
 #include "fmgr.h"
 #include "lib/stringinfo.h"
 #include "nodes/pg_list.h"
+#include "tsearch/ts_type.h"
 #include "utils/array.h"
 #include "utils/date.h"
 #include "utils/inet.h"
@@ -306,6 +307,7 @@ typedef struct
 #define GT_HEADER_BOX3D       0x00000014
 #define GT_HEADER_SPHEROID    0x00000015
 #define GT_HEADER_GSERIALIZED 0x00000016
+#define GT_HEADER_TSVECTOR    0x00000017
 
 #define GT_IS_INTEGER(agte_) \
     (((agte_) == GT_HEADER_INTEGER))
@@ -367,6 +369,8 @@ typedef struct
 #define GT_IS_GSERIALIZED(agt) \
     (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_GSERIALIZED)
 
+#define GT_IS_TSVECTOR(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_TSVECTOR)
 
 enum gtype_value_type
 {
@@ -391,6 +395,7 @@ enum gtype_value_type
     AGTV_BOX3D,
     AGTV_SPHEROID,
     AGTV_GSERIALIZED,
+    AGTV_TSVECTOR,
     /* Composite types */
     AGTV_ARRAY = 0x100,
     AGTV_OBJECT,
@@ -434,8 +439,9 @@ struct gtype_value
         macaddr8 mac8;
         GBOX gbox;
         BOX3D box3d;
-	    SPHEROID spheroid;
-	    GSERIALIZED *gserialized;
+        SPHEROID spheroid;
+        GSERIALIZED *gserialized;
+	TSVector tsvector;
 	struct { int len; gtype_container *data; } binary; // Array or object, in on-disk format
     } val;
 };

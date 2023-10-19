@@ -27,6 +27,54 @@ NOTICE:  graph "expr" has been created
  
 (1 row)
 
+SELECT totsvector('"a fat cat sat on a mat and ate a fat rat"');
+                     totsvector                     
+----------------------------------------------------
+ 'a' 'and' 'ate' 'cat' 'fat' 'mat' 'on' 'rat' 'sat'
+(1 row)
+
+SELECT totsvector('"1"');
+ totsvector 
+------------
+ '1'
+(1 row)
+
+SELECT totsvector('"1 "');
+ totsvector 
+------------
+ '1'
+(1 row)
+
+SELECT totsvector('" 1"');
+ totsvector 
+------------
+ '1'
+(1 row)
+
+SELECT totsvector('" 1 "');
+ totsvector 
+------------
+ '1'
+(1 row)
+
+SELECT totsvector('"1 2"');
+ totsvector 
+------------
+ '1' '2'
+(1 row)
+
+SELECT totsvector('"''1 2''"');
+ totsvector 
+------------
+ '1 2'
+(1 row)
+
+SELECT totsvector('"''w'':4A,3B,2C,1D,5 a:8"');
+       totsvector       
+------------------------
+ 'a':8 'w':1,2C,3B,4A,5
+(1 row)
+
 --
 -- map literal
 --

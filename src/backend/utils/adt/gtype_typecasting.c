@@ -738,6 +738,27 @@ Datum gtype_togeometry(PG_FUNCTION_ARGS)
 }
 
 
+PG_FUNCTION_INFO_V1(gtype_totsvector);
+/*
+ * Execute function to typecast an agtype to an agtype timestamp
+ */
+Datum gtype_totsvector(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    TSVector tsvector = DatumGetPointer(DirectFunctionCall1(tsvectorin,
+			                          convert_to_scalar(gtype_to_string_internal, agt, "string")));
+
+    gtype_value agtv;
+    agtv.type = AGTV_TSVECTOR;
+    agtv.val.gserialized = tsvector;
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+}
+
 
 /*
  * gtype to postgres functions
