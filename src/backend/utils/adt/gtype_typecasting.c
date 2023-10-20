@@ -883,6 +883,29 @@ Datum gtype_totsrange(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
 }
 
+PG_FUNCTION_INFO_V1(gtype_totstzrange);
+/*
+ * Execute function to typecast an agtype to an agtype timestamp
+ */
+Datum gtype_totstzrange(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    RangeType *range = DatumGetPointer(PostGraphDirectFunctionCall3Coll(range_in, DEFAULT_COLLATION_OID,
+                                                  convert_to_scalar(gtype_to_string_internal, agt, "string"),
+                                                  ObjectIdGetDatum(TSTZRANGEOID), Int32GetDatum(1)));
+
+    gtype_value agtv;
+    agtv.type = AGTV_RANGE_TS;
+    agtv.val.range = range;
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+}
+
+
 /*
  * gtype to postgres functions
  */

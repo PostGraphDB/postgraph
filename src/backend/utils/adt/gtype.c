@@ -462,6 +462,7 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
     case AGTV_RANGE_INT:
     case AGTV_RANGE_NUM:
     case AGTV_RANGE_TS:
+    case AGTV_RANGE_TSTZ:
 	numstr = DatumGetCString(PostGraphDirectFunctionCall1Coll(range_out, DEFAULT_COLLATION_OID, PointerGetDatum(scalar_val->val.range)));
         appendStringInfoString(out, numstr);
         break;  

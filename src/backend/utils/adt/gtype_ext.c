@@ -362,6 +362,10 @@ void ag_deserialize_extended_type(char *base_addr, uint32 offset, gtype_value *r
         result->type = AGTV_RANGE_TS;
         result->val.range = (base + GT_HEADER_SIZE);
         break;
+    case GT_HEADER_RANGE_TSTZ:
+        result->type = AGTV_RANGE_TSTZ;
+        result->val.range = (base + GT_HEADER_SIZE); 
+        break;
     default:
         elog(ERROR, "Invalid AGT header value.");
     }
