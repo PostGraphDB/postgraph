@@ -24,6 +24,11 @@ set timezone TO 'GMT';
 
 SELECT * FROM create_graph('expr');
 
+SELECT tointrange('"[0, 1]"');
+SELECT tointrange('"[0, 1)"');
+SELECT tointrange('"(0, 1]"');
+SELECT tointrange('"(0, 1)"');
+
 --
 -- map literal
 --

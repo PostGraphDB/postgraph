@@ -27,6 +27,30 @@ NOTICE:  graph "expr" has been created
  
 (1 row)
 
+SELECT tointrange('"[0, 1]"');
+ tointrange 
+------------
+ [0,2)
+(1 row)
+
+SELECT tointrange('"[0, 1)"');
+ tointrange 
+------------
+ [0,1)
+(1 row)
+
+SELECT tointrange('"(0, 1]"');
+ tointrange 
+------------
+ [1,2)
+(1 row)
+
+SELECT tointrange('"(0, 1)"');
+ tointrange 
+------------
+ empty
+(1 row)
+
 --
 -- map literal
 --

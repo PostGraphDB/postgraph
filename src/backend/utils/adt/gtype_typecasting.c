@@ -780,6 +780,66 @@ Datum gtype_totsquery(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
 }
 
+#include "utils/palloc.h"
+Datum
+PostGraphDirectFunctionCall3Coll(PGFunction func, Oid collation, Datum arg1, Datum arg2,
+                                                Datum arg3)
+{
+        LOCAL_FCINFO(fcinfo, 3);
+	fcinfo->flinfo = palloc0(sizeof(FmgrInfo));
+	
+        Datum           result;
+
+        InitFunctionCallInfoData(*fcinfo, NULL, 3, collation, NULL, NULL);
+        fcinfo->flinfo = palloc0(sizeof(FmgrInfo));
+        fcinfo->flinfo->fn_addr = func;
+        fcinfo->flinfo->fn_oid = INVALID_OID;
+        fcinfo->flinfo->fn_strict = false;
+        fcinfo->flinfo->fn_retset = false;
+        fcinfo->flinfo->fn_extra = NULL;
+        fcinfo->flinfo->fn_mcxt = CurrentMemoryContext;
+        fcinfo->flinfo->fn_expr = NULL;
+
+        fcinfo->args[0].value = arg1;
+        fcinfo->args[0].isnull = false;
+        fcinfo->args[1].value = arg2;
+        fcinfo->args[1].isnull = false;
+        fcinfo->args[2].value = arg3;
+        fcinfo->args[2].isnull = false;
+
+        result = (*func) (fcinfo);
+
+        /* Check for null result, since caller is clearly not expecting one */
+        if (fcinfo->isnull)
+                elog(ERROR, "function %p returned NULL", (void *) func);
+
+        return result;
+}
+
+
+PG_FUNCTION_INFO_V1(gtype_tointrange);
+/*
+ * Execute function to typecast an agtype to an agtype timestamp
+ */
+Datum gtype_tointrange(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    RangeType *range = DatumGetPointer(PostGraphDirectFunctionCall3Coll(range_in, DEFAULT_COLLATION_OID,
+                                                  convert_to_scalar(gtype_to_string_internal, agt, "string"),
+						  ObjectIdGetDatum(INT8RANGEOID), Int32GetDatum(1)));
+
+    gtype_value agtv;
+    agtv.type = AGTV_RANGE_INT;
+    agtv.val.range = range;
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+}
+
+
 /*
  * gtype to postgres functions
  */

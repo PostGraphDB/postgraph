@@ -38,6 +38,7 @@
 #include "utils/date.h"
 #include "utils/inet.h"
 #include "utils/numeric.h"
+#include "utils/rangetypes.h"
 #include "utils/syscache.h"
 
 // PostGIS
@@ -309,6 +310,7 @@ typedef struct
 #define GT_HEADER_GSERIALIZED 0x00000016
 #define GT_HEADER_TSVECTOR    0x00000017
 #define GT_HEADER_TSQUERY     0x00000018
+#define GT_HEADER_RANGE_INT   0x00000019
 
 #define GT_IS_INTEGER(agte_) \
     (((agte_) == GT_HEADER_INTEGER))
@@ -376,6 +378,8 @@ typedef struct
 #define GT_IS_TSQUERY(agt) \
     (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_TSQUERY)
 
+#define GT_IS_RANGE_INT(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_RANGE_INT)
 
 enum gtype_value_type
 {
@@ -402,6 +406,7 @@ enum gtype_value_type
     AGTV_GSERIALIZED,
     AGTV_TSVECTOR,
     AGTV_TSQUERY,
+    AGTV_RANGE_INT,
     /* Composite types */
     AGTV_ARRAY = 0x100,
     AGTV_OBJECT,
@@ -449,6 +454,7 @@ struct gtype_value
         GSERIALIZED *gserialized;
 	TSVector tsvector;
 	TSQuery tsquery;
+	RangeType *range;
 	struct { int len; gtype_container *data; } binary; // Array or object, in on-disk format
     } val;
 };

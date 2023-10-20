@@ -335,6 +335,38 @@ static void gtype_in_object_field_start(void *pstate, char *fname, bool isnull) 
     _state->res = push_gtype_value(&_state->parse_state, WGT_KEY, &v);
 }
 
+Datum
+PostGraphDirectFunctionCall1Coll(PGFunction func, Oid collation, Datum arg1)
+{
+        LOCAL_FCINFO(fcinfo, 3);
+        fcinfo->flinfo = palloc0(sizeof(FmgrInfo));
+
+        Datum           result;
+
+        InitFunctionCallInfoData(*fcinfo, NULL, 1, collation, NULL, NULL);
+fcinfo->flinfo = palloc0(sizeof(FmgrInfo));
+        fcinfo->flinfo->fn_addr = func;
+    //    fcinfo->flinfo->fn_oid = get_pg_func_oid("range_out", 1, INT8RANGEOID);
+        fcinfo->flinfo->fn_strict = false;
+        fcinfo->flinfo->fn_retset = false;
+        fcinfo->flinfo->fn_extra = NULL;
+        fcinfo->flinfo->fn_mcxt = CurrentMemoryContext;
+        fcinfo->flinfo->fn_expr = NULL;
+
+        fcinfo->args[0].value = arg1;
+        fcinfo->args[0].isnull = false;
+
+        result = (*func) (fcinfo);
+
+        /* Check for null result, since caller is clearly not expecting one */
+        if (fcinfo->isnull)
+                elog(ERROR, "function %p returned NULL", (void *) func);
+
+        return result;
+}
+
+
+
 void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
 {
     char *numstr;
@@ -427,6 +459,10 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
         numstr = DatumGetCString(DirectFunctionCall1(tsqueryout, PointerGetDatum(scalar_val->val.tsquery)));
         appendStringInfoString(out, numstr);
         break;	
+    case AGTV_RANGE_INT:
+        numstr = DatumGetCString(PostGraphDirectFunctionCall1Coll(range_out, DEFAULT_COLLATION_OID, PointerGetDatum(scalar_val->val.range)));
+        appendStringInfoString(out, numstr);
+        break;  
     case AGTV_BOOL:
         if (scalar_val->val.boolean)
             appendBinaryStringInfo(out, "true", 4);
