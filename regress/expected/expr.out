@@ -51,6 +51,12 @@ SELECT tointrange('"(0, 1)"');
  empty
 (1 row)
 
+SELECT tointmultirange('"{[0, 1]}"');
+ tointmultirange 
+-----------------
+ {[0,2)}
+(1 row)
+
 SELECT tonumrange('"[0.5, 1]"');
  tonumrange 
 ------------

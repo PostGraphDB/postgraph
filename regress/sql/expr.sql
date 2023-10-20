@@ -29,6 +29,7 @@ SELECT tointrange('"[0, 1)"');
 SELECT tointrange('"(0, 1]"');
 SELECT tointrange('"(0, 1)"');
 
+SELECT tointmultirange('"{[0, 1]}"');
 
 SELECT tonumrange('"[0.5, 1]"');
 SELECT tonumrange('"[0, 1.5)"');
