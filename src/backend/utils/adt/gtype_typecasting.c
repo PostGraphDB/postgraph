@@ -80,31 +80,31 @@ Datum convert_to_scalar(coearce_function func, gtype *agt, char *type) {
     if (!AGT_ROOT_IS_SCALAR(agt))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("cannot cast non-scalar gtype to %s", type)));
 
-    gtype_value *agtv = get_ith_gtype_value_from_container(&agt->root, 0);
+    gtype_value *gtv = get_ith_gtype_value_from_container(&agt->root, 0);
 
-    Datum d = func(agtv);
+    Datum d = func(gtv);
 
     return d;
 }
 
 Datum integer_to_gtype(int64 i) {
-    gtype_value agtv;
+    gtype_value gtv;
     gtype *agt;
 
-    agtv.type = AGTV_INTEGER;
-    agtv.val.int_value = i;
-    agt = gtype_value_to_gtype(&agtv);
+    gtv.type = AGTV_INTEGER;
+    gtv.val.int_value = i;
+    agt = gtype_value_to_gtype(&gtv);
 
     return GTYPE_P_GET_DATUM(agt);
 }
 
 Datum float_to_gtype(float8 f) {
-    gtype_value agtv;
+    gtype_value gtv;
     gtype *agt;
 
-    agtv.type = AGTV_FLOAT;
-    agtv.val.float_value = f;
-    agt = gtype_value_to_gtype(&agtv);
+    gtv.type = AGTV_FLOAT;
+    gtv.val.float_value = f;
+    agt = gtype_value_to_gtype(&gtv);
 
     return GTYPE_P_GET_DATUM(agt);
 }
@@ -114,65 +114,26 @@ Datum float_to_gtype(float8 f) {
  * a valid string for internal storage of gtype.
  */
 Datum string_to_gtype(char *s) {
-    gtype_value agtv;
+    gtype_value gtv;
     gtype *agt;
 
-    agtv.type = AGTV_STRING;
-    agtv.val.string.len = check_string_length(strlen(s));
-    agtv.val.string.val = s;
-    agt = gtype_value_to_gtype(&agtv);
+    gtv.type = AGTV_STRING;
+    gtv.val.string.len = check_string_length(strlen(s));
+    gtv.val.string.val = s;
+    agt = gtype_value_to_gtype(&gtv);
 
     return GTYPE_P_GET_DATUM(agt);
 }
 
 Datum boolean_to_gtype(bool b) {
-    gtype_value agtv;
+    gtype_value gtv;
     gtype *agt;
 
-    agtv.type = AGTV_BOOL;
-    agtv.val.boolean = b;
-    agt = gtype_value_to_gtype(&agtv);
+    gtv.type = AGTV_BOOL;
+    gtv.val.boolean = b;
+    agt = gtype_value_to_gtype(&gtv);
 
     return GTYPE_P_GET_DATUM(agt);
-}
-
-/*
- * Extract scalar value from raw-scalar pseudo-array gtype.
- */
-static bool gtype_extract_scalar(gtype_container *agtc, gtype_value *res)
-{
-    gtype_iterator *it;
-    gtype_iterator_token tok PG_USED_FOR_ASSERTS_ONLY;
-    gtype_value tmp;
-
-    if (!GTYPE_CONTAINER_IS_ARRAY(agtc) || !GTYPE_CONTAINER_IS_SCALAR(agtc))
-    {
-        // inform caller about actual type of container 
-        res->type = GTYPE_CONTAINER_IS_ARRAY(agtc) ? AGTV_ARRAY : AGTV_OBJECT;
-        return false;
-    }
-
-    /*
-     * A root scalar is stored as an array of one element, so we get the array
-     * and then its first (and only) member.
-     */
-    it = gtype_iterator_init(agtc);
-
-    tok = gtype_iterator_next(&it, &tmp, true);
-    Assert(tok == WGT_BEGIN_ARRAY);
-    Assert(tmp.val.array.num_elems == 1 && tmp.val.array.raw_scalar);
-
-    tok = gtype_iterator_next(&it, res, true);
-    Assert(tok == WGT_ELEM);
-    Assert(IS_A_GTYPE_SCALAR(res));
-
-    tok = gtype_iterator_next(&it, &tmp, true);
-    Assert(tok == WGT_END_ARRAY);
-
-    tok = gtype_iterator_next(&it, &tmp, true);
-    Assert(tok == WGT_DONE);
-
-    return true;
 }
 
 /*
@@ -192,12 +153,9 @@ Datum gtype_to_graphid(PG_FUNCTION_ARGS)
     PG_RETURN_INT16(DatumGetInt64(convert_to_scalar(gtype_to_int8_internal, AG_GET_ARG_GTYPE_P(0), "integer")));
 }
 
-
-
 /*
  * gtype to other gtype functions
  */
-
 PG_FUNCTION_INFO_V1(gtype_tointeger);
 Datum
 gtype_tointeger(PG_FUNCTION_ARGS) {
@@ -206,14 +164,14 @@ gtype_tointeger(PG_FUNCTION_ARGS) {
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    gtype_value agtv = {
+    gtype_value gtv = {
         .type = AGTV_INTEGER,
         .val.int_value = DatumGetInt64(convert_to_scalar(gtype_to_int8_internal, agt, "gtype integer"))
     };
 
     PG_FREE_IF_COPY(agt, 0);
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_tofloat);
@@ -224,14 +182,14 @@ gtype_tofloat(PG_FUNCTION_ARGS) {
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    gtype_value agtv = {
+    gtype_value gtv = {
         .type = AGTV_FLOAT,
         .val.float_value = DatumGetFloat8(convert_to_scalar(gtype_to_float8_internal, agt, "gtype float"))
     };
 
     PG_FREE_IF_COPY(agt, 0);
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 
@@ -245,12 +203,12 @@ gtype_tonumeric(PG_FUNCTION_ARGS) {
         PG_RETURN_NULL();
 
 
-    gtype_value agtv = {
+    gtype_value gtv = {
         .type = AGTV_NUMERIC,
         .val.numeric = DatumGetNumeric(convert_to_scalar(gtype_to_numeric_internal, agt, "gtype numeric"))
     };
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_tostring);
@@ -263,50 +221,32 @@ gtype_tostring(PG_FUNCTION_ARGS) {
 
     char *string = DatumGetCString(convert_to_scalar(gtype_to_string_internal, agt, "string"));
     
-    gtype_value agtv; 
-    agtv.type = AGTV_STRING;
-    agtv.val.string.val = string;
-    agtv.val.string.len = strlen(string);
+    gtype_value gtv; 
+    gtv.type = AGTV_STRING;
+    gtv.val.string.val = string;
+    gtv.val.string.len = strlen(string);
 
     PG_FREE_IF_COPY(agt, 0);
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_toboolean);
 Datum
 gtype_toboolean(PG_FUNCTION_ARGS) {
+
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
 
-    if (!AGT_ROOT_IS_SCALAR(agt))
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("toBoolean() only supports scalar arguments")));
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
 
-    gtype_value *agtv_value = get_ith_gtype_value_from_container(&agt->root, 0);
+    Datum d = convert_to_scalar(gtype_to_boolean_internal, agt, "bool");
 
-    bool result;
-    if (agtv_value->type == AGTV_BOOL) {
-            result = agtv_value->val.boolean;
-    } else if (agtv_value->type == AGTV_STRING) {
-        int len = agtv_value->val.string.len;
+    PG_FREE_IF_COPY(agt, 0);
 
-        char *string = agtv_value->val.string.val;
+    gtype_value gtv = { .type = AGTV_BOOL, .val.boolean = BoolGetDatum(d) };
 
-        if (len == 4 && !pg_strncasecmp(string, "true", len))
-            result = true;
-        else if (len == 5 && !pg_strncasecmp(string, "false", len))
-            result = false;
-        else
-            PG_RETURN_NULL();
-    } else {
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("toBoolean() unsupported argument gtype %d",
-                               agtv_value->type)));
-    }
-
-    gtype_value agtv_result = { .type = AGTV_BOOL, .val.boolean = result };
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv_result));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_totimestamp);
@@ -319,13 +259,13 @@ gtype_totimestamp(PG_FUNCTION_ARGS) {
 
     int64 ts = DatumGetInt64(convert_to_scalar(gtype_to_timestamp_internal, agt, "timestamp"));
 
-    gtype_value agtv;
-    agtv.type = AGTV_TIMESTAMP;
-    agtv.val.int_value = ts;
+    gtype_value gtv;
+    gtv.type = AGTV_TIMESTAMP;
+    gtv.val.int_value = ts;
 
     PG_FREE_IF_COPY(agt, 0);
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(totimestamptz);
@@ -341,13 +281,13 @@ Datum totimestamptz(PG_FUNCTION_ARGS)
 
     int64 ts = DatumGetInt64(convert_to_scalar(gtype_to_timestamptz_internal, agt, "timestamptz"));
 
-    gtype_value agtv;
-    agtv.type = AGTV_TIMESTAMPTZ;
-    agtv.val.int_value = ts;
+    gtype_value gtv;
+    gtv.type = AGTV_TIMESTAMPTZ;
+    gtv.val.int_value = ts;
 
     PG_FREE_IF_COPY(agt, 0);
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }           
 
 PG_FUNCTION_INFO_V1(totime);
@@ -364,11 +304,11 @@ Datum totime(PG_FUNCTION_ARGS)
 
     t = DatumGetInt64(convert_to_scalar(gtype_to_time_internal, agt, "time"));
 
-    gtype_value agtv;
-    agtv.type = AGTV_TIME;
-    agtv.val.int_value = (int64)t;
+    gtype_value gtv;
+    gtv.type = AGTV_TIME;
+    gtv.val.int_value = (int64)t;
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }   
 
 PG_FUNCTION_INFO_V1(totimetz);
@@ -385,40 +325,40 @@ Datum totimetz(PG_FUNCTION_ARGS)
 
     t = DatumGetInt64(convert_to_scalar(gtype_to_timetz_internal, agt, "time"));
 
-    gtype_value agtv;
-    agtv.type = AGTV_TIMETZ;
-    agtv.val.timetz.time = t->time;
-    agtv.val.timetz.zone = t->zone;
+    gtype_value gtv;
+    gtv.type = AGTV_TIMETZ;
+    gtv.val.timetz.time = t->time;
+    gtv.val.timetz.zone = t->zone;
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 } 
 
 PG_FUNCTION_INFO_V1(tointerval);
 Datum tointerval(PG_FUNCTION_ARGS) {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    gtype_value *agtv = get_ith_gtype_value_from_container(&agt->root, 0);
+    gtype_value *gtv = get_ith_gtype_value_from_container(&agt->root, 0);
     Interval *i;
 
-    if (agtv->type == AGTV_NULL)
+    if (gtv->type == AGTV_NULL)
         PG_RETURN_NULL();
 
-    if (agtv->type == AGTV_INTERVAL)
+    if (gtv->type == AGTV_INTERVAL)
         AG_RETURN_GTYPE_P(agt);
 
-    if (agtv->type != AGTV_STRING)
+    if (gtv->type != AGTV_STRING)
         ereport(ERROR,
                 (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("typecastint to interval must be a string")));
 
-    i = DatumGetIntervalP(DirectFunctionCall3(interval_in, CStringGetDatum(agtv->val.string.val),
+    i = DatumGetIntervalP(DirectFunctionCall3(interval_in, CStringGetDatum(gtv->val.string.val),
                                                            ObjectIdGetDatum(InvalidOid),
                                                            Int32GetDatum(-1)));
-    agtv->type = AGTV_INTERVAL;
-    agtv->val.interval.time = i->time;
-    agtv->val.interval.day = i->day;
-    agtv->val.interval.month = i->month;
+    gtv->type = AGTV_INTERVAL;
+    gtv->val.interval.time = i->time;
+    gtv->val.interval.day = i->day;
+    gtv->val.interval.month = i->month;
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(gtv));
 }
 
 PG_FUNCTION_INFO_V1(todate);
@@ -434,11 +374,11 @@ Datum todate(PG_FUNCTION_ARGS)
 
     DateADT dte = DatumGetInt64(convert_to_scalar(gtype_to_date_internal, agt, "date"));
 
-    gtype_value agtv;
-    agtv.type = AGTV_DATE;
-    agtv.val.date = dte;
+    gtype_value gtv;
+    gtv.type = AGTV_DATE;
+    gtv.val.date = dte;
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }  
 
 PG_FUNCTION_INFO_V1(tovector);
@@ -448,20 +388,20 @@ PG_FUNCTION_INFO_V1(tovector);
 Datum tovector(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    gtype_value *agtv = get_ith_gtype_value_from_container(&agt->root, 0);
+    gtype_value *gtv = get_ith_gtype_value_from_container(&agt->root, 0);
 
-    if (agtv->type == NULL)
+    if (gtv->type == NULL)
         PG_RETURN_NULL();
 
 
-    if (agtv->type != AGTV_STRING)
+    if (gtv->type != AGTV_STRING)
         ereport(ERROR,
                 (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                  errmsg("typecastint to vector must be a string")));
 
-    agtv = gtype_vector_in(agtv->val.string.val, -1);
+    gtv = gtype_vector_in(gtv->val.string.val, -1);
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(gtv));
 }
 
 Datum _gtype_toinet(Datum arg){
@@ -472,32 +412,11 @@ Datum _gtype_toinet(Datum arg){
 
     inet *i = DatumGetInetPP(convert_to_scalar(gtype_to_inet_internal, agt, "inet"));
 
-    gtype_value agtv;
-    agtv.type = AGTV_INET;
-    agtv.val.inet.vl_len_[0] = i->vl_len_[0];
-    agtv.val.inet.vl_len_[1] = i->vl_len_[1];
-    agtv.val.inet.vl_len_[2] = i->vl_len_[2];
-    agtv.val.inet.vl_len_[3] = i->vl_len_[3];
-    agtv.val.inet.inet_data.family = i->inet_data.family;
-    agtv.val.inet.inet_data.bits = i->inet_data.bits;
-    agtv.val.inet.inet_data.ipaddr[0] = i->inet_data.ipaddr[0];
-    agtv.val.inet.inet_data.ipaddr[1] = i->inet_data.ipaddr[1];
-    agtv.val.inet.inet_data.ipaddr[2] = i->inet_data.ipaddr[2];
-    agtv.val.inet.inet_data.ipaddr[3] = i->inet_data.ipaddr[3];
-    agtv.val.inet.inet_data.ipaddr[4] = i->inet_data.ipaddr[4];
-    agtv.val.inet.inet_data.ipaddr[5] = i->inet_data.ipaddr[5];
-    agtv.val.inet.inet_data.ipaddr[6] = i->inet_data.ipaddr[6];
-    agtv.val.inet.inet_data.ipaddr[7] = i->inet_data.ipaddr[7];
-    agtv.val.inet.inet_data.ipaddr[8] = i->inet_data.ipaddr[8];
-    agtv.val.inet.inet_data.ipaddr[9] = i->inet_data.ipaddr[9];
-    agtv.val.inet.inet_data.ipaddr[10] = i->inet_data.ipaddr[10];
-    agtv.val.inet.inet_data.ipaddr[11] = i->inet_data.ipaddr[11];
-    agtv.val.inet.inet_data.ipaddr[12] = i->inet_data.ipaddr[12];
-    agtv.val.inet.inet_data.ipaddr[13] = i->inet_data.ipaddr[13];
-    agtv.val.inet.inet_data.ipaddr[14] = i->inet_data.ipaddr[14];
-    agtv.val.inet.inet_data.ipaddr[15] = i->inet_data.ipaddr[15];
+    gtype_value gtv;
+    gtv.type = AGTV_INET;
+    memcpy(&gtv.val.inet, i, sizeof(char) * 22);
 
-    return GTYPE_P_GET_DATUM(gtype_value_to_gtype(&agtv));
+    return GTYPE_P_GET_DATUM(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_toinet);
@@ -513,32 +432,11 @@ Datum gtype_toinet(PG_FUNCTION_ARGS)
 
     inet *i = DatumGetInetPP(convert_to_scalar(gtype_to_inet_internal, agt, "inet"));
 
-    gtype_value agtv;
-    agtv.type = AGTV_INET;
-    agtv.val.inet.vl_len_[0] = i->vl_len_[0];
-    agtv.val.inet.vl_len_[1] = i->vl_len_[1];
-    agtv.val.inet.vl_len_[2] = i->vl_len_[2];
-    agtv.val.inet.vl_len_[3] = i->vl_len_[3];
-    agtv.val.inet.inet_data.family = i->inet_data.family;
-    agtv.val.inet.inet_data.bits = i->inet_data.bits;
-    agtv.val.inet.inet_data.ipaddr[0] = i->inet_data.ipaddr[0];
-    agtv.val.inet.inet_data.ipaddr[1] = i->inet_data.ipaddr[1];
-    agtv.val.inet.inet_data.ipaddr[2] = i->inet_data.ipaddr[2];
-    agtv.val.inet.inet_data.ipaddr[3] = i->inet_data.ipaddr[3];
-    agtv.val.inet.inet_data.ipaddr[4] = i->inet_data.ipaddr[4];
-    agtv.val.inet.inet_data.ipaddr[5] = i->inet_data.ipaddr[5];
-    agtv.val.inet.inet_data.ipaddr[6] = i->inet_data.ipaddr[6];
-    agtv.val.inet.inet_data.ipaddr[7] = i->inet_data.ipaddr[7];
-    agtv.val.inet.inet_data.ipaddr[8] = i->inet_data.ipaddr[8];
-    agtv.val.inet.inet_data.ipaddr[9] = i->inet_data.ipaddr[9];
-    agtv.val.inet.inet_data.ipaddr[10] = i->inet_data.ipaddr[10];
-    agtv.val.inet.inet_data.ipaddr[11] = i->inet_data.ipaddr[11];
-    agtv.val.inet.inet_data.ipaddr[12] = i->inet_data.ipaddr[12];
-    agtv.val.inet.inet_data.ipaddr[13] = i->inet_data.ipaddr[13];
-    agtv.val.inet.inet_data.ipaddr[14] = i->inet_data.ipaddr[14];
-    agtv.val.inet.inet_data.ipaddr[15] = i->inet_data.ipaddr[15];
+    gtype_value gtv;
+    gtv.type = AGTV_INET;
+    memcpy(&gtv.val.inet, i, sizeof(char) * 22);
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_tocidr);
@@ -554,32 +452,11 @@ Datum gtype_tocidr(PG_FUNCTION_ARGS)
 
     inet *i = DatumGetInetPP(convert_to_scalar(gtype_to_cidr_internal, agt, "cidr"));
 
-    gtype_value agtv;
-    agtv.type = AGTV_CIDR;
-    agtv.val.inet.vl_len_[0] = i->vl_len_[0];
-    agtv.val.inet.vl_len_[1] = i->vl_len_[1];
-    agtv.val.inet.vl_len_[2] = i->vl_len_[2];
-    agtv.val.inet.vl_len_[3] = i->vl_len_[3];
-    agtv.val.inet.inet_data.family = i->inet_data.family;
-    agtv.val.inet.inet_data.bits = i->inet_data.bits;
-    agtv.val.inet.inet_data.ipaddr[0] = i->inet_data.ipaddr[0];
-    agtv.val.inet.inet_data.ipaddr[1] = i->inet_data.ipaddr[1];
-    agtv.val.inet.inet_data.ipaddr[2] = i->inet_data.ipaddr[2];
-    agtv.val.inet.inet_data.ipaddr[3] = i->inet_data.ipaddr[3];
-    agtv.val.inet.inet_data.ipaddr[4] = i->inet_data.ipaddr[4];
-    agtv.val.inet.inet_data.ipaddr[5] = i->inet_data.ipaddr[5];
-    agtv.val.inet.inet_data.ipaddr[6] = i->inet_data.ipaddr[6];
-    agtv.val.inet.inet_data.ipaddr[7] = i->inet_data.ipaddr[7];
-    agtv.val.inet.inet_data.ipaddr[8] = i->inet_data.ipaddr[8];
-    agtv.val.inet.inet_data.ipaddr[9] = i->inet_data.ipaddr[9];
-    agtv.val.inet.inet_data.ipaddr[10] = i->inet_data.ipaddr[10];
-    agtv.val.inet.inet_data.ipaddr[11] = i->inet_data.ipaddr[11];
-    agtv.val.inet.inet_data.ipaddr[12] = i->inet_data.ipaddr[12];
-    agtv.val.inet.inet_data.ipaddr[13] = i->inet_data.ipaddr[13];
-    agtv.val.inet.inet_data.ipaddr[14] = i->inet_data.ipaddr[14];
-    agtv.val.inet.inet_data.ipaddr[15] = i->inet_data.ipaddr[15];
+    gtype_value gtv;
+    gtv.type = AGTV_CIDR;
+    memcpy(&gtv.val.inet, i, sizeof(char) * 22);
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_tomacaddr);
@@ -595,17 +472,12 @@ Datum gtype_tomacaddr(PG_FUNCTION_ARGS)
 
     macaddr *mac = DatumGetMacaddrP(convert_to_scalar(gtype_to_macaddr_internal, agt, "cidr"));
 
-    gtype_value agtv;
-    agtv.type = AGTV_MAC;
-    agtv.val.mac.a = mac->a;
-    agtv.val.mac.b = mac->b;
-    agtv.val.mac.c = mac->c;
-    agtv.val.mac.d = mac->d;
-    agtv.val.mac.e = mac->e;
-    agtv.val.mac.f = mac->f;
+    gtype_value gtv;
+    gtv.type = AGTV_MAC;
+    memcpy(&gtv.val.mac, mac, sizeof(char) * 6);
 
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_tomacaddr8);
@@ -621,19 +493,11 @@ Datum gtype_tomacaddr8(PG_FUNCTION_ARGS)
 
     macaddr8 *mac = DatumGetMacaddrP(convert_to_scalar(gtype_to_macaddr8_internal, agt, "macaddr8"));
 
-    gtype_value agtv;
-    agtv.type = AGTV_MAC8;
-    agtv.val.mac8.a = mac->a;
-    agtv.val.mac8.b = mac->b;
-    agtv.val.mac8.c = mac->c;
-    agtv.val.mac8.d = mac->d;
-    agtv.val.mac8.e = mac->e;
-    agtv.val.mac8.f = mac->f;
-    agtv.val.mac8.g = mac->g;
-    agtv.val.mac8.h = mac->h;
+    gtype_value gtv;
+    gtv.type = AGTV_MAC8;
+    memcpy(&gtv.val.mac, mac, sizeof(char) * 8);
 
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_tobox2d);
@@ -649,21 +513,11 @@ Datum gtype_tobox2d(PG_FUNCTION_ARGS)
 
     GBOX *box = convert_to_scalar(gtype_to_box2d_internal, agt, "box2d");
 
-    gtype_value agtv;
-    agtv.type = AGTV_BOX2D;
+    gtype_value gtv;
+    gtv.type = AGTV_BOX2D;
+    memcpy(&gtv.val.gbox, box, sizeof(GBOX));
 
-    agtv.val.gbox.flags = box->flags;
-    agtv.val.gbox.xmin = box->xmin;
-    agtv.val.gbox.xmax = box->xmax;
-    agtv.val.gbox.ymin = box->ymin;
-    agtv.val.gbox.ymax = box->ymax;
-    agtv.val.gbox.zmin = box->zmin;
-    agtv.val.gbox.zmax = box->zmax;
-    agtv.val.gbox.mmin = box->mmin;
-    agtv.val.gbox.mmax = box->mmax;
-
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_tobox3d);
@@ -679,19 +533,11 @@ Datum gtype_tobox3d(PG_FUNCTION_ARGS)
 
     BOX3D *box = convert_to_scalar(gtype_to_box3d_internal, agt, "box3d");
 
-    gtype_value agtv;
-    agtv.type = AGTV_BOX3D;
+    gtype_value gtv;
+    gtv.type = AGTV_BOX3D;
+    memcpy(&gtv.val.box3d, box, sizeof(BOX3D));
 
-    agtv.val.box3d.srid = box->srid;
-    agtv.val.box3d.xmin = box->xmin;
-    agtv.val.box3d.xmax = box->xmax;
-    agtv.val.box3d.ymin = box->ymin;
-    agtv.val.box3d.ymax = box->ymax;
-    agtv.val.box3d.zmin = box->zmin;
-    agtv.val.box3d.zmax = box->zmax;
-
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
 
@@ -706,14 +552,13 @@ Datum gtype_tospheroid(PG_FUNCTION_ARGS)
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    SPHEROID *box = convert_to_scalar(gtype_to_spheroid_internal, agt, "spheroid");
+    SPHEROID *spheroid = convert_to_scalar(gtype_to_spheroid_internal, agt, "spheroid");
 
-    gtype_value agtv;
-    agtv.type = AGTV_SPHEROID;
+    gtype_value gtv;
+    gtv.type = AGTV_SPHEROID;
+    memcpy(&gtv.val.spheroid, spheroid, sizeof(SPHEROID));
 
-    memcpy(&agtv.val.spheroid, box, sizeof(SPHEROID));
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
 
@@ -730,11 +575,11 @@ Datum gtype_togeometry(PG_FUNCTION_ARGS)
 
     void *gserial = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, agt, "geometry"));
 
-    gtype_value agtv;
-    agtv.type = AGTV_GSERIALIZED;
-    agtv.val.gserialized = gserial;
+    gtype_value gtv;
+    gtv.type = AGTV_GSERIALIZED;
+    gtv.val.gserialized = gserial;
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
 
@@ -752,11 +597,11 @@ Datum gtype_totsvector(PG_FUNCTION_ARGS)
     TSVector tsvector = DatumGetPointer(DirectFunctionCall1(tsvectorin,
 			                          convert_to_scalar(gtype_to_string_internal, agt, "string")));
 
-    gtype_value agtv;
-    agtv.type = AGTV_TSVECTOR;
-    agtv.val.gserialized = tsvector;
+    gtype_value gtv;
+    gtv.type = AGTV_TSVECTOR;
+    gtv.val.gserialized = tsvector;
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_totsquery);
@@ -773,11 +618,11 @@ Datum gtype_totsquery(PG_FUNCTION_ARGS)
     TSQuery tsquery = DatumGetPointer(DirectFunctionCall1(tsqueryin,
                                                   convert_to_scalar(gtype_to_string_internal, agt, "string")));
 
-    gtype_value agtv;
-    agtv.type = AGTV_TSQUERY;
-    agtv.val.tsquery = tsquery;
+    gtype_value gtv;
+    gtv.type = AGTV_TSQUERY;
+    gtv.val.tsquery = tsquery;
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
 #include "utils/palloc.h"
@@ -816,7 +661,6 @@ PostGraphDirectFunctionCall3Coll(PGFunction func, Oid collation, Datum arg1, Dat
         return result;
 }
 
-
 PG_FUNCTION_INFO_V1(gtype_tointrange);
 /*
  * Execute function to typecast an agtype to an agtype timestamp
@@ -827,16 +671,13 @@ Datum gtype_tointrange(PG_FUNCTION_ARGS)
 
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
+						  
+    RangeType *range = DatumGetPointer(convert_to_scalar(gtype_to_int_range_internal, agt, "int_range"));
+    gtype_value gtv;
+    gtv.type = AGTV_RANGE_INT;
+    gtv.val.range = range;
 
-    RangeType *range = DatumGetPointer(PostGraphDirectFunctionCall3Coll(range_in, DEFAULT_COLLATION_OID,
-                                                  convert_to_scalar(gtype_to_string_internal, agt, "string"),
-						  ObjectIdGetDatum(INT8RANGEOID), Int32GetDatum(1)));
-
-    gtype_value agtv;
-    agtv.type = AGTV_RANGE_INT;
-    agtv.val.range = range;
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_tointmultirange);
@@ -854,11 +695,11 @@ Datum gtype_tointmultirange(PG_FUNCTION_ARGS)
                                                   convert_to_scalar(gtype_to_string_internal, agt, "string"),
                                                   ObjectIdGetDatum(INT8MULTIRANGEOID), Int32GetDatum(1)));
 
-    gtype_value agtv;
-    agtv.type = AGTV_RANGE_INT_MULTI;
-    agtv.val.multirange = range;
+    gtype_value gtv;
+    gtv.type = AGTV_RANGE_INT_MULTI;
+    gtv.val.multirange = range;
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
 
@@ -877,11 +718,11 @@ Datum gtype_tonumrange(PG_FUNCTION_ARGS)
                                                   convert_to_scalar(gtype_to_string_internal, agt, "string"),
                                                   ObjectIdGetDatum(NUMRANGEOID), Int32GetDatum(1)));
 
-    gtype_value agtv;
-    agtv.type = AGTV_RANGE_NUM;
-    agtv.val.range = range;
+    gtype_value gtv;
+    gtv.type = AGTV_RANGE_NUM;
+    gtv.val.range = range;
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_totsrange);
@@ -899,11 +740,11 @@ Datum gtype_totsrange(PG_FUNCTION_ARGS)
                                                   convert_to_scalar(gtype_to_string_internal, agt, "string"),
                                                   ObjectIdGetDatum(TSRANGEOID), Int32GetDatum(1)));
 
-    gtype_value agtv;
-    agtv.type = AGTV_RANGE_TS;
-    agtv.val.range = range;
+    gtype_value gtv;
+    gtv.type = AGTV_RANGE_TS;
+    gtv.val.range = range;
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_totstzrange);
@@ -921,11 +762,11 @@ Datum gtype_totstzrange(PG_FUNCTION_ARGS)
                                                   convert_to_scalar(gtype_to_string_internal, agt, "string"),
                                                   ObjectIdGetDatum(TSTZRANGEOID), Int32GetDatum(1)));
 
-    gtype_value agtv;
-    agtv.type = AGTV_RANGE_TS;
-    agtv.val.range = range;
+    gtype_value gtv;
+    gtv.type = AGTV_RANGE_TS;
+    gtv.val.range = range;
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_todaterange);
@@ -943,11 +784,11 @@ Datum gtype_todaterange(PG_FUNCTION_ARGS)
                                                   convert_to_scalar(gtype_to_string_internal, agt, "string"),
                                                   ObjectIdGetDatum(DATERANGEOID), Int32GetDatum(1)));
 
-    gtype_value agtv;
-    agtv.type = AGTV_RANGE_DATE;
-    agtv.val.range = range;
+    gtype_value gtv;
+    gtv.type = AGTV_RANGE_DATE;
+    gtv.val.range = range;
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
 
@@ -1073,15 +914,16 @@ PG_FUNCTION_INFO_V1(gtype_to_bool);
  */
 Datum gtype_to_bool(PG_FUNCTION_ARGS)
 {
-    gtype *gtype_in = AG_GET_ARG_GTYPE_P(0);
-    gtype_value agtv;
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
 
-    if (!gtype_extract_scalar(&gtype_in->root, &agtv) || agtv.type != AGTV_BOOL)
-        cannot_cast_gtype_value(agtv.type, "boolean");
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
 
-    PG_FREE_IF_COPY(gtype_in, 0);
+    Datum d = convert_to_scalar(gtype_to_boolean_internal, agt, "bool");
 
-    PG_RETURN_BOOL(agtv.val.boolean);
+    PG_FREE_IF_COPY(agt, 0);
+
+    PG_RETURN_DATUM(d);
 }
 
 PG_FUNCTION_INFO_V1(gtype_to_inet);
@@ -1166,21 +1008,21 @@ PG_FUNCTION_INFO_V1(bool_to_gtype);
 // boolean -> gtype
 Datum
 bool_to_gtype(PG_FUNCTION_ARGS) {
-    return boolean_to_gtype(PG_GETARG_BOOL(0));
+    AG_RETURN_GTYPE_P(boolean_to_gtype(PG_GETARG_BOOL(0)));
 }
 
 PG_FUNCTION_INFO_V1(float8_to_gtype);
 // float8 -> gtype
 Datum
 float8_to_gtype(PG_FUNCTION_ARGS) {
-    return float_to_gtype(PG_GETARG_FLOAT8(0));
+    AG_RETURN_GTYPE_P(float_to_gtype(PG_GETARG_FLOAT8(0)));
 }
 
 PG_FUNCTION_INFO_V1(int8_to_gtype);
 // int8 -> gtype.
 Datum
 int8_to_gtype(PG_FUNCTION_ARGS) {
-    return integer_to_gtype(PG_GETARG_INT64(0));
+    AG_RETURN_GTYPE_P(integer_to_gtype(PG_GETARG_INT64(0)));
 }
 
 PG_FUNCTION_INFO_V1(text_to_gtype);
@@ -1189,7 +1031,7 @@ Datum
 text_to_gtype(PG_FUNCTION_ARGS) {
     Datum txt = PG_GETARG_DATUM(0);
 
-    return string_to_gtype(TextDatumGetCString(txt));
+    AG_RETURN_GTYPE_P(string_to_gtype(TextDatumGetCString(txt)));
 }
 
 PG_FUNCTION_INFO_V1(timestamp_to_gtype);
@@ -1198,11 +1040,11 @@ Datum
 timestamp_to_gtype(PG_FUNCTION_ARGS) {
     int64 ts = PG_GETARG_TIMESTAMP(0);
 
-    gtype_value agtv;
-    agtv.type = AGTV_TIMESTAMP;
-    agtv.val.int_value = ts;
+    gtype_value gtv;
+    gtv.type = AGTV_TIMESTAMP;
+    gtv.val.int_value = ts;
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(timestamptz_to_gtype);
@@ -1211,11 +1053,11 @@ Datum
 timestamptz_to_gtype(PG_FUNCTION_ARGS) {
     int64 ts = PG_GETARG_TIMESTAMPTZ(0);
     
-    gtype_value agtv;
-    agtv.type = AGTV_TIMESTAMPTZ;
-    agtv.val.int_value = ts;
+    gtype_value gtv;
+    gtv.type = AGTV_TIMESTAMPTZ;
+    gtv.val.int_value = ts;
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(date_to_gtype);
@@ -1223,22 +1065,22 @@ PG_FUNCTION_INFO_V1(date_to_gtype);
 Datum
 date_to_gtype(PG_FUNCTION_ARGS) {
 
-    gtype_value agtv;
-    agtv.type = AGTV_DATE;
-    agtv.val.date = PG_GETARG_DATEADT(0);
+    gtype_value gtv;
+    gtv.type = AGTV_DATE;
+    gtv.val.date = PG_GETARG_DATEADT(0);
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(time_to_gtype);
 //time -> gtype
 Datum
 time_to_gtype(PG_FUNCTION_ARGS) {
-    gtype_value agtv;
-    agtv.type = AGTV_TIME;
-    agtv.val.int_value = PG_GETARG_TIMEADT(0);
+    gtype_value gtv;
+    gtv.type = AGTV_TIME;
+    gtv.val.int_value = PG_GETARG_TIMEADT(0);
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(timetz_to_gtype);
@@ -1247,12 +1089,12 @@ Datum
 timetz_to_gtype(PG_FUNCTION_ARGS) {
     TimeTzADT *t = PG_GETARG_TIMETZADT_P(0);
 
-    gtype_value agtv;
-    agtv.type = AGTV_TIMETZ;
-    agtv.val.timetz.time = t->time;
-    agtv.val.timetz.zone = t->zone;
+    gtype_value gtv;
+    gtv.type = AGTV_TIMETZ;
+    gtv.val.timetz.time = t->time;
+    gtv.val.timetz.zone = t->zone;
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv));
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(inet_to_gtype);
@@ -1375,20 +1217,20 @@ Datum gtype_to_int2_array(PG_FUNCTION_ARGS) {
 
 static ArrayType *
 gtype_to_array(coearce_function func, gtype *agt, char *type, Oid type_oid, int type_len, bool elembyval) {
-    gtype_value agtv;
+    gtype_value gtv;
     Datum *array_value;
 
     gtype_iterator *gtype_iterator = gtype_iterator_init(&agt->root);
-    gtype_iterator_token agtv_token = gtype_iterator_next(&gtype_iterator, &agtv, false);
+    gtype_iterator_token gtoken = gtype_iterator_next(&gtype_iterator, &gtv, false);
 
-    if (agtv.type != AGTV_ARRAY && agtv.type != AGTV_VECTOR)
-        cannot_cast_gtype_value(agtv.type, type);
+    if (gtv.type != AGTV_ARRAY && gtv.type != AGTV_VECTOR)
+        cannot_cast_gtype_value(gtv.type, type);
 
     array_value = (Datum *) palloc(sizeof(Datum) * AGT_ROOT_COUNT(agt));
 
     int i = 0;
-    while ((agtv_token = gtype_iterator_next(&gtype_iterator, &agtv, true)) < WGT_END_ARRAY)
-        array_value[i++] = func(&agtv);
+    while ((gtoken = gtype_iterator_next(&gtype_iterator, &gtv, true)) < WGT_END_ARRAY)
+        array_value[i++] = func(&gtv);
 
     ArrayType *result = construct_array(array_value, AGT_ROOT_COUNT(agt), type_oid, type_len, elembyval, 'i');
 
@@ -1399,68 +1241,83 @@ gtype_to_array(coearce_function func, gtype *agt, char *type, Oid type_oid, int 
  * internal scalar conversion functions
  */
 Datum
-gtype_to_int8_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_INTEGER)
-        return Int64GetDatum(agtv->val.int_value);
-    else if (agtv->type == AGTV_FLOAT)
-        return DirectFunctionCall1(float8_to_int8, Float8GetDatum(agtv->val.float_value));
-    else if (agtv->type == AGTV_NUMERIC)
-        return DirectFunctionCall1(numeric_to_int8, NumericGetDatum(agtv->val.numeric));
-    else if (agtv->type == AGTV_STRING)
-        return DirectFunctionCall1(string_to_int8, CStringGetDatum(agtv->val.string.val));
+gtype_to_int8_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_INTEGER)
+        return Int64GetDatum(gtv->val.int_value);
+    else if (gtv->type == AGTV_FLOAT)
+        return DirectFunctionCall1(float8_to_int8, Float8GetDatum(gtv->val.float_value));
+    else if (gtv->type == AGTV_NUMERIC)
+        return DirectFunctionCall1(numeric_to_int8, NumericGetDatum(gtv->val.numeric));
+    else if (gtv->type == AGTV_STRING)
+        return DirectFunctionCall1(string_to_int8, CStringGetDatum(gtv->val.string.val));
     else
-        cannot_cast_gtype_value(agtv->type, "int8");
+        cannot_cast_gtype_value(gtv->type, "int8");
 
     // cannot reach
     return 0;
 }
 
 Datum
-gtype_to_int4_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_INTEGER)
-        return DirectFunctionCall1(int8_to_int4, Int64GetDatum(agtv->val.int_value));
-    else if (agtv->type == AGTV_FLOAT)
-        return DirectFunctionCall1(float8_to_int4, Float8GetDatum(agtv->val.float_value));
-    else if (agtv->type == AGTV_NUMERIC)
-        return DirectFunctionCall1(numeric_to_int4, NumericGetDatum(agtv->val.numeric));
-    else if (agtv->type == AGTV_STRING)
-        return DirectFunctionCall1(string_to_int4, CStringGetDatum(agtv->val.string.val));
+gtype_to_int_range_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_RANGE_INT)
+        return PointerGetDatum(gtv->val.range);
+    else if (gtv->type == AGTV_STRING)
+        return DatumGetPointer(PostGraphDirectFunctionCall3Coll(range_in, DEFAULT_COLLATION_OID,
+                                                  CStringGetDatum(gtv->val.string.val),
+                                                  ObjectIdGetDatum(INT8RANGEOID), Int32GetDatum(1)));
     else
-        cannot_cast_gtype_value(agtv->type, "int4");
+        cannot_cast_gtype_value(gtv->type, "int8");
 
     // cannot reach
     return 0;
 }
 
 Datum
-gtype_to_int2_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_INTEGER)
-        return DirectFunctionCall1(int8_to_int2, Int64GetDatum(agtv->val.int_value));
-    else if (agtv->type == AGTV_FLOAT)
-        return DirectFunctionCall1(float8_to_int2, Float8GetDatum(agtv->val.float_value));
-    else if (agtv->type == AGTV_NUMERIC)
-        return DirectFunctionCall1(numeric_to_int2, NumericGetDatum(agtv->val.numeric));
-    else if (agtv->type == AGTV_STRING)
-        return DirectFunctionCall1(string_to_int2, CStringGetDatum(agtv->val.string.val));
+gtype_to_int4_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_INTEGER)
+        return DirectFunctionCall1(int8_to_int4, Int64GetDatum(gtv->val.int_value));
+    else if (gtv->type == AGTV_FLOAT)
+        return DirectFunctionCall1(float8_to_int4, Float8GetDatum(gtv->val.float_value));
+    else if (gtv->type == AGTV_NUMERIC)
+        return DirectFunctionCall1(numeric_to_int4, NumericGetDatum(gtv->val.numeric));
+    else if (gtv->type == AGTV_STRING)
+        return DirectFunctionCall1(string_to_int4, CStringGetDatum(gtv->val.string.val));
     else
-        cannot_cast_gtype_value(agtv->type, "int2");
+        cannot_cast_gtype_value(gtv->type, "int4");
 
     // cannot reach
     return 0;
 }
 
 Datum
-gtype_to_float8_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_FLOAT)
-        return Float8GetDatum(agtv->val.float_value);
-    else if (agtv->type == AGTV_INTEGER)
-        return DirectFunctionCall1(i8tod, Int64GetDatum(agtv->val.int_value));
-    else if (agtv->type == AGTV_NUMERIC)
-        return DirectFunctionCall1(numeric_float8, NumericGetDatum(agtv->val.numeric));
-    else if (agtv->type == AGTV_STRING)
-        return DirectFunctionCall1(float8in, CStringGetDatum(agtv->val.string.val));
+gtype_to_int2_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_INTEGER)
+        return DirectFunctionCall1(int8_to_int2, Int64GetDatum(gtv->val.int_value));
+    else if (gtv->type == AGTV_FLOAT)
+        return DirectFunctionCall1(float8_to_int2, Float8GetDatum(gtv->val.float_value));
+    else if (gtv->type == AGTV_NUMERIC)
+        return DirectFunctionCall1(numeric_to_int2, NumericGetDatum(gtv->val.numeric));
+    else if (gtv->type == AGTV_STRING)
+        return DirectFunctionCall1(string_to_int2, CStringGetDatum(gtv->val.string.val));
     else
-        cannot_cast_gtype_value(agtv->type, "float8");
+        cannot_cast_gtype_value(gtv->type, "int2");
+
+    // cannot reach
+    return 0;
+}
+
+Datum
+gtype_to_float8_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_FLOAT)
+        return Float8GetDatum(gtv->val.float_value);
+    else if (gtv->type == AGTV_INTEGER)
+        return DirectFunctionCall1(i8tod, Int64GetDatum(gtv->val.int_value));
+    else if (gtv->type == AGTV_NUMERIC)
+        return DirectFunctionCall1(numeric_float8, NumericGetDatum(gtv->val.numeric));
+    else if (gtv->type == AGTV_STRING)
+        return DirectFunctionCall1(float8in, CStringGetDatum(gtv->val.string.val));
+    else
+        cannot_cast_gtype_value(gtv->type, "float8");
 
     // unreachable
     return 0;
@@ -1468,11 +1325,20 @@ gtype_to_float8_internal(gtype_value *agtv) {
 
 
 Datum
-gtype_to_boolean_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_BOOL)
-        return BoolGetDatum(agtv->val.boolean);
-    else
-        cannot_cast_gtype_value(agtv->type, "float8");
+gtype_to_boolean_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_BOOL) {
+        return BoolGetDatum(gtv->val.boolean);
+    } else if (gtv->type == AGTV_STRING) {
+        char *string = gtv->val.string.val;
+        int len = gtv->val.string.len;
+
+        if (!pg_strncasecmp(string, "true", len))
+            return BoolGetDatum(true);
+        else if (!pg_strncasecmp(string, "false", len))
+            return BoolGetDatum(false);
+    }
+
+    cannot_cast_gtype_value(gtv->type, "boolean");
 
     // unreachable
     return 0;
@@ -1480,34 +1346,34 @@ gtype_to_boolean_internal(gtype_value *agtv) {
 
 
 Datum
-gtype_to_float4_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_FLOAT)
-        return DirectFunctionCall1(dtof, Float8GetDatum(agtv->val.float_value));
-    else if (agtv->type == AGTV_INTEGER)
-        return DirectFunctionCall1(i8tof, Int64GetDatum(agtv->val.int_value));
-    else if (agtv->type == AGTV_NUMERIC)
-        return DirectFunctionCall1(numeric_float4, NumericGetDatum(agtv->val.numeric));
-    else if (agtv->type == AGTV_STRING)
-        return DirectFunctionCall1(float4in, CStringGetDatum(agtv->val.string.val));
+gtype_to_float4_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_FLOAT)
+        return DirectFunctionCall1(dtof, Float8GetDatum(gtv->val.float_value));
+    else if (gtv->type == AGTV_INTEGER)
+        return DirectFunctionCall1(i8tof, Int64GetDatum(gtv->val.int_value));
+    else if (gtv->type == AGTV_NUMERIC)
+        return DirectFunctionCall1(numeric_float4, NumericGetDatum(gtv->val.numeric));
+    else if (gtv->type == AGTV_STRING)
+        return DirectFunctionCall1(float4in, CStringGetDatum(gtv->val.string.val));
     else
-        cannot_cast_gtype_value(agtv->type, "float4");
+        cannot_cast_gtype_value(gtv->type, "float4");
 
     // unreachable
     return 0;
 }
 
 Datum
-gtype_to_numeric_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_INTEGER)
-        return DirectFunctionCall1(int8_to_numeric, Int64GetDatum(agtv->val.int_value));
-    else if (agtv->type == AGTV_FLOAT)
-        return DirectFunctionCall1(float8_to_numeric, Float8GetDatum(agtv->val.float_value));
-    else if (agtv->type == AGTV_NUMERIC)
-        return NumericGetDatum(agtv->val.numeric);
-    else if (agtv->type == AGTV_STRING) {
-        char *string = (char *) palloc(sizeof(char) * (agtv->val.string.len + 1));
-        string = strncpy(string, agtv->val.string.val, agtv->val.string.len);
-        string[agtv->val.string.len] = '\0';
+gtype_to_numeric_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_INTEGER)
+        return DirectFunctionCall1(int8_to_numeric, Int64GetDatum(gtv->val.int_value));
+    else if (gtv->type == AGTV_FLOAT)
+        return DirectFunctionCall1(float8_to_numeric, Float8GetDatum(gtv->val.float_value));
+    else if (gtv->type == AGTV_NUMERIC)
+        return NumericGetDatum(gtv->val.numeric);
+    else if (gtv->type == AGTV_STRING) {
+        char *string = (char *) palloc(sizeof(char) * (gtv->val.string.len + 1));
+        string = strncpy(string, gtv->val.string.val, gtv->val.string.len);
+        string[gtv->val.string.len] = '\0';
 
         Datum numd = DirectFunctionCall3(string_to_numeric, CStringGetDatum(string), ObjectIdGetDatum(InvalidOid), Int32GetDatum(-1));
 
@@ -1515,7 +1381,7 @@ gtype_to_numeric_internal(gtype_value *agtv) {
 
         return numd;
     } else
-        cannot_cast_gtype_value(agtv->type, "numeric");
+        cannot_cast_gtype_value(gtv->type, "numeric");
 
     // unreachable
     return 0;
@@ -1523,66 +1389,66 @@ gtype_to_numeric_internal(gtype_value *agtv) {
 
 
 Datum
-gtype_to_text_internal(gtype_value *agtv) {
-    return CStringGetTextDatum(DatumGetCString(gtype_to_string_internal(agtv)));
+gtype_to_text_internal(gtype_value *gtv) {
+    return CStringGetTextDatum(DatumGetCString(gtype_to_string_internal(gtv)));
 }
 
 Datum
-gtype_to_string_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_INTEGER)
-        return DirectFunctionCall1(int8_to_string, Int64GetDatum(agtv->val.int_value));
-    else if (agtv->type == AGTV_FLOAT)
-        return DirectFunctionCall1(float8_to_string, Float8GetDatum(agtv->val.float_value));
-    else if (agtv->type == AGTV_STRING)
-        return CStringGetDatum(pnstrdup(agtv->val.string.val, agtv->val.string.len));
-    else if (agtv->type == AGTV_NUMERIC)
-        return DirectFunctionCall1(numeric_to_string, NumericGetDatum(agtv->val.numeric));
-    else if (agtv->type == AGTV_BOOL)
-        return CStringGetDatum((agtv->val.boolean) ? "true" : "false");
-    else if (agtv->type == AGTV_TIMESTAMP)
-        return DirectFunctionCall1(timestamp_out, TimestampGetDatum(agtv->val.int_value));
+gtype_to_string_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_INTEGER)
+        return DirectFunctionCall1(int8_to_string, Int64GetDatum(gtv->val.int_value));
+    else if (gtv->type == AGTV_FLOAT)
+        return DirectFunctionCall1(float8_to_string, Float8GetDatum(gtv->val.float_value));
+    else if (gtv->type == AGTV_STRING)
+        return CStringGetDatum(pnstrdup(gtv->val.string.val, gtv->val.string.len));
+    else if (gtv->type == AGTV_NUMERIC)
+        return DirectFunctionCall1(numeric_to_string, NumericGetDatum(gtv->val.numeric));
+    else if (gtv->type == AGTV_BOOL)
+        return CStringGetDatum((gtv->val.boolean) ? "true" : "false");
+    else if (gtv->type == AGTV_TIMESTAMP)
+        return DirectFunctionCall1(timestamp_out, TimestampGetDatum(gtv->val.int_value));
     else
-        cannot_cast_gtype_value(agtv->type, "string");
+        cannot_cast_gtype_value(gtv->type, "string");
 
     // unreachable
     return CStringGetDatum("");
 }
 
 Datum
-gtype_to_timestamp_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_INTEGER || agtv->type == AGTV_TIMESTAMP)
-        return TimestampGetDatum(agtv->val.int_value);
-    else if (agtv->type == AGTV_STRING)
+gtype_to_timestamp_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_INTEGER || gtv->type == AGTV_TIMESTAMP)
+        return TimestampGetDatum(gtv->val.int_value);
+    else if (gtv->type == AGTV_STRING)
         return TimestampGetDatum(DirectFunctionCall3(timestamp_in,
-				          CStringGetDatum(pnstrdup(agtv->val.string.val, agtv->val.string.len)),
+				          CStringGetDatum(pnstrdup(gtv->val.string.val, gtv->val.string.len)),
 					  ObjectIdGetDatum(InvalidOid),
 					  Int32GetDatum(-1)));
-    else if (agtv->type == AGTV_TIMESTAMPTZ)
-        return DirectFunctionCall1(timestamptz_timestamp, TimestampTzGetDatum(agtv->val.int_value));
-    else if (agtv->type == AGTV_DATE)
-        return TimestampGetDatum(date2timestamp_opt_overflow(agtv->val.date, NULL));
+    else if (gtv->type == AGTV_TIMESTAMPTZ)
+        return DirectFunctionCall1(timestamptz_timestamp, TimestampTzGetDatum(gtv->val.int_value));
+    else if (gtv->type == AGTV_DATE)
+        return TimestampGetDatum(date2timestamp_opt_overflow(gtv->val.date, NULL));
     else
-        cannot_cast_gtype_value(agtv->type, "timestamp");
+        cannot_cast_gtype_value(gtv->type, "timestamp");
 
     // unreachable
     return CStringGetDatum("");
 }
 
 Datum
-gtype_to_timestamptz_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_INTEGER || agtv->type == AGTV_TIMESTAMPTZ)
-        return TimestampGetDatum(agtv->val.int_value);
-    else if (agtv->type == AGTV_STRING)
+gtype_to_timestamptz_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_INTEGER || gtv->type == AGTV_TIMESTAMPTZ)
+        return TimestampGetDatum(gtv->val.int_value);
+    else if (gtv->type == AGTV_STRING)
         return TimestampTzGetDatum(DirectFunctionCall3(timestamptz_in,
-                                          CStringGetDatum(pnstrdup(agtv->val.string.val, agtv->val.string.len)),
+                                          CStringGetDatum(pnstrdup(gtv->val.string.val, gtv->val.string.len)),
                                           ObjectIdGetDatum(InvalidOid),
                                           Int32GetDatum(-1)));
-    else if (agtv->type == AGTV_TIMESTAMP)
-        return DirectFunctionCall1(timestamp_timestamptz, TimestampGetDatum(agtv->val.int_value));
-    else if (agtv->type == AGTV_DATE)
-        return TimestampGetDatum(date2timestamptz_opt_overflow(agtv->val.date, NULL));
+    else if (gtv->type == AGTV_TIMESTAMP)
+        return DirectFunctionCall1(timestamp_timestamptz, TimestampGetDatum(gtv->val.int_value));
+    else if (gtv->type == AGTV_DATE)
+        return TimestampGetDatum(date2timestamptz_opt_overflow(gtv->val.date, NULL));
     else
-        cannot_cast_gtype_value(agtv->type, "timestamptz");
+        cannot_cast_gtype_value(gtv->type, "timestamptz");
 
     // unreachable
     return CStringGetDatum("");
@@ -1590,80 +1456,80 @@ gtype_to_timestamptz_internal(gtype_value *agtv) {
 
 
 Datum
-gtype_to_date_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_TIMESTAMPTZ)
-        return DateADTGetDatum(DirectFunctionCall1(timestamptz_date, TimestampTzGetDatum(agtv->val.int_value)));
-    else if (agtv->type == AGTV_STRING)
+gtype_to_date_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_TIMESTAMPTZ)
+        return DateADTGetDatum(DirectFunctionCall1(timestamptz_date, TimestampTzGetDatum(gtv->val.int_value)));
+    else if (gtv->type == AGTV_STRING)
         return DateADTGetDatum(DirectFunctionCall3(date_in,
-                                          CStringGetDatum(pnstrdup(agtv->val.string.val, agtv->val.string.len)),
+                                          CStringGetDatum(pnstrdup(gtv->val.string.val, gtv->val.string.len)),
                                           ObjectIdGetDatum(InvalidOid),
                                           Int32GetDatum(-1)));
-    else if (agtv->type == AGTV_TIMESTAMP)
-	return DateADTGetDatum(DirectFunctionCall1(timestamp_date, TimestampGetDatum(agtv->val.int_value)));
-    else if (agtv->type == AGTV_DATE)
-        return DateADTGetDatum(agtv->val.date);
+    else if (gtv->type == AGTV_TIMESTAMP)
+	return DateADTGetDatum(DirectFunctionCall1(timestamp_date, TimestampGetDatum(gtv->val.int_value)));
+    else if (gtv->type == AGTV_DATE)
+        return DateADTGetDatum(gtv->val.date);
     else
-        cannot_cast_gtype_value(agtv->type, "timestamptz");
+        cannot_cast_gtype_value(gtv->type, "timestamptz");
 
     // unreachable
     return CStringGetDatum("");
 }
 
 Datum
-gtype_to_time_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_TIMESTAMPTZ)
-        return TimeADTGetDatum(DirectFunctionCall1(timestamptz_time, TimestampTzGetDatum(agtv->val.int_value)));
-    else if (agtv->type == AGTV_STRING)
+gtype_to_time_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_TIMESTAMPTZ)
+        return TimeADTGetDatum(DirectFunctionCall1(timestamptz_time, TimestampTzGetDatum(gtv->val.int_value)));
+    else if (gtv->type == AGTV_STRING)
         return TimeADTGetDatum(DirectFunctionCall3(time_in,
-                                          CStringGetDatum(pnstrdup(agtv->val.string.val, agtv->val.string.len)),
+                                          CStringGetDatum(pnstrdup(gtv->val.string.val, gtv->val.string.len)),
                                           ObjectIdGetDatum(InvalidOid),
                                           Int32GetDatum(-1)));
-    else if (agtv->type == AGTV_TIMESTAMP)
-        return TimeADTGetDatum(DirectFunctionCall1(timestamp_time, TimestampGetDatum(agtv->val.int_value)));
-    else if (agtv->type == AGTV_INTERVAL)
-        return TimeADTGetDatum(DirectFunctionCall1(interval_time, IntervalPGetDatum(&agtv->val.interval)));
-    else if (agtv->type == AGTV_TIMETZ)
-	return TimeADTGetDatum(DirectFunctionCall1(timetz_time, TimeTzADTPGetDatum(&agtv->val.timetz)));
-    else if (agtv->type == AGTV_TIME)
-	    return TimeADTGetDatum(agtv->val.int_value);
+    else if (gtv->type == AGTV_TIMESTAMP)
+        return TimeADTGetDatum(DirectFunctionCall1(timestamp_time, TimestampGetDatum(gtv->val.int_value)));
+    else if (gtv->type == AGTV_INTERVAL)
+        return TimeADTGetDatum(DirectFunctionCall1(interval_time, IntervalPGetDatum(&gtv->val.interval)));
+    else if (gtv->type == AGTV_TIMETZ)
+	return TimeADTGetDatum(DirectFunctionCall1(timetz_time, TimeTzADTPGetDatum(&gtv->val.timetz)));
+    else if (gtv->type == AGTV_TIME)
+	    return TimeADTGetDatum(gtv->val.int_value);
     else
-        cannot_cast_gtype_value(agtv->type, "time");
+        cannot_cast_gtype_value(gtv->type, "time");
 
     // unreachable
     return CStringGetDatum("");
 }
 
 Datum
-gtype_to_timetz_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_TIMESTAMPTZ)
-        return TimeTzADTPGetDatum(DirectFunctionCall1(timestamptz_timetz, TimestampTzGetDatum(agtv->val.int_value)));
-    else if (agtv->type == AGTV_STRING)
+gtype_to_timetz_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_TIMESTAMPTZ)
+        return TimeTzADTPGetDatum(DirectFunctionCall1(timestamptz_timetz, TimestampTzGetDatum(gtv->val.int_value)));
+    else if (gtv->type == AGTV_STRING)
         return TimeTzADTPGetDatum(DirectFunctionCall3(timetz_in,
-                                          CStringGetDatum(pnstrdup(agtv->val.string.val, agtv->val.string.len)),
+                                          CStringGetDatum(pnstrdup(gtv->val.string.val, gtv->val.string.len)),
                                           ObjectIdGetDatum(InvalidOid),
                                           Int32GetDatum(-1)));
-    else if (agtv->type == AGTV_TIME)
-        return TimeTzADTPGetDatum(DirectFunctionCall1(time_timetz, TimeADTGetDatum(agtv->val.int_value)));
-    else if (agtv->type == AGTV_TIMETZ)
-	return TimeTzADTPGetDatum(&agtv->val.timetz);
+    else if (gtv->type == AGTV_TIME)
+        return TimeTzADTPGetDatum(DirectFunctionCall1(time_timetz, TimeADTGetDatum(gtv->val.int_value)));
+    else if (gtv->type == AGTV_TIMETZ)
+	return TimeTzADTPGetDatum(&gtv->val.timetz);
     else                 
-        cannot_cast_gtype_value(agtv->type, "time");
+        cannot_cast_gtype_value(gtv->type, "time");
     
     // unreachable
     return CStringGetDatum("");
 }  
 
 Datum
-gtype_to_interval_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_INTERVAL)
-        return IntervalPGetDatum(&agtv->val.interval);
-    else if (agtv->type == AGTV_STRING)
+gtype_to_interval_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_INTERVAL)
+        return IntervalPGetDatum(&gtv->val.interval);
+    else if (gtv->type == AGTV_STRING)
         return IntervalPGetDatum(DirectFunctionCall3(interval_in,
-                                          CStringGetDatum(pnstrdup(agtv->val.string.val, agtv->val.string.len)),
+                                          CStringGetDatum(pnstrdup(gtv->val.string.val, gtv->val.string.len)),
                                           ObjectIdGetDatum(InvalidOid),
                                           Int32GetDatum(-1)));
     else                 
-        cannot_cast_gtype_value(agtv->type, "interval");
+        cannot_cast_gtype_value(gtv->type, "interval");
     
     // unreachable
     return CStringGetDatum("");
@@ -1671,58 +1537,58 @@ gtype_to_interval_internal(gtype_value *agtv) {
 
 
 Datum
-gtype_to_inet_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_INET)
-        return InetPGetDatum(&agtv->val.inet);
-    else if (agtv->type == AGTV_STRING)
-        return DirectFunctionCall1(inet_in, CStringGetDatum(agtv->val.string.val));
+gtype_to_inet_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_INET)
+        return InetPGetDatum(&gtv->val.inet);
+    else if (gtv->type == AGTV_STRING)
+        return DirectFunctionCall1(inet_in, CStringGetDatum(gtv->val.string.val));
     else
-        cannot_cast_gtype_value(agtv->type, "inet");
+        cannot_cast_gtype_value(gtv->type, "inet");
 
     // unreachable
     return CStringGetDatum("");
 }
 
 Datum
-gtype_to_cidr_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_CIDR)
-        return InetPGetDatum(&agtv->val.inet);
-    else if (agtv->type == AGTV_INET)
-	return DirectFunctionCall1(inet_to_cidr, InetPGetDatum(&agtv->val.inet));
-    else if (agtv->type == AGTV_STRING)
-        return DirectFunctionCall1(cidr_in, CStringGetDatum(agtv->val.string.val));
+gtype_to_cidr_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_CIDR)
+        return InetPGetDatum(&gtv->val.inet);
+    else if (gtv->type == AGTV_INET)
+	return DirectFunctionCall1(inet_to_cidr, InetPGetDatum(&gtv->val.inet));
+    else if (gtv->type == AGTV_STRING)
+        return DirectFunctionCall1(cidr_in, CStringGetDatum(gtv->val.string.val));
     else
-        cannot_cast_gtype_value(agtv->type, "cidr");
+        cannot_cast_gtype_value(gtv->type, "cidr");
     
     // unreachable
     return CStringGetDatum("");
 }   
 
 Datum
-gtype_to_macaddr_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_MAC)
-	return MacaddrPGetDatum(&agtv->val.mac);
-    else if (agtv->type == AGTV_MAC8)
-        return DirectFunctionCall1(macaddr8tomacaddr, Macaddr8PGetDatum(&agtv->val.mac8));
-    else if (agtv->type == AGTV_STRING)
-        return DirectFunctionCall1(macaddr_in, CStringGetDatum(agtv->val.string.val));
+gtype_to_macaddr_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_MAC)
+	return MacaddrPGetDatum(&gtv->val.mac);
+    else if (gtv->type == AGTV_MAC8)
+        return DirectFunctionCall1(macaddr8tomacaddr, Macaddr8PGetDatum(&gtv->val.mac8));
+    else if (gtv->type == AGTV_STRING)
+        return DirectFunctionCall1(macaddr_in, CStringGetDatum(gtv->val.string.val));
     else
-        cannot_cast_gtype_value(agtv->type, "macaddr");
+        cannot_cast_gtype_value(gtv->type, "macaddr");
 
     // unreachable
     return CStringGetDatum("");
 }
 
 Datum
-gtype_to_macaddr8_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_MAC8)
-        return Macaddr8PGetDatum(&agtv->val.mac8);
-    else if (agtv->type == AGTV_MAC)
-        return DirectFunctionCall1(macaddrtomacaddr8, MacaddrPGetDatum(&agtv->val.mac));
-    else if (agtv->type == AGTV_STRING)
-        return DirectFunctionCall1(macaddr8_in, CStringGetDatum(agtv->val.string.val));
+gtype_to_macaddr8_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_MAC8)
+        return Macaddr8PGetDatum(&gtv->val.mac8);
+    else if (gtv->type == AGTV_MAC)
+        return DirectFunctionCall1(macaddrtomacaddr8, MacaddrPGetDatum(&gtv->val.mac));
+    else if (gtv->type == AGTV_STRING)
+        return DirectFunctionCall1(macaddr8_in, CStringGetDatum(gtv->val.string.val));
     else
-        cannot_cast_gtype_value(agtv->type, "macaddr");
+        cannot_cast_gtype_value(gtv->type, "macaddr");
 
     // unreachable
     return CStringGetDatum("");
@@ -1732,17 +1598,17 @@ PG_FUNCTION_INFO_V1(BOX3D_to_BOX2D);
 PG_FUNCTION_INFO_V1(LWGEOM_to_BOX2D);
 
 Datum
-gtype_to_box2d_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_BOX2D) {
-        return PointerGetDatum(&agtv->val.gbox);
-    } else if (agtv->type == AGTV_BOX3D) {
-        return DirectFunctionCall1(BOX3D_to_BOX2D, PointerGetDatum(&agtv->val.box3d));
-    } else if (agtv->type == AGTV_GSERIALIZED) {
-        return DirectFunctionCall1(LWGEOM_to_BOX2D, PointerGetDatum(agtv->val.gserialized));
-    } else if (agtv->type == AGTV_STRING) {
-        return DirectFunctionCall1(BOX2D_in, CStringGetDatum(agtv->val.string.val));
+gtype_to_box2d_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_BOX2D) {
+        return PointerGetDatum(&gtv->val.gbox);
+    } else if (gtv->type == AGTV_BOX3D) {
+        return DirectFunctionCall1(BOX3D_to_BOX2D, PointerGetDatum(&gtv->val.box3d));
+    } else if (gtv->type == AGTV_GSERIALIZED) {
+        return DirectFunctionCall1(LWGEOM_to_BOX2D, PointerGetDatum(gtv->val.gserialized));
+    } else if (gtv->type == AGTV_STRING) {
+        return DirectFunctionCall1(BOX2D_in, CStringGetDatum(gtv->val.string.val));
     }  else
-        cannot_cast_gtype_value(agtv->type, "box2d");
+        cannot_cast_gtype_value(gtv->type, "box2d");
 
     // unreachable
     return CStringGetDatum("");
@@ -1752,28 +1618,28 @@ PG_FUNCTION_INFO_V1(BOX2D_to_BOX3D);
 PG_FUNCTION_INFO_V1(LWGEOM_to_BOX3D);
 
 Datum
-gtype_to_box3d_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_BOX3D) {
-        return PointerGetDatum(&agtv->val.box3d);	    
-    } else if (agtv->type == AGTV_BOX3D) {
-        return DirectFunctionCall1(BOX2D_to_BOX3D, PointerGetDatum(&agtv->val.gbox));
-    } else if (agtv->type == AGTV_GSERIALIZED) {
-        return DirectFunctionCall1(LWGEOM_to_BOX3D, PointerGetDatum(agtv->val.gserialized));
-    } else if (agtv->type == AGTV_STRING){
-        return DirectFunctionCall1(BOX3D_in, CStringGetDatum(agtv->val.string.val));
+gtype_to_box3d_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_BOX3D) {
+        return PointerGetDatum(&gtv->val.box3d);	    
+    } else if (gtv->type == AGTV_BOX3D) {
+        return DirectFunctionCall1(BOX2D_to_BOX3D, PointerGetDatum(&gtv->val.gbox));
+    } else if (gtv->type == AGTV_GSERIALIZED) {
+        return DirectFunctionCall1(LWGEOM_to_BOX3D, PointerGetDatum(gtv->val.gserialized));
+    } else if (gtv->type == AGTV_STRING){
+        return DirectFunctionCall1(BOX3D_in, CStringGetDatum(gtv->val.string.val));
     }  else
-        cannot_cast_gtype_value(agtv->type, "box3d");
+        cannot_cast_gtype_value(gtv->type, "box3d");
 
     // unreachable
     return CStringGetDatum("");
 }
 
 Datum
-gtype_to_spheroid_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_STRING){
-        return DirectFunctionCall1(ellipsoid_in, CStringGetDatum(agtv->val.string.val));
+gtype_to_spheroid_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_STRING){
+        return DirectFunctionCall1(ellipsoid_in, CStringGetDatum(gtv->val.string.val));
     }  else
-        cannot_cast_gtype_value(agtv->type, "spheroid");
+        cannot_cast_gtype_value(gtv->type, "spheroid");
 
     // unreachable
     return CStringGetDatum("");
@@ -1784,17 +1650,17 @@ PG_FUNCTION_INFO_V1(BOX3D_to_LWGEOM);
 PG_FUNCTION_INFO_V1(BOX2D_to_LWGEOM);
 
 Datum
-gtype_to_geometry_internal(gtype_value *agtv) {
-    if (agtv->type == AGTV_GSERIALIZED) {
-	return PointerGetDatum(agtv->val.gserialized);
-    } else if (agtv->type == AGTV_BOX3D) {
-        return DirectFunctionCall1(BOX3D_to_LWGEOM, PointerGetDatum(&agtv->val.box3d));
-    } else if (agtv->type == AGTV_BOX2D) {
-        return DirectFunctionCall1(BOX2D_to_LWGEOM, PointerGetDatum(&agtv->val.gbox));
-    } else if (agtv->type == AGTV_STRING){
-        return DirectFunctionCall1(LWGEOM_in, CStringGetDatum(agtv->val.string.val));
+gtype_to_geometry_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_GSERIALIZED) {
+	return PointerGetDatum(gtv->val.gserialized);
+    } else if (gtv->type == AGTV_BOX3D) {
+        return DirectFunctionCall1(BOX3D_to_LWGEOM, PointerGetDatum(&gtv->val.box3d));
+    } else if (gtv->type == AGTV_BOX2D) {
+        return DirectFunctionCall1(BOX2D_to_LWGEOM, PointerGetDatum(&gtv->val.gbox));
+    } else if (gtv->type == AGTV_STRING){
+        return DirectFunctionCall1(LWGEOM_in, CStringGetDatum(gtv->val.string.val));
     }  else
-        cannot_cast_gtype_value(agtv->type, "geography");
+        cannot_cast_gtype_value(gtv->type, "geography");
 
     // unreachable
     return CStringGetDatum("");

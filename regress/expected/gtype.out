@@ -1226,7 +1226,11 @@ SELECT gtype_to_bool(gtype_in('false'));
 
 -- These should all fail
 SELECT gtype_to_bool(gtype_in('null'));
-ERROR:  cannot cast gtype null to type boolean
+ gtype_to_bool 
+---------------
+ 
+(1 row)
+
 SELECT gtype_to_bool(gtype_in('1'));
 ERROR:  cannot cast gtype integer to type boolean
 SELECT gtype_to_bool(gtype_in('1.0'));
@@ -1234,9 +1238,9 @@ ERROR:  cannot cast gtype float to type boolean
 SELECT gtype_to_bool(gtype_in('"string"'));
 ERROR:  cannot cast gtype string to type boolean
 SELECT gtype_to_bool(gtype_in('[1,2,3]'));
-ERROR:  cannot cast gtype array to type boolean
+ERROR:  cannot cast non-scalar gtype to bool
 SELECT gtype_to_bool(gtype_in('{"bool":true}'));
-ERROR:  cannot cast gtype object to type boolean
+ERROR:  cannot cast non-scalar gtype to bool
 --
 -- Test boolean to gtype cast
 --

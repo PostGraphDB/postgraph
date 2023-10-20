@@ -3751,11 +3751,7 @@ $$) AS (toBoolean gtype);
 SELECT * FROM cypher('expr', $$
     RETURN toBoolean("falze")
 $$) AS (toBoolean gtype);
- toboolean 
------------
- 
-(1 row)
-
+ERROR:  cannot cast gtype string to type boolean
 SELECT * FROM cypher('expr', $$
     RETURN toBoolean(null)
 $$) AS (toBoolean gtype);
@@ -3768,7 +3764,7 @@ $$) AS (toBoolean gtype);
 SELECT * FROM cypher('expr', $$
     RETURN toBoolean(1)
 $$) AS (toBoolean gtype);
-ERROR:  toBoolean() unsupported argument gtype 3
+ERROR:  cannot cast gtype integer to type boolean
 SELECT * FROM cypher('expr', $$
     RETURN toBoolean()
 $$) AS (toBoolean gtype);
