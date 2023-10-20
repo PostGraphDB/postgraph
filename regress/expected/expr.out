@@ -51,6 +51,30 @@ SELECT tointrange('"(0, 1)"');
  empty
 (1 row)
 
+SELECT tonumrange('"[0.5, 1]"');
+ tonumrange 
+------------
+ [0.5,1]
+(1 row)
+
+SELECT tonumrange('"[0, 1.5)"');
+ tonumrange 
+------------
+ [0,1.5)
+(1 row)
+
+SELECT tonumrange('"(0.5, 1]"');
+ tonumrange 
+------------
+ (0.5,1]
+(1 row)
+
+SELECT tonumrange('"(0, 1.5)"');
+ tonumrange 
+------------
+ (0,1.5)
+(1 row)
+
 --
 -- map literal
 --

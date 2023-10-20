@@ -29,6 +29,13 @@ SELECT tointrange('"[0, 1)"');
 SELECT tointrange('"(0, 1]"');
 SELECT tointrange('"(0, 1)"');
 
+
+SELECT tonumrange('"[0.5, 1]"');
+SELECT tonumrange('"[0, 1.5)"');
+SELECT tonumrange('"(0.5, 1]"');
+SELECT tonumrange('"(0, 1.5)"');
+
+
 --
 -- map literal
 --

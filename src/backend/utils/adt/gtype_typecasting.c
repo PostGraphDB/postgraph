@@ -793,7 +793,7 @@ PostGraphDirectFunctionCall3Coll(PGFunction func, Oid collation, Datum arg1, Dat
         InitFunctionCallInfoData(*fcinfo, NULL, 3, collation, NULL, NULL);
         fcinfo->flinfo = palloc0(sizeof(FmgrInfo));
         fcinfo->flinfo->fn_addr = func;
-        fcinfo->flinfo->fn_oid = INVALID_OID;
+        fcinfo->flinfo->fn_oid = InvalidOid;
         fcinfo->flinfo->fn_strict = false;
         fcinfo->flinfo->fn_retset = false;
         fcinfo->flinfo->fn_extra = NULL;
@@ -834,6 +834,28 @@ Datum gtype_tointrange(PG_FUNCTION_ARGS)
 
     gtype_value agtv;
     agtv.type = AGTV_RANGE_INT;
+    agtv.val.range = range;
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
+}
+
+PG_FUNCTION_INFO_V1(gtype_tonumrange);
+/*
+ * Execute function to typecast an agtype to an agtype timestamp
+ */
+Datum gtype_tonumrange(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    RangeType *range = DatumGetPointer(PostGraphDirectFunctionCall3Coll(range_in, DEFAULT_COLLATION_OID,
+                                                  convert_to_scalar(gtype_to_string_internal, agt, "string"),
+                                                  ObjectIdGetDatum(NUMRANGEOID), Int32GetDatum(1)));
+
+    gtype_value agtv;
+    agtv.type = AGTV_RANGE_NUM;
     agtv.val.range = range;
 
     PG_RETURN_POINTER(gtype_value_to_gtype(&agtv));
