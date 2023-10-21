@@ -36,6 +36,7 @@ SELECT tonumrange('"[0, 1.5)"');
 SELECT tonumrange('"(0.5, 1]"');
 SELECT tonumrange('"(0, 1.5)"');
 
+SELECT tonummultirange('"{(0, 1.5)}"');
 
 SELECT totsrange('"[''1/1/2000 12:00:00'', ''1/1/2000 4:00:00 PM'']"');
 

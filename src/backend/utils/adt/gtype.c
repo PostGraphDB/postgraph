@@ -468,6 +468,7 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
         appendStringInfoString(out, numstr);
         break;
     case AGTV_RANGE_INT_MULTI:
+    case AGTV_RANGE_NUM_MULTI:
     case AGTV_RANGE_TS_MULTI:
     case AGTV_RANGE_TSTZ_MULTI:
     case AGTV_RANGE_DATE_MULTI:
