@@ -197,6 +197,12 @@ SELECT '"[(1,1), (2,2)]'::path::gtype;
 ERROR:  invalid input syntax for type path: ""[(1,1), (2,2)]"
 LINE 1: SELECT '"[(1,1), (2,2)]'::path::gtype;
                ^
+SELECT topath('"((1,1), (2,2))"')::path;
+    topath     
+---------------
+ ((1,1),(2,2))
+(1 row)
+
 SELECT topolygon('"(1,1), (2,2), (3, 3), (4, 4)"');
          topolygon         
 ---------------------------

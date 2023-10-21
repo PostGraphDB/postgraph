@@ -577,8 +577,7 @@ Datum gtype_topath(PG_FUNCTION_ARGS)
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    PATH *path = DatumGetPointer(DirectFunctionCall1(path_in,
-                                                  convert_to_scalar(gtype_to_string_internal, agt, "string")));
+    PATH *path = DatumGetPointer(convert_to_scalar(gtype_to_path_internal, agt, "path"));
 
     gtype_value gtv;
     gtv.type = AGTV_PATH;
@@ -1229,6 +1228,20 @@ gtype_to_point(PG_FUNCTION_ARGS) {
         PG_RETURN_NULL();
     
     Datum d = DatumGetPointer(convert_to_scalar(gtype_to_point_internal, agt, "point"));
+
+    PG_RETURN_DATUM(d);
+}
+
+PG_FUNCTION_INFO_V1(gtype_to_path);
+// gtype -> path
+Datum
+gtype_to_path(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    Datum d = DatumGetPointer(convert_to_scalar(gtype_to_path_internal, agt, "path"));
 
     PG_RETURN_DATUM(d);
 }
@@ -1999,6 +2012,23 @@ gtype_to_point_internal(gtype_value *gtv) {
         return DirectFunctionCall1(point_in, CStringGetDatum(gtv->val.string.val));
     }  else
         cannot_cast_gtype_value(gtv->type, "point");
+
+    // unreachable
+    return CStringGetDatum("");
+}
+
+PG_FUNCTION_INFO_V1(geometry_to_path);
+
+Datum
+gtype_to_path_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_PATH) {
+        return PointerGetDatum(gtv->val.path);
+    } else if (gtv->type == AGTV_GSERIALIZED){
+        return DirectFunctionCall1(geometry_to_path, CStringGetDatum(gtv->val.gserialized));
+    } else if (gtv->type == AGTV_STRING){
+        return DirectFunctionCall1(path_in, CStringGetDatum(gtv->val.string.val));
+    }  else
+        cannot_cast_gtype_value(gtv->type, "path");
 
     // unreachable
     return CStringGetDatum("");
