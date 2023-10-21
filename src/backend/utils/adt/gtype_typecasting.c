@@ -610,6 +610,28 @@ Datum gtype_toline(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(gtype_topolygon);
+/*
+ * Execute function to typecast an agtype to an agtype timestamp
+ */
+Datum gtype_topolygon(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    POLYGON *polygon = DatumGetPointer(DirectFunctionCall1(poly_in,
+                                                  convert_to_scalar(gtype_to_string_internal, agt, "string")));
+
+    gtype_value gtv;
+    gtv.type = AGTV_POLYGON;
+    gtv.val.polygon = polygon;
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
+}
+
+
 PG_FUNCTION_INFO_V1(gtype_tobox);
 /*
  * Execute function to typecast an agtype to an agtype timestamp
