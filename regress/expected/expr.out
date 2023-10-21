@@ -123,12 +123,38 @@ SELECT todatemultirange('"{[''1/1/2000'', ''1/1/2001'')}"');
  {[01-01-2000,01-01-2001)}
 (1 row)
 
+SET bytea_output = 'hex';
+SELECT tobytea('"abc \153\154\155 \052\251\124"');
+         tobytea          
+--------------------------
+ \x616263206b6c6d202aa954
+(1 row)
+
 SELECT tobytea('"\xDEADBEEF"');
-ERROR:  invalid input syntax for type gtype
-LINE 1: SELECT tobytea('"\xDEADBEEF"');
-                       ^
-DETAIL:  Escape sequence "\x" is invalid.
-CONTEXT:  gtype data, line 1: "\x...
+  tobytea   
+------------
+ \xdeadbeef
+(1 row)
+
+SET bytea_output = 'escape';
+SELECT tobytea('"\xDEADBEEF"');
+     tobytea      
+------------------
+ \336\255\276\357
+(1 row)
+
+SELECT tobytea('"abc \153\154\155 \052\251\124"');
+    tobytea     
+----------------
+ abc klm *\251T
+(1 row)
+
+SELECT tobox('"(1,1), (2,2)"');
+    tobox    
+-------------
+ (2,2),(1,1)
+(1 row)
+
 --
 -- map literal
 --

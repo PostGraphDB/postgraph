@@ -435,6 +435,10 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
         numstr = DatumGetCString(DirectFunctionCall1(macaddr8_out, MacaddrPGetDatum(&scalar_val->val.mac)));
         appendStringInfoString(out, numstr);
         break;
+    case AGTV_BOX:
+        numstr = DatumGetCString(DirectFunctionCall1(box_out, PointerGetDatum(scalar_val->val.box)));
+        appendStringInfoString(out, numstr);
+        break;	     
     case AGTV_BOX2D:
         numstr = DatumGetCString(DirectFunctionCall1(BOX2D_out, PointerGetDatum(&scalar_val->val.gbox)));
         appendStringInfoString(out, numstr);

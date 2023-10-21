@@ -57,6 +57,9 @@ SELECT tobytea('"\xDEADBEEF"');
 SET bytea_output = 'escape';
 SELECT tobytea('"\xDEADBEEF"');
 SELECT tobytea('"abc \153\154\155 \052\251\124"');
+
+SELECT tobox('"(1,1), (2,2)"');
+
 --
 -- map literal
 --

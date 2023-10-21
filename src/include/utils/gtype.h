@@ -38,6 +38,7 @@
 #include "utils/array.h"
 #include "utils/date.h"
 #include "utils/inet.h"
+#include "utils/geo_decls.h"
 #include "utils/multirangetypes.h"
 #include "utils/numeric.h"
 #include "utils/rangetypes.h"
@@ -306,23 +307,24 @@ typedef struct
 #define GT_HEADER_CIDR             0x00000010
 #define GT_HEADER_MAC              0x00000011
 #define GT_HEADER_MAC8             0x00000012
-#define GT_HEADER_BOX2D            0x00000013
-#define GT_HEADER_BOX3D            0x00000014
-#define GT_HEADER_SPHEROID         0x00000015
-#define GT_HEADER_GSERIALIZED      0x00000016
-#define GT_HEADER_TSVECTOR         0x00000017
-#define GT_HEADER_TSQUERY          0x00000018
-#define GT_HEADER_RANGE_INT        0x00000019
-#define GT_HEADER_RANGE_NUM        0x00000020
-#define GT_HEADER_RANGE_TS         0x00000021
-#define GT_HEADER_RANGE_TSTZ       0x00000022
-#define GT_HEADER_RANGE_DATE       0x00000023
-#define GT_HEADER_RANGE_INT_MULTI  0x00000024
-#define GT_HEADER_RANGE_NUM_MULTI  0x00000025
-#define GT_HEADER_RANGE_TS_MULTI   0x00000026
-#define GT_HEADER_RANGE_TSTZ_MULTI 0x00000027
-#define GT_HEADER_RANGE_DATE_MULTI 0x00000028
-#define GT_HEADER_BYTEA            0x00000029
+#define GT_HEADER_BOX              0x00000013
+#define GT_HEADER_BOX2D            0x00000014
+#define GT_HEADER_BOX3D            0x00000015
+#define GT_HEADER_SPHEROID         0x00000016
+#define GT_HEADER_GSERIALIZED      0x00000017
+#define GT_HEADER_TSVECTOR         0x00000018
+#define GT_HEADER_TSQUERY          0x00000019
+#define GT_HEADER_RANGE_INT        0x00000020
+#define GT_HEADER_RANGE_NUM        0x00000021
+#define GT_HEADER_RANGE_TS         0x00000022
+#define GT_HEADER_RANGE_TSTZ       0x00000023
+#define GT_HEADER_RANGE_DATE       0x00000024
+#define GT_HEADER_RANGE_INT_MULTI  0x00000025
+#define GT_HEADER_RANGE_NUM_MULTI  0x00000026
+#define GT_HEADER_RANGE_TS_MULTI   0x00000027
+#define GT_HEADER_RANGE_TSTZ_MULTI 0x00000028
+#define GT_HEADER_RANGE_DATE_MULTI 0x00000029
+#define GT_HEADER_BYTEA            0x00000030
 
 
 #define GT_IS_INTEGER(agte_) \
@@ -431,6 +433,7 @@ enum gtype_value_type
     AGTV_CIDR,
     AGTV_MAC,
     AGTV_MAC8,
+    AGTV_BOX,
     AGTV_BOX2D,
     AGTV_BOX3D,
     AGTV_SPHEROID,
@@ -481,6 +484,7 @@ struct gtype_value
 	    inet inet;
 	    macaddr mac;
         macaddr8 mac8;
+        BOX *box;
         GBOX gbox;
         BOX3D box3d;
         SPHEROID spheroid;
@@ -489,7 +493,6 @@ struct gtype_value
 	TSQuery tsquery;
 	RangeType *range;
 	MultirangeType *multirange;
-
 	struct { int len; gtype_container *data; } binary; // Array or object, in on-disk format
     } val;
 };
