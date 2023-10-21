@@ -274,6 +274,24 @@ bool ag_serialize_extended_type(StringInfo buffer, gtentry *gtentry,
 
         *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
         break;
+    case AGTV_RANGE_TSTZ:
+        padlen = ag_serialize_header(buffer, GT_HEADER_RANGE_TSTZ);
+
+        numlen = (scalar_val->val.range)->vl_len_ / 4;
+        offset = reserve_from_buffer(buffer, numlen);
+        memcpy(buffer->data + offset, scalar_val->val.range, (scalar_val->val.range)->vl_len_ / 4);
+
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
+        break;
+    case AGTV_RANGE_TSTZ_MULTI:
+        padlen = ag_serialize_header(buffer, GT_HEADER_RANGE_TSTZ_MULTI);
+
+        numlen = (scalar_val->val.multirange)->vl_len_ / 4;
+        offset = reserve_from_buffer(buffer, numlen);
+        memcpy(buffer->data + offset, scalar_val->val.multirange, (scalar_val->val.multirange)->vl_len_ / 4);
+
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
+        break;
     case AGTV_RANGE_DATE:
         padlen = ag_serialize_header(buffer, GT_HEADER_RANGE_DATE);
 
@@ -400,6 +418,10 @@ void ag_deserialize_extended_type(char *base_addr, uint32 offset, gtype_value *r
     case GT_HEADER_RANGE_TSTZ:
         result->type = AGTV_RANGE_TSTZ;
         result->val.range = (base + GT_HEADER_SIZE); 
+        break;
+    case GT_HEADER_RANGE_TSTZ_MULTI:
+        result->type = AGTV_RANGE_TSTZ_MULTI;
+        result->val.multirange = (base + GT_HEADER_SIZE);
         break;
     case GT_HEADER_RANGE_DATE:
         result->type = AGTV_RANGE_DATE;
