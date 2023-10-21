@@ -26,8 +26,9 @@
  * Portions Copyright (c) 1996-2010, Bitnine Global
  */
 
-#include "postgres.h"
+#include "postgraph.h"
 
+// Postgres
 #include "catalog/namespace.h"
 #include "catalog/pg_collation.h"
 #include "catalog/pg_operator.h"
@@ -39,7 +40,9 @@
 #include "utils/float.h"
 #include "utils/fmgroids.h"
 #include "utils/numeric.h"
+#include "utils/palloc.h"
 
+// PostGraph
 #include "utils/gtype.h"
 #include "utils/gtype_typecasting.h"
 
@@ -625,7 +628,7 @@ Datum gtype_totsquery(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
-#include "utils/palloc.h"
+
 Datum
 PostGraphDirectFunctionCall3Coll(PGFunction func, Oid collation, Datum arg1, Datum arg2,
                                                 Datum arg3)
@@ -743,6 +746,28 @@ Datum gtype_totsrange(PG_FUNCTION_ARGS)
     gtype_value gtv;
     gtv.type = AGTV_RANGE_TS;
     gtv.val.range = range;
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
+}
+
+PG_FUNCTION_INFO_V1(gtype_totsmultirange);
+/*
+ * Execute function to typecast an agtype to an agtype timestamp
+ */
+Datum gtype_totsmultirange(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    MultirangeType *range = DatumGetPointer(PostGraphDirectFunctionCall3Coll(multirange_in, DEFAULT_COLLATION_OID,
+                                                  convert_to_scalar(gtype_to_string_internal, agt, "string"),
+                                                  ObjectIdGetDatum(TSMULTIRANGEOID), Int32GetDatum(1)));
+
+    gtype_value gtv;
+    gtv.type = AGTV_RANGE_TS_MULTI;
+    gtv.val.multirange = range;
 
     PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }

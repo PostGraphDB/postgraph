@@ -317,6 +317,7 @@ typedef struct
 #define GT_HEADER_RANGE_TSTZ  0x00000022
 #define GT_HEADER_RANGE_DATE  0x00000023
 #define GT_HEADER_RANGE_INT_MULTI 0x00000024
+#define GT_HEADER_RANGE_TS_MULTI 0x00000025
 
 #define GT_IS_INTEGER(agte_) \
     (((agte_) == GT_HEADER_INTEGER))
@@ -402,6 +403,9 @@ typedef struct
 #define GT_IS_RANGE_INT_MULTI(agt) \
     (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_RANGE_INT_MULTI)
 
+#define GT_IS_RANGE_TS_MULTI(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_RANGE_TS_MULTI)
+
 enum gtype_value_type
 {
     /* Scalar types */
@@ -433,6 +437,7 @@ enum gtype_value_type
     AGTV_RANGE_TSTZ,
     AGTV_RANGE_DATE,
     AGTV_RANGE_INT_MULTI,
+    AGTV_RANGE_TS_MULTI,
     /* Composite types */
     AGTV_ARRAY = 0x100,
     AGTV_OBJECT,
