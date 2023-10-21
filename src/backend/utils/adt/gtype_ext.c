@@ -211,6 +211,15 @@ bool ag_serialize_extended_type(StringInfo buffer, gtentry *gtentry,
 
         *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
         break;
+    case AGTV_BYTEA:
+        padlen = ag_serialize_header(buffer, GT_HEADER_BYTEA);
+
+        numlen = *((int *)(scalar_val->val.bytea)->vl_len_) / 4;
+        offset = reserve_from_buffer(buffer, numlen);
+        memcpy(buffer->data + offset, scalar_val->val.bytea, *((int *)(scalar_val->val.bytea)->vl_len_) / 4);
+
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
+        break;
     case AGTV_TSVECTOR:
         padlen = ag_serialize_header(buffer, GT_HEADER_TSVECTOR);
 
@@ -345,7 +354,10 @@ void ag_deserialize_extended_type(char *base_addr, uint32 offset, gtype_value *r
         result->type = AGTV_FLOAT;
         result->val.float_value = *((float8 *)(base + GT_HEADER_SIZE));
         break;
-
+    case GT_HEADER_BYTEA:
+        result->type = AGTV_BYTEA;
+        result->val.bytea = (base + GT_HEADER_SIZE);
+        break;
     case GT_HEADER_TIMESTAMP:
         result->type = AGTV_TIMESTAMP;
         result->val.int_value = *((int64 *)(base + GT_HEADER_SIZE));

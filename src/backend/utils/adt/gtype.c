@@ -459,6 +459,10 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
         numstr = DatumGetCString(DirectFunctionCall1(tsqueryout, PointerGetDatum(scalar_val->val.tsquery)));
         appendStringInfoString(out, numstr);
         break;	
+    case AGTV_BYTEA:
+        numstr = DatumGetCString(DirectFunctionCall1(byteaout, PointerGetDatum(scalar_val->val.bytea)));
+        appendStringInfoString(out, numstr);
+        break;	      
     case AGTV_RANGE_INT:
     case AGTV_RANGE_NUM:
     case AGTV_RANGE_TS:

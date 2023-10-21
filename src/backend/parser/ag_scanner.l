@@ -207,6 +207,10 @@ esascii       \\["'/\\bfnrt]
 esasciifail   \\[^Uu]?
 esunicode     \\(U{hexdigit}{8}|u{hexdigit}{4})
 esunicodefail \\(U{hexdigit}{0,7}|u{hexdigit}{0,3})
+escapecode     \\{digit}{3}
+escapecodefail     \\{digit}{0,2}
+hexcode     \\(x{hexdigit}+|X{hexdigit}+)
+hexcodefail \\(X|x)
 any           (?s:.)
 
 /* id pattern is for UnescapedSymbolicName rule in Cypher. */
@@ -590,6 +594,68 @@ ag_token token;
                  errdetail("A low surrogate must follow a high surrogate."),
                  scan_errposition()));
     }
+}
+
+<qstru>{escapecode} {
+    pg_wchar c;
+
+    c = strtoul(yytext + 2, NULL, 16);
+    if (is_low_surrogate(c))
+    {
+        c = surrogate_pair_to_codepoint(yyextra.high_surrogate, c);
+        // 0x010000 <= c <= 0x10FFFF always holds for surrogate pairs.
+        strbuf_append_codepoint(&yyextra.literal_buf, c);
+        BEGIN(yyextra.start_cond);
+    }
+    else
+    {
+        update_location();
+        ereport(ERROR,
+                (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
+                 scan_errmsg("invalid escapecode surrogate pair"),
+                 errdetail("A low surrogate must follow a high surrogate."),
+                 scan_errposition()));
+    }
+}
+
+<qstru>{hexcode} {
+    pg_wchar c;
+
+    c = strtoul(yytext + 2, NULL, 16);
+    if (is_low_surrogate(c))
+    {
+        c = surrogate_pair_to_codepoint(yyextra.high_surrogate, c);
+        // 0x010000 <= c <= 0x10FFFF always holds for surrogate pairs.
+        strbuf_append_codepoint(&yyextra.literal_buf, c);
+        BEGIN(yyextra.start_cond);
+    }
+    else
+    {
+        update_location();
+        ereport(ERROR,
+                (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
+                 scan_errmsg("invalid Hexcode surrogate pair"),
+                 errdetail("A low surrogate must follow a high surrogate."),
+                 scan_errposition()));
+    }
+}
+
+<dqstr,sqstr,qstru>{hexcodefail} {
+    update_location();
+    ereport(ERROR,
+            (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
+             scan_errmsg("invalid Unicode escape sequence"),
+             errhint("Unicode escape sequences must be \\uXXXX or \\UXXXXXXXX."),
+             scan_errposition()));
+}
+
+<dqstr,sqstr,qstru>{escapecodefail} {
+    update_location();
+    ereport(ERROR,
+            (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
+             scan_errmsg("invalid Unicode escape sequence"),
+             errhint("Unicode escape sequences must be \\uXXXX or \\UXXXXXXXX."),
+             scan_errposition()));
 }
 
 <dqstr,sqstr,qstru>{esunicodefail} {

@@ -234,6 +234,28 @@ gtype_tostring(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+
+PG_FUNCTION_INFO_V1(gtype_tobytea);
+/*
+ * Execute function to typecast an agtype to an agtype timestamp
+ */
+Datum gtype_tobytea(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    bytea *bytea = DatumGetPointer(DirectFunctionCall1(byteain,
+                                                  convert_to_scalar(gtype_to_string_internal, agt, "string")));
+
+    gtype_value gtv;
+    gtv.type = AGTV_BYTEA;
+    gtv.val.bytea = bytea;
+    
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
+}
+
 PG_FUNCTION_INFO_V1(gtype_toboolean);
 Datum
 gtype_toboolean(PG_FUNCTION_ARGS) {
@@ -584,7 +606,6 @@ Datum gtype_togeometry(PG_FUNCTION_ARGS)
 
     PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
-
 
 PG_FUNCTION_INFO_V1(gtype_totsvector);
 /*

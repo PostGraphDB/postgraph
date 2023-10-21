@@ -50,6 +50,13 @@ SELECT todaterange('"[''1/1/2000'', ''1/1/2001'')"');
 
 SELECT todatemultirange('"{[''1/1/2000'', ''1/1/2001'')}"');
 
+SET bytea_output = 'hex';
+SELECT tobytea('"abc \153\154\155 \052\251\124"');
+SELECT tobytea('"\xDEADBEEF"');
+
+SET bytea_output = 'escape';
+SELECT tobytea('"\xDEADBEEF"');
+SELECT tobytea('"abc \153\154\155 \052\251\124"');
 --
 -- map literal
 --

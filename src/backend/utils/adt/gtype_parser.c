@@ -829,7 +829,29 @@ static inline void gtype_lex_string(gtype_lex_context *lex) {
                 case 't':
                     appendStringInfoChar(lex->strval, '\t');
                     break;
+                case 'x':
+                    appendStringInfoChar(lex->strval, '\\');
+                    appendStringInfoChar(lex->strval, 'x');
+                    break;
+                case '0':
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9':
+                    appendStringInfoChar(lex->strval, '\\');
+                    appendStringInfoChar(lex->strval, *s);\
+                    break;
                 default:
+                    if (extract_mb_char(s)[0] == 'x') {
+                        //appendStringInfoChar(lex->strval, '\\');
+                        appendStringInfoChar(lex->strval, 'x');
+                        break;
+                    } else {
                     /* Not a valid string escape, so error out. */
                     lex->token_terminator = s + pg_mblen(s);
                     ereport( ERROR,
@@ -837,6 +859,7 @@ static inline void gtype_lex_string(gtype_lex_context *lex) {
                          errmsg("invalid input syntax for type %s", "gtype"),
                          errdetail("Escape sequence \"\\%s\" is invalid.", extract_mb_char(s)),
                          report_gtype_context(lex)));
+                    }
                 }
             } else if (strchr("\"\\/bfnrt", *s) == NULL) {
                 /*

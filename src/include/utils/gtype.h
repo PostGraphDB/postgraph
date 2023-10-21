@@ -29,6 +29,7 @@
 
 // Postgres
 #include "access/htup_details.h"
+#include "c.h"
 #include "datatype/timestamp.h"
 #include "fmgr.h"
 #include "lib/stringinfo.h"
@@ -292,35 +293,37 @@ typedef struct
     (*(uint32 *)VARDATA(agtp_) & GT_FBINARY_MASK)
 
 // values for the GTYPE header field to denote the stored data type
-#define GT_HEADER_INTEGER     0x00000000
-#define GT_HEADER_FLOAT       0x00000001
-#define GT_HEADER_TIMESTAMP   0x00000002
-#define GT_HEADER_TIMESTAMPTZ 0x00000003
-#define GT_HEADER_DATE        0x00000004
-#define GT_HEADER_TIME        0x00000005
-#define GT_HEADER_TIMETZ      0x00000006
-#define GT_HEADER_INTERVAL    0x00000007
-#define GT_HEADER_VECTOR      0x00000008
-#define GT_HEADER_INET        0x00000009
-#define GT_HEADER_CIDR        0x00000010
-#define GT_HEADER_MAC         0x00000011
-#define GT_HEADER_MAC8        0x00000012
-#define GT_HEADER_BOX2D       0x00000013
-#define GT_HEADER_BOX3D       0x00000014
-#define GT_HEADER_SPHEROID    0x00000015
-#define GT_HEADER_GSERIALIZED 0x00000016
-#define GT_HEADER_TSVECTOR    0x00000017
-#define GT_HEADER_TSQUERY     0x00000018
-#define GT_HEADER_RANGE_INT   0x00000019
-#define GT_HEADER_RANGE_NUM   0x00000020
-#define GT_HEADER_RANGE_TS    0x00000021
-#define GT_HEADER_RANGE_TSTZ  0x00000022
-#define GT_HEADER_RANGE_DATE  0x00000023
-#define GT_HEADER_RANGE_INT_MULTI 0x00000024
-#define GT_HEADER_RANGE_NUM_MULTI 0x00000025
-#define GT_HEADER_RANGE_TS_MULTI 0x00000026
+#define GT_HEADER_INTEGER          0x00000000
+#define GT_HEADER_FLOAT            0x00000001
+#define GT_HEADER_TIMESTAMP        0x00000002
+#define GT_HEADER_TIMESTAMPTZ      0x00000003
+#define GT_HEADER_DATE             0x00000004
+#define GT_HEADER_TIME             0x00000005
+#define GT_HEADER_TIMETZ           0x00000006
+#define GT_HEADER_INTERVAL         0x00000007
+#define GT_HEADER_VECTOR           0x00000008
+#define GT_HEADER_INET             0x00000009
+#define GT_HEADER_CIDR             0x00000010
+#define GT_HEADER_MAC              0x00000011
+#define GT_HEADER_MAC8             0x00000012
+#define GT_HEADER_BOX2D            0x00000013
+#define GT_HEADER_BOX3D            0x00000014
+#define GT_HEADER_SPHEROID         0x00000015
+#define GT_HEADER_GSERIALIZED      0x00000016
+#define GT_HEADER_TSVECTOR         0x00000017
+#define GT_HEADER_TSQUERY          0x00000018
+#define GT_HEADER_RANGE_INT        0x00000019
+#define GT_HEADER_RANGE_NUM        0x00000020
+#define GT_HEADER_RANGE_TS         0x00000021
+#define GT_HEADER_RANGE_TSTZ       0x00000022
+#define GT_HEADER_RANGE_DATE       0x00000023
+#define GT_HEADER_RANGE_INT_MULTI  0x00000024
+#define GT_HEADER_RANGE_NUM_MULTI  0x00000025
+#define GT_HEADER_RANGE_TS_MULTI   0x00000026
 #define GT_HEADER_RANGE_TSTZ_MULTI 0x00000027
 #define GT_HEADER_RANGE_DATE_MULTI 0x00000028
+#define GT_HEADER_BYTEA            0x00000029
+
 
 #define GT_IS_INTEGER(agte_) \
     (((agte_) == GT_HEADER_INTEGER))
@@ -432,6 +435,7 @@ enum gtype_value_type
     AGTV_BOX3D,
     AGTV_SPHEROID,
     AGTV_GSERIALIZED,
+    AGTV_BYTEA,
     AGTV_TSVECTOR,
     AGTV_TSQUERY,
     AGTV_RANGE_INT,
@@ -473,6 +477,7 @@ struct gtype_value
         struct { int num_elems; gtype_value *elems; bool raw_scalar; } array;       // Array container type
 	    struct { int num_pairs; gtype_pair *pairs; } object;                        // Associative container type
         Vector vector;
+        bytea *bytea;
 	    inet inet;
 	    macaddr mac;
         macaddr8 mac8;
@@ -484,6 +489,7 @@ struct gtype_value
 	TSQuery tsquery;
 	RangeType *range;
 	MultirangeType *multirange;
+
 	struct { int len; gtype_container *data; } binary; // Array or object, in on-disk format
     } val;
 };
