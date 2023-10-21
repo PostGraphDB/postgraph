@@ -3317,6 +3317,14 @@ $$) AS (c gtype);
  (1,1)
 (1 row)
 
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1)'::geometry
+$$) AS (c point);
+   c   
+-------
+ (1,1)
+(1 row)
+
 --
 -- From Box3D
 --

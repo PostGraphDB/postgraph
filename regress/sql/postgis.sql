@@ -1144,6 +1144,9 @@ select * FROM cypher('postgis', $$
     RETURN topoint('POINT(1 1)'::geometry)
 $$) AS (c gtype);
 
+select * FROM cypher('postgis', $$
+    RETURN 'POINT(1 1)'::geometry
+$$) AS (c point);
 --
 -- From Box3D
 --

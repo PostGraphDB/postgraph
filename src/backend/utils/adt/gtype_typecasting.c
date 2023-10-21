@@ -1219,6 +1219,21 @@ gtype_to_cidr(PG_FUNCTION_ARGS) {
     PG_RETURN_DATUM(d);
 }
 
+PG_FUNCTION_INFO_V1(gtype_to_point);
+// gtype -> point
+Datum
+gtype_to_point(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+    
+    Datum d = DatumGetPointer(convert_to_scalar(gtype_to_point_internal, agt, "point"));
+
+    PG_RETURN_DATUM(d);
+}
+
+
 PG_FUNCTION_INFO_V1(gtype_to_geometry);
 // gtype -> geometry
 Datum
