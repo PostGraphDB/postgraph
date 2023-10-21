@@ -25,13 +25,26 @@
 typedef Datum (*coearce_function) (gtype_value *);
 Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
 
+#define GT_TO_INT8(arg) \
+    DatumGetInt64(GT_TO_INT8_DATUM(arg))
+#define GT_TO_FLOAT8(arg) \
+    DatumGetFloat8(GT_TO_FLOAT8_DATUM(arg))
+#define GT_TO_TEXT(arg) \
+    DatumGetTextP(GT_TO_TEXT_DATUM(arg))
+#define GT_TO_STRING(arg) \
+    DatumGetCString(GT_TO_STRING_DATUM(arg))
+
 
 #define GT_TO_INT4_DATUM(arg) \
     convert_to_scalar(gtype_to_int4_internal, arg, "int4")
 #define GT_TO_INT8_DATUM(arg) \
     convert_to_scalar(gtype_to_int8_internal, arg, "int")
+#define GT_TO_FLOAT8_DATUM(arg) \
+    convert_to_scalar(gtype_to_float8_internal, arg, "float")
 #define GT_TO_TEXT_DATUM(arg) \
     convert_to_scalar(gtype_to_text_internal, (arg), "text")
+#define GT_TO_STRING_DATUM(arg) \
+    convert_to_scalar(gtype_to_string_internal, (arg), "string")
 #define GT_TO_TIMESTAMP_DATUM(arg) \
     convert_to_scalar(gtype_to_timestamp_internal, (arg), "timestamp")
 #define GT_TO_TIMESTAMPTZ_DATUM(arg) \
@@ -59,6 +72,8 @@ Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
     convert_to_scalar(gtype_to_int8_internal, AG_GET_ARG_GTYPE_P(arg), "int")
 #define GT_ARG_TO_TEXT_DATUM(arg) \
     convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(arg), "text")
+#define GT_ARG_TO_STRING_DATUM(arg) \
+    convert_to_scalar(gtype_to_string_internal, AG_GET_ARG_GTYPE_P(arg), "string")
 #define GT_ARG_TO_INET_DATUM(arg) \
     convert_to_scalar(gtype_to_inet_internal, AG_GET_ARG_GTYPE_P(arg), "inet")
 #define GT_ARG_TO_MAC8_DATUM(arg) \

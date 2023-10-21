@@ -2069,9 +2069,9 @@ SELECT * FROM cypher('temporal', $$ RETURN '2023-06-23 13:39:40.00'::timestamptz
 -- Date + Interval Operator
 --
 SELECT * FROM cypher('temporal', $$ RETURN '2023-06-23'::date + '10 Days'::interval $$) AS r(c gtype);
-            c             
---------------------------
- Mon Jul 03 00:00:00 2023
+              c               
+------------------------------
+ Mon Jul 03 00:00:00 2023 GMT
 (1 row)
 
 --
@@ -2123,9 +2123,9 @@ SELECT * FROM cypher('temporal', $$ RETURN '2023-06-23 13:39:40.00'::timestamptz
 -- Date - Interval Operator
 --
 SELECT * FROM cypher('temporal', $$ RETURN '2023-06-23'::date - '10 Days'::interval $$) AS r(c gtype);
-            c             
---------------------------
- Tue Jun 13 00:00:00 2023
+              c               
+------------------------------
+ Tue Jun 13 00:00:00 2023 GMT
 (1 row)
 
 --

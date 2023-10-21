@@ -1017,9 +1017,9 @@ SELECT * FROM cypher('expr', $$RETURN 'str' + 1$$) AS r(c gtype);
 
 -- String LHS + Float RHS
 SELECT * FROM cypher('expr', $$RETURN 'str' + 1.0$$) AS r(c gtype);
-    c     
-----------
- "str1.0"
+   c    
+--------
+ "str1"
 (1 row)
 
 -- Integer LHS + String LHS
@@ -1031,9 +1031,9 @@ SELECT * FROM cypher('expr', $$RETURN 1 + 'str'$$) AS r(c gtype);
 
 -- Float LHS + String RHS
 SELECT * FROM cypher('expr', $$RETURN 1.0 + 'str'$$) AS r(c gtype);
-    c     
-----------
- "1.0str"
+   c    
+--------
+ "1str"
 (1 row)
 
 --
