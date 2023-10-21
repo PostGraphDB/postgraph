@@ -536,8 +536,7 @@ Datum gtype_topoint(PG_FUNCTION_ARGS)
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    Point *point = DatumGetPointer(DirectFunctionCall1(point_in,
-                                                  convert_to_scalar(gtype_to_string_internal, agt, "string")));
+    Point *point = DatumGetPointer(convert_to_scalar(gtype_to_point_internal, agt, "point"));
 
     gtype_value gtv;
     gtv.type = AGTV_POINT;
@@ -1945,6 +1944,23 @@ gtype_to_geometry_internal(gtype_value *gtv) {
       return DirectFunctionCall1(polygon_to_geometry, PointerGetDatum(gtv->val.polygon));
     }  else
         cannot_cast_gtype_value(gtv->type, "geometry");
+
+    // unreachable
+    return CStringGetDatum("");
+}
+
+PG_FUNCTION_INFO_V1(geometry_to_point);
+
+Datum
+gtype_to_point_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_POINT) {
+        return PointerGetDatum(gtv->val.point);
+    } else if (gtv->type == AGTV_GSERIALIZED){
+        return DirectFunctionCall1(geometry_to_point, CStringGetDatum(gtv->val.gserialized));
+    } else if (gtv->type == AGTV_STRING){
+        return DirectFunctionCall1(point_in, CStringGetDatum(gtv->val.string.val));
+    }  else
+        cannot_cast_gtype_value(gtv->type, "point");
 
     // unreachable
     return CStringGetDatum("");

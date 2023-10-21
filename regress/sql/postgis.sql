@@ -1140,6 +1140,10 @@ SELECT c FROM cypher('postgis', $$ RETURN topolygon('(1,1), (2,2), (3, 3), (4, 4
 
 SELECT 'POLYGON((0 0,1 1,1 3,2 3,2 0,0 0))'::geometry::gtype;
 
+select * FROM cypher('postgis', $$
+    RETURN topoint('POINT(1 1)'::geometry)
+$$) AS (c gtype);
+
 --
 -- From Box3D
 --
