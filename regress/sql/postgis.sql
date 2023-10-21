@@ -1132,6 +1132,11 @@ $$) AS r(c gtype);
 --
 
 --
+-- To Geometry
+--
+SELECT c FROM cypher('postgis', $$ RETURN topoint('(1, 2)')::geometry $$ ) AS (c gtype);
+
+--
 -- From Box3D
 --
 -- gtype Box3D to box3d

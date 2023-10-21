@@ -1910,6 +1910,7 @@ gtype_to_spheroid_internal(gtype_value *gtv) {
 PG_FUNCTION_INFO_V1(LWGEOM_in);
 PG_FUNCTION_INFO_V1(BOX3D_to_LWGEOM);
 PG_FUNCTION_INFO_V1(BOX2D_to_LWGEOM);
+PG_FUNCTION_INFO_V1(point_to_geometry);
 
 Datum
 gtype_to_geometry_internal(gtype_value *gtv) {
@@ -1921,6 +1922,8 @@ gtype_to_geometry_internal(gtype_value *gtv) {
         return DirectFunctionCall1(BOX2D_to_LWGEOM, PointerGetDatum(&gtv->val.gbox));
     } else if (gtv->type == AGTV_STRING){
         return DirectFunctionCall1(LWGEOM_in, CStringGetDatum(gtv->val.string.val));
+    } else if (gtv->type == AGTV_POINT) {
+        return DirectFunctionCall1(point_to_geometry, PointerGetDatum(&gtv->val.point));
     }  else
         cannot_cast_gtype_value(gtv->type, "geography");
 
