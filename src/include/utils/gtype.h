@@ -319,6 +319,7 @@ typedef struct
 #define GT_HEADER_RANGE_INT_MULTI 0x00000024
 #define GT_HEADER_RANGE_TS_MULTI 0x00000025
 #define GT_HEADER_RANGE_TSTZ_MULTI 0x00000026
+#define GT_HEADER_RANGE_DATE_MULTI 0x00000027
 
 #define GT_IS_INTEGER(agte_) \
     (((agte_) == GT_HEADER_INTEGER))
@@ -440,6 +441,7 @@ enum gtype_value_type
     AGTV_RANGE_INT_MULTI,
     AGTV_RANGE_TS_MULTI,
     AGTV_RANGE_TSTZ_MULTI,
+    AGTV_RANGE_DATE_MULTI,
     /* Composite types */
     AGTV_ARRAY = 0x100,
     AGTV_OBJECT,

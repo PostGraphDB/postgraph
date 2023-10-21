@@ -838,6 +838,27 @@ Datum gtype_todaterange(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(gtype_todatemultirange);
+/*
+ * Execute function to typecast an agtype to an agtype timestamp
+ */
+Datum gtype_todatemultirange(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    MultirangeType *range = DatumGetPointer(PostGraphDirectFunctionCall3Coll(multirange_in, DEFAULT_COLLATION_OID,
+                                                  convert_to_scalar(gtype_to_string_internal, agt, "string"),
+                                                  ObjectIdGetDatum(DATEMULTIRANGEOID), Int32GetDatum(1)));
+
+    gtype_value gtv;
+    gtv.type = AGTV_RANGE_DATE_MULTI;
+    gtv.val.multirange = range;
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
+}
 
 /*
  * gtype to postgres functions

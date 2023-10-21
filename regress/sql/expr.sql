@@ -47,6 +47,8 @@ SELECT totstzmultirange('"{[''1/1/2000 12:00:00 GMT'', ''1/1/2000 4:00:00 PM GMT
 
 SELECT todaterange('"[''1/1/2000'', ''1/1/2001'')"');
 
+SELECT todatemultirange('"{[''1/1/2000'', ''1/1/2001'')}"');
+
 --
 -- map literal
 --

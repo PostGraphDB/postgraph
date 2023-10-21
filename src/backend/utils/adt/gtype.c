@@ -470,6 +470,7 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
     case AGTV_RANGE_INT_MULTI:
     case AGTV_RANGE_TS_MULTI:
     case AGTV_RANGE_TSTZ_MULTI:
+    case AGTV_RANGE_DATE_MULTI:
         numstr = DatumGetCString(PostGraphDirectFunctionCall1Coll(multirange_out, DEFAULT_COLLATION_OID, PointerGetDatum(scalar_val->val.multirange)));
         appendStringInfoString(out, numstr);
 	break; 
