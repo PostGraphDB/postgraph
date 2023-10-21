@@ -662,8 +662,7 @@ Datum gtype_tobox(PG_FUNCTION_ARGS)
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    BOX *box = DatumGetPointer(DirectFunctionCall1(box_in,
-                                                  convert_to_scalar(gtype_to_string_internal, agt, "string")));
+    BOX *box = DatumGetPointer(convert_to_scalar(gtype_to_box_internal, agt, "box"));
 
     gtype_value gtv;
     gtv.type = AGTV_BOX;
@@ -1259,6 +1258,20 @@ gtype_to_polygon(PG_FUNCTION_ARGS) {
     PG_RETURN_DATUM(d);
 }
 
+PG_FUNCTION_INFO_V1(gtype_to_box);
+// gtype -> box
+Datum
+gtype_to_box(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    Datum d = DatumGetPointer(convert_to_scalar(gtype_to_box_internal, agt, "box"));
+
+    PG_RETURN_DATUM(d);
+}
+
 
 PG_FUNCTION_INFO_V1(gtype_to_geometry);
 // gtype -> geometry
@@ -1454,6 +1467,17 @@ Datum
 polygon_to_gtype(PG_FUNCTION_ARGS) {
     gtype_value gtv;
     gtv.type = AGTV_POLYGON;
+    gtv.val.gserialized = PG_GETARG_POINTER(0);
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+PG_FUNCTION_INFO_V1(box_to_gtype);
+//box -> gtype
+Datum
+box_to_gtype(PG_FUNCTION_ARGS) {
+    gtype_value gtv;
+    gtv.type = AGTV_BOX;
     gtv.val.gserialized = PG_GETARG_POINTER(0);
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
@@ -1942,6 +1966,27 @@ gtype_to_macaddr8_internal(gtype_value *gtv) {
     // unreachable
     return CStringGetDatum("");
 }
+
+PG_FUNCTION_INFO_V1(BOX3D_to_BOX);
+PG_FUNCTION_INFO_V1(LWGEOM_to_BOX);
+
+Datum
+gtype_to_box_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_BOX) {
+        return PointerGetDatum(gtv->val.box);
+    } else if (gtv->type == AGTV_BOX3D) {
+        return DirectFunctionCall1(BOX3D_to_BOX, PointerGetDatum(&gtv->val.box3d));
+    } else if (gtv->type == AGTV_GSERIALIZED) {
+        return DirectFunctionCall1(LWGEOM_to_BOX, PointerGetDatum(gtv->val.gserialized));
+    } else if (gtv->type == AGTV_STRING) {
+        return DirectFunctionCall1(box_in, CStringGetDatum(gtv->val.string.val));
+    }  else
+        cannot_cast_gtype_value(gtv->type, "box");
+
+    // unreachable
+    return CStringGetDatum("");
+}
+
 
 PG_FUNCTION_INFO_V1(BOX3D_to_BOX2D);
 PG_FUNCTION_INFO_V1(LWGEOM_to_BOX2D);

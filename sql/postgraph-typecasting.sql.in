@@ -466,6 +466,29 @@ AS 'MODULE_PATHNAME';
 
 CREATE CAST (gtype as public.box2d) WITH FUNCTION gtype_to_box2d(gtype);
 
+-- box -> gtype
+CREATE FUNCTION box_to_gtype(box)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (box AS gtype)
+WITH FUNCTION box_to_gtype(box);
+
+-- gtype -> box
+CREATE FUNCTION gtype_to_box(gtype)
+RETURNS box
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype as box) WITH FUNCTION gtype_to_box(gtype);
+
 
 --
 -- gtype - typecasting to other gtype types
