@@ -155,6 +155,20 @@ SELECT topoint('"(1,1)"');
  (1,1)
 (1 row)
 
+SELECT '(1,1)'::point::gtype;
+ gtype 
+-------
+ (1,1)
+(1 row)
+
+select * FROM cypher('expr', $$
+    RETURN 'POINT(1 1)'::geometry
+$$) AS (c point);
+   c   
+-------
+ (1,1)
+(1 row)
+
 SELECT tolseg('"(1,1), (2,2)"');
     tolseg     
 ---------------
@@ -179,6 +193,10 @@ SELECT topath('"((1,1), (2,2))"');
  ((1,1),(2,2))
 (1 row)
 
+SELECT '"[(1,1), (2,2)]'::path::gtype;
+ERROR:  invalid input syntax for type path: ""[(1,1), (2,2)]"
+LINE 1: SELECT '"[(1,1), (2,2)]'::path::gtype;
+               ^
 SELECT topolygon('"(1,1), (2,2), (3, 3), (4, 4)"');
          topolygon         
 ---------------------------
