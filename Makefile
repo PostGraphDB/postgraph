@@ -88,6 +88,7 @@ REGRESS = scan \
           graphid \
           gtype \
 	  network \
+         temporal \
           vertex \
           edge \
           variable_edge \
