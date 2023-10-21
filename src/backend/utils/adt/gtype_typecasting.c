@@ -1385,6 +1385,17 @@ cidr_to_gtype(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(geometry_to_gtype);
+//geometry -> gtype
+Datum
+geometry_to_gtype(PG_FUNCTION_ARGS) {
+    gtype_value gtv;
+    gtv.type = AGTV_GSERIALIZED;
+    gtv.val.gserialized = PG_GETARG_POINTER(0);
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
 /*
  * gtype to postgres array functions
  */
@@ -1911,6 +1922,8 @@ PG_FUNCTION_INFO_V1(LWGEOM_in);
 PG_FUNCTION_INFO_V1(BOX3D_to_LWGEOM);
 PG_FUNCTION_INFO_V1(BOX2D_to_LWGEOM);
 PG_FUNCTION_INFO_V1(point_to_geometry);
+PG_FUNCTION_INFO_V1(path_to_geometry);
+PG_FUNCTION_INFO_V1(polygon_to_geometry);
 
 Datum
 gtype_to_geometry_internal(gtype_value *gtv) {
@@ -1923,9 +1936,13 @@ gtype_to_geometry_internal(gtype_value *gtv) {
     } else if (gtv->type == AGTV_STRING){
         return DirectFunctionCall1(LWGEOM_in, CStringGetDatum(gtv->val.string.val));
     } else if (gtv->type == AGTV_POINT) {
-        return DirectFunctionCall1(point_to_geometry, PointerGetDatum(&gtv->val.point));
+        return DirectFunctionCall1(point_to_geometry, PointerGetDatum(gtv->val.point));
+    } else if (gtv->type == AGTV_PATH) {
+        return DirectFunctionCall1(path_to_geometry, PointerGetDatum(gtv->val.path));
+    } else if (gtv->type == AGTV_POLYGON) {
+      return DirectFunctionCall1(polygon_to_geometry, PointerGetDatum(gtv->val.polygon));
     }  else
-        cannot_cast_gtype_value(gtv->type, "geography");
+        cannot_cast_gtype_value(gtv->type, "geometry");
 
     // unreachable
     return CStringGetDatum("");
