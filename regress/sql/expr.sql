@@ -59,6 +59,11 @@ SELECT tobytea('"\xDEADBEEF"');
 SELECT tobytea('"abc \153\154\155 \052\251\124"');
 
 SELECT topoint('"(1,1)"');
+SELECT '(1,1)'::point::gtype;
+select * FROM cypher('expr', $$
+    RETURN 'POINT(1 1)'::geometry
+$$) AS (c point);
+
 SELECT tolseg('"(1,1), (2,2)"');
 SELECT toline('"{1,1,2}"');
 SELECT topath('"[(1,1), (2,2)]"');

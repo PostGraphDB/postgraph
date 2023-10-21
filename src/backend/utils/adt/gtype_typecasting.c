@@ -1399,6 +1399,19 @@ cidr_to_gtype(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(point_to_gtype);
+//point -> gtype
+Datum
+point_to_gtype(PG_FUNCTION_ARGS) {
+    gtype_value gtv;
+    gtv.type = AGTV_POINT;
+    gtv.val.gserialized = PG_GETARG_POINTER(0);
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+
+
 PG_FUNCTION_INFO_V1(geometry_to_gtype);
 //geometry -> gtype
 Datum
