@@ -443,6 +443,10 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
         numstr = DatumGetCString(DirectFunctionCall1(lseg_out, PointerGetDatum(scalar_val->val.lseg)));
         appendStringInfoString(out, numstr);
         break;	   
+    case AGTV_LINE:
+        numstr = DatumGetCString(DirectFunctionCall1(line_out, PointerGetDatum(scalar_val->val.line)));
+        appendStringInfoString(out, numstr);
+        break;	   
     case AGTV_PATH:
         numstr = DatumGetCString(DirectFunctionCall1(path_out, PointerGetDatum(scalar_val->val.path)));
         appendStringInfoString(out, numstr);

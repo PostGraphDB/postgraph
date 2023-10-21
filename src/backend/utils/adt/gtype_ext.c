@@ -191,6 +191,15 @@ bool ag_serialize_extended_type(StringInfo buffer, gtentry *gtentry,
 
         *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
         break;
+    case AGTV_LINE:
+        padlen = ag_serialize_header(buffer, GT_HEADER_LINE);
+
+        numlen = sizeof(LINE);
+        offset = reserve_from_buffer(buffer, numlen);
+        memcpy(buffer->data + offset, scalar_val->val.box, sizeof(LINE));
+
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
+        break;
     case AGTV_PATH:
         padlen = ag_serialize_header(buffer, GT_HEADER_PATH);
 
@@ -446,6 +455,10 @@ void ag_deserialize_extended_type(char *base_addr, uint32 offset, gtype_value *r
     case GT_HEADER_LSEG:
         result->type = AGTV_LSEG;
 	    result->val.lseg = (base + GT_HEADER_SIZE);
+        break;
+    case GT_HEADER_LINE:
+        result->type = AGTV_LINE;
+	    result->val.line = (base + GT_HEADER_SIZE);
         break;
     case GT_HEADER_PATH:
         result->type = AGTV_PATH;

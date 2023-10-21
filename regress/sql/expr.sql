@@ -60,6 +60,7 @@ SELECT tobytea('"abc \153\154\155 \052\251\124"');
 
 SELECT topoint('"(1,1)"');
 SELECT tolseg('"(1,1), (2,2)"');
+SELECT toline('"{1,1,2}"');
 SELECT topath('"[(1,1), (2,2)]"');
 SELECT topath('"((1,1), (2,2))"');
 SELECT tobox('"(1,1), (2,2)"');
