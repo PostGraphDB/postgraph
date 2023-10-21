@@ -546,6 +546,28 @@ Datum gtype_topoint(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(gtype_tolseg);
+/*
+ * Execute function to typecast an agtype to an agtype timestamp
+ */
+Datum gtype_tolseg(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    LSEG *lseg = DatumGetPointer(DirectFunctionCall1(lseg_in,
+                                                  convert_to_scalar(gtype_to_string_internal, agt, "string")));
+
+    gtype_value gtv;
+    gtv.type = AGTV_LSEG;
+    gtv.val.lseg = lseg;
+
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
+}
+
+
 PG_FUNCTION_INFO_V1(gtype_tobox);
 /*
  * Execute function to typecast an agtype to an agtype timestamp
