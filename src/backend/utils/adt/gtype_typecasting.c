@@ -1909,7 +1909,9 @@ gtype_to_box3d_internal(gtype_value *gtv) {
 
 Datum
 gtype_to_spheroid_internal(gtype_value *gtv) {
-    if (gtv->type == AGTV_STRING){
+    if (gtv->type == AGTV_SPHEROID) {
+        return PointerGetDatum(&gtv->val.spheroid);
+    } else if (gtv->type == AGTV_STRING){
         return DirectFunctionCall1(ellipsoid_in, CStringGetDatum(gtv->val.string.val));
     }  else
         cannot_cast_gtype_value(gtv->type, "spheroid");
