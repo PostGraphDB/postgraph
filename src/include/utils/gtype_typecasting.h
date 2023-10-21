@@ -85,6 +85,7 @@ Datum gtype_to_macaddr_internal(gtype_value *gtv);
 Datum gtype_to_macaddr8_internal(gtype_value *gtv);
 Datum gtype_to_point_internal(gtype_value *gtv);
 Datum gtype_to_path_internal(gtype_value *gtv);
+Datum gtype_to_polygon_internal(gtype_value *gtv);
 Datum gtype_to_box2d_internal(gtype_value *gtv);
 Datum gtype_to_box3d_internal(gtype_value *gtv);
 Datum gtype_to_spheroid_internal(gtype_value *gtv);

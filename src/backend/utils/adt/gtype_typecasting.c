@@ -619,8 +619,7 @@ Datum gtype_topolygon(PG_FUNCTION_ARGS)
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    POLYGON *polygon = DatumGetPointer(DirectFunctionCall1(poly_in,
-                                                  convert_to_scalar(gtype_to_string_internal, agt, "string")));
+    POLYGON *polygon = DatumGetPointer(convert_to_scalar(gtype_to_polygon_internal, agt, "polygon"));
 
     gtype_value gtv;
     gtv.type = AGTV_POLYGON;
@@ -1246,6 +1245,20 @@ gtype_to_path(PG_FUNCTION_ARGS) {
     PG_RETURN_DATUM(d);
 }
 
+PG_FUNCTION_INFO_V1(gtype_to_polygon);
+// gtype -> polygon
+Datum
+gtype_to_polygon(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    Datum d = DatumGetPointer(convert_to_scalar(gtype_to_polygon_internal, agt, "polygon"));
+
+    PG_RETURN_DATUM(d);
+}
+
 
 PG_FUNCTION_INFO_V1(gtype_to_geometry);
 // gtype -> geometry
@@ -1433,6 +1446,19 @@ path_to_gtype(PG_FUNCTION_ARGS) {
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
+
+
+PG_FUNCTION_INFO_V1(polygon_to_gtype);
+//polygon -> gtype
+Datum
+polygon_to_gtype(PG_FUNCTION_ARGS) {
+    gtype_value gtv;
+    gtv.type = AGTV_POLYGON;
+    gtv.val.gserialized = PG_GETARG_POINTER(0);
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
 
 
 PG_FUNCTION_INFO_V1(geometry_to_gtype);
@@ -2029,6 +2055,23 @@ gtype_to_path_internal(gtype_value *gtv) {
         return DirectFunctionCall1(path_in, CStringGetDatum(gtv->val.string.val));
     }  else
         cannot_cast_gtype_value(gtv->type, "path");
+
+    // unreachable
+    return CStringGetDatum("");
+}
+
+PG_FUNCTION_INFO_V1(geometry_to_polygon);
+
+Datum
+gtype_to_polygon_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_POLYGON) {
+        return PointerGetDatum(gtv->val.polygon);
+    } else if (gtv->type == AGTV_GSERIALIZED){
+        return DirectFunctionCall1(geometry_to_polygon, CStringGetDatum(gtv->val.gserialized));
+    } else if (gtv->type == AGTV_STRING){
+        return DirectFunctionCall1(poly_in, CStringGetDatum(gtv->val.string.val));
+    }  else
+        cannot_cast_gtype_value(gtv->type, "polygon");
 
     // unreachable
     return CStringGetDatum("");

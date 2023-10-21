@@ -397,6 +397,29 @@ AS 'MODULE_PATHNAME';
 
 CREATE CAST (gtype as path) WITH FUNCTION gtype_to_path(gtype);
 
+-- polygon -> gtype
+CREATE FUNCTION polygon_to_gtype(polygon)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (polygon AS gtype)
+WITH FUNCTION polygon_to_gtype(polygon);
+
+-- gtype -> polygon
+CREATE FUNCTION gtype_to_polygon(gtype)
+RETURNS polygon
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype as polygon) WITH FUNCTION gtype_to_polygon(gtype);
+
 
 -- geometry -> gtype
 CREATE FUNCTION geometry_to_gtype(public.geometry)

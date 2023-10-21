@@ -72,6 +72,10 @@ SELECT '"[(1,1), (2,2)]'::path::gtype;
 SELECT topath('"((1,1), (2,2))"')::path;
 
 SELECT topolygon('"(1,1), (2,2), (3, 3), (4, 4)"');
+SELECT topolygon('"(1,1), (2,2), (3, 3), (4, 4)"')::polygon;
+SELECT '(1,1), (2,2), (3, 3), (4, 4)'::polygon::gtype;
+
+
 SELECT tocircle('"(1,1), 3"');
 SELECT tobox('"(1,1), (2,2)"');
 
