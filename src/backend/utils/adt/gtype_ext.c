@@ -173,6 +173,15 @@ bool ag_serialize_extended_type(StringInfo buffer, gtentry *gtentry,
         *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
         break;
 
+    case AGTV_POINT:
+        padlen = ag_serialize_header(buffer, GT_HEADER_POINT);
+
+        numlen = sizeof(Point);
+        offset = reserve_from_buffer(buffer, numlen);
+        memcpy(buffer->data + offset, scalar_val->val.box, sizeof(Point));
+
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
+        break;
     case AGTV_BOX:
         padlen = ag_serialize_header(buffer, GT_HEADER_BOX);
 
@@ -412,9 +421,13 @@ void ag_deserialize_extended_type(char *base_addr, uint32 offset, gtype_value *r
         result->type = AGTV_MAC8;
         memcpy(&result->val.mac, base + GT_HEADER_SIZE, sizeof(char) * 8);
         break;
+    case GT_HEADER_POINT:
+        result->type = AGTV_POINT;
+	    result->val.point = (base + GT_HEADER_SIZE);
+        break;
     case GT_HEADER_BOX:
         result->type = AGTV_BOX;
-	    result->val.gserialized = (base + GT_HEADER_SIZE);
+	    result->val.box = (base + GT_HEADER_SIZE);
         break;
     case GT_HEADER_BOX2D:
         result->type = AGTV_BOX2D;
