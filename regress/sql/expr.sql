@@ -64,6 +64,7 @@ SELECT toline('"{1,1,2}"');
 SELECT topath('"[(1,1), (2,2)]"');
 SELECT topath('"((1,1), (2,2))"');
 SELECT topolygon('"(1,1), (2,2), (3, 3), (4, 4)"');
+SELECT tocircle('"(1,1), 3"');
 SELECT tobox('"(1,1), (2,2)"');
 
 --

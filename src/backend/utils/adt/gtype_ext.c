@@ -219,6 +219,15 @@ bool ag_serialize_extended_type(StringInfo buffer, gtentry *gtentry,
 
         *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
         break;
+    case AGTV_CIRCLE:
+        padlen = ag_serialize_header(buffer, GT_HEADER_CIRCLE);
+
+        numlen = sizeof(CIRCLE);
+        offset = reserve_from_buffer(buffer, numlen);
+        memcpy(buffer->data + offset, scalar_val->val.circle, sizeof(CIRCLE));
+
+        *gtentry = GTENTRY_IS_GTYPE | (padlen + numlen + GT_HEADER_SIZE);
+        break;
     case AGTV_BOX:
         padlen = ag_serialize_header(buffer, GT_HEADER_BOX);
 
@@ -477,6 +486,10 @@ void ag_deserialize_extended_type(char *base_addr, uint32 offset, gtype_value *r
     case GT_HEADER_POLYGON:
         result->type = AGTV_POLYGON;
 	    result->val.polygon = (base + GT_HEADER_SIZE);
+        break;
+    case GT_HEADER_CIRCLE:
+        result->type = AGTV_CIRCLE;
+	    result->val.circle = (base + GT_HEADER_SIZE);
         break;
     case GT_HEADER_BOX:
         result->type = AGTV_BOX;

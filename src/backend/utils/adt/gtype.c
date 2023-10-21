@@ -454,7 +454,11 @@ void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val)
     case AGTV_POLYGON:
         numstr = DatumGetCString(DirectFunctionCall1(poly_out, PointerGetDatum(scalar_val->val.polygon)));
         appendStringInfoString(out, numstr);
-        break;	   
+        break;	 
+    case AGTV_CIRCLE:
+        numstr = DatumGetCString(DirectFunctionCall1(circle_out, PointerGetDatum(scalar_val->val.circle)));
+        appendStringInfoString(out, numstr);
+        break;	    
     case AGTV_BOX:
         numstr = DatumGetCString(DirectFunctionCall1(box_out, PointerGetDatum(scalar_val->val.box)));
         appendStringInfoString(out, numstr);

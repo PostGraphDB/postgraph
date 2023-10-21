@@ -631,6 +631,28 @@ Datum gtype_topolygon(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(gtype_tocircle);
+/*
+ * Execute function to typecast an agtype to an agtype timestamp
+ */
+Datum gtype_tocircle(PG_FUNCTION_ARGS)
+{
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    CIRCLE *circle = DatumGetPointer(DirectFunctionCall1(circle_in,
+                                                  convert_to_scalar(gtype_to_string_internal, agt, "string")));
+
+    gtype_value gtv;
+    gtv.type = AGTV_CIRCLE;
+    gtv.val.circle = circle;
+    
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
+}
+
+
 
 PG_FUNCTION_INFO_V1(gtype_tobox);
 /*
