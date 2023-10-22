@@ -77,6 +77,7 @@ static gtype_value *push_gtype_value_scalar(gtype_parse_state **pstate,
                                               gtype_value *scalar_val);
 static int compare_two_floats_orderability(float8 lhs, float8 rhs);
 static int get_type_sort_priority(enum gtype_value_type type);
+static int32 network_cmp_internal(inet *a1, inet *a2);
 
 /*
  * Turn an in-memory gtype_value into an gtype for on-disk storage.
@@ -259,10 +260,12 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
             if ((va.type == vb.type) ||
                 ((va.type == AGTV_INTEGER || va.type == AGTV_FLOAT || va.type == AGTV_NUMERIC ||
 		  va.type == AGTV_TIMESTAMP || va.type == AGTV_DATE || va.type == AGTV_TIMESTAMPTZ ||
-		  va.type == AGTV_TIMETZ || va.type == AGTV_TIME || va.type == AGTV_DATE) &&
+		  va.type == AGTV_TIMETZ || va.type == AGTV_TIME || va.type == AGTV_DATE ||
+		  va.type == AGTV_INET) &&
                  (vb.type == AGTV_INTEGER || vb.type == AGTV_FLOAT || vb.type == AGTV_NUMERIC || 
 		  vb.type == AGTV_TIMESTAMP || vb.type == AGTV_DATE || vb.type == AGTV_TIMESTAMPTZ ||
-                  vb.type == AGTV_TIMETZ || vb.type == AGTV_TIME || vb.type == AGTV_DATE)))
+                  vb.type == AGTV_TIMETZ || vb.type == AGTV_TIME || vb.type == AGTV_DATE ||
+		  vb.type == AGTV_INET)))
             {
                 switch (va.type)
                 {
@@ -278,6 +281,7 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
 		case AGTV_TIME:
 		case AGTV_TIMETZ:
 		case AGTV_INTERVAL:
+		case AGTV_INET:
                     res = compare_gtype_scalar_values(&va, &vb);
                     break;
                 case AGTV_ARRAY:
@@ -1575,6 +1579,8 @@ static bool equals_gtype_scalar_value(const gtype_value *a, const gtype_value *b
             return timetz_cmp_internal(&a->val.timetz, &b->val.timetz) == 0;
         case AGTV_INTERVAL:
             return interval_cmp_internal(&a->val.interval, &b->val.interval) == 0;
+	case AGTV_INET:
+	    return network_cmp_internal(&a->val.inet, &b->val.inet) == 0;
 	case AGTV_FLOAT:
             return a->val.float_value == b->val.float_value;
         default:
@@ -1588,6 +1594,28 @@ static bool equals_gtype_scalar_value(const gtype_value *a, const gtype_value *b
     // execution will never reach this point due to the ereport call 
     return false;
 }
+
+
+
+static int32
+network_cmp_internal(inet *a1, inet *a2)
+{
+    if (ip_family(a1) == ip_family(a2)) {
+        int order;
+
+        order = bitncmp(ip_addr(a1), ip_addr(a2), Min(ip_bits(a1), ip_bits(a2)));
+        if (order != 0)              
+            return order;
+        order = ((int) ip_bits(a1)) - ((int) ip_bits(a2));
+        if (order != 0)      
+            return order;
+        return bitncmp(ip_addr(a1), ip_addr(a2), ip_maxbits(a1));
+    }
+
+    return ip_family(a1) - ip_family(a2);
+}
+
+
 
 /*
  * Compare two scalar gtype_values, returning -1, 0, or 1.
@@ -1640,7 +1668,9 @@ int compare_gtype_scalar_values(gtype_value *a, gtype_value *b)
 	    return timetz_cmp_internal(&a->val.timetz, &b->val.timetz);
 	case AGTV_INTERVAL:
 	    return interval_cmp_internal(&a->val.interval, &b->val.interval);
-        case AGTV_FLOAT:
+        case AGTV_INET:
+	    return network_cmp_internal(&a->val.inet, &b->val.inet);
+	case AGTV_FLOAT:
             return compare_two_floats_orderability(a->val.float_value, b->val.float_value);
 	default:
             ereport(ERROR, (errmsg("invalid gtype scalar type %d for compare", a->type)));
