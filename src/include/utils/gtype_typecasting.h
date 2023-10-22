@@ -74,6 +74,8 @@ Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
     convert_to_scalar(gtype_to_int4_internal, AG_GET_ARG_GTYPE_P(arg), "int4")
 #define GT_ARG_TO_INT8_DATUM(arg) \
     convert_to_scalar(gtype_to_int8_internal, AG_GET_ARG_GTYPE_P(arg), "int")
+#define GT_ARG_TO_FLOAT8_DATUM(arg) \
+    convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(arg), "float")
 #define GT_ARG_TO_NUMERIC_DATUM(arg) \
     convert_to_scalar(gtype_to_numeric_internal, AG_GET_ARG_GTYPE_P(arg), "numeric")
 #define GT_ARG_TO_TEXT_DATUM(arg) \

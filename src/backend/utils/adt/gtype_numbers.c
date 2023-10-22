@@ -59,96 +59,35 @@
 #include "utils/numeric.h"
 
 
-PG_FUNCTION_INFO_V1(gtype_sin);
-Datum
-gtype_sin(PG_FUNCTION_ARGS) {
-    gtype *gt = AG_GET_ARG_GTYPE_P(0);
 
-    gtype_value gtv_result;
-    gtv_result.type = AGTV_FLOAT;
-    gtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(dsin, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
+#define GTYPETRIGFUNC( name)                                                               \
+PG_FUNCTION_INFO_V1(gtype_##name);                                                         \
+Datum                                                                                      \
+gtype_##name(PG_FUNCTION_ARGS)                                                             \
+{                                                                                          \
+    gtype *gt= AG_GET_ARG_GTYPE_P(0);                                                      \
+    gtype_value gtv = { \
+        .type =AGTV_FLOAT, \
+	.val.float_value = DatumGetFloat8(DirectFunctionCall1(d##name, GT_ARG_TO_FLOAT8_DATUM(0))) \
+    }; \
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));                                         \
+}                                                                                          \
+/* keep compiler quiet - no extra ; */                                                     \
+extern int no_such_variable
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
-}
-
-PG_FUNCTION_INFO_V1(gtype_cos);
-Datum
-gtype_cos(PG_FUNCTION_ARGS) {
-    gtype *gt = AG_GET_ARG_GTYPE_P(0);
-    
-    gtype_value gtv_result;
-    gtv_result.type = AGTV_FLOAT;
-    gtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(dcos, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
-}
-
-PG_FUNCTION_INFO_V1(gtype_tan);
-Datum
-gtype_tan(PG_FUNCTION_ARGS) {
-    gtype *gt = AG_GET_ARG_GTYPE_P(0);
-
-    gtype_value gtv_result;
-    gtv_result.type = AGTV_FLOAT;
-    gtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(dtan, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
-}
-
-PG_FUNCTION_INFO_V1(gtype_cot);
-Datum
-gtype_cot(PG_FUNCTION_ARGS) {
-    gtype *gt = AG_GET_ARG_GTYPE_P(0);
-
-    gtype_value gtv_result;
-    gtv_result.type = AGTV_FLOAT;
-    gtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(dcot, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
-}
-
-PG_FUNCTION_INFO_V1(gtype_asin);
-Datum
-gtype_asin(PG_FUNCTION_ARGS) {
-    gtype *gt = AG_GET_ARG_GTYPE_P(0);
-
-    gtype_value gtv_result;
-    gtv_result.type = AGTV_FLOAT;
-    gtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(dasin, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
-}
-
-PG_FUNCTION_INFO_V1(gtype_acos);
-Datum
-gtype_acos(PG_FUNCTION_ARGS) {
-    gtype *gt = AG_GET_ARG_GTYPE_P(0);
-
-    gtype_value gtv_result;
-    gtv_result.type = AGTV_FLOAT;
-    gtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(dacos, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
-}
-
-PG_FUNCTION_INFO_V1(gtype_atan);
-Datum
-gtype_atan(PG_FUNCTION_ARGS) {
-    gtype *gt = AG_GET_ARG_GTYPE_P(0);
-
-    gtype_value gtv_result;
-    gtv_result.type = AGTV_FLOAT;
-    gtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(datan, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
-}
+GTYPETRIGFUNC(sin);
+GTYPETRIGFUNC(cos);
+GTYPETRIGFUNC(tan);
+GTYPETRIGFUNC(sinh);
+GTYPETRIGFUNC(cosh);
+GTYPETRIGFUNC(tanh);
+GTYPETRIGFUNC(cot);
+GTYPETRIGFUNC(asin);
+GTYPETRIGFUNC(acos);
+GTYPETRIGFUNC(atan);
+GTYPETRIGFUNC(asinh);
+GTYPETRIGFUNC(acosh);
+GTYPETRIGFUNC(atanh);
 
 PG_FUNCTION_INFO_V1(gtype_atan2);
 Datum
@@ -162,85 +101,6 @@ gtype_atan2(PG_FUNCTION_ARGS) {
 
     PG_RETURN_POINTER(gtype_value_to_gtype(&gtv_result));
 }
-
-PG_FUNCTION_INFO_V1(gtype_sinh);
-Datum
-gtype_sinh(PG_FUNCTION_ARGS) {
-    gtype *gt = AG_GET_ARG_GTYPE_P(0);
-
-    gtype_value gtv_result;
-    gtv_result.type = AGTV_FLOAT;
-    gtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(dsinh, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
-}
-
-PG_FUNCTION_INFO_V1(gtype_cosh);
-Datum
-gtype_cosh(PG_FUNCTION_ARGS) {
-    gtype *gt = AG_GET_ARG_GTYPE_P(0);
-
-    gtype_value gtv_result;
-    gtv_result.type = AGTV_FLOAT;
-    gtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(dcosh, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
-}
-
-PG_FUNCTION_INFO_V1(gtype_tanh);
-Datum
-gtype_tanh(PG_FUNCTION_ARGS) {
-    gtype *gt = AG_GET_ARG_GTYPE_P(0);
-
-    gtype_value gtv_result;
-    gtv_result.type = AGTV_FLOAT;
-    gtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(dtanh, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
-}
-
-PG_FUNCTION_INFO_V1(gtype_asinh);
-Datum
-gtype_asinh(PG_FUNCTION_ARGS) {
-    gtype *gt = AG_GET_ARG_GTYPE_P(0);
-
-    gtype_value gtv_result;
-    gtv_result.type = AGTV_FLOAT;
-    gtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(dasinh, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
-}
-
-PG_FUNCTION_INFO_V1(gtype_acosh);
-Datum
-gtype_acosh(PG_FUNCTION_ARGS) {
-    gtype *gt = AG_GET_ARG_GTYPE_P(0);
-
-    gtype_value gtv_result;
-    gtv_result.type = AGTV_FLOAT;
-    gtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(dacosh, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
-}
-
-PG_FUNCTION_INFO_V1(gtype_atanh);
-Datum
-gtype_atanh(PG_FUNCTION_ARGS) {
-    gtype *gt = AG_GET_ARG_GTYPE_P(0);
-
-    gtype_value gtv_result;
-    gtv_result.type = AGTV_FLOAT;
-    gtv_result.val.float_value =
-        DatumGetFloat8(DirectFunctionCall1(datanh, convert_to_scalar(gtype_to_float8_internal, gt, "float")));
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
-}
-
 
 PG_FUNCTION_INFO_V1(gtype_degrees);
 
