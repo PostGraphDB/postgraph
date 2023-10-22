@@ -109,6 +109,36 @@ SELECT tonumrange('"(0, 1.5)"');
  (0,1.5)
 (1 row)
 
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1) $$) as (a gtype);
+   a   
+-------
+ [0,1)
+(1 row)
+
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '()') $$) as (a gtype);
+   a   
+-------
+ (0,1)
+(1 row)
+
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '(]') $$) as (a gtype);
+   a   
+-------
+ (0,1]
+(1 row)
+
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[)') $$) as (a gtype);
+   a   
+-------
+ [0,1)
+(1 row)
+
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[]') $$) as (a gtype);
+   a   
+-------
+ [0,1]
+(1 row)
+
 SELECT tonummultirange('"{(0, 1.5)}"');
  tonummultirange 
 -----------------
