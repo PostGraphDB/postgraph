@@ -49,6 +49,36 @@ SELECT tointrange('"(0, 1)"');
  empty
 (1 row)
 
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1) $$) as (a gtype);
+   a   
+-------
+ [0,1)
+(1 row)
+
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '()') $$) as (a gtype);
+   a   
+-------
+ empty
+(1 row)
+
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '(]') $$) as (a gtype);
+   a   
+-------
+ [1,2)
+(1 row)
+
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[)') $$) as (a gtype);
+   a   
+-------
+ [0,1)
+(1 row)
+
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[]') $$) as (a gtype);
+   a   
+-------
+ [0,2)
+(1 row)
+
 SELECT tointmultirange('"{[0, 1]}"');
  tointmultirange 
 -----------------
