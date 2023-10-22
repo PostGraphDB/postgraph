@@ -261,11 +261,11 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
                 ((va.type == AGTV_INTEGER || va.type == AGTV_FLOAT || va.type == AGTV_NUMERIC ||
 		  va.type == AGTV_TIMESTAMP || va.type == AGTV_DATE || va.type == AGTV_TIMESTAMPTZ ||
 		  va.type == AGTV_TIMETZ || va.type == AGTV_TIME || va.type == AGTV_DATE ||
-		  va.type == AGTV_INET) &&
+		  va.type == AGTV_INET || va.type == AGTV_CIDR) &&
                  (vb.type == AGTV_INTEGER || vb.type == AGTV_FLOAT || vb.type == AGTV_NUMERIC || 
 		  vb.type == AGTV_TIMESTAMP || vb.type == AGTV_DATE || vb.type == AGTV_TIMESTAMPTZ ||
                   vb.type == AGTV_TIMETZ || vb.type == AGTV_TIME || vb.type == AGTV_DATE ||
-		  vb.type == AGTV_INET)))
+		  vb.type == AGTV_INET || va.type == AGTV_CIDR)))
             {
                 switch (va.type)
                 {
@@ -282,6 +282,7 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
 		case AGTV_TIMETZ:
 		case AGTV_INTERVAL:
 		case AGTV_INET:
+		case AGTV_CIDR:
                     res = compare_gtype_scalar_values(&va, &vb);
                     break;
                 case AGTV_ARRAY:
@@ -1580,6 +1581,7 @@ static bool equals_gtype_scalar_value(const gtype_value *a, const gtype_value *b
         case AGTV_INTERVAL:
             return interval_cmp_internal(&a->val.interval, &b->val.interval) == 0;
 	case AGTV_INET:
+	case AGTV_CIDR:
 	    return network_cmp_internal(&a->val.inet, &b->val.inet) == 0;
 	case AGTV_FLOAT:
             return a->val.float_value == b->val.float_value;
@@ -1669,6 +1671,7 @@ int compare_gtype_scalar_values(gtype_value *a, gtype_value *b)
 	case AGTV_INTERVAL:
 	    return interval_cmp_internal(&a->val.interval, &b->val.interval);
         case AGTV_INET:
+	case AGTV_CIDR:
 	    return network_cmp_internal(&a->val.inet, &b->val.inet);
 	case AGTV_FLOAT:
             return compare_two_floats_orderability(a->val.float_value, b->val.float_value);

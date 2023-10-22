@@ -148,6 +148,50 @@ SELECT * FROM cypher('network', $$ RETURN 192.168.1.6 <= 192.168.1.5 $$) as (i g
 
 
 --
+-- cidr = cidr
+--
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5::cidr = 192.168.1.5::cidr $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.4::cidr = 192.168.1.5::cidr $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.6::cidr = 192.168.1.5::cidr $$) as (i gtype);
+
+--
+-- cidr <> cidr
+--
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5::cidr <> 192.168.1.5::cidr $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.4::cidr <> 192.168.1.5::cidr $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.6::cidr <> 192.168.1.5::cidr $$) as (i gtype);
+
+--
+-- cidr > cidr
+--
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5::cidr > 192.168.1.5::cidr $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.4::cidr > 192.168.1.5::cidr $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.6::cidr > 192.168.1.5::cidr $$) as (i gtype);
+
+--
+-- cidr >= cidr
+--
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5::cidr >= 192.168.1.5::cidr $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.4::cidr >= 192.168.1.5::cidr $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.6::cidr >= 192.168.1.5::cidr $$) as (i gtype);
+
+--
+-- cidr < cidr
+--
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5::cidr < 192.168.1.5::cidr $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.4::cidr < 192.168.1.5::cidr $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.6::cidr < 192.168.1.5::cidr $$) as (i gtype);
+
+--
+-- cidr <= cidr
+--
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5::cidr <= 192.168.1.5::cidr $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.4::cidr <= 192.168.1.5::cidr $$) as (i gtype);
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.6::cidr <= 192.168.1.5::cidr $$) as (i gtype);
+
+
+
+--
 -- inet + integer
 --
 SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 + 10 $$) as (i gtype);

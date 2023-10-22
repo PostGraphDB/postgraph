@@ -269,6 +269,258 @@ SELECT * FROM cypher('network', $$ RETURN tomacaddr('12:34:56:78:90:ab')::macadd
 (1 row)
 
 --
+-- inet = inet
+--
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 = 192.168.1.5 $$) as (i gtype);
+  i   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.4 = 192.168.1.5 $$) as (i gtype);
+   i   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.6 = 192.168.1.5 $$) as (i gtype);
+   i   
+-------
+ false
+(1 row)
+
+--
+-- inet <> inet
+--
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 <> 192.168.1.5 $$) as (i gtype);
+   i   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.4 <> 192.168.1.5 $$) as (i gtype);
+  i   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.6 <> 192.168.1.5 $$) as (i gtype);
+  i   
+------
+ true
+(1 row)
+
+--
+-- inet > inet
+--
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 > 192.168.1.5 $$) as (i gtype);
+   i   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.4 > 192.168.1.5 $$) as (i gtype);
+   i   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.6 > 192.168.1.5 $$) as (i gtype);
+  i   
+------
+ true
+(1 row)
+
+--
+-- inet >= inet
+--
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 >= 192.168.1.5 $$) as (i gtype);
+  i   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.4 >= 192.168.1.5 $$) as (i gtype);
+   i   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.6 >= 192.168.1.5 $$) as (i gtype);
+  i   
+------
+ true
+(1 row)
+
+--
+-- inet < inet
+--
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 < 192.168.1.5 $$) as (i gtype);
+   i   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.4 < 192.168.1.5 $$) as (i gtype);
+  i   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.6 < 192.168.1.5 $$) as (i gtype);
+   i   
+-------
+ false
+(1 row)
+
+--
+-- inet <= inet
+--
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 <= 192.168.1.5 $$) as (i gtype);
+  i   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.4 <= 192.168.1.5 $$) as (i gtype);
+  i   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.6 <= 192.168.1.5 $$) as (i gtype);
+   i   
+-------
+ false
+(1 row)
+
+--
+-- cidr = cidr
+--
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5::cidr = 192.168.1.5::cidr $$) as (i gtype);
+  i   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.4::cidr = 192.168.1.5::cidr $$) as (i gtype);
+   i   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.6::cidr = 192.168.1.5::cidr $$) as (i gtype);
+   i   
+-------
+ false
+(1 row)
+
+--
+-- cidr <> cidr
+--
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5::cidr <> 192.168.1.5::cidr $$) as (i gtype);
+   i   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.4::cidr <> 192.168.1.5::cidr $$) as (i gtype);
+  i   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.6::cidr <> 192.168.1.5::cidr $$) as (i gtype);
+  i   
+------
+ true
+(1 row)
+
+--
+-- cidr > cidr
+--
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5::cidr > 192.168.1.5::cidr $$) as (i gtype);
+   i   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.4::cidr > 192.168.1.5::cidr $$) as (i gtype);
+   i   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.6::cidr > 192.168.1.5::cidr $$) as (i gtype);
+  i   
+------
+ true
+(1 row)
+
+--
+-- cidr >= cidr
+--
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5::cidr >= 192.168.1.5::cidr $$) as (i gtype);
+  i   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.4::cidr >= 192.168.1.5::cidr $$) as (i gtype);
+   i   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.6::cidr >= 192.168.1.5::cidr $$) as (i gtype);
+  i   
+------
+ true
+(1 row)
+
+--
+-- cidr < cidr
+--
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5::cidr < 192.168.1.5::cidr $$) as (i gtype);
+   i   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.4::cidr < 192.168.1.5::cidr $$) as (i gtype);
+  i   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.6::cidr < 192.168.1.5::cidr $$) as (i gtype);
+   i   
+-------
+ false
+(1 row)
+
+--
+-- cidr <= cidr
+--
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.5::cidr <= 192.168.1.5::cidr $$) as (i gtype);
+  i   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.4::cidr <= 192.168.1.5::cidr $$) as (i gtype);
+  i   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('network', $$ RETURN 192.168.1.6::cidr <= 192.168.1.5::cidr $$) as (i gtype);
+   i   
+-------
+ false
+(1 row)
+
+--
 -- inet + integer
 --
 SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 + 10 $$) as (i gtype);
@@ -289,10 +541,10 @@ SELECT * FROM cypher('network', $$ RETURN 192.168.1.5 - 10 $$) as (i gtype);
 --
 -- integer + inet
 --
-SELECT * FROM cypher('network', $$ RETURN 10 + '192.168.1.5' $$) as (i gtype);
-        i        
------------------
- "10192.168.1.5"
+SELECT * FROM cypher('network', $$ RETURN 10 + 192.168.1.5 $$) as (i gtype);
+      i       
+--------------
+ 192.168.1.15
 (1 row)
 
 --
