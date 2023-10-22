@@ -55,6 +55,8 @@ SELECT * FROM cypher('expr', $$RETURN '[(1,1), (2,2)]'::path $$) AS r(c path);
 SELECT topolygon('"(1,1), (2,2), (3, 3), (4, 4)"');
 SELECT topolygon('"(1,1), (2,2), (3, 3), (4, 4)"')::polygon;
 SELECT '(1,1), (2,2), (3, 3), (4, 4)'::polygon::gtype;
+SELECT * FROM cypher('expr', $$RETURN '(1,1), (2,2), (3, 3), (4, 4)'::polygon $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$RETURN '(1,1), (2,2), (3, 3), (4, 4)'::polygon $$) AS r(c polygon);
 
 
 SELECT tocircle('"(1,1), 3"');

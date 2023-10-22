@@ -149,6 +149,18 @@ SELECT '(1,1), (2,2), (3, 3), (4, 4)'::polygon::gtype;
  ((1,1),(2,2),(3,3),(4,4))
 (1 row)
 
+SELECT * FROM cypher('expr', $$RETURN '(1,1), (2,2), (3, 3), (4, 4)'::polygon $$) AS r(c gtype);
+             c             
+---------------------------
+ ((1,1),(2,2),(3,3),(4,4))
+(1 row)
+
+SELECT * FROM cypher('expr', $$RETURN '(1,1), (2,2), (3, 3), (4, 4)'::polygon $$) AS r(c polygon);
+             c             
+---------------------------
+ ((1,1),(2,2),(3,3),(4,4))
+(1 row)
+
 SELECT tocircle('"(1,1), 3"');
  tocircle  
 -----------
