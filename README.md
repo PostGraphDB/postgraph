@@ -1,5 +1,7 @@
 # PostGraph
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/854cafdbd0394189bec10e8fdd17df7f)](https://app.codacy.com/gh/PostGraphDB/postgraph?utm_source=github.com&utm_medium=referral&utm_content=PostGraphDB/postgraph&utm_campaign=Badge_Grade)
+
 [manual](https://postgraphdb.github.io/docs/intro)<br>
 PostGraph is the first Graph based Postgres extension to support Vector Embeddings. Query your database using a tradition graph query query language, use embeddings to infer relationships or combine the two along with relational data and spatial data powered by PostGIS. 
 
