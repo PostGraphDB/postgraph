@@ -128,6 +128,48 @@ SELECT * FROM cypher('tsearch', $$ RETURN totsquery('a & !!b') $$) as (a gtype);
 SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!!a & b') $$) as (a gtype);
 
 --
+-- TSQuery = TSQuery
+--
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1') = totsquery('1') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1') = totsquery('2') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('2') = totsquery('1') $$) as (a gtype);
+
+--
+-- TSQuery <> TSQuery
+--
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1') <> totsquery('1') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1') <> totsquery('2') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('2') <> totsquery('1') $$) as (a gtype);
+
+--
+-- TSQuery < TSQuery
+--
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1') < totsquery('1') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1') < totsquery('2') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('2') < totsquery('1') $$) as (a gtype);
+
+--
+-- TSQuery <= TSQuery
+--
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1') <= totsquery('1') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1') <= totsquery('2') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('2') <= totsquery('1') $$) as (a gtype);
+
+--
+-- TSQuery > TSQuery
+--
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1') > totsquery('1') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1') > totsquery('2') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('2') > totsquery('1') $$) as (a gtype);
+
+--
+-- TSQuery >= TSQuery
+--
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1') >= totsquery('1') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1') >= totsquery('2') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsquery('2') >= totsquery('1') $$) as (a gtype);
+
+--
 -- Cleanup
 --
 SELECT drop_graph('tsearch', true);

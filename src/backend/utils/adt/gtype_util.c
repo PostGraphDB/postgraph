@@ -35,6 +35,7 @@
 #include "utils/date.h"
 #include "utils/timestamp.h"
 #include "utils/varlena.h"
+#include "tsearch/ts_utils.h"
 
 #include "utils/gtype.h"
 #include "utils/gtype_ext.h"
@@ -79,6 +80,7 @@ static int compare_two_floats_orderability(float8 lhs, float8 rhs);
 static int get_type_sort_priority(enum gtype_value_type type);
 static int32 network_cmp_internal(inet *a1, inet *a2);
 static int compare_range_internal(gtype_value *a, gtype_value *b);
+static int CompareTSQ(TSQuery a, TSQuery b);
 
 /*
  * Turn an in-memory gtype_value into an gtype for on-disk storage.
@@ -268,13 +270,13 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
 		  va.type == AGTV_TIMETZ || va.type == AGTV_TIME || va.type == AGTV_DATE ||
 		  va.type == AGTV_INET || va.type == AGTV_CIDR || va.type == AGTV_RANGE_INT ||
 		  va.type == AGTV_RANGE_NUM || va.type == AGTV_RANGE_TS || va.type == AGTV_RANGE_TSTZ ||
-		  va.type == AGTV_RANGE_DATE) &&
+		  va.type == AGTV_RANGE_DATE || va.type == AGTV_TSQUERY) &&
                  (vb.type == AGTV_INTEGER || vb.type == AGTV_FLOAT || vb.type == AGTV_NUMERIC || 
 		  vb.type == AGTV_TIMESTAMP || vb.type == AGTV_DATE || vb.type == AGTV_TIMESTAMPTZ ||
                   vb.type == AGTV_TIMETZ || vb.type == AGTV_TIME || vb.type == AGTV_DATE ||
 		  vb.type == AGTV_INET || va.type == AGTV_CIDR || vb.type == AGTV_RANGE_INT ||
 		  vb.type == AGTV_RANGE_NUM || vb.type == AGTV_RANGE_TS || vb.type == AGTV_RANGE_TSTZ ||
-		  vb.type == AGTV_RANGE_DATE)))
+		  vb.type == AGTV_RANGE_DATE || vb.type == AGTV_TSQUERY)))
             {
                 switch (va.type)
                 {
@@ -296,7 +298,8 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
                 case AGTV_RANGE_NUM:
 		case AGTV_RANGE_DATE:
 		case AGTV_RANGE_TS:
-               case AGTV_RANGE_TSTZ:
+                case AGTV_RANGE_TSTZ:
+		case AGTV_TSQUERY:
                     res = compare_gtype_scalar_values(&va, &vb);
                     break;
                 case AGTV_ARRAY:
@@ -1605,6 +1608,8 @@ static bool equals_gtype_scalar_value(const gtype_value *a, const gtype_value *b
 	case AGTV_RANGE_TS:
         case AGTV_RANGE_TSTZ:
 	    return compare_range_internal(a, b) == 0;
+	case AGTV_TSQUERY:
+	    return CompareTSQ(a->val.tsquery, b->val.tsquery) == 0;
 	case AGTV_FLOAT:
             return a->val.float_value == b->val.float_value;
         default:
@@ -1617,6 +1622,26 @@ static bool equals_gtype_scalar_value(const gtype_value *a, const gtype_value *b
 
     // execution will never reach this point due to the ereport call 
     return false;
+}
+
+static int
+CompareTSQ(TSQuery a, TSQuery b) {
+    if (a->size != b->size) {
+        return (a->size < b->size) ? -1 : 1;
+    } else if (VARSIZE(a) != VARSIZE(b)) {
+        return (VARSIZE(a) < VARSIZE(b)) ? -1 : 1;
+    } else if (a->size != 0) {
+        QTNode *an = QT2QTN(GETQUERY(a), GETOPERAND(a));
+        QTNode *bn = QT2QTN(GETQUERY(b), GETOPERAND(b));
+        int res = QTNodeCompare(an, bn);
+
+        QTNFree(an);
+        QTNFree(bn);
+
+        return res;
+    }
+
+    return 0;
 }
 
 static int compare_range_internal(gtype_value *a, gtype_value *b) {
@@ -1729,6 +1754,8 @@ int compare_gtype_scalar_values(gtype_value *a, gtype_value *b)
         case AGTV_RANGE_TS:
         case AGTV_RANGE_TSTZ:	    
 	    return compare_range_internal(a, b);
+        case AGTV_TSQUERY:
+            return CompareTSQ(a->val.tsquery, b->val.tsquery);
 	case AGTV_FLOAT:
             return compare_two_floats_orderability(a->val.float_value, b->val.float_value);
 	default:
