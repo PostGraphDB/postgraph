@@ -711,97 +711,27 @@ gtype_inet_subnet_contain_both(PG_FUNCTION_ARGS) {
     PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(network_overlap, GT_ARG_TO_INET_DATUM(0), GT_ARG_TO_INET_DATUM(1))));
 }
 
-PG_FUNCTION_INFO_V1(gtype_eq);
-Datum gtype_eq(PG_FUNCTION_ARGS) {
-    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
-    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
-    bool result;
+#define GTYPECMPFUNC( type, action)                                                        \
+PG_FUNCTION_INFO_V1(gtype_##type);                                                         \
+Datum                                                                                      \
+gtype_##type(PG_FUNCTION_ARGS)                                                             \
+{                                                                                          \
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);                                                    \
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);                                                    \
+    int result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) action 0); \
+    PG_FREE_IF_COPY(lhs,0);                                                                \
+    PG_FREE_IF_COPY(rhs,1);                                                                \
+    PG_RETURN_BOOL( result );                                                              \
+}                                                                                          \
+/* keep compiler quiet - no extra ; */                                                     \
+extern int no_such_variable
 
-    result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) == 0);
-
-    PG_FREE_IF_COPY(lhs, 0);
-    PG_FREE_IF_COPY(rhs, 1);
-
-    PG_RETURN_BOOL(result);
-}
-
-PG_FUNCTION_INFO_V1(gtype_ne);
-Datum gtype_ne(PG_FUNCTION_ARGS) {
-    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
-    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
-    bool result = true;
-
-    result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) != 0);
-
-    PG_FREE_IF_COPY(lhs, 0);
-    PG_FREE_IF_COPY(rhs, 1);
-
-    PG_RETURN_BOOL(result);
-}
-
-PG_FUNCTION_INFO_V1(gtype_lt);
-
-Datum gtype_lt(PG_FUNCTION_ARGS)
-{
-    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
-    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
-    bool result;
-
-    result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) < 0);
-
-    PG_FREE_IF_COPY(lhs, 0);
-    PG_FREE_IF_COPY(rhs, 1);
-
-    PG_RETURN_BOOL(result);
-}
-
-PG_FUNCTION_INFO_V1(gtype_gt);
-
-Datum gtype_gt(PG_FUNCTION_ARGS)
-{
-    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
-    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
-    bool result;
-
-    result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) > 0);
-
-    PG_FREE_IF_COPY(lhs, 0);
-    PG_FREE_IF_COPY(rhs, 1);
-
-    PG_RETURN_BOOL(result);
-}
-
-PG_FUNCTION_INFO_V1(gtype_le);
-
-Datum gtype_le(PG_FUNCTION_ARGS)
-{
-    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
-    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
-    bool result;
-
-    result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) <= 0);
-
-    PG_FREE_IF_COPY(lhs, 0);
-    PG_FREE_IF_COPY(rhs, 1);
-
-    PG_RETURN_BOOL(result);
-}
-
-PG_FUNCTION_INFO_V1(gtype_ge);
-
-Datum gtype_ge(PG_FUNCTION_ARGS)
-{
-    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
-    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
-    bool result;
-
-    result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) >= 0);
-
-    PG_FREE_IF_COPY(lhs, 0);
-    PG_FREE_IF_COPY(rhs, 1);
-
-    PG_RETURN_BOOL(result);
-}
+GTYPECMPFUNC(lt, <);
+GTYPECMPFUNC(le, <=);
+GTYPECMPFUNC(eq, ==);
+GTYPECMPFUNC(ge, >=);
+GTYPECMPFUNC(gt, >);
+GTYPECMPFUNC(ne, !=);
 
 PG_FUNCTION_INFO_V1(gtype_contains);
 /*
