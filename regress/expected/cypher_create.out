@@ -379,8 +379,6 @@ SELECT name, kind FROM ag_label ORDER BY name;
        name       | kind 
 ------------------+------
  _ag_label_edge   | e
- _ag_label_edge   | e
- _ag_label_vertex | v
  _ag_label_vertex | v
  b_var            | e
  e                | e
@@ -388,7 +386,7 @@ SELECT name, kind FROM ag_label ORDER BY name;
  n_other_node     | v
  n_var            | v
  v                | v
-(10 rows)
+(8 rows)
 
 --Validate every vertex has the correct label
 SELECT * FROM cypher('cypher_create', $$MATCH (n) RETURN n$$) AS (n vertex);
