@@ -510,6 +510,17 @@ $$) as (a gtype);
  'a' 'and' 'ate' 'cat' 'fat' 'mat' 'on' 'sat'
 (1 row)
 
+--
+-- Strip
+--
+SELECT * FROM cypher('tsearch', $$
+     RETURN strip('fat:2,4 cat:3 rat:5A'::tsvector)
+$$) as (a gtype);
+         a         
+-------------------
+ 'cat' 'fat' 'rat'
+(1 row)
+
 SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1') $$) as (a gtype);
   a  
 -----
