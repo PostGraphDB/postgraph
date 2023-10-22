@@ -82,6 +82,8 @@ Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
     convert_to_scalar(gtype_to_string_internal, AG_GET_ARG_GTYPE_P(arg), "string")
 #define GT_ARG_TO_TIMESTAMP_DATUM(arg) \
     convert_to_scalar(gtype_to_timestamp_internal, AG_GET_ARG_GTYPE_P(arg), "timestamp")
+#define GT_ARG_TO_TIMESTAMPTZ_DATUM(arg) \
+    convert_to_scalar(gtype_to_timestamptz_internal, AG_GET_ARG_GTYPE_P(arg), "timestamptz")
 #define GT_ARG_TO_INET_DATUM(arg) \
     convert_to_scalar(gtype_to_inet_internal, AG_GET_ARG_GTYPE_P(arg), "inet")
 #define GT_ARG_TO_MAC8_DATUM(arg) \
