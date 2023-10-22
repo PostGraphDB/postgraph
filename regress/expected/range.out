@@ -829,6 +829,216 @@ SELECT * FROM cypher('range', $$ RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000
  ["Sat Jan 01 12:00:00 2000 GMT","Sat Jan 01 16:00:00 2000 GMT"]
 (1 row)
 
+--
+-- tstzrange = tstzrange
+--
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()') <> tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+   a   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '(]') <> tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+  a   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '[)') <> tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+  a   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '[]') <> tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+  a   
+------
+ true
+(1 row)
+
+--
+-- tstzrange <> tstzrange
+--
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()') <> tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+   a   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '(]') <> tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+  a   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '[)') <> tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+  a   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '[]') <> tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+  a   
+------
+ true
+(1 row)
+
+--
+-- tstzrange < tstzrange
+--
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()') < tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+   a   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '(]') < tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+   a   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '[)') < tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+  a   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '[]') < tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+  a   
+------
+ true
+(1 row)
+
+--
+-- tstzrange <= tstzrange
+--
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()') <= tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+  a   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '(]') <= tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+   a   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '[)') <= tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+  a   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '[]') <= tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+  a   
+------
+ true
+(1 row)
+
+--
+-- tstzrange > tstzrange
+--
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()') > tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+   a   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '(]') > tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+  a   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '[)') > tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+   a   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '[]') > tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+   a   
+-------
+ false
+(1 row)
+
+--
+-- tstzrange >= tstzrange
+--
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()') >= tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+  a   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '(]') >= tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+  a   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '[)') >= tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+   a   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('range', $$
+        RETURN tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '[]') >= tstzrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()')
+$$) as (a gtype);
+   a   
+-------
+ false
+(1 row)
+
 SELECT totstzmultirange('"{[''1/1/2000 12:00:00 GMT'', ''1/1/2000 4:00:00 PM GMT'']}"');
                          totstzmultirange                          
 -------------------------------------------------------------------

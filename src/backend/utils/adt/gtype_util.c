@@ -267,12 +267,14 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
 		  va.type == AGTV_TIMESTAMP || va.type == AGTV_DATE || va.type == AGTV_TIMESTAMPTZ ||
 		  va.type == AGTV_TIMETZ || va.type == AGTV_TIME || va.type == AGTV_DATE ||
 		  va.type == AGTV_INET || va.type == AGTV_CIDR || va.type == AGTV_RANGE_INT ||
-		  va.type == AGTV_RANGE_NUM || va.type == AGTV_RANGE_TS || va.type == AGTV_RANGE_TSTZ) &&
+		  va.type == AGTV_RANGE_NUM || va.type == AGTV_RANGE_TS || va.type == AGTV_RANGE_TSTZ ||
+		  va.type == AGTV_RANGE_DATE) &&
                  (vb.type == AGTV_INTEGER || vb.type == AGTV_FLOAT || vb.type == AGTV_NUMERIC || 
 		  vb.type == AGTV_TIMESTAMP || vb.type == AGTV_DATE || vb.type == AGTV_TIMESTAMPTZ ||
                   vb.type == AGTV_TIMETZ || vb.type == AGTV_TIME || vb.type == AGTV_DATE ||
 		  vb.type == AGTV_INET || va.type == AGTV_CIDR || vb.type == AGTV_RANGE_INT ||
-		  vb.type == AGTV_RANGE_NUM || vb.type == AGTV_RANGE_TS || vb.type == AGTV_RANGE_TSTZ)))
+		  vb.type == AGTV_RANGE_NUM || vb.type == AGTV_RANGE_TS || vb.type == AGTV_RANGE_TSTZ ||
+		  vb.type == AGTV_RANGE_DATE)))
             {
                 switch (va.type)
                 {
@@ -294,6 +296,7 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
                 case AGTV_RANGE_NUM:
 		case AGTV_RANGE_DATE:
 		case AGTV_RANGE_TS:
+               case AGTV_RANGE_TSTZ:
                     res = compare_gtype_scalar_values(&va, &vb);
                     break;
                 case AGTV_ARRAY:
@@ -1600,6 +1603,7 @@ static bool equals_gtype_scalar_value(const gtype_value *a, const gtype_value *b
         case AGTV_RANGE_NUM:
         case AGTV_RANGE_DATE:
 	case AGTV_RANGE_TS:
+        case AGTV_RANGE_TSTZ:
 	    return compare_range_internal(a, b) == 0;
 	case AGTV_FLOAT:
             return a->val.float_value == b->val.float_value;
@@ -1723,6 +1727,7 @@ int compare_gtype_scalar_values(gtype_value *a, gtype_value *b)
         case AGTV_RANGE_NUM:
         case AGTV_RANGE_DATE:
         case AGTV_RANGE_TS:
+        case AGTV_RANGE_TSTZ:	    
 	    return compare_range_internal(a, b);
 	case AGTV_FLOAT:
             return compare_two_floats_orderability(a->val.float_value, b->val.float_value);
