@@ -748,6 +748,8 @@ transform_cypher_typecast(cypher_parsestate *cpstate, cypher_typecast *ctypecast
         fname = lappend(fname, makeString("tomacaddr"));
     else if (pg_strcasecmp(ctypecast->typecast, "macaddr8") == 0)
         fname = lappend(fname, makeString("tomacaddr8"));
+    else if (pg_strcasecmp(ctypecast->typecast, "point") == 0)
+        fname = lappend(fname, makeString("topoint"));
     else if (pg_strcasecmp(ctypecast->typecast, "box") == 0)
         fname = lappend(fname, makeString("tobox"));
     else if (pg_strcasecmp(ctypecast->typecast, "box2d") == 0)

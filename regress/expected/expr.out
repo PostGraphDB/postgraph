@@ -73,6 +73,18 @@ $$) AS (c point);
  (1,1)
 (1 row)
 
+SELECT * FROM cypher('expr', $$RETURN '(1,1)'::point $$) AS r(c gtype);
+   c   
+-------
+ (1,1)
+(1 row)
+
+SELECT * FROM cypher('expr', $$RETURN '(1,1)'::point $$) AS r(c point);
+   c   
+-------
+ (1,1)
+(1 row)
+
 SELECT tolseg('"(1,1), (2,2)"');
     tolseg     
 ---------------
