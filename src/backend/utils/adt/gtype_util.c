@@ -254,7 +254,7 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
                 break;
             }
 
-            if (ra == WGT_END_ARRAY || ra == WGT_END_OBJECT)
+            if (ra == WGT_END_ARRAY || ra == WGT_END_OBJECT || ra == WGT_END_VECTOR)
             {
                 /*
                  * There is no array or object to compare at this stage of
@@ -305,7 +305,7 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
                     res = compare_gtype_scalar_values(&va, &vb);
                     break;
                 case AGTV_ARRAY:
-
+                case AGTV_VECTOR:
                     /*
                      * This could be a "raw scalar" pseudo array.  That's
                      * a special case here though, since we still want the
@@ -359,13 +359,13 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
              * Check for the premature array or object end.
              * If left side is shorter, less than.
              */
-            if (ra == WGT_END_ARRAY || ra == WGT_END_OBJECT)
+            if (ra == WGT_END_ARRAY || ra == WGT_END_OBJECT || ra == WGT_END_VECTOR)
             {
                 res = -1;
                 break;
             }
             // If right side is shorter, greater than 
-            if (rb == WGT_END_ARRAY || rb == WGT_END_OBJECT)
+            if (rb == WGT_END_ARRAY || rb == WGT_END_OBJECT || rb == WGT_END_VECTOR)
             {
                 res = 1;
                 break;

@@ -717,10 +717,6 @@ Datum gtype_eq(PG_FUNCTION_ARGS) {
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    if (GT_IS_VECTOR(lhs) && GT_IS_VECTOR(rhs))
-        PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) == 0);
-
-
     result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) == 0);
 
     PG_FREE_IF_COPY(lhs, 0);
@@ -734,9 +730,6 @@ Datum gtype_ne(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     bool result = true;
-
-    if (GT_IS_VECTOR(lhs) && GT_IS_VECTOR(rhs))
-        PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) != 0);
 
     result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) != 0);
 
@@ -754,10 +747,6 @@ Datum gtype_lt(PG_FUNCTION_ARGS)
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    if (GT_IS_VECTOR(lhs) && GT_IS_VECTOR(rhs))
-        PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) < 0);
-
-
     result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) < 0);
 
     PG_FREE_IF_COPY(lhs, 0);
@@ -773,9 +762,6 @@ Datum gtype_gt(PG_FUNCTION_ARGS)
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
-
-    if (GT_IS_VECTOR(lhs) && GT_IS_VECTOR(rhs))
-        PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) > 0);
 
     result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) > 0);
 
@@ -793,9 +779,6 @@ Datum gtype_le(PG_FUNCTION_ARGS)
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
 
-    if (GT_IS_VECTOR(lhs) && GT_IS_VECTOR(rhs))
-        PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) <= 0);
-
     result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) <= 0);
 
     PG_FREE_IF_COPY(lhs, 0);
@@ -811,9 +794,6 @@ Datum gtype_ge(PG_FUNCTION_ARGS)
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
-
-    if (GT_IS_VECTOR(lhs) && GT_IS_VECTOR(rhs))
-        PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) >= 0);
 
     result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) >= 0);
 
