@@ -161,22 +161,17 @@ Datum gtype_add(PG_FUNCTION_ARGS)
     gtype_value agtv_result;
 
     /* If both are not scalars */
-    if (!(AGT_ROOT_IS_SCALAR(lhs) && AGT_ROOT_IS_SCALAR(rhs)))
-    {
-        Datum agt;
-
+    if (!(AGT_ROOT_IS_SCALAR(lhs) && AGT_ROOT_IS_SCALAR(rhs))) {
 	if  (GT_IS_VECTOR(lhs) && GT_IS_VECTOR(rhs))
-            PG_RETURN_POINTER(gtype_value_to_gtype(gtype_vector_add(lhs, rhs)));
+            AG_RETURN_GTYPE_P(gtype_value_to_gtype(gtype_vector_add(lhs, rhs)));
 
         /* It can't be a scalar and an object */
-        if ((AGT_ROOT_IS_SCALAR(lhs) && AGT_ROOT_IS_OBJECT(rhs)) || (AGT_ROOT_IS_OBJECT(lhs) && AGT_ROOT_IS_SCALAR(rhs)) ||
-            /* It can't be two objects */
+        if ((AGT_ROOT_IS_SCALAR(lhs) && AGT_ROOT_IS_OBJECT(rhs)) ||
+	    (AGT_ROOT_IS_OBJECT(lhs) && AGT_ROOT_IS_SCALAR(rhs)) ||
             (AGT_ROOT_IS_OBJECT(lhs) && AGT_ROOT_IS_OBJECT(rhs)))
             ereport_op_str("+", lhs, rhs);
 
-        agt = GTYPE_P_GET_DATUM(gtype_concat(lhs, rhs));
-
-        PG_RETURN_DATUM(agt);
+        AG_RETURN_GTYPE_P(gtype_concat(lhs, rhs));
     }
 
     /* Both are scalar */
@@ -202,10 +197,7 @@ Datum gtype_add(PG_FUNCTION_ARGS)
                (agtv_lhs->type == AGTV_INTEGER && agtv_rhs->type == AGTV_FLOAT)) {
         agtv_result.type = AGTV_FLOAT;
         agtv_result.val.float_value = GT_TO_FLOAT8(lhs) + GT_TO_FLOAT8(rhs);
-    }
-    /* Is this a numeric result */
-    else if (is_numeric_result(agtv_lhs, agtv_rhs))
-    {
+    } else if (is_numeric_result(agtv_lhs, agtv_rhs)) {
         Datum numd, lhsd, rhsd;
 
         lhsd = get_numeric_datum_from_gtype_value(agtv_lhs);
@@ -214,15 +206,12 @@ Datum gtype_add(PG_FUNCTION_ARGS)
 
         agtv_result.type = AGTV_NUMERIC;
         agtv_result.val.numeric = DatumGetNumeric(numd);
-    }
-    else if (agtv_lhs->type == AGTV_TIMESTAMP && agtv_rhs->type == AGTV_INTERVAL)
-    {
+    } else if (agtv_lhs->type == AGTV_TIMESTAMP && agtv_rhs->type == AGTV_INTERVAL) {
         agtv_result.type = AGTV_TIMESTAMP;
 	agtv_result.val.int_value = DatumGetTimestamp(DirectFunctionCall2(timestamp_pl_interval,
 				TimestampGetDatum(agtv_lhs->val.int_value),
 				IntervalPGetDatum(&agtv_rhs->val.interval)));
-    }
-    else if (agtv_rhs->type == AGTV_INTERVAL) {
+    } else if (agtv_rhs->type == AGTV_INTERVAL) {
 	Datum i = IntervalPGetDatum(&agtv_rhs->val.interval);
 	agtv_result.type = agtv_lhs->type;
 
@@ -250,20 +239,22 @@ Datum gtype_add(PG_FUNCTION_ARGS)
             agtv_result.val.interval.day = interval->day;
             agtv_result.val.interval.month = interval->month;
         } else {
-        ereport_op_str("+", lhs, rhs);
+            ereport_op_str("+", lhs, rhs);
        }
     }
     else if (agtv_lhs->type == AGTV_INET && agtv_rhs->type == AGTV_INTEGER)
     {
         agtv_result.type = AGTV_INET;
-        inet *i = DatumGetInetPP(DirectFunctionCall2(inetpl, InetPGetDatum(&agtv_lhs->val.inet), Int64GetDatum(agtv_rhs->val.int_value)));
+        inet *i = DatumGetInetPP(DirectFunctionCall2(inetpl, InetPGetDatum(&agtv_lhs->val.inet),
+				                             Int64GetDatum(agtv_rhs->val.int_value)));
 
         memcpy(&agtv_result.val.inet, i, sizeof(char) * 22);
     }
     else if (agtv_rhs->type == AGTV_INET && agtv_lhs->type == AGTV_INTEGER)
     {
         agtv_result.type = AGTV_INET;
-        inet *i = DatumGetInetPP(DirectFunctionCall2(inetpl, InetPGetDatum(&agtv_rhs->val.inet), Int64GetDatum(agtv_lhs->val.int_value)));
+        inet *i = DatumGetInetPP(DirectFunctionCall2(inetpl, InetPGetDatum(&agtv_rhs->val.inet),
+				                             Int64GetDatum(agtv_lhs->val.int_value)));
 
         memcpy(&agtv_result.val.inet, i, sizeof(char) * 22);
     } 
@@ -274,10 +265,7 @@ Datum gtype_add(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(gtype_sub);
-
-/*
- * gtype subtraction function for - operator
- */
+// gtype - gtype operator
 Datum gtype_sub(PG_FUNCTION_ARGS)
 {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
@@ -286,8 +274,7 @@ Datum gtype_sub(PG_FUNCTION_ARGS)
     gtype_value *agtv_rhs;
     gtype_value agtv_result;
 
-    if (!(AGT_ROOT_IS_SCALAR(lhs)) || !(AGT_ROOT_IS_SCALAR(rhs)))
-    {
+    if (!(AGT_ROOT_IS_SCALAR(lhs)) || !(AGT_ROOT_IS_SCALAR(rhs))) {
         if  (GT_IS_VECTOR(lhs) && GT_IS_VECTOR(rhs))
             PG_RETURN_POINTER(gtype_value_to_gtype(gtype_vector_sub(lhs, rhs)));
 
@@ -307,10 +294,7 @@ Datum gtype_sub(PG_FUNCTION_ARGS)
                (agtv_lhs->type == AGTV_INTEGER && agtv_rhs->type == AGTV_FLOAT)) {
         agtv_result.type = AGTV_FLOAT;
         agtv_result.val.float_value = GT_TO_FLOAT8(lhs) - GT_TO_FLOAT8(rhs);
-    }
-    /* Is this a numeric result */
-    else if (is_numeric_result(agtv_lhs, agtv_rhs))
-    {
+    } else if (is_numeric_result(agtv_lhs, agtv_rhs)) {
         Datum numd, lhsd, rhsd;
 
         lhsd = get_numeric_datum_from_gtype_value(agtv_lhs);
@@ -319,8 +303,7 @@ Datum gtype_sub(PG_FUNCTION_ARGS)
 
         agtv_result.type = AGTV_NUMERIC;
         agtv_result.val.numeric = DatumGetNumeric(numd);
-    }
-    else if (agtv_rhs->type == AGTV_INTERVAL) {
+    } else if (agtv_rhs->type == AGTV_INTERVAL) {
         Datum i = IntervalPGetDatum(&agtv_rhs->val.interval);
         agtv_result.type = agtv_lhs->type;
 
@@ -353,18 +336,18 @@ Datum gtype_sub(PG_FUNCTION_ARGS)
         } else {
             ereport_op_str("-", lhs, rhs);
        }
-    }
-    else if (agtv_lhs->type == AGTV_INET && agtv_rhs->type == AGTV_INTEGER)
-    {
+    } else if (agtv_lhs->type == AGTV_INET && agtv_rhs->type == AGTV_INTEGER) {
         agtv_result.type = AGTV_INET;
-        inet *i = DatumGetInetPP(DirectFunctionCall2(inetmi_int8, InetPGetDatum(&agtv_lhs->val.inet), Int64GetDatum(agtv_rhs->val.int_value)));
+        inet *i = DatumGetInetPP(DirectFunctionCall2(inetmi_int8, InetPGetDatum(&agtv_lhs->val.inet),
+				                                  Int64GetDatum(agtv_rhs->val.int_value)));
 
         memcpy(&agtv_result.val.inet, i, sizeof(char) * 22);
     }
     else if (agtv_lhs->type == AGTV_INET && agtv_rhs->type == AGTV_INET)
     {
         agtv_result.type = AGTV_INTEGER;
-        agtv_result.val.int_value = DatumGetInt64(DirectFunctionCall2(inetmi, InetPGetDatum(&agtv_lhs->val.inet), InetPGetDatum(&agtv_rhs->val.inet)));
+        agtv_result.val.int_value = DatumGetInt64(DirectFunctionCall2(inetmi, InetPGetDatum(&agtv_lhs->val.inet),
+				                                              InetPGetDatum(&agtv_rhs->val.inet)));
     }
     else
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
@@ -405,8 +388,8 @@ Datum gtype_neg(PG_FUNCTION_ARGS)
         agtv_result.val.numeric = DatumGetNumeric(numd);
     } else if (agtv_value->type == AGTV_INTERVAL) {
         agtv_result.type = AGTV_INTERVAL;
-        Interval *interval = DatumGetIntervalP(DirectFunctionCall1(interval_um,
-                                IntervalPGetDatum(&agtv_value->val.interval)));
+        Interval *interval =
+	    DatumGetIntervalP(DirectFunctionCall1(interval_um, IntervalPGetDatum(&agtv_value->val.interval)));
 
        agtv_result.val.interval.time = interval->time;
        agtv_result.val.interval.day = interval->day;
@@ -421,9 +404,7 @@ Datum gtype_neg(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(gtype_mul);
-/*
- * gtype multiplication function for * operator
- */
+// gtype * gtype operator
 Datum gtype_mul(PG_FUNCTION_ARGS)
 {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
@@ -451,10 +432,7 @@ Datum gtype_mul(PG_FUNCTION_ARGS)
                (agtv_lhs->type == AGTV_INTEGER && agtv_rhs->type == AGTV_FLOAT)) {
         agtv_result.type = AGTV_FLOAT;
         agtv_result.val.float_value = GT_TO_FLOAT8(lhs) * GT_TO_FLOAT8(rhs);
-    }
-    /* Is this a numeric result */
-    else if (is_numeric_result(agtv_lhs, agtv_rhs))
-    {
+    } else if (is_numeric_result(agtv_lhs, agtv_rhs)) {
         Datum numd, lhsd, rhsd;
 
         lhsd = get_numeric_datum_from_gtype_value(agtv_lhs);
@@ -463,9 +441,7 @@ Datum gtype_mul(PG_FUNCTION_ARGS)
 
         agtv_result.type = AGTV_NUMERIC;
         agtv_result.val.numeric = DatumGetNumeric(numd);
-    }
-    else if (agtv_lhs->type == AGTV_INTERVAL && agtv_rhs->type == AGTV_FLOAT)
-    {
+    } else if (agtv_lhs->type == AGTV_INTERVAL && agtv_rhs->type == AGTV_FLOAT) {
         agtv_result.type = AGTV_INTERVAL;
         Interval *interval = DatumGetIntervalP(DirectFunctionCall2(interval_mul,
                                 IntervalPGetDatum(&agtv_lhs->val.interval),
@@ -474,9 +450,7 @@ Datum gtype_mul(PG_FUNCTION_ARGS)
        agtv_result.val.interval.time = interval->time;
        agtv_result.val.interval.day = interval->day;
        agtv_result.val.interval.month = interval->month;
-    }
-    else if (agtv_lhs->type == AGTV_INTERVAL && agtv_rhs->type == AGTV_INTEGER)
-    {
+    } else if (agtv_lhs->type == AGTV_INTERVAL && agtv_rhs->type == AGTV_INTEGER) {
         agtv_result.type = AGTV_INTERVAL;
         Interval *interval = DatumGetIntervalP(DirectFunctionCall2(interval_mul,
                                 IntervalPGetDatum(&agtv_lhs->val.interval),
@@ -485,9 +459,7 @@ Datum gtype_mul(PG_FUNCTION_ARGS)
        agtv_result.val.interval.time = interval->time;
        agtv_result.val.interval.day = interval->day;
        agtv_result.val.interval.month = interval->month;
-    }
-    else if (agtv_rhs->type == AGTV_INTERVAL && agtv_lhs->type == AGTV_FLOAT)
-    {
+    } else if (agtv_rhs->type == AGTV_INTERVAL && agtv_lhs->type == AGTV_FLOAT) {
         agtv_result.type = AGTV_INTERVAL;
         Interval *interval = DatumGetIntervalP(DirectFunctionCall2(interval_mul,
                                 IntervalPGetDatum(&agtv_rhs->val.interval),
@@ -497,8 +469,7 @@ Datum gtype_mul(PG_FUNCTION_ARGS)
        agtv_result.val.interval.day = interval->day;
        agtv_result.val.interval.month = interval->month;
     }
-    else if (agtv_rhs->type == AGTV_INTERVAL && agtv_lhs->type == AGTV_INTEGER)
-    {
+    else if (agtv_rhs->type == AGTV_INTERVAL && agtv_lhs->type == AGTV_INTEGER) {
         agtv_result.type = AGTV_INTERVAL;
         Interval *interval = DatumGetIntervalP(DirectFunctionCall2(interval_mul,
                                 IntervalPGetDatum(&agtv_rhs->val.interval),
@@ -507,8 +478,7 @@ Datum gtype_mul(PG_FUNCTION_ARGS)
        agtv_result.val.interval.time = interval->time;
        agtv_result.val.interval.day = interval->day;
        agtv_result.val.interval.month = interval->month;
-    }
-    else
+    } else
         ereport_op_str("*", lhs, rhs);
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
@@ -657,9 +627,7 @@ Datum gtype_pow(PG_FUNCTION_ARGS)
         (agtv_lhs->type == AGTV_INTEGER && agtv_rhs->type == AGTV_FLOAT)) {
         agtv_result.type = AGTV_FLOAT;
         agtv_result.val.float_value = pow(GT_TO_FLOAT8(lhs), GT_TO_FLOAT8(rhs));
-    }
-    else if (is_numeric_result(agtv_lhs, agtv_rhs))
-    {
+    } else if (is_numeric_result(agtv_lhs, agtv_rhs)) {
         Datum numd, lhsd, rhsd;
 
         lhsd = get_numeric_datum_from_gtype_value(agtv_lhs);
@@ -668,11 +636,11 @@ Datum gtype_pow(PG_FUNCTION_ARGS)
 
         agtv_result.type = AGTV_NUMERIC;
         agtv_result.val.numeric = DatumGetNumeric(numd);
-    }
-    else
+    } else {
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("Invalid input parameter types for gtype_pow")));
-
+    }
+ 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&agtv_result));
 }
 
@@ -744,9 +712,7 @@ gtype_inet_subnet_contain_both(PG_FUNCTION_ARGS) {
 }
 
 PG_FUNCTION_INFO_V1(gtype_eq);
-
-Datum gtype_eq(PG_FUNCTION_ARGS)
-{
+Datum gtype_eq(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     bool result;
@@ -764,9 +730,7 @@ Datum gtype_eq(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(gtype_ne);
-
-Datum gtype_ne(PG_FUNCTION_ARGS)
-{
+Datum gtype_ne(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
     bool result = true;
@@ -813,7 +777,6 @@ Datum gtype_gt(PG_FUNCTION_ARGS)
     if (GT_IS_VECTOR(lhs) && GT_IS_VECTOR(rhs))
         PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) > 0);
 
-
     result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) > 0);
 
     PG_FREE_IF_COPY(lhs, 0);
@@ -832,7 +795,6 @@ Datum gtype_le(PG_FUNCTION_ARGS)
 
     if (GT_IS_VECTOR(lhs) && GT_IS_VECTOR(rhs))
         PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) <= 0);
-
 
     result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) <= 0);
 
@@ -853,7 +815,6 @@ Datum gtype_ge(PG_FUNCTION_ARGS)
     if (GT_IS_VECTOR(lhs) && GT_IS_VECTOR(rhs))
         PG_RETURN_BOOL(gtype_vector_cmp(lhs, rhs) >= 0);
 
-
     result = (compare_gtype_containers_orderability(&lhs->root, &rhs->root) >= 0);
 
     PG_FREE_IF_COPY(lhs, 0);
@@ -867,13 +828,9 @@ PG_FUNCTION_INFO_V1(gtype_contains);
  * <@ operator for gtype. Returns true if the right gtype path/value entries
  * contained at the top level within the left gtype value
  */
-Datum gtype_contains(PG_FUNCTION_ARGS)
-{
-    gtype *properties = AG_GET_ARG_GTYPE_P(0);
-    gtype *constraints = AG_GET_ARG_GTYPE_P(1);
-
-    gtype_iterator *constraint_it = gtype_iterator_init(&constraints->root);
-    gtype_iterator *property_it = gtype_iterator_init(&properties->root);
+Datum gtype_contains(PG_FUNCTION_ARGS) {
+    gtype_iterator *constraint_it = gtype_iterator_init(&(AG_GET_ARG_GTYPE_P(1)->root));
+    gtype_iterator *property_it = gtype_iterator_init(&(AG_GET_ARG_GTYPE_P(0)->root));
 
     PG_RETURN_BOOL(gtype_deep_contains(&property_it, &constraint_it));
 }
@@ -884,13 +841,9 @@ PG_FUNCTION_INFO_V1(gtype_contained_by);
  * <@ operator for gtype. Returns true if the left gtype path/value entries
  * contained at the top level within the right gtype value
  */
-Datum gtype_contained_by(PG_FUNCTION_ARGS)
-{
-    gtype *properties = AG_GET_ARG_GTYPE_P(0);
-    gtype *constraints = AG_GET_ARG_GTYPE_P(1);
-
-    gtype_iterator *constraint_it = gtype_iterator_init(&constraints->root);
-    gtype_iterator *property_it = gtype_iterator_init(&properties->root);
+Datum gtype_contained_by(PG_FUNCTION_ARGS) {
+    gtype_iterator *constraint_it = gtype_iterator_init(&(AG_GET_ARG_GTYPE_P(1)->root));
+    gtype_iterator *property_it = gtype_iterator_init(&(AG_GET_ARG_GTYPE_P(0)->root));
 
     PG_RETURN_BOOL(gtype_deep_contains(&constraint_it, &property_it));
 }
@@ -976,7 +929,7 @@ Datum gtype_exists_all(PG_FUNCTION_ARGS)
 
     if (!AGT_ROOT_IS_ARRAY(keys) || AGT_ROOT_IS_SCALAR(keys))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("gtype ?| gtype rhs must be a list of strings")));
+                        errmsg("gtype ?& gtype rhs must be a list of strings")));
 
     gtype_iterator *it_array = gtype_iterator_init(&keys->root);
     gtype_iterator_next(&it_array, &agtv_elem, false);
@@ -1011,8 +964,7 @@ static gtype *gtype_concat(gtype *agt1, gtype *agt2)
      * different kinds we need to perform the concatenation even if one is
      * empty.
      */
-    if (AGT_ROOT_IS_OBJECT(agt1) == AGT_ROOT_IS_OBJECT(agt2))
-    {
+    if (AGT_ROOT_IS_OBJECT(agt1) && AGT_ROOT_IS_OBJECT(agt2)) {
         if (AGT_ROOT_COUNT(agt1) == 0 && !AGT_ROOT_IS_SCALAR(agt2))
             return agt2;
         else if (AGT_ROOT_COUNT(agt2) == 0 && !AGT_ROOT_IS_SCALAR(agt1))
@@ -1046,8 +998,7 @@ static gtype_value *iterator_concat(gtype_iterator **it1, gtype_iterator **it2, 
     /*
      * Both elements are objects.
      */
-    if (rk1 == WGT_BEGIN_OBJECT && rk2 == WGT_BEGIN_OBJECT)
-    {
+    if (rk1 == WGT_BEGIN_OBJECT && rk2 == WGT_BEGIN_OBJECT) {
         /*
          * Append the all tokens from v1 to res, except last WGT_END_OBJECT
          * (because res will not be finished yet).
@@ -1063,33 +1014,27 @@ static gtype_value *iterator_concat(gtype_iterator **it1, gtype_iterator **it2, 
         while ((r2 = gtype_iterator_next(it2, &v2, true)) != 0)
             res = push_gtype_value(state, r2, r2 != WGT_END_OBJECT ? &v2 : NULL);
     }
-
     /*
      * Both elements are arrays (either can be scalar).
      */
-    else if (rk1 == WGT_BEGIN_ARRAY && rk2 == WGT_BEGIN_ARRAY)
-    {
+    else if (rk1 == WGT_BEGIN_ARRAY && rk2 == WGT_BEGIN_ARRAY) {
         push_gtype_value(state, r1, NULL);
 
-        while ((r1 = gtype_iterator_next(it1, &v1, true)) != WGT_END_ARRAY)
-        {
+        while ((r1 = gtype_iterator_next(it1, &v1, true)) != WGT_END_ARRAY) {
             Assert(r1 == WGT_ELEM);
             push_gtype_value(state, r1, &v1);
         }
 
-        while ((r2 = gtype_iterator_next(it2, &v2, true)) != WGT_END_ARRAY)
-        {
+        while ((r2 = gtype_iterator_next(it2, &v2, true)) != WGT_END_ARRAY) {
             Assert(r2 == WGT_ELEM);
             push_gtype_value(state, WGT_ELEM, &v2);
         }
 
-        res = push_gtype_value(state, WGT_END_ARRAY,
-                                NULL /* signal to sort */);
+        res = push_gtype_value(state, WGT_END_ARRAY, NULL);
     }
     /* have we got array || object or object || array? */
     else if (((rk1 == WGT_BEGIN_ARRAY && !(*it1)->is_scalar) && rk2 == WGT_BEGIN_OBJECT) ||
-             (rk1 == WGT_BEGIN_OBJECT && (rk2 == WGT_BEGIN_ARRAY && !(*it2)->is_scalar)))
-    {
+             (rk1 == WGT_BEGIN_OBJECT && (rk2 == WGT_BEGIN_ARRAY && !(*it2)->is_scalar))) {
         gtype_iterator **it_array = rk1 == WGT_BEGIN_ARRAY ? it1 : it2;
         gtype_iterator **it_object = rk1 == WGT_BEGIN_OBJECT ? it1 : it2;
 
@@ -1097,17 +1042,14 @@ static gtype_value *iterator_concat(gtype_iterator **it1, gtype_iterator **it2, 
 
         push_gtype_value(state, WGT_BEGIN_ARRAY, NULL);
 
-        if (prepend)
-        {
+        if (prepend) {
             push_gtype_value(state, WGT_BEGIN_OBJECT, NULL);
             while ((r1 = gtype_iterator_next(it_object, &v1, true)) != 0)
                 push_gtype_value(state, r1, r1 != WGT_END_OBJECT ? &v1 : NULL);
 
             while ((r2 = gtype_iterator_next(it_array, &v2, true)) != 0)
                 res = push_gtype_value(state, r2, r2 != WGT_END_ARRAY ? &v2 : NULL);
-        }
-        else
-        {
+        } else {
             while ((r1 = gtype_iterator_next(it_array, &v1, true)) != WGT_END_ARRAY)
                 push_gtype_value(state, r1, &v1);
 
@@ -1117,9 +1059,7 @@ static gtype_value *iterator_concat(gtype_iterator **it1, gtype_iterator **it2, 
 
             res = push_gtype_value(state, WGT_END_ARRAY, NULL);
         }
-    }
-    else
-    {
+    } else {
         /*
          * This must be scalar || object or object || scalar, as that's all
          * that's left. Both of these make no sense, so error out.
@@ -1131,10 +1071,7 @@ static gtype_value *iterator_concat(gtype_iterator **it1, gtype_iterator **it2, 
     return res;
 }
 
-
-
-static void ereport_op_str(const char *op, gtype *lhs, gtype *rhs)
-{
+static void ereport_op_str(const char *op, gtype *lhs, gtype *rhs) {
     const char *msgfmt;
     const char *lstr;
     const char *rstr;

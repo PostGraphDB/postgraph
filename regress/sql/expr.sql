@@ -24,32 +24,6 @@ set timezone TO 'GMT';
 
 SELECT * FROM create_graph('expr');
 
-SELECT tointrange('"[0, 1]"');
-SELECT tointrange('"[0, 1)"');
-SELECT tointrange('"(0, 1]"');
-SELECT tointrange('"(0, 1)"');
-
-SELECT tointmultirange('"{[0, 1]}"');
-
-SELECT tonumrange('"[0.5, 1]"');
-SELECT tonumrange('"[0, 1.5)"');
-SELECT tonumrange('"(0.5, 1]"');
-SELECT tonumrange('"(0, 1.5)"');
-
-SELECT tonummultirange('"{(0, 1.5)}"');
-
-SELECT totsrange('"[''1/1/2000 12:00:00'', ''1/1/2000 4:00:00 PM'']"');
-
-SELECT totsmultirange('"{[''1/1/2000 12:00:00'', ''1/1/2000 4:00:00 PM'']}"');
-
-SELECT totstzrange('"[''1/1/2000 12:00:00 GMT'', ''1/1/2000 4:00:00 PM GMT'']"');
-
-SELECT totstzmultirange('"{[''1/1/2000 12:00:00 GMT'', ''1/1/2000 4:00:00 PM GMT'']}"');
-
-SELECT todaterange('"[''1/1/2000'', ''1/1/2001'')"');
-
-SELECT todatemultirange('"{[''1/1/2000'', ''1/1/2001'')}"');
-
 SET bytea_output = 'hex';
 SELECT tobytea('"abc \153\154\155 \052\251\124"');
 SELECT tobytea('"\xDEADBEEF"');
