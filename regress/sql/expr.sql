@@ -49,6 +49,8 @@ SELECT topath('"[(1,1), (2,2)]"');
 SELECT topath('"((1,1), (2,2))"');
 SELECT '"[(1,1), (2,2)]'::path::gtype;
 SELECT topath('"((1,1), (2,2))"')::path;
+SELECT * FROM cypher('expr', $$RETURN '[(1,1), (2,2)]'::path $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$RETURN '[(1,1), (2,2)]'::path $$) AS r(c path);
 
 SELECT topolygon('"(1,1), (2,2), (3, 3), (4, 4)"');
 SELECT topolygon('"(1,1), (2,2), (3, 3), (4, 4)"')::polygon;
