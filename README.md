@@ -8,27 +8,33 @@ Utilize Graph, Vector, and Relational models together to derive insights from yo
 Roadmap:
 
 Completed:
-  - Support for the OpenCypher Query Language
-  - Vector Embeddings, powered by pgVector
-  - Support for Time data
+-   Support for the OpenCypher Query Language
+-   Vector Embeddings, powered by pgVector
+-   Support for Time data
 
 In Progress:
-  - Support For IVFFLAT Indices, Approximate K-Nearest Neighbors
-  - Support for Geographic Information Systems, powered by [PostGIS](http://postgis.net/)
+-   Support For IVFFLAT Indices, Approximate K-Nearest Neighbors
+-   Support for Geographic Information Systems, powered by [PostGIS](http://postgis.net/)
 
 Planned
-  - Support For HNSW Indices, Faster Approximate K-Nearest Neighbors
-  - Support For Full Text Search, For combing with Vector Embeddings for Natural Language Processing
-  - Support of Time-Series Graph Data, powered by TimeScaleDB
-  - Machine Learning Techniques
-  - Label Partitioning - For advanced storage and performance techniques
-  - Geospatial Trajectory Data, powered by [MobilityDB](https://github.com/MobilityDB/MobilityDB)
+-   Support For HNSW Indices, Faster Approximate K-Nearest Neighbors
+-   Support For Full Text Search, For combing with Vector Embeddings for Natural Language Processing
+-   Support of Time-Series Graph Data, powered by TimeScaleDB
+-   Machine Learning Techniques
+-   Label Partitioning - For advanced storage and performance techniques
+-   Geospatial Trajectory Data, powered by [MobilityDB](https://github.com/MobilityDB/MobilityDB)
 
 Some Usefule Addtional Features
-  - Network Datatypes
-  - Regex Support
-  - Advanced Indexing Strategies
-  - Property Constraints
+-   Network Datatypes
+-   Regex Support
+-   Advanced Indexing Strategies
+-   Property Constraints
+
+## Requirements
+-   Linux
+-   PosgreSQL v14
+-   PostGIS 3.3
+-   Development Files for PostgreSQL and PostGIS
 
 POSTGIS Dependencies:
 autoconf
