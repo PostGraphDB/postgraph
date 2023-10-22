@@ -105,6 +105,66 @@ SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[)') $$) as (a gtype);
 SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[]') $$) as (a gtype);
 
 
+--
+-- numrange = numrange
+--
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[]') = numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '()') = numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '(]') = numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[)') = numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[)') = numrange(3, 4, '[]') $$) as (a gtype);
+
+--
+-- numrange <> numrange
+--
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[]') <> numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '()') <> numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '(]') <> numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[)') <> numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[)') <> numrange(3, 4, '[]') $$) as (a gtype);
+
+
+--
+-- numrange > numrange
+--
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[]') > numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '()') > numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '(]') > numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[)') > numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[)') > numrange(3, 4, '[]') $$) as (a gtype);
+
+--
+-- numrange >= numrange
+--
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[]') >= numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '()') >= numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '(]') >= numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[)') >= numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[)') >= numrange(3, 4, '[]') $$) as (a gtype);
+
+
+--
+-- numrange < numrange
+--
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[]') < numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '()') < numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '(]') < numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[)') < numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[)') < numrange(3, 4, '[]') $$) as (a gtype);
+
+--
+-- numrange <= numrange
+--
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[]') <= numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '()') <= numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '(]') <= numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[)') <= numrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN numrange(0, 1, '[)') <= numrange(3, 4, '[]') $$) as (a gtype);
+
+
+
+
+
 SELECT tonummultirange('"{(0, 1.5)}"');
 
 SELECT totsrange('"[''1/1/2000 12:00:00'', ''1/1/2000 4:00:00 PM'']"');
