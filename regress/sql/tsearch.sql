@@ -83,6 +83,50 @@ SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1 2') $$) as (a gtype);
 SELECT * FROM cypher('tsearch', $$ RETURN totsvector('''1 2''') $$) as (a gtype);
 SELECT * FROM cypher('tsearch', $$ RETURN totsvector('''w'':4A,3B,2C,1D,5 a:8') $$) as (a gtype);
 
+--
+-- TSVector = TSVector
+--
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1') = totsvector('1') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1') = totsvector('2') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('2') = totsvector('1') $$) as (a gtype);
+
+--
+-- TSVector <> TSVector
+--
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1') <> totsvector('1') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1') <> totsvector('2') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('2') <> totsvector('1') $$) as (a gtype);
+
+--
+-- TSVector < TSVector
+--
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1') < totsvector('1') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1') < totsvector('2') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('2') < totsvector('1') $$) as (a gtype);
+
+--
+-- TSVector <= TSVector
+--
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1') <= totsvector('1') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1') <= totsvector('2') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('2') <= totsvector('1') $$) as (a gtype);
+
+--
+-- TSVector > TSVector
+--
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1') > totsvector('1') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1') > totsvector('2') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('2') > totsvector('1') $$) as (a gtype);
+
+--
+-- TSVector >= TSVector
+--
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1') >= totsvector('1') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1') >= totsvector('2') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('2') >= totsvector('1') $$) as (a gtype);
+
+
+
 SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1') $$) as (a gtype);
 SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1 ') $$) as (a gtype);
 SELECT * FROM cypher('tsearch', $$ RETURN totsquery(' 1') $$) as (a gtype);

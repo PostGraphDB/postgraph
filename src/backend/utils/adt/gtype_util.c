@@ -81,6 +81,7 @@ static int get_type_sort_priority(enum gtype_value_type type);
 static int32 network_cmp_internal(inet *a1, inet *a2);
 static int compare_range_internal(gtype_value *a, gtype_value *b);
 static int CompareTSQ(TSQuery a, TSQuery b);
+static int silly_cmp_tsvector(const TSVector a, const TSVector b);
 
 /*
  * Turn an in-memory gtype_value into an gtype for on-disk storage.
@@ -300,6 +301,7 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
 		case AGTV_RANGE_TS:
                 case AGTV_RANGE_TSTZ:
 		case AGTV_TSQUERY:
+		case AGTV_TSVECTOR:
                     res = compare_gtype_scalar_values(&va, &vb);
                     break;
                 case AGTV_ARRAY:
@@ -1610,6 +1612,8 @@ static bool equals_gtype_scalar_value(const gtype_value *a, const gtype_value *b
 	    return compare_range_internal(a, b) == 0;
 	case AGTV_TSQUERY:
 	    return CompareTSQ(a->val.tsquery, b->val.tsquery) == 0;
+        case AGTV_TSVECTOR:
+	    return silly_cmp_tsvector(a->val.tsvector, b->val.tsvector) == 0;
 	case AGTV_FLOAT:
             return a->val.float_value == b->val.float_value;
         default:
@@ -1623,6 +1627,57 @@ static bool equals_gtype_scalar_value(const gtype_value *a, const gtype_value *b
     // execution will never reach this point due to the ereport call 
     return false;
 }
+
+/*
+ * Order: haspos, len, word, for all positions (pos, weight)
+ */
+static int
+silly_cmp_tsvector(const TSVector a, const TSVector b)
+{
+    if (VARSIZE(a) < VARSIZE(b))
+         return -1;
+    else if (VARSIZE(a) > VARSIZE(b))
+         return 1;
+    else if (a->size < b->size)
+         return -1;
+    else if (a->size > b->size)
+         return 1;
+    else {
+         WordEntry *aptr = ARRPTR(a);
+         WordEntry *bptr = ARRPTR(b);
+         int i = 0;
+         int res;
+
+         for (i = 0; i < a->size; i++) {
+              if (aptr->haspos != bptr->haspos) {
+                   return (aptr->haspos > bptr->haspos) ? -1 : 1;
+              } else if ((res = tsCompareString(STRPTR(a) + aptr->pos, aptr->len, STRPTR(b) + bptr->pos, bptr->len, false)) != 0) {
+                   return res;
+              } else if (aptr->haspos) {
+                   WordEntryPos *ap = POSDATAPTR(a, aptr);
+                   WordEntryPos *bp = POSDATAPTR(b, bptr);
+                   int                     j;
+
+                   if (POSDATALEN(a, aptr) != POSDATALEN(b, bptr))
+                        return (POSDATALEN(a, aptr) > POSDATALEN(b, bptr)) ? -1 : 1;
+
+                   for (j = 0; j < POSDATALEN(a, aptr); j++) {
+                        if (WEP_GETPOS(*ap) != WEP_GETPOS(*bp))
+                             return (WEP_GETPOS(*ap) > WEP_GETPOS(*bp)) ? -1 : 1;
+                        else if (WEP_GETWEIGHT(*ap) != WEP_GETWEIGHT(*bp))
+                             return (WEP_GETWEIGHT(*ap) > WEP_GETWEIGHT(*bp)) ? -1 : 1;
+                        ap++, bp++;
+                   }
+              }
+
+              aptr++;
+              bptr++;
+         }
+    }
+
+    return 0;
+}
+
 
 static int
 CompareTSQ(TSQuery a, TSQuery b) {
@@ -1756,6 +1811,8 @@ int compare_gtype_scalar_values(gtype_value *a, gtype_value *b)
 	    return compare_range_internal(a, b);
         case AGTV_TSQUERY:
             return CompareTSQ(a->val.tsquery, b->val.tsquery);
+        case AGTV_TSVECTOR:
+            return silly_cmp_tsvector(a->val.tsvector, b->val.tsvector);
 	case AGTV_FLOAT:
             return compare_two_floats_orderability(a->val.float_value, b->val.float_value);
 	default:
