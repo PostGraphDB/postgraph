@@ -68,7 +68,7 @@ static Node *transform_a_indirection(cypher_parsestate *cpstate, A_Indirection *
 static Node *transform_a_expr_op(cypher_parsestate *cpstate, A_Expr *a);
 static Node *transform_bool_expr(cypher_parsestate *cpstate, BoolExpr *expr);
 static Node *transform_cypher_bool_const(cypher_parsestate *cpstate, cypher_bool_const *bc);
-static Node * transform_cypher_inet_const(cypher_parsestate *cpstate, cypher_inet_const *inet);
+static Node *transform_cypher_inet_const(cypher_parsestate *cpstate, cypher_inet_const *inet);
 static Node *transform_cypher_integer_const(cypher_parsestate *cpstate, cypher_integer_const *ic);
 static Node *transform_cypher_param(cypher_parsestate *cpstate, cypher_param *cp);
 static Node *transform_cypher_map(cypher_parsestate *cpstate, cypher_map *cm);
@@ -748,6 +748,8 @@ transform_cypher_typecast(cypher_parsestate *cpstate, cypher_typecast *ctypecast
         fname = lappend(fname, makeString("tomacaddr"));
     else if (pg_strcasecmp(ctypecast->typecast, "macaddr8") == 0)
         fname = lappend(fname, makeString("tomacaddr8"));
+    else if (pg_strcasecmp(ctypecast->typecast, "box") == 0)
+        fname = lappend(fname, makeString("tobox"));
     else if (pg_strcasecmp(ctypecast->typecast, "box2d") == 0)
         fname = lappend(fname, makeString("tobox2d"));
     else if (pg_strcasecmp(ctypecast->typecast, "box3d") == 0)

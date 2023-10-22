@@ -149,6 +149,18 @@ SELECT '(1,1), (2,2)'::box::gtype;
  (2,2),(1,1)
 (1 row)
 
+SELECT * FROM cypher('expr', $$RETURN '(1,1), (2,2)'::box $$) AS r(c gtype);
+      c      
+-------------
+ (2,2),(1,1)
+(1 row)
+
+SELECT * FROM cypher('expr', $$RETURN '(1,1), (2,2)'::box $$) AS r(c box);
+      c      
+-------------
+ (2,2),(1,1)
+(1 row)
+
 --
 -- map literal
 --
