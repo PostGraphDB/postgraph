@@ -293,6 +293,7 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
 		case AGTV_RANGE_INT:
                 case AGTV_RANGE_NUM:
 		case AGTV_RANGE_DATE:
+		case AGTV_RANGE_TS:
                     res = compare_gtype_scalar_values(&va, &vb);
                     break;
                 case AGTV_ARRAY:
@@ -1598,6 +1599,7 @@ static bool equals_gtype_scalar_value(const gtype_value *a, const gtype_value *b
         case AGTV_RANGE_INT:
         case AGTV_RANGE_NUM:
         case AGTV_RANGE_DATE:
+	case AGTV_RANGE_TS:
 	    return compare_range_internal(a, b) == 0;
 	case AGTV_FLOAT:
             return a->val.float_value == b->val.float_value;
@@ -1720,6 +1722,7 @@ int compare_gtype_scalar_values(gtype_value *a, gtype_value *b)
         case AGTV_RANGE_INT:
         case AGTV_RANGE_NUM:
         case AGTV_RANGE_DATE:
+        case AGTV_RANGE_TS:
 	    return compare_range_internal(a, b);
 	case AGTV_FLOAT:
             return compare_two_floats_orderability(a->val.float_value, b->val.float_value);
