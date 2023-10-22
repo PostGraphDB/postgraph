@@ -125,7 +125,12 @@ SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1') >= totsvector('1') $$)
 SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1') >= totsvector('2') $$) as (a gtype);
 SELECT * FROM cypher('tsearch', $$ RETURN totsvector('2') >= totsvector('1') $$) as (a gtype);
 
-
+--
+-- TS_Delete
+--
+SELECT * FROM cypher('tsearch', $$
+    RETURN ts_delete(totsvector('a fat cat sat on a mat and ate a fat rat'), 'rat')
+$$) as (a gtype);
 
 SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1') $$) as (a gtype);
 SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1 ') $$) as (a gtype);

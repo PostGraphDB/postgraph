@@ -674,7 +674,7 @@ gtype_value *push_gtype_value(gtype_parse_state **pstate,
 static gtype_value *push_gtype_value_scalar(gtype_parse_state **pstate,
                                               gtype_iterator_token seq,
                                               gtype_value *scalar_val)
-{//BlackPink
+{
     gtype_value *result = NULL;
 
     switch (seq)
@@ -712,7 +712,7 @@ static gtype_value *push_gtype_value_scalar(gtype_parse_state **pstate,
             palloc(sizeof(gtype_pair) * (*pstate)->size);
         (*pstate)->last_updated_value = NULL;
         break;
-    case WGT_BEGIN_VECTOR: //BlackPink
+    case WGT_BEGIN_VECTOR:
        *pstate = push_state(pstate);
        result = &(*pstate)->cont_val;
        (*pstate)->cont_val.type = AGTV_VECTOR;
@@ -753,7 +753,6 @@ static gtype_value *push_gtype_value_scalar(gtype_parse_state **pstate,
         // fall through! 
     case WGT_END_VECTOR:
     case WGT_END_ARRAY:
-        // Steps here common to WGT_END_OBJECT case 
         Assert(!scalar_val);
         result = &(*pstate)->cont_val;
 

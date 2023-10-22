@@ -1,0 +1,100 @@
+/*
+ * Copyright (C) 2023 PostGraphDB
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+--
+-- Range Functions
+--
+CREATE FUNCTION intrange(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_intrange';
+
+CREATE FUNCTION intrange(gtype, gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_intrange';
+
+CREATE FUNCTION numrange(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_numrange';
+
+CREATE FUNCTION numrange(gtype, gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_numrange';
+
+CREATE FUNCTION tsrange(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_tsrange';
+
+CREATE FUNCTION tsrange(gtype, gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_tsrange';
+
+CREATE FUNCTION tstzrange(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_tstzrange';
+
+CREATE FUNCTION tstzrange(gtype, gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_tstzrange';
+
+CREATE FUNCTION daterange(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_daterange';
+
+CREATE FUNCTION daterange(gtype, gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_daterange';
+

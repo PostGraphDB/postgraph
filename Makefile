@@ -66,6 +66,7 @@ OBJS = src/backend/postgraph.o \
        src/backend/utils/adt/gtype_string.o \
        src/backend/utils/adt/gtype_numbers.o \
        src/backend/utils/adt/gtype_temporal.o \
+       src/backend/utils/adt/gtype_tsearch.o \
        src/backend/utils/adt/gtype_typecasting.o \
        src/backend/utils/adt/gtype_util.o \
        src/backend/utils/path_finding/global_graph.o \
@@ -127,7 +128,7 @@ POSTGIS_DIR ?= postgis_dir
 
 all: postgraph--0.1.0.sql
 
-postgraph--0.1.0.sql: sql/postgraph.sql.in sql/postgraph-graphid.sql.in sql/postgraph-gtype.sql.in sql/postgraph-edge.sql.in sql/postgraph-vertex.sql.in sql/postgraph-variable_edge.sql.in sql/postgraph-traversal.sql.in sql/postgraph-typecasting.sql.in sql/postgraph-gtype-lists.sql.in sql/postgraph-string-functions.sql.in sql/postgraph-number-functions.sql.in sql/postgraph-temporal.sql.in sql/postgraph-network.sql.in sql/postgraph-range.sql.in sql/postgraph-postgis.sql.in sql/postgraph-aggregation.sql.in
+postgraph--0.1.0.sql: sql/postgraph.sql.in sql/postgraph-graphid.sql.in sql/postgraph-gtype.sql.in sql/postgraph-edge.sql.in sql/postgraph-vertex.sql.in sql/postgraph-variable_edge.sql.in sql/postgraph-traversal.sql.in sql/postgraph-typecasting.sql.in sql/postgraph-gtype-lists.sql.in sql/postgraph-string-functions.sql.in sql/postgraph-number-functions.sql.in sql/postgraph-temporal.sql.in sql/postgraph-network.sql.in sql/postgraph-tsearch.sql.in sql/postgraph-range.sql.in sql/postgraph-postgis.sql.in sql/postgraph-aggregation.sql.in
 	cat $^ > $@
 ag_regress_dir = $(srcdir)/regress
 REGRESS_OPTS = --load-extension=postgis --load-extension=postgraph --inputdir=$(ag_regress_dir) --outputdir=$(ag_regress_dir) --temp-instance=$(ag_regress_dir)/instance --port=61958 --encoding=UTF-8

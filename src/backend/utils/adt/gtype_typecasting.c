@@ -765,8 +765,7 @@ Datum gtype_totsvector(PG_FUNCTION_ARGS)
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    TSVector tsvector = DatumGetPointer(DirectFunctionCall1(tsvectorin,
-			                          convert_to_scalar(gtype_to_string_internal, agt, "string")));
+    TSVector tsvector = DatumGetPointer(convert_to_scalar(gtype_to_tsvector_internal, agt, "tsvector"));
 
     gtype_value gtv;
     gtv.type = AGTV_TSVECTOR;
@@ -2117,6 +2116,19 @@ gtype_to_polygon_internal(gtype_value *gtv) {
         return DirectFunctionCall1(poly_in, CStringGetDatum(gtv->val.string.val));
     }  else
         cannot_cast_gtype_value(gtv->type, "polygon");
+
+    // unreachable
+    return CStringGetDatum("");
+}
+
+Datum
+gtype_to_tsvector_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_TSVECTOR) {
+        return PointerGetDatum(gtv->val.tsvector);
+    } else if (gtv->type == AGTV_STRING){
+        return DirectFunctionCall1(tsvectorin, CStringGetDatum(gtv->val.string.val));
+    }  else
+        cannot_cast_gtype_value(gtv->type, "TSVector");
 
     // unreachable
     return CStringGetDatum("");
