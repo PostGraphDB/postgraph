@@ -196,6 +196,102 @@ SELECT * FROM cypher('range', $$ RETURN daterange('1/1/2000', '1/1/2001', '(]') 
 SELECT * FROM cypher('range', $$ RETURN daterange('1/1/2000', '1/1/2001', '[)') $$) as (a gtype);
 SELECT * FROM cypher('range', $$ RETURN daterange('1/1/2000', '1/1/2001', '[]') $$) as (a gtype);
 
+--
+-- rangedate = rangedate
+--
+SELECT * FROM cypher('range', $$ 
+	RETURN daterange('1/1/2000', '1/1/2001', '()') = daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+SELECT * FROM cypher('range', $$ 
+	RETURN daterange('1/1/2000', '1/1/2001', '(]') = daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+SELECT * FROM cypher('range', $$ 
+	RETURN daterange('1/1/2000', '1/1/2001', '[)') = daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+SELECT * FROM cypher('range', $$ 
+	RETURN daterange('1/1/2000', '1/1/2001', '[]') = daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+
+--
+-- rangedate <> rangedate
+--
+SELECT * FROM cypher('range', $$
+        RETURN daterange('1/1/2000', '1/1/2001', '()') <> daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+SELECT * FROM cypher('range', $$
+        RETURN daterange('1/1/2000', '1/1/2001', '(]') <> daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+SELECT * FROM cypher('range', $$
+        RETURN daterange('1/1/2000', '1/1/2001', '[)') <> daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+SELECT * FROM cypher('range', $$
+        RETURN daterange('1/1/2000', '1/1/2001', '[]') <> daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+
+--
+-- rangedate > rangedate
+--
+SELECT * FROM cypher('range', $$
+        RETURN daterange('1/1/2000', '1/1/2001', '()') > daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+SELECT * FROM cypher('range', $$
+        RETURN daterange('1/1/2000', '1/1/2001', '(]') > daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+SELECT * FROM cypher('range', $$
+        RETURN daterange('1/1/2000', '1/1/2001', '[)') > daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+SELECT * FROM cypher('range', $$
+        RETURN daterange('1/1/2000', '1/1/2001', '[]') > daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+
+--
+-- rangedate >= rangedate
+--
+SELECT * FROM cypher('range', $$
+        RETURN daterange('1/1/2000', '1/1/2001', '()') >= daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+SELECT * FROM cypher('range', $$
+        RETURN daterange('1/1/2000', '1/1/2001', '(]') >= daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+SELECT * FROM cypher('range', $$
+        RETURN daterange('1/1/2000', '1/1/2001', '[)') >= daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+SELECT * FROM cypher('range', $$
+        RETURN daterange('1/1/2000', '1/1/2001', '[]') >= daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+
+--
+-- rangedate < rangedate
+--
+SELECT * FROM cypher('range', $$
+        RETURN daterange('1/1/2000', '1/1/2001', '()') < daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+SELECT * FROM cypher('range', $$
+        RETURN daterange('1/1/2000', '1/1/2001', '(]') < daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+SELECT * FROM cypher('range', $$
+        RETURN daterange('1/1/2000', '1/1/2001', '[)') < daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+SELECT * FROM cypher('range', $$
+        RETURN daterange('1/1/2000', '1/1/2001', '[]') < daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+
+--
+-- rangedate <= rangedate
+--
+SELECT * FROM cypher('range', $$ 
+        RETURN daterange('1/1/2000', '1/1/2001', '()') <= daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype); 
+SELECT * FROM cypher('range', $$ 
+        RETURN daterange('1/1/2000', '1/1/2001', '(]') <= daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype); 
+SELECT * FROM cypher('range', $$ 
+        RETURN daterange('1/1/2000', '1/1/2001', '[)') <= daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype);
+SELECT * FROM cypher('range', $$ 
+        RETURN daterange('1/1/2000', '1/1/2001', '[]') <= daterange('1/1/2000', '1/1/2001', '()')
+$$) as (a gtype); 
+
 
 SELECT todatemultirange('"{[''1/1/2000'', ''1/1/2001'')}"');
 
