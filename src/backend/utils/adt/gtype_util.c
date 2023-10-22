@@ -78,6 +78,7 @@ static gtype_value *push_gtype_value_scalar(gtype_parse_state **pstate,
 static int compare_two_floats_orderability(float8 lhs, float8 rhs);
 static int get_type_sort_priority(enum gtype_value_type type);
 static int32 network_cmp_internal(inet *a1, inet *a2);
+static int compare_range_internal(gtype_value *a, gtype_value *b);
 
 /*
  * Turn an in-memory gtype_value into an gtype for on-disk storage.
@@ -203,9 +204,13 @@ static int get_type_sort_priority(enum gtype_value_type type)
     if (type == AGTV_TIME || AGTV_TIMETZ)
 	 return 7;
     if (type == AGTV_INTERVAL)
-	 return 8;   
+	 return 8;  
+    if (type == AGTV_INET)
+	 return 9;
+    if (type == AGTV_CIDR)
+	 return 10; 
     if (type == AGTV_NULL)
-        return 9;
+        return 11;
     return -1;
 }
 
@@ -261,11 +266,13 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
                 ((va.type == AGTV_INTEGER || va.type == AGTV_FLOAT || va.type == AGTV_NUMERIC ||
 		  va.type == AGTV_TIMESTAMP || va.type == AGTV_DATE || va.type == AGTV_TIMESTAMPTZ ||
 		  va.type == AGTV_TIMETZ || va.type == AGTV_TIME || va.type == AGTV_DATE ||
-		  va.type == AGTV_INET || va.type == AGTV_CIDR) &&
+		  va.type == AGTV_INET || va.type == AGTV_CIDR || va.type == AGTV_RANGE_INT ||
+		  va.type == AGTV_RANGE_NUM || va.type == AGTV_RANGE_TS || va.type == AGTV_RANGE_TSTZ) &&
                  (vb.type == AGTV_INTEGER || vb.type == AGTV_FLOAT || vb.type == AGTV_NUMERIC || 
 		  vb.type == AGTV_TIMESTAMP || vb.type == AGTV_DATE || vb.type == AGTV_TIMESTAMPTZ ||
                   vb.type == AGTV_TIMETZ || vb.type == AGTV_TIME || vb.type == AGTV_DATE ||
-		  vb.type == AGTV_INET || va.type == AGTV_CIDR)))
+		  vb.type == AGTV_INET || va.type == AGTV_CIDR || vb.type == AGTV_RANGE_INT ||
+		  vb.type == AGTV_RANGE_NUM || vb.type == AGTV_RANGE_TS || vb.type == AGTV_RANGE_TSTZ)))
             {
                 switch (va.type)
                 {
@@ -283,6 +290,7 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
 		case AGTV_INTERVAL:
 		case AGTV_INET:
 		case AGTV_CIDR:
+		case AGTV_RANGE_INT:
                     res = compare_gtype_scalar_values(&va, &vb);
                     break;
                 case AGTV_ARRAY:
@@ -313,7 +321,9 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
                     break;
                 case AGTV_BINARY:
                     ereport(ERROR, (errmsg("unexpected AGTV_BINARY value")));
-                }
+                default:
+		    ereport(ERROR, (errmsg("unexpected gtype for comparison")));
+		}
             }
             else
             {
@@ -1583,6 +1593,8 @@ static bool equals_gtype_scalar_value(const gtype_value *a, const gtype_value *b
 	case AGTV_INET:
 	case AGTV_CIDR:
 	    return network_cmp_internal(&a->val.inet, &b->val.inet) == 0;
+        case AGTV_RANGE_INT:
+	    return compare_range_internal(a, b) == 0;
 	case AGTV_FLOAT:
             return a->val.float_value == b->val.float_value;
         default:
@@ -1597,6 +1609,34 @@ static bool equals_gtype_scalar_value(const gtype_value *a, const gtype_value *b
     return false;
 }
 
+static int compare_range_internal(gtype_value *a, gtype_value *b) {
+    RangeType *r1 = a->val.range;
+    RangeType *r2 = b->val.range;
+    TypeCacheEntry *typcache = lookup_type_cache(RangeTypeGetOid(r1), TYPECACHE_RANGE_INFO);
+    RangeBound lower1, lower2;
+    RangeBound upper1, upper2;
+    bool empty1, empty2;
+
+    /* Different types should be prevented by ANYRANGE matching rules */
+    if (a->type != b->type)
+        elog(ERROR, "range types do not match");
+
+    range_deserialize(typcache, r1, &lower1, &upper1, &empty1);
+    range_deserialize(typcache, r2, &lower2, &upper2, &empty2);
+
+    if (empty1 && empty2) 
+         return 0;
+    if (empty1)
+         return 1;
+    if (empty2)
+         return -1;
+
+    int cmp = range_cmp_bounds(typcache, &lower1, &lower2);
+    if (cmp != 0)
+        return cmp;
+
+    return range_cmp_bounds(typcache, &upper1, &upper2);
+}
 
 
 static int32
@@ -1673,6 +1713,8 @@ int compare_gtype_scalar_values(gtype_value *a, gtype_value *b)
         case AGTV_INET:
 	case AGTV_CIDR:
 	    return network_cmp_internal(&a->val.inet, &b->val.inet);
+        case AGTV_RANGE_INT:
+            return compare_range_internal(a, b);
 	case AGTV_FLOAT:
             return compare_two_floats_orderability(a->val.float_value, b->val.float_value);
 	default:

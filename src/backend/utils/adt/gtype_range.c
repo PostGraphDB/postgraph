@@ -152,7 +152,7 @@ static Datum _make_range(PG_FUNCTION_ARGS, Datum d1, Datum d2, Oid rngtypid, enu
         upper.lower = false;
     }
 
-    gtype_value gtv = { .type=AGTV_RANGE_DATE, .val.range=make_range(typcache, &lower, &upper, false)};
+    gtype_value gtv = { .type=gt_type, .val.range=make_range(typcache, &lower, &upper, false)};
 
     return GTYPE_P_GET_DATUM(gtype_value_to_gtype(&gtv));
 }	

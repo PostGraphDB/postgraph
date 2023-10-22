@@ -33,6 +33,64 @@ SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '(]') $$) as (a gtype);
 SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[)') $$) as (a gtype);
 SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[]') $$) as (a gtype);
 
+--
+-- intrange = intrange
+--
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[]') = intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '()') = intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '(]') = intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[)') = intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[)') = intrange(3, 4, '[]') $$) as (a gtype);
+
+--
+-- intrange <> intrange
+--
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[]') <> intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '()') <> intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '(]') <> intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[)') <> intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[)') <> intrange(3, 4, '[]') $$) as (a gtype);
+
+
+--
+-- intrange > intrange
+--
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[]') > intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '()') > intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '(]') > intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[)') > intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[)') > intrange(3, 4, '[]') $$) as (a gtype);
+
+--
+-- intrange >= intrange
+--
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[]') >= intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '()') >= intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '(]') >= intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[)') >= intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[)') >= intrange(3, 4, '[]') $$) as (a gtype);
+
+
+--
+-- intrange < intrange
+--
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[]') < intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '()') < intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '(]') < intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[)') < intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[)') < intrange(3, 4, '[]') $$) as (a gtype);
+
+
+--
+-- intrange <= intrange
+--
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[]') <= intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '()') <= intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '(]') <= intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[)') <= intrange(0, 1, '[]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN intrange(0, 1, '[)') <= intrange(3, 4, '[]') $$) as (a gtype);
+
+
 SELECT tointmultirange('"{[0, 1]}"');
 
 SELECT tonumrange('"[0.5, 1]"');
