@@ -235,6 +235,36 @@ SELECT todaterange('"[''1/1/2000'', ''1/1/2001'')"');
  [01-01-2000,01-01-2001)
 (1 row)
 
+SELECT * FROM cypher('range', $$ RETURN daterange('1/1/2000', '1/1/2001') $$) as (a gtype);
+            a            
+-------------------------
+ [01-01-2000,01-01-2001)
+(1 row)
+
+SELECT * FROM cypher('range', $$ RETURN daterange('1/1/2000', '1/1/2001', '()') $$) as (a gtype);
+            a            
+-------------------------
+ [01-02-2000,01-01-2001)
+(1 row)
+
+SELECT * FROM cypher('range', $$ RETURN daterange('1/1/2000', '1/1/2001', '(]') $$) as (a gtype);
+            a            
+-------------------------
+ [01-02-2000,01-02-2001)
+(1 row)
+
+SELECT * FROM cypher('range', $$ RETURN daterange('1/1/2000', '1/1/2001', '[)') $$) as (a gtype);
+            a            
+-------------------------
+ [01-01-2000,01-01-2001)
+(1 row)
+
+SELECT * FROM cypher('range', $$ RETURN daterange('1/1/2000', '1/1/2001', '[]') $$) as (a gtype);
+            a            
+-------------------------
+ [01-01-2000,01-02-2001)
+(1 row)
+
 SELECT todatemultirange('"{[''1/1/2000'', ''1/1/2001'')}"');
      todatemultirange      
 ---------------------------
