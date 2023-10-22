@@ -23,6 +23,97 @@ set timezone TO 'GMT';
 SELECT * FROM create_graph('temporal');
 
 --
+-- Timestamp
+--
+SELECT * FROM cypher('temporal', $$
+RETURN '2023-06-23 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('temporal', $$
+RETURN '06/23/2023 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('temporal', $$
+RETURN 'Fri Jun 23 13:39:40.00 2023"'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('temporal', $$
+RETURN '06/23/1970 13:39:40.00'::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('temporal', $$
+RETURN 0::timestamp
+$$) AS r(c gtype);
+SELECT * FROM cypher('temporal', $$
+RETURN NULL::timestamp
+$$) AS r(c gtype);
+
+--
+-- interval
+--  
+SELECT * FROM cypher('temporal', $$
+RETURN '1997-12-17 07:37:16-08'::timestamp
+$$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$
+RETURN '12/17/1997 07:37:16.00'::timestamp
+$$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$
+RETURN 'Wed Dec 17 07:37:16 1997'::timestamp
+$$) AS r(result gtype);
+
+--
+-- timestamptz
+--
+SELECT * FROM cypher('temporal', $$
+RETURN '1997-12-17 07:37:16-06'::timestamptz
+$$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$
+RETURN '12/17/1997 07:37:16.00+00'::timestamptz
+$$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$
+RETURN 'Wed Dec 17 07:37:16 1997+09'::timestamptz
+$$) AS r(result gtype);
+
+--
+-- date
+--
+SELECT * FROM cypher('temporal', $$
+RETURN '1997-12-17'::date
+$$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$
+RETURN '12/17/1997'::date
+$$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$
+RETURN 'Wed Dec 17 1997'::date
+$$) AS r(result gtype);
+
+--
+-- time
+--
+SELECT * FROM cypher('temporal', $$ RETURN '07:37:16-08'::time $$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$ RETURN '07:37:16.00'::time $$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$ RETURN '07:37:16'::time $$) AS r(result gtype);
+
+--
+-- timetz
+--
+SELECT * FROM cypher('temporal', $$ RETURN '07:37:16-08'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$ RETURN '07:37:16.00'::timetz $$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$ RETURN '07:37:16'::timetz $$) AS r(result gtype);
+
+SELECT * FROM cypher('temporal', $$ RETURN '30 Seconds'::interval $$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$ RETURN '15 Minutes'::interval $$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$ RETURN '10 Hours'::interval $$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$ RETURN '40 Days'::interval $$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$ RETURN '10 Weeks'::interval $$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$ RETURN '10 Months'::interval $$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$ RETURN '3 Years'::interval $$) AS r(result gtype);
+
+SELECT * FROM cypher('temporal', $$ RETURN '30 Seconds Ago'::interval $$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$ RETURN '15 Minutes Ago'::interval $$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$ RETURN '10 Hours Ago'::interval $$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$ RETURN '40 Days Ago'::interval $$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$ RETURN '10 Weeks Ago'::interval $$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$ RETURN '10 Months Ago'::interval $$) AS r(result gtype);
+SELECT * FROM cypher('temporal', $$ RETURN '3 Years Ago'::interval $$) AS r(result gtype);
+
+--
 -- toTimestamp()
 --
 SELECT * FROM cypher('temporal', $$
