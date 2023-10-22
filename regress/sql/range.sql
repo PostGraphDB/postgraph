@@ -56,6 +56,15 @@ SELECT tonummultirange('"{(0, 1.5)}"');
 
 SELECT totsrange('"[''1/1/2000 12:00:00'', ''1/1/2000 4:00:00 PM'']"');
 
+SELECT * FROM cypher('range', $$ RETURN tsrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM') $$) as (a gtype);
+
+
+SELECT * FROM cypher('range', $$ RETURN tsrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '()') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN tsrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '(]') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN tsrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '[)') $$) as (a gtype);
+SELECT * FROM cypher('range', $$ RETURN tsrange('1/1/2000 12:00:00', '1/1/2000 4:00:00 PM', '[]') $$) as (a gtype);
+
+
 SELECT totsmultirange('"{[''1/1/2000 12:00:00'', ''1/1/2000 4:00:00 PM'']}"');
 
 SELECT totstzrange('"[''1/1/2000 12:00:00 GMT'', ''1/1/2000 4:00:00 PM GMT'']"');
