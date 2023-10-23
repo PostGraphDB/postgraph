@@ -69,6 +69,11 @@ Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
     convert_to_scalar(gtype_to_macaddr_internal, (arg), "mac")
 #define GT_TO_MAC8_DATUM(arg) \
     convert_to_scalar(gtype_to_macaddr8_internal, (arg), "mac8")
+#define GT_TO_TSVECTOR_DATUM(arg) \
+    convert_to_scalar(gtype_to_tsvector_internal, (arg), "tsvector")
+#define GT_TO_TSQUERY_DATUM(arg) \
+    convert_to_scalar(gtype_to_tsquery_internal, (arg), "tsquery")
+
 
 #define GT_ARG_TO_INT4_DATUM(arg) \
     convert_to_scalar(gtype_to_int4_internal, AG_GET_ARG_GTYPE_P(arg), "int4")
@@ -94,6 +99,9 @@ Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
     convert_to_scalar(gtype_to_macaddr8_internal, AG_GET_ARG_GTYPE_P(arg), "mac8")
 #define GT_ARG_TO_TSVECTOR_DATUM(arg) \
     convert_to_scalar(gtype_to_tsvector_internal, AG_GET_ARG_GTYPE_P(arg), "tsvector")
+#define GT_ARG_TO_TSQUERY_DATUM(arg) \
+    convert_to_scalar(gtype_to_tsquery_internal, AG_GET_ARG_GTYPE_P(arg), "tsquery")
+
 
 Datum gtype_to_int8_internal(gtype_value *gtv);
 Datum gtype_to_int4_internal(gtype_value *gtv);
@@ -124,7 +132,7 @@ Datum gtype_to_spheroid_internal(gtype_value *gtv);
 Datum gtype_to_geometry_internal(gtype_value *gtv);
 Datum gtype_to_int_range_internal(gtype_value *gtv);
 Datum gtype_to_tsvector_internal(gtype_value *gtv);
-
+Datum gtype_to_tsquery_internal(gtype_value *gtv);
 
 Datum _gtype_toinet(Datum arg);
 

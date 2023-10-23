@@ -31,7 +31,22 @@
 #include "utils/gtype.h"
 #include "utils/gtype_typecasting.h"
 
+/*
+PG_FUNCTION_INFO_V1(gtype_tsquery_and);
+Datum gtype_tsquery_and(PG_FUNCTION_ARGS) {
+    TSQuery tsquery = DatumGetPointer(DirectFunctionCall2(tsquery_and,
+                                                            GT_ARG_TO_TSQUERY_DATUM(0),
+							    GT_ARG_TO_TSQUERY_DATUM(1)));
 
+    gtype_value gtv = { .type = AGTV_TSQUERY, .val.tsvector = tsquery };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+*/
+
+/*
+ * Text Search Functions
+ */
 PG_FUNCTION_INFO_V1(gtype_ts_delete);
 Datum gtype_ts_delete(PG_FUNCTION_ARGS) {
     TSVector tsvector = DatumGetPointer(DirectFunctionCall2(tsvector_delete_str,

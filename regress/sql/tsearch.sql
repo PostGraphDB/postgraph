@@ -226,6 +226,12 @@ SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1') >= totsquery('2') $$) a
 SELECT * FROM cypher('tsearch', $$ RETURN totsquery('2') >= totsquery('1') $$) as (a gtype);
 
 --
+-- TSQuery && TSQuery
+--
+SELECT * FROM cypher('tsearch', $$ RETURN '1'::tsquery & '2'::tsquery $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN '2'::tsquery & '1'::tsquery $$) as (a gtype);
+
+--
 -- Cleanup
 --
 SELECT drop_graph('tsearch', true);

@@ -904,6 +904,21 @@ SELECT * FROM cypher('tsearch', $$ RETURN totsquery('2') >= totsquery('1') $$) a
 (1 row)
 
 --
+-- TSQuery && TSQuery
+--
+SELECT * FROM cypher('tsearch', $$ RETURN '1'::tsquery & '2'::tsquery $$) as (a gtype);
+     a     
+-----------
+ '1' & '2'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN '2'::tsquery & '1'::tsquery $$) as (a gtype);
+     a     
+-----------
+ '2' & '1'
+(1 row)
+
+--
 -- Cleanup
 --
 SELECT drop_graph('tsearch', true);

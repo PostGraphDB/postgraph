@@ -2134,6 +2134,19 @@ gtype_to_tsvector_internal(gtype_value *gtv) {
     return CStringGetDatum("");
 }
 
+Datum
+gtype_to_tsquery_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_TSQUERY) {
+        return PointerGetDatum(gtv->val.tsquery);
+    } else if (gtv->type == AGTV_STRING){
+        return DirectFunctionCall1(tsqueryin, CStringGetDatum(gtv->val.string.val));
+    }  else
+        cannot_cast_gtype_value(gtv->type, "TSQuery");
+
+    // unreachable
+    return CStringGetDatum(""); 
+}
+
 
 /*
  * Emit correct, translatable cast error message
@@ -2167,5 +2180,5 @@ cannot_cast_gtype_value(enum gtype_value_type type, const char *sqltype) {
         }
     }
 
-    elog(ERROR, "unknown gtype type: %d", (int)type);
+    elog(ERROR, "unknown gtype type: %d can't cast to %s", (int)type, sqltype);
 }

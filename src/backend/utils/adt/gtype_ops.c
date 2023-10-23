@@ -659,13 +659,27 @@ gtype_bitwise_not(PG_FUNCTION_ARGS) {
 PG_FUNCTION_INFO_V1(gtype_bitwise_and);
 Datum
 gtype_bitwise_and(PG_FUNCTION_ARGS) {
-    Datum d = DirectFunctionCall2(inetand, GT_ARG_TO_INET_DATUM(0), GT_ARG_TO_INET_DATUM(1));
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
-    gtype_value gtv;
-    gtv.type = AGTV_INET;
-    memcpy(&gtv.val.inet, DatumGetInetPP(d), sizeof(char) * 22);
+    if (GT_IS_TSQUERY(lhs) || GT_IS_TSQUERY(rhs)) {
+        Datum d = DirectFunctionCall2(tsquery_and, GT_ARG_TO_TSQUERY_DATUM(0), GT_ARG_TO_TSQUERY_DATUM(1));
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+
+        gtype_value gtv;
+        gtv.type = AGTV_TSQUERY;
+        gtv.val.tsquery = DatumGetPointer(d); 
+
+    	AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+    } else {
+        Datum d = DirectFunctionCall2(inetand, GT_ARG_TO_INET_DATUM(0), GT_ARG_TO_INET_DATUM(1));
+
+        gtype_value gtv;
+        gtv.type = AGTV_INET;
+        memcpy(&gtv.val.inet, DatumGetInetPP(d), sizeof(char) * 22);
+   
+       	AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+    }
 }
 
 
