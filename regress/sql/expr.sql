@@ -44,6 +44,10 @@ SELECT * FROM cypher('expr', $$RETURN '(1,1)'::point $$) AS r(c point);
 
 
 SELECT tolseg('"(1,1), (2,2)"');
+SELECT * FROM cypher('expr', $$RETURN tolseg('(1,1), (2,2)') $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$RETURN '(1,1), (2,2)'::lseg $$) AS r(c gtype);
+
+
 SELECT toline('"{1,1,2}"');
 SELECT * FROM cypher('expr', $$RETURN '{1,1,2}'::line $$) AS r(c gtype);
 
