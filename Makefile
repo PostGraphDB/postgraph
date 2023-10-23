@@ -117,6 +117,7 @@ REGRESS = scan \
           aggregation \
           traversal_functions \
           variable_edge_functions \
+	  geometric \
           postgis \
           index \
           drop

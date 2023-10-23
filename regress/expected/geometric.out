@@ -1,0 +1,233 @@
+/*
+ * PostGraph
+ * Copyright (C) 2023 PostGraphDB
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+LOAD 'postgraph';
+SET search_path TO postgraph, public;
+SELECT * FROM create_graph('geometric');
+NOTICE:  graph "geometric" has been created
+ create_graph 
+--------------
+ 
+(1 row)
+
+--
+-- Point
+--
+SELECT topoint('"(1,1)"');
+ topoint 
+---------
+ (1,1)
+(1 row)
+
+SELECT '(1,1)'::point::gtype;
+ gtype 
+-------
+ (1,1)
+(1 row)
+
+select * FROM cypher('geometric', $$
+    RETURN 'POINT(1 1)'::geometry
+$$) AS (c point);
+   c   
+-------
+ (1,1)
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN '(1,1)'::point $$) AS r(c gtype);
+   c   
+-------
+ (1,1)
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN '(1,1)'::point $$) AS r(c point);
+   c   
+-------
+ (1,1)
+(1 row)
+
+--
+-- Lseg
+--
+SELECT tolseg('"(1,1), (2,2)"');
+    tolseg     
+---------------
+ [(1,1),(2,2)]
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN tolseg('(1,1), (2,2)') $$) AS r(c gtype);
+       c       
+---------------
+ [(1,1),(2,2)]
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::lseg $$) AS r(c gtype);
+       c       
+---------------
+ [(1,1),(2,2)]
+(1 row)
+
+--
+-- Line
+--
+SELECT toline('"{1,1,2}"');
+ toline  
+---------
+ {1,1,2}
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN '{1,1,2}'::line $$) AS r(c gtype);
+    c    
+---------
+ {1,1,2}
+(1 row)
+
+--
+-- Path
+--
+SELECT topath('"[(1,1), (2,2)]"');
+    topath     
+---------------
+ [(1,1),(2,2)]
+(1 row)
+
+SELECT topath('"((1,1), (2,2))"');
+    topath     
+---------------
+ ((1,1),(2,2))
+(1 row)
+
+SELECT '[(1,1), (2,2)]'::path::gtype;
+        gtype         
+----------------------
+ (4.243991677e-314,0)
+(1 row)
+
+SELECT topath('"((1,1), (2,2))"')::path;
+    topath     
+---------------
+ ((1,1),(2,2))
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN '[(1,1), (2,2)]'::path $$) AS r(c gtype);
+       c       
+---------------
+ [(1,1),(2,2)]
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN '[(1,1), (2,2)]'::path $$) AS r(c path);
+       c       
+---------------
+ [(1,1),(2,2)]
+(1 row)
+
+--
+-- Polygon
+--
+SELECT topolygon('"(1,1), (2,2), (3, 3), (4, 4)"');
+         topolygon         
+---------------------------
+ ((1,1),(2,2),(3,3),(4,4))
+(1 row)
+
+SELECT topolygon('"(1,1), (2,2), (3, 3), (4, 4)"')::polygon;
+         topolygon         
+---------------------------
+ ((1,1),(2,2),(3,3),(4,4))
+(1 row)
+
+SELECT '(1,1), (2,2), (3, 3), (4, 4)'::polygon::gtype;
+           gtype           
+---------------------------
+ ((1,1),(2,2),(3,3),(4,4))
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2), (3, 3), (4, 4)'::polygon $$) AS r(c gtype);
+             c             
+---------------------------
+ ((1,1),(2,2),(3,3),(4,4))
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2), (3, 3), (4, 4)'::polygon $$) AS r(c polygon);
+             c             
+---------------------------
+ ((1,1),(2,2),(3,3),(4,4))
+(1 row)
+
+--
+-- Circle
+--
+SELECT tocircle('"(1,1), 3"');
+ tocircle  
+-----------
+ <(1,1),3>
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN tocircle('(1,1), 3') $$) AS r(c gtype);
+     c     
+-----------
+ <(1,1),3>
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN '(1,1), 3'::circle $$) AS r(c gtype);
+     c     
+-----------
+ <(1,1),3>
+(1 row)
+
+SELECT tobox('"(1,1), (2,2)"');
+    tobox    
+-------------
+ (2,2),(1,1)
+(1 row)
+
+SELECT tobox('"(1,1), (2,2)"')::box;
+    tobox    
+-------------
+ (2,2),(1,1)
+(1 row)
+
+SELECT '(1,1), (2,2)'::box::gtype;
+    gtype    
+-------------
+ (2,2),(1,1)
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::box $$) AS r(c gtype);
+      c      
+-------------
+ (2,2),(1,1)
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::box $$) AS r(c box);
+      c      
+-------------
+ (2,2),(1,1)
+(1 row)
+
+--
+-- Clean Up
+--
+SELECT * FROM drop_graph('geometric', true);
+NOTICE:  drop cascades to 2 other objects
+DETAIL:  drop cascades to table geometric._ag_label_vertex
+drop cascades to table geometric._ag_label_edge
+NOTICE:  graph "geometric" has been dropped
+ drop_graph 
+------------
+ 
+(1 row)
+
