@@ -919,6 +919,21 @@ SELECT * FROM cypher('tsearch', $$ RETURN '2'::tsquery & '1'::tsquery $$) as (a 
 (1 row)
 
 --
+-- TSQuery_Phrase
+--
+SELECT * FROM cypher('tsearch', $$ RETURN tsquery_phrase('fat'::tsquery,'cat'::tsquery) $$) as (a gtype);
+        a        
+-----------------
+ 'fat' <-> 'cat'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN tsquery_phrase('fat'::tsquery,'cat'::tsquery, 10) $$) as (a gtype);
+        a         
+------------------
+ 'fat' <10> 'cat'
+(1 row)
+
+--
 -- Cleanup
 --
 SELECT drop_graph('tsearch', true);

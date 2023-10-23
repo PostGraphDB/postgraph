@@ -67,3 +67,27 @@ Datum gtype_ts_strip(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(gtype_tsquery_phrase);
+Datum gtype_tsquery_phrase(PG_FUNCTION_ARGS) {
+    TSQuery tsquery = DatumGetPointer(DirectFunctionCall3(tsquery_phrase_distance,
+                                                            GT_ARG_TO_TSQUERY_DATUM(0),
+                                                            GT_ARG_TO_TSQUERY_DATUM(1),
+							    Int32GetDatum(1)));
+
+    gtype_value gtv = { .type = AGTV_TSQUERY, .val.tsvector = tsquery };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+PG_FUNCTION_INFO_V1(gtype_tsquery_phrase_distance);
+Datum gtype_tsquery_phrase_distance(PG_FUNCTION_ARGS) {
+    TSQuery tsquery = DatumGetPointer(DirectFunctionCall3(tsquery_phrase_distance,
+                                                            GT_ARG_TO_TSQUERY_DATUM(0),
+                                                            GT_ARG_TO_TSQUERY_DATUM(1),
+                                                            GT_ARG_TO_INT4_DATUM(2)));
+
+    gtype_value gtv = { .type = AGTV_TSQUERY, .val.tsvector = tsquery };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
