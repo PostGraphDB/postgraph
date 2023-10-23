@@ -35,6 +35,7 @@
 #include "utils/numeric.h"
 
 #include "utils/gtype.h"
+#include "utils/gtype_typecasting.h"
 #include "utils/vector.h"
 
 #define STATE_DIMS(x) (ARR_DIMS(x)[0] - 1)
@@ -285,6 +286,18 @@ PG_FUNCTION_INFO_V1(l2_distance);
 Datum l2_distance(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+
+    if (GT_IS_TSQUERY(lhs) || GT_IS_TSQUERY(rhs)) {
+        TSQuery tsquery = DatumGetPointer(DirectFunctionCall3(tsquery_phrase_distance,
+                                                                GT_TO_TSQUERY_DATUM(lhs),
+                                                                GT_TO_TSQUERY_DATUM(rhs),
+                                                                Int32GetDatum(1)));
+
+        gtype_value gtv = { .type = AGTV_TSQUERY, .val.tsvector = tsquery };
+
+        AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+
+    }
 
     if (!GT_IS_VECTOR(lhs) || !GT_IS_VECTOR(rhs))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),

@@ -919,9 +919,15 @@ SELECT * FROM cypher('tsearch', $$ RETURN '2'::tsquery & '1'::tsquery $$) as (a 
 (1 row)
 
 --
--- TSQuery_Phrase
+-- TSQuery_Phrase and <-> Operator
 --
 SELECT * FROM cypher('tsearch', $$ RETURN tsquery_phrase('fat'::tsquery,'cat'::tsquery) $$) as (a gtype);
+        a        
+-----------------
+ 'fat' <-> 'cat'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN 'fat'::tsquery <-> 'cat'::tsquery $$) as (a gtype);
         a        
 -----------------
  'fat' <-> 'cat'

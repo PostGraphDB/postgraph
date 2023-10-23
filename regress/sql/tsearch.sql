@@ -232,10 +232,13 @@ SELECT * FROM cypher('tsearch', $$ RETURN '1'::tsquery & '2'::tsquery $$) as (a 
 SELECT * FROM cypher('tsearch', $$ RETURN '2'::tsquery & '1'::tsquery $$) as (a gtype);
 
 --
--- TSQuery_Phrase
+-- TSQuery_Phrase and <-> Operator
 --
 SELECT * FROM cypher('tsearch', $$ RETURN tsquery_phrase('fat'::tsquery,'cat'::tsquery) $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN 'fat'::tsquery <-> 'cat'::tsquery $$) as (a gtype);
 SELECT * FROM cypher('tsearch', $$ RETURN tsquery_phrase('fat'::tsquery,'cat'::tsquery, 10) $$) as (a gtype);
+
+
 
 --
 -- Cleanup
