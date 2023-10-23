@@ -940,6 +940,36 @@ SELECT * FROM cypher('tsearch', $$ RETURN tsquery_phrase('fat'::tsquery,'cat'::t
 (1 row)
 
 --
+-- TSQuery @> TSQuery
+--
+SELECT * FROM cypher('tsearch', $$ RETURN 'cat & rat'::tsquery @> 'rat'::tsquery $$) as (a gtype);
+  a   
+------
+ true
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN 'cat'::tsquery @> 'cat & rat'::tsquery $$) as (a gtype);
+   a   
+-------
+ false
+(1 row)
+
+--
+-- TSQuery <@ TSQuery
+--
+SELECT * FROM cypher('tsearch', $$ RETURN 'cat & rat'::tsquery <@ 'rat'::tsquery $$) as (a gtype);
+   a   
+-------
+ false
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN 'cat'::tsquery <@ 'cat & rat'::tsquery $$) as (a gtype);
+  a   
+------
+ true
+(1 row)
+
+--
 -- Cleanup
 --
 SELECT drop_graph('tsearch', true);

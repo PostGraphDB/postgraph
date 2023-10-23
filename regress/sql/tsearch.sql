@@ -238,8 +238,17 @@ SELECT * FROM cypher('tsearch', $$ RETURN tsquery_phrase('fat'::tsquery,'cat'::t
 SELECT * FROM cypher('tsearch', $$ RETURN 'fat'::tsquery <-> 'cat'::tsquery $$) as (a gtype);
 SELECT * FROM cypher('tsearch', $$ RETURN tsquery_phrase('fat'::tsquery,'cat'::tsquery, 10) $$) as (a gtype);
 
+--
+-- TSQuery @> TSQuery
+--
+SELECT * FROM cypher('tsearch', $$ RETURN 'cat & rat'::tsquery @> 'rat'::tsquery $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN 'cat'::tsquery @> 'cat & rat'::tsquery $$) as (a gtype);
 
-
+--
+-- TSQuery <@ TSQuery
+--
+SELECT * FROM cypher('tsearch', $$ RETURN 'cat & rat'::tsquery <@ 'rat'::tsquery $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN 'cat'::tsquery <@ 'cat & rat'::tsquery $$) as (a gtype);
 --
 -- Cleanup
 --

@@ -753,8 +753,19 @@ PG_FUNCTION_INFO_V1(gtype_contains);
  * contained at the top level within the left gtype value
  */
 Datum gtype_contains(PG_FUNCTION_ARGS) {
-    gtype_iterator *constraint_it = gtype_iterator_init(&(AG_GET_ARG_GTYPE_P(1)->root));
-    gtype_iterator *property_it = gtype_iterator_init(&(AG_GET_ARG_GTYPE_P(0)->root));
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+
+    if (GT_IS_TSQUERY(lhs) || GT_IS_TSQUERY(rhs)) {
+        bool boolean = DatumGetBool(DirectFunctionCall2(tsq_mcontains,
+                                                        GT_TO_TSQUERY_DATUM(lhs),
+                                                        GT_TO_TSQUERY_DATUM(rhs)));
+
+	PG_RETURN_BOOL(boolean);
+    }
+
+    gtype_iterator *constraint_it = gtype_iterator_init(&(rhs->root));
+    gtype_iterator *property_it = gtype_iterator_init(&(lhs->root));
 
     PG_RETURN_BOOL(gtype_deep_contains(&property_it, &constraint_it));
 }
@@ -766,8 +777,19 @@ PG_FUNCTION_INFO_V1(gtype_contained_by);
  * contained at the top level within the right gtype value
  */
 Datum gtype_contained_by(PG_FUNCTION_ARGS) {
-    gtype_iterator *constraint_it = gtype_iterator_init(&(AG_GET_ARG_GTYPE_P(1)->root));
-    gtype_iterator *property_it = gtype_iterator_init(&(AG_GET_ARG_GTYPE_P(0)->root));
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+
+    if (GT_IS_TSQUERY(lhs) || GT_IS_TSQUERY(rhs)) {
+        bool boolean = DatumGetBool(DirectFunctionCall2(tsq_mcontains,
+                                                        GT_TO_TSQUERY_DATUM(rhs),
+                                                        GT_TO_TSQUERY_DATUM(lhs)));
+
+        PG_RETURN_BOOL(boolean);
+    }
+
+    gtype_iterator *constraint_it = gtype_iterator_init(&(rhs->root));
+    gtype_iterator *property_it = gtype_iterator_init(&(lhs->root));
 
     PG_RETURN_BOOL(gtype_deep_contains(&constraint_it, &property_it));
 }
