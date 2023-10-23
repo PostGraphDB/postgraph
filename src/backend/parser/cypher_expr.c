@@ -758,6 +758,8 @@ transform_cypher_typecast(cypher_parsestate *cpstate, cypher_typecast *ctypecast
         fname = lappend(fname, makeString("topath"));
     else if (pg_strcasecmp(ctypecast->typecast, "polygon") == 0)
         fname = lappend(fname, makeString("topolygon"));
+    else if (pg_strcasecmp(ctypecast->typecast, "circle") == 0)
+        fname = lappend(fname, makeString("tocircle"));
     else if (pg_strcasecmp(ctypecast->typecast, "box") == 0)
         fname = lappend(fname, makeString("tobox"));
     else if (pg_strcasecmp(ctypecast->typecast, "box2d") == 0)

@@ -66,6 +66,9 @@ SELECT * FROM cypher('expr', $$RETURN '(1,1), (2,2), (3, 3), (4, 4)'::polygon $$
 
 
 SELECT tocircle('"(1,1), 3"');
+SELECT * FROM cypher('expr', $$RETURN tocircle('(1,1), 3') $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$RETURN '(1,1), 3'::circle $$) AS r(c gtype);
+
 
 SELECT tobox('"(1,1), (2,2)"');
 SELECT tobox('"(1,1), (2,2)"')::box;
