@@ -97,6 +97,12 @@ SELECT toline('"{1,1,2}"');
  {1,1,2}
 (1 row)
 
+SELECT * FROM cypher('expr', $$RETURN '{1,1,2}'::line $$) AS r(c gtype);
+    c    
+---------
+ {1,1,2}
+(1 row)
+
 SELECT topath('"[(1,1), (2,2)]"');
     topath     
 ---------------

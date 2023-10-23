@@ -750,6 +750,8 @@ transform_cypher_typecast(cypher_parsestate *cpstate, cypher_typecast *ctypecast
         fname = lappend(fname, makeString("tomacaddr8"));
     else if (pg_strcasecmp(ctypecast->typecast, "point") == 0)
         fname = lappend(fname, makeString("topoint"));
+    else if (pg_strcasecmp(ctypecast->typecast, "line") == 0)
+        fname = lappend(fname, makeString("toline"));
     else if (pg_strcasecmp(ctypecast->typecast, "path") == 0)
         fname = lappend(fname, makeString("topath"));
     else if (pg_strcasecmp(ctypecast->typecast, "polygon") == 0)
