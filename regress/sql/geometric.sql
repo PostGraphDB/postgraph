@@ -96,6 +96,12 @@ SELECT * FROM cypher('geometric', $$RETURN '(1,1)'::point + '(1,1)'::point $$) A
 SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::box + '(1,1)'::point $$) AS r(c gtype);
 
 --
+-- Path + Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '[(1,1), (2,2)]'::path + '(1,1)'::point $$) AS r(c gtype);
+
+
+--
 -- Clean Up
 --
 SELECT * FROM drop_graph('geometric', true);

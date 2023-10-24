@@ -248,6 +248,8 @@ Datum gtype_add(PG_FUNCTION_ARGS)
             agtv_result.val.point = DatumGetPointP(DirectFunctionCall2(point_add, PointPGetDatum(agtv_lhs->val.point), point)); 
 	} else if (agtv_lhs->type == AGTV_BOX) {
             agtv_result.val.box = DatumGetBoxP(DirectFunctionCall2(box_add, BoxPGetDatum(agtv_lhs->val.box), point));    
+        } else if (agtv_lhs->type == AGTV_PATH) {
+            agtv_result.val.path = DatumGetPathP(DirectFunctionCall2(path_add_pt, PathPGetDatum(agtv_lhs->val.path), point));
         } else { 
             ereport_op_str("+", lhs, rhs);
         }
