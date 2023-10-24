@@ -245,7 +245,9 @@ Datum gtype_add(PG_FUNCTION_ARGS)
         Datum point = PointPGetDatum(agtv_rhs->val.point);
         agtv_result.type = agtv_lhs->type;
 	if (agtv_lhs->type == AGTV_POINT) {
-            agtv_result.val.point = DatumGetPointP(DirectFunctionCall2(point_add, PointPGetDatum(agtv_lhs->val.point), point));     
+            agtv_result.val.point = DatumGetPointP(DirectFunctionCall2(point_add, PointPGetDatum(agtv_lhs->val.point), point)); 
+	} else if (agtv_lhs->type == AGTV_BOX) {
+            agtv_result.val.box = DatumGetBoxP(DirectFunctionCall2(box_add, BoxPGetDatum(agtv_lhs->val.box), point));    
         } else { 
             ereport_op_str("+", lhs, rhs);
         }

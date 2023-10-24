@@ -71,7 +71,9 @@ SELECT tocircle('"(1,1), 3"');
 SELECT * FROM cypher('geometric', $$RETURN tocircle('(1,1), 3') $$) AS r(c gtype);
 SELECT * FROM cypher('geometric', $$RETURN '(1,1), 3'::circle $$) AS r(c gtype);
 
-
+--
+-- Box
+--
 SELECT tobox('"(1,1), (2,2)"');
 SELECT tobox('"(1,1), (2,2)"')::box;
 SELECT '(1,1), (2,2)'::box::gtype;
@@ -88,6 +90,10 @@ SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::box $$) AS r(c box);
 --
 SELECT * FROM cypher('geometric', $$RETURN '(1,1)'::point + '(1,1)'::point $$) AS r(c gtype);
 
+--
+-- Box + Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::box + '(1,1)'::point $$) AS r(c gtype);
 
 --
 -- Clean Up
