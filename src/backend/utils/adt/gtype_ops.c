@@ -477,6 +477,20 @@ Datum gtype_mul(PG_FUNCTION_ARGS)
        agtv_result.val.interval.time = interval->time;
        agtv_result.val.interval.day = interval->day;
        agtv_result.val.interval.month = interval->month;
+    } else if (agtv_rhs->type == AGTV_POINT) {
+        Datum point = PointPGetDatum(agtv_rhs->val.point);
+        agtv_result.type = agtv_lhs->type;
+        if (agtv_lhs->type == AGTV_POINT) {
+            agtv_result.val.point = DatumGetPointP(DirectFunctionCall2(point_mul, PointPGetDatum(agtv_lhs->val.point), point));
+        } else if (agtv_lhs->type == AGTV_BOX) {
+            agtv_result.val.box = DatumGetBoxP(DirectFunctionCall2(box_mul, BoxPGetDatum(agtv_lhs->val.box), point));
+        } else if (agtv_lhs->type == AGTV_PATH) {
+            agtv_result.val.path = DatumGetPathP(DirectFunctionCall2(path_mul_pt, PathPGetDatum(agtv_lhs->val.path), point));
+        } else if (agtv_lhs->type == AGTV_CIRCLE) {
+            agtv_result.val.circle = DatumGetCircleP(DirectFunctionCall2(circle_mul_pt, CirclePGetDatum(agtv_lhs->val.circle), point));
+        } else {
+            ereport_op_str("*", lhs, rhs);
+        }
     } else if (agtv_lhs->type == AGTV_INTERVAL && agtv_rhs->type == AGTV_INTEGER) {
         agtv_result.type = AGTV_INTERVAL;
         Interval *interval = DatumGetIntervalP(DirectFunctionCall2(interval_mul,
@@ -557,6 +571,20 @@ Datum gtype_div(PG_FUNCTION_ARGS)
 
         agtv_result.type = AGTV_NUMERIC;
         agtv_result.val.numeric = DatumGetNumeric(numd);
+    } else if (agtv_rhs->type == AGTV_POINT) {
+        Datum point = PointPGetDatum(agtv_rhs->val.point);
+        agtv_result.type = agtv_lhs->type;
+        if (agtv_lhs->type == AGTV_POINT) {
+            agtv_result.val.point = DatumGetPointP(DirectFunctionCall2(point_div, PointPGetDatum(agtv_lhs->val.point), point));
+        } else if (agtv_lhs->type == AGTV_BOX) {
+            agtv_result.val.box = DatumGetBoxP(DirectFunctionCall2(box_div, BoxPGetDatum(agtv_lhs->val.box), point));
+        } else if (agtv_lhs->type == AGTV_PATH) {
+            agtv_result.val.path = DatumGetPathP(DirectFunctionCall2(path_div_pt, PathPGetDatum(agtv_lhs->val.path), point));
+        } else if (agtv_lhs->type == AGTV_CIRCLE) {
+            agtv_result.val.circle = DatumGetCircleP(DirectFunctionCall2(circle_div_pt, CirclePGetDatum(agtv_lhs->val.circle), point));
+        } else {
+            ereport_op_str("/", lhs, rhs);
+        }
     } else if (agtv_lhs->type == AGTV_INTERVAL && agtv_rhs->type == AGTV_FLOAT) {
         agtv_result.type = AGTV_INTERVAL;
         Interval *interval = DatumGetIntervalP(DirectFunctionCall2(interval_div,

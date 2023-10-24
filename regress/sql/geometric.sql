@@ -131,6 +131,54 @@ SELECT * FROM cypher('geometric', $$RETURN '[(1,1), (2,2)]'::path - '(1,1)'::poi
 SELECT * FROM cypher('geometric', $$RETURN '(1,1), 3'::circle - '(1,1)'::point $$) AS r(c gtype);
 
 
+--
+-- Geometric / Point
+--
+
+--
+-- Point / Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '(4,4)'::point / '(2,2)'::point $$) AS r(c gtype);
+
+--
+-- Box / Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '(4,4), (2,2)'::box / '(2,2)'::point $$) AS r(c gtype);
+
+--
+-- Path / Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '[(4,4), (2,2)]'::path / '(2,2)'::point $$) AS r(c gtype);
+
+--
+-- Circle / Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '(4,4), 3'::circle / '(2, 2)'::point $$) AS r(c gtype);
+
+--
+-- Geometric * Point
+--
+
+--
+-- Point * Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '(4,4)'::point * '(2,2)'::point $$) AS r(c gtype);
+
+--
+-- Box * Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '(4,4), (2,2)'::box * '(2,2)'::point $$) AS r(c gtype);
+
+--
+-- Path * Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '[(4,4), (2,2)]'::path * '(2,2)'::point $$) AS r(c gtype);
+
+--
+-- Circle * Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '(4,4), 3'::circle * '(2, 2)'::point $$) AS r(c gtype);
+
 
 --
 -- Clean Up

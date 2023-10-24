@@ -300,6 +300,84 @@ SELECT * FROM cypher('geometric', $$RETURN '(1,1), 3'::circle - '(1,1)'::point $
 (1 row)
 
 --
+-- Geometric / Point
+--
+--
+-- Point / Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '(4,4)'::point / '(2,2)'::point $$) AS r(c gtype);
+   c   
+-------
+ (2,0)
+(1 row)
+
+--
+-- Box / Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '(4,4), (2,2)'::box / '(2,2)'::point $$) AS r(c gtype);
+      c      
+-------------
+ (2,0),(1,0)
+(1 row)
+
+--
+-- Path / Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '[(4,4), (2,2)]'::path / '(2,2)'::point $$) AS r(c gtype);
+       c       
+---------------
+ [(2,0),(1,0)]
+(1 row)
+
+--
+-- Circle / Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '(4,4), 3'::circle / '(2, 2)'::point $$) AS r(c gtype);
+             c              
+----------------------------
+ <(2,0),1.0606601717798212>
+(1 row)
+
+--
+-- Geometric * Point
+--
+--
+-- Point * Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '(4,4)'::point * '(2,2)'::point $$) AS r(c gtype);
+   c    
+--------
+ (0,16)
+(1 row)
+
+--
+-- Box * Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '(4,4), (2,2)'::box * '(2,2)'::point $$) AS r(c gtype);
+      c       
+--------------
+ (0,16),(0,8)
+(1 row)
+
+--
+-- Path * Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '[(4,4), (2,2)]'::path * '(2,2)'::point $$) AS r(c gtype);
+       c        
+----------------
+ [(0,16),(0,8)]
+(1 row)
+
+--
+-- Circle * Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '(4,4), 3'::circle * '(2, 2)'::point $$) AS r(c gtype);
+             c              
+----------------------------
+ <(0,16),8.485281374238571>
+(1 row)
+
+--
 -- Clean Up
 --
 SELECT * FROM drop_graph('geometric', true);
