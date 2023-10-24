@@ -250,6 +250,8 @@ Datum gtype_add(PG_FUNCTION_ARGS)
             agtv_result.val.box = DatumGetBoxP(DirectFunctionCall2(box_add, BoxPGetDatum(agtv_lhs->val.box), point));    
         } else if (agtv_lhs->type == AGTV_PATH) {
             agtv_result.val.path = DatumGetPathP(DirectFunctionCall2(path_add_pt, PathPGetDatum(agtv_lhs->val.path), point));
+        } else if (agtv_lhs->type == AGTV_CIRCLE) {
+            agtv_result.val.circle = DatumGetCircleP(DirectFunctionCall2(circle_add_pt, CirclePGetDatum(agtv_lhs->val.circle), point));
         } else { 
             ereport_op_str("+", lhs, rhs);
         }

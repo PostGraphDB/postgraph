@@ -100,6 +100,10 @@ SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::box + '(1,1)'::point 
 --
 SELECT * FROM cypher('geometric', $$RETURN '[(1,1), (2,2)]'::path + '(1,1)'::point $$) AS r(c gtype);
 
+--
+-- Circle + Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '(1,1), 3'::circle + '(1,1)'::point $$) AS r(c gtype);
 
 --
 -- Clean Up
