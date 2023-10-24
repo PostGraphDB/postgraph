@@ -23,12 +23,15 @@ cd postgraph
 make
 sudo make install
 ```
-You should also set the following in `postgresql.conf` depending on the version of PostGIS you have installed (below we use PostGIS 3):
+
+Once PostGraph is installed, it needs to be enabled in each database you want to use it in. In the example below we use a database named `postgraph`.
 ```bash
-shared_preload_libraries = 'postgis-3'
+createdb postgraph
+psql postgraph -c "CREATE EXTENSION PostGIS"
+psql postgraph -c "CREATE EXTENSION PostGraph"
 ```
 
-Notice that you can find the location of the `postgresql.conf` file as given next:
+You can find the location of the `postgresql.conf` file as given next:
 ```bash
 $ which postgres
 /usr/local/pgsql/bin/postgres
@@ -37,11 +40,9 @@ $ ls /usr/local/pgsql/data/postgresql.conf
 ```
 As can be seen, the PostgreSQL binaries are in the `bin` subdirectory while the `postgresql.conf` file is in the `data` subdirectory.
 
-Once PostGraph is installed, it needs to be enabled in each database you want to use it in. In the example below we use a database named `postgraph`.
+Set the following in `postgresql.conf` depending on the version of PostGraph and it's dependecy PostGIS:
 ```bash
-createdb postgraph
-psql postgraph -c "CREATE EXTENSION PostGIS"
-psql postgraph -c "CREATE EXTENSION PostGraph"
+shared_preload_libraries = 'postgis-3', 'postgraph'
 ```
 
 POSTGIS Dependencies:
