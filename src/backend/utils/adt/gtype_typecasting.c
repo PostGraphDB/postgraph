@@ -556,8 +556,7 @@ Datum gtype_tolseg(PG_FUNCTION_ARGS)
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    LSEG *lseg = DatumGetPointer(DirectFunctionCall1(lseg_in,
-                                                  convert_to_scalar(gtype_to_string_internal, agt, "string")));
+    LSEG *lseg = DatumGetPointer(convert_to_scalar(gtype_to_lseg_internal, agt, "lseg"));
 
     gtype_value gtv;
     gtv.type = AGTV_LSEG;
@@ -2086,6 +2085,21 @@ gtype_to_point_internal(gtype_value *gtv) {
     // unreachable
     return CStringGetDatum("");
 }
+
+
+Datum
+gtype_to_lseg_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_LSEG) {
+        return PointerGetDatum(gtv->val.lseg);
+    } else if (gtv->type == AGTV_STRING){
+        return DirectFunctionCall1(lseg_in, CStringGetDatum(gtv->val.string.val));
+    }  else
+        cannot_cast_gtype_value(gtv->type, "LSeg");
+
+    // unreachable
+    return CStringGetDatum("");
+}
+
 
 PG_FUNCTION_INFO_V1(geometry_to_path);
 

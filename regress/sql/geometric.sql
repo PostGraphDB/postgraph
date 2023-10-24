@@ -187,6 +187,13 @@ SELECT * FROM cypher('geometric', $$RETURN '(4,4), (2,2)'::box # '(10,10), (5,5)
 SELECT * FROM cypher('geometric', $$RETURN '(4,4), (2,2)'::box # '(5, 5), (5,5)'::box $$) AS r(c gtype);
 
 --
+-- LSeg # LSeg
+--
+SELECT * FROM cypher('geometric', $$RETURN '(0,0), (1,1)'::lseg # '(1,0), (0,1)'::lseg $$) AS r(c gtype);
+SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::lseg # '(1,1), (2,2)'::lseg $$) AS r(c gtype);
+
+
+--
 -- Clean Up
 --
 SELECT * FROM drop_graph('geometric', true);

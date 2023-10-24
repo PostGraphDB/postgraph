@@ -399,6 +399,21 @@ SELECT * FROM cypher('geometric', $$RETURN '(4,4), (2,2)'::box # '(5, 5), (5,5)'
 (1 row)
 
 --
+-- LSeg # LSeg
+--
+SELECT * FROM cypher('geometric', $$RETURN '(0,0), (1,1)'::lseg # '(1,0), (0,1)'::lseg $$) AS r(c gtype);
+     c     
+-----------
+ (0.5,0.5)
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::lseg # '(1,1), (2,2)'::lseg $$) AS r(c gtype);
+ c 
+---
+ 
+(1 row)
+
+--
 -- Clean Up
 --
 SELECT * FROM drop_graph('geometric', true);
