@@ -28,6 +28,16 @@ AS 'MODULE_PATHNAME', 'gtype_intersection_point';
 
 CREATE OPERATOR # (FUNCTION = intersection_point, LEFTARG = gtype, RIGHTARG = gtype);
 
+CREATE FUNCTION gtype_vertical(gtype)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_vertical';
+
+CREATE OPERATOR ?| (FUNCTION = gtype_vertical, RIGHTARG = gtype);
+
 --
 -- Geometric Functions
 --
