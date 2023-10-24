@@ -179,6 +179,12 @@ SELECT * FROM cypher('geometric', $$RETURN '[(4,4), (2,2)]'::path * '(2,2)'::poi
 --
 SELECT * FROM cypher('geometric', $$RETURN '(4,4), 3'::circle * '(2, 2)'::point $$) AS r(c gtype);
 
+--
+-- Box # Box
+--
+SELECT * FROM cypher('geometric', $$RETURN '(2,2), (-1,-1)'::box # '(1, 1), (-2, -2)'::box $$) AS r(c gtype);
+SELECT * FROM cypher('geometric', $$RETURN '(4,4), (2,2)'::box # '(10,10), (5,5)'::box $$) AS r(c gtype);
+SELECT * FROM cypher('geometric', $$RETURN '(4,4), (2,2)'::box # '(5, 5), (5,5)'::box $$) AS r(c gtype);
 
 --
 -- Clean Up

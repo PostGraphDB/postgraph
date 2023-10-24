@@ -69,6 +69,8 @@ Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
     convert_to_scalar(gtype_to_macaddr_internal, (arg), "mac")
 #define GT_TO_MAC8_DATUM(arg) \
     convert_to_scalar(gtype_to_macaddr8_internal, (arg), "mac8")
+#define GT_TO_BOX_DATUM(arg) \
+    convert_to_scalar(gtype_to_box_internal, (arg), "box")
 #define GT_TO_TSVECTOR_DATUM(arg) \
     convert_to_scalar(gtype_to_tsvector_internal, (arg), "tsvector")
 #define GT_TO_TSQUERY_DATUM(arg) \

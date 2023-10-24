@@ -378,6 +378,27 @@ SELECT * FROM cypher('geometric', $$RETURN '(4,4), 3'::circle * '(2, 2)'::point 
 (1 row)
 
 --
+-- Box # Box
+--
+SELECT * FROM cypher('geometric', $$RETURN '(2,2), (-1,-1)'::box # '(1, 1), (-2, -2)'::box $$) AS r(c gtype);
+       c       
+---------------
+ (1,1),(-1,-1)
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN '(4,4), (2,2)'::box # '(10,10), (5,5)'::box $$) AS r(c gtype);
+ c 
+---
+ 
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN '(4,4), (2,2)'::box # '(5, 5), (5,5)'::box $$) AS r(c gtype);
+ c 
+---
+ 
+(1 row)
+
+--
 -- Clean Up
 --
 SELECT * FROM drop_graph('geometric', true);
