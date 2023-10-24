@@ -31,6 +31,14 @@ CREATE OPERATOR # (FUNCTION = intersection_point, LEFTARG = gtype, RIGHTARG = gt
 --
 -- Geometric Functions
 --
+CREATE FUNCTION height(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_height';
+
 CREATE FUNCTION bound_box(gtype, gtype)
 RETURNS gtype
 LANGUAGE c

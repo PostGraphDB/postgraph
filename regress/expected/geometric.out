@@ -459,6 +459,27 @@ SELECT * FROM cypher('geometric', $$RETURN bound_box('(4,4), (2,2)'::box, '(5, 5
 (1 row)
 
 --
+-- Height
+--
+SELECT * FROM cypher('geometric', $$RETURN height('(1,1), (0, 0)'::box) $$) AS r(c gtype);
+  c  
+-----
+ 1.0
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN height('(2,2), (-1,-1)'::box) $$) AS r(c gtype);
+  c  
+-----
+ 3.0
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN height('(4,4), (2,2)'::box) $$) AS r(c gtype);
+  c  
+-----
+ 2.0
+(1 row)
+
+--
 -- Clean Up
 --
 SELECT * FROM drop_graph('geometric', true);
