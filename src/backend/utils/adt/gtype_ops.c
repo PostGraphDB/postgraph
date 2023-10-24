@@ -893,6 +893,11 @@ Datum gtype_exists_any(PG_FUNCTION_ARGS)
     gtype *keys = AG_GET_ARG_GTYPE_P(1);
     gtype_value agtv_elem;
 
+    if (GT_IS_POINT(agt) || GT_IS_POINT(agt)) {
+        Datum d = DirectFunctionCall2(point_vert, GT_TO_POINT_DATUM(agt), GT_TO_POINT_DATUM(keys));
+
+        PG_RETURN_BOOL(DatumGetBool(d));
+    }
     if (!AGT_ROOT_IS_ARRAY(keys) || AGT_ROOT_IS_SCALAR(keys))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("gtype ?| gtype rhs must be a list of strings")));

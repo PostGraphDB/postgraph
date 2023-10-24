@@ -104,6 +104,21 @@ gtype_intersection_point(PG_FUNCTION_ARGS) {
     PG_RETURN_NULL();
 }
 
+PG_FUNCTION_INFO_V1(gtype_vertical);
+Datum
+gtype_vertical(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d;
+    if (GT_IS_LSEG(gt))
+        d = DirectFunctionCall1(lseg_vertical, GT_TO_LSEG_DATUM(gt));
+    else
+        d = DirectFunctionCall1(line_vertical, GT_TO_LINE_DATUM(gt));
+
+    PG_RETURN_BOOL(DatumGetBool(d));
+}
+
+
 PG_FUNCTION_INFO_V1(gtype_bound_box);
 Datum
 gtype_bound_box(PG_FUNCTION_ARGS) {

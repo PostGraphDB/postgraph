@@ -381,6 +381,9 @@ typedef struct
 #define GTE_IS_VECTOR(agt) \
     ((((agt)->header & GT_FEXTENDED_COMPOSITE) != 0 ) && (((agt)->children[0] & GT_HEADER_VECTOR) != 0))
 
+#define GT_IS_POINT(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_POINT)
+
 #define GT_IS_LSEG(agt) \
     (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_LSEG)
 

@@ -377,7 +377,7 @@ transform_a_expr_op(cypher_parsestate *cpstate, A_Expr *a) {
 
     Node *last_srf = pstate->p_last_srf;
 
-    if (is_a_valid_operator(a->name) && IsA(a->lexpr, ColumnRef)) {
+    if (a->lexpr != NULL && is_a_valid_operator(a->name) && IsA(a->lexpr, ColumnRef)) {
         ColumnRef *cr = a->lexpr;
         ParseNamespaceItem *pnsi;
         Node *field1 = linitial(cr->fields);
