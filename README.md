@@ -55,7 +55,7 @@ gdal-devel
 ## Roadmap:
 
 Completed:
--   Support for the OpenCypher Query Language
+-   Support for the [OpenCypher Query Language](https://opencypher.org/)
 -   Vector Embeddings, powered by [pgVector](https://github.com/pgvector/pgvector)
 -   Support for Time data
 
