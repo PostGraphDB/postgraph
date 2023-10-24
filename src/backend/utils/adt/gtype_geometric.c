@@ -76,6 +76,16 @@ gtype_intersection_point(PG_FUNCTION_ARGS) {
 
         AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 
+    } else if (GT_IS_LINE(lhs) || GT_IS_LINE(rhs)) {
+        d = PostGraphDirectFunctionCall2(line_interpt, 100, &is_null, GT_TO_LINE_DATUM(lhs), GT_TO_LINE_DATUM(rhs));
+
+        if (is_null)
+            PG_RETURN_NULL();
+
+        gtype_value gtv = { .type = AGTV_POINT, .val.box=DatumGetPointP(d)};
+
+        AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+
     } else if (GT_IS_BOX(lhs) && GT_IS_BOX(rhs)) {
         d = PostGraphDirectFunctionCall2(box_intersect, 100, &is_null, GT_TO_BOX_DATUM(lhs), GT_TO_BOX_DATUM(rhs));
 

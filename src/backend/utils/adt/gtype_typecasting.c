@@ -597,8 +597,7 @@ Datum gtype_toline(PG_FUNCTION_ARGS)
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    LINE *line = DatumGetPointer(DirectFunctionCall1(line_in,
-                                                  convert_to_scalar(gtype_to_string_internal, agt, "string")));
+    LINE *line =  DatumGetPointer(convert_to_scalar(gtype_to_line_internal, agt, "line"));
 
     gtype_value gtv;
     gtv.type = AGTV_LINE;
@@ -2095,6 +2094,19 @@ gtype_to_lseg_internal(gtype_value *gtv) {
         return DirectFunctionCall1(lseg_in, CStringGetDatum(gtv->val.string.val));
     }  else
         cannot_cast_gtype_value(gtv->type, "LSeg");
+
+    // unreachable
+    return CStringGetDatum("");
+}
+
+Datum
+gtype_to_line_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_LINE) {
+        return PointerGetDatum(gtv->val.line);
+    } else if (gtv->type == AGTV_STRING){
+        return DirectFunctionCall1(line_in, CStringGetDatum(gtv->val.string.val));
+    }  else
+        cannot_cast_gtype_value(gtv->type, "Line");
 
     // unreachable
     return CStringGetDatum("");

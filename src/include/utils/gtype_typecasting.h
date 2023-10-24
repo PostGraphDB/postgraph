@@ -71,6 +71,8 @@ Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
     convert_to_scalar(gtype_to_macaddr8_internal, (arg), "mac8")
 #define GT_TO_LSEG_DATUM(arg) \
     convert_to_scalar(gtype_to_lseg_internal, (arg), "lseg")
+#define GT_TO_LINE_DATUM(arg) \
+    convert_to_scalar(gtype_to_line_internal, (arg), "line")
 #define GT_TO_BOX_DATUM(arg) \
     convert_to_scalar(gtype_to_box_internal, (arg), "box")
 #define GT_TO_TSVECTOR_DATUM(arg) \
@@ -103,6 +105,8 @@ Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
     convert_to_scalar(gtype_to_macaddr8_internal, AG_GET_ARG_GTYPE_P(arg), "mac8")
 #define GT_ARG_TO_LSEG_DATUM(arg) \
     convert_to_scalar(gtype_to_lseg_internal, AG_GET_ARG_GTYPE_P(arg), "lseg")
+#define GT_ARG_TO_LINE_DATUM(arg) \
+    convert_to_scalar(gtype_to_line_internal, AG_GET_ARG_GTYPE_P(arg), "line")
 #define GT_ARG_TO_TSVECTOR_DATUM(arg) \
     convert_to_scalar(gtype_to_tsvector_internal, AG_GET_ARG_GTYPE_P(arg), "tsvector")
 #define GT_ARG_TO_TSQUERY_DATUM(arg) \
@@ -140,6 +144,7 @@ Datum gtype_to_int_range_internal(gtype_value *gtv);
 Datum gtype_to_tsvector_internal(gtype_value *gtv);
 Datum gtype_to_tsquery_internal(gtype_value *gtv);
 Datum gtype_to_lseg_internal(gtype_value *gtv);
+Datum gtype_to_line_internal(gtype_value *gtv);
 
 Datum _gtype_toinet(Datum arg);
 

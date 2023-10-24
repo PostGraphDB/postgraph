@@ -384,6 +384,9 @@ typedef struct
 #define GT_IS_LSEG(agt) \
     (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_LSEG)
 
+#define GT_IS_LINE(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_LINE)
+
 #define GT_IS_BOX(agt) \
     (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_BOX)
 

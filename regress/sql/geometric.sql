@@ -192,6 +192,11 @@ SELECT * FROM cypher('geometric', $$RETURN '(4,4), (2,2)'::box # '(5, 5), (5,5)'
 SELECT * FROM cypher('geometric', $$RETURN '(0,0), (1,1)'::lseg # '(1,0), (0,1)'::lseg $$) AS r(c gtype);
 SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::lseg # '(1,1), (2,2)'::lseg $$) AS r(c gtype);
 
+--
+-- Line # Line
+--
+SELECT * FROM cypher('geometric', $$RETURN '(0,0), (1,1)'::line # '(1,0), (0,1)'::line $$) AS r(c gtype);
+SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::line # '(1,1), (2,2)'::line $$) AS r(c gtype);
 
 --
 -- Clean Up

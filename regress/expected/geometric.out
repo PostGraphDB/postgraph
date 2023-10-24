@@ -414,6 +414,21 @@ SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::lseg # '(1,1), (2,2)'
 (1 row)
 
 --
+-- Line # Line
+--
+SELECT * FROM cypher('geometric', $$RETURN '(0,0), (1,1)'::line # '(1,0), (0,1)'::line $$) AS r(c gtype);
+     c     
+-----------
+ (0.5,0.5)
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::line # '(1,1), (2,2)'::line $$) AS r(c gtype);
+ c 
+---
+ 
+(1 row)
+
+--
 -- Clean Up
 --
 SELECT * FROM drop_graph('geometric', true);
