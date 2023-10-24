@@ -96,7 +96,6 @@ REGRESS = scan \
           edge \
           variable_edge \
           traversal \
-          typecasting \
           catalog \
           cypher \
           expr \

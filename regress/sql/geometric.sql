@@ -78,6 +78,17 @@ SELECT '(1,1), (2,2)'::box::gtype;
 SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::box $$) AS r(c gtype);
 SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::box $$) AS r(c box);
 
+
+--
+-- Geometric + Point
+--
+
+--
+-- Point + Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '(1,1)'::point + '(1,1)'::point $$) AS r(c gtype);
+
+
 --
 -- Clean Up
 --

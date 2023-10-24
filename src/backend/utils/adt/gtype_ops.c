@@ -241,8 +241,15 @@ Datum gtype_add(PG_FUNCTION_ARGS)
         } else {
             ereport_op_str("+", lhs, rhs);
        }
-    }
-    else if (agtv_lhs->type == AGTV_INET && agtv_rhs->type == AGTV_INTEGER)
+    } else if (agtv_rhs->type == AGTV_POINT) {
+        Datum point = PointPGetDatum(agtv_rhs->val.point);
+        agtv_result.type = agtv_lhs->type;
+	if (agtv_lhs->type == AGTV_POINT) {
+            agtv_result.val.point = DatumGetPointP(DirectFunctionCall2(point_add, PointPGetDatum(agtv_lhs->val.point), point));     
+        } else { 
+            ereport_op_str("+", lhs, rhs);
+        }
+    } else if (agtv_lhs->type == AGTV_INET && agtv_rhs->type == AGTV_INTEGER)
     {
         agtv_result.type = AGTV_INET;
         inet *i = DatumGetInetPP(DirectFunctionCall2(inetpl, InetPGetDatum(&agtv_lhs->val.inet),

@@ -219,6 +219,18 @@ SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::box $$) AS r(c box);
 (1 row)
 
 --
+-- Geometric + Point
+--
+--
+-- Point + Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '(1,1)'::point + '(1,1)'::point $$) AS r(c gtype);
+   c   
+-------
+ (2,2)
+(1 row)
+
+--
 -- Clean Up
 --
 SELECT * FROM drop_graph('geometric', true);
