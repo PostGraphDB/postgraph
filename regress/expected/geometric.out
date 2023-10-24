@@ -429,6 +429,36 @@ SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::line # '(1,1), (2,2)'
 (1 row)
 
 --
+-- Geometric Functions
+--
+--
+-- Bound_Box
+--
+SELECT * FROM cypher('geometric', $$RETURN bound_box('(1,1), (0, 0)'::box, '(4, 4), (3, 3)'::box) $$) AS r(c gtype);
+      c      
+-------------
+ (4,4),(0,0)
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN bound_box('(2,2), (-1,-1)'::box, '(1, 1), (-2, -2)'::box) $$) AS r(c gtype);
+       c       
+---------------
+ (2,2),(-2,-2)
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN bound_box('(4,4), (2,2)'::box, '(10,10), (5,5)'::box) $$) AS r(c gtype);
+       c       
+---------------
+ (10,10),(2,2)
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN bound_box('(4,4), (2,2)'::box, '(5, 5), (5,5)'::box) $$) AS r(c gtype);
+      c      
+-------------
+ (5,5),(2,2)
+(1 row)
+
+--
 -- Clean Up
 --
 SELECT * FROM drop_graph('geometric', true);

@@ -27,3 +27,15 @@ PARALLEL SAFE
 AS 'MODULE_PATHNAME', 'gtype_intersection_point';
 
 CREATE OPERATOR # (FUNCTION = intersection_point, LEFTARG = gtype, RIGHTARG = gtype);
+
+--
+-- Geometric Functions
+--
+CREATE FUNCTION bound_box(gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_bound_box';
+

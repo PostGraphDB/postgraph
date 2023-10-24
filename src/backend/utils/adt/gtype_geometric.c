@@ -104,4 +104,20 @@ gtype_intersection_point(PG_FUNCTION_ARGS) {
     PG_RETURN_NULL();
 }
 
+PG_FUNCTION_INFO_V1(gtype_bound_box);
+Datum
+gtype_bound_box(PG_FUNCTION_ARGS) {
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+
+    bool is_null;
+    Datum d = PostGraphDirectFunctionCall2(boxes_bound_box, 100, &is_null, GT_TO_BOX_DATUM(lhs), GT_TO_BOX_DATUM(rhs));
+
+    if (is_null)
+        PG_RETURN_NULL();
+
+    gtype_value gtv = { .type = AGTV_BOX, .val.box=DatumGetBoxP(d)};
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
 
