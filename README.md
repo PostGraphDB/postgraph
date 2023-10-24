@@ -1,42 +1,48 @@
 # PostGraph
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/854cafdbd0394189bec10e8fdd17df7f)](https://app.codacy.com/gh/PostGraphDB/postgraph?utm_source=github.com&utm_medium=referral&utm_content=PostGraphDB/postgraph&utm_campaign=Badge_Grade)   <a href="https://github.com/PostGraphDB/PostGraph/blob/master/LICENSE"><img src="https://img.shields.io/github/license/PostGraphDB/PostGraph"/></a>   <a href="https://github.com/PostGraphDB/PostGraph/issues"><img src="https://img.shields.io/github/issues/PostGraphDB/PostGraph"/></a>   <a href="https://github.com/PostGraphDB/PostGraph/network/members"><img src="https://img.shields.io/github/forks/PostGraphDB/PostGraph"/></a>   <a href="https://github.com/PostGraphDB/PostGraph/stargazers"><img src="https://img.shields.io/github/stars/PostGraphDB/PostGraph"/></a>   <a href="https://discord.gg/KDTTx2vz2m"><img src="https://img.shields.io/discord/1036610864071053413.svg?label=discord&style=flat&color=5a66f6"></a>
 
-
+## Introduction
 [manual](https://postgraphdb.github.io/docs/intro)<br>
 PostGraph is the first Graph based Postgres extension to support Vector Embeddings. Query your database using a tradition graph query query language, use embeddings to infer relationships or combine the two along with relational data and spatial data powered by PostGIS. 
 
 Utilize Graph, Vector, and Relational models together to derive insights from your data in innovative powerful ways. Including the ability to use database normalization techniques from Relational Databases in your Graph Database.
-
-Roadmap:
-
-Completed:
--   Support for the OpenCypher Query Language
--   Vector Embeddings, powered by pgVector
--   Support for Time data
-
-In Progress:
--   Support For IVFFLAT Indices, Approximate K-Nearest Neighbors
--   Support for Geographic Information Systems, powered by [PostGIS](http://postgis.net/)
-
-Planned
--   Support For HNSW Indices, Faster Approximate K-Nearest Neighbors
--   Support For Full Text Search, For combing with Vector Embeddings for Natural Language Processing
--   Support of Time-Series Graph Data, powered by TimeScaleDB
--   Machine Learning Techniques
--   Label Partitioning - For advanced storage and performance techniques
--   Geospatial Trajectory Data, powered by [MobilityDB](https://github.com/MobilityDB/MobilityDB)
-
-Some Usefule Addtional Features
--   Network Datatypes
--   Regex Support
--   Advanced Indexing Strategies
--   Property Constraints
 
 ## Requirements
 -   Linux
 -   PosgreSQL v14
 -   PostGIS 3.3
 -   Development Files for PostgreSQL and PostGIS
+
+Building & Installation
+-----------------------
+
+Here is the gist:
+```bash
+git clone https://github.com/PostGraphDB/postgraph
+cd postgraph
+make
+sudo make install
+```
+You should also set the following in `postgresql.conf` depending on the version of PostGIS you have installed (below we use PostGIS 3):
+```bash
+shared_preload_libraries = 'postgis-3'
+```
+
+Notice that you can find the location of the `postgresql.conf` file as given next:
+```bash
+$ which postgres
+/usr/local/pgsql/bin/postgres
+$ ls /usr/local/pgsql/data/postgresql.conf
+/usr/local/pgsql/data/postgresql.conf
+```
+As can be seen, the PostgreSQL binaries are in the `bin` subdirectory while the `postgresql.conf` file is in the `data` subdirectory.
+
+Once PostGraph is installed, it needs to be enabled in each database you want to use it in. In the example below we use a database named `postgraph`.
+```bash
+createdb postgraph
+psql postgraph -c "CREATE EXTENSION PostGIS"
+psql postgraph -c "CREATE EXTENSION PostGraph"
+```
 
 POSTGIS Dependencies:
 autoconf
@@ -47,3 +53,28 @@ geos-devel
 proj-devel
 protobuf-devel protobuf-c-compiler protobuf-compiler
 gdal-devel
+
+## Roadmap:
+
+Completed:
+-   Support for the OpenCypher Query Language
+-   Vector Embeddings, powered by [pgVector](https://github.com/pgvector/pgvector)
+-   Support for Time data
+
+In Progress:
+-   Support For IVFFLAT Indices, Approximate K-Nearest Neighbors
+-   Support for Geographic Information Systems, powered by [PostGIS](http://postgis.net/)
+
+Planned
+-   Support For HNSW Indices, Faster Approximate K-Nearest Neighbors
+-   Support For Full Text Search, For combing with Vector Embeddings for Natural Language Processing
+-   Support of Time-Series Graph Data, powered by [TimeScaleDB](https://github.com/timescale/timescaledb)
+-   [Machine Learning Techniques](https://github.com/postgresml/postgresml)
+-   Label Partitioning - For advanced storage and performance techniques
+-   Geospatial Trajectory Data, powered by [MobilityDB](https://github.com/MobilityDB/MobilityDB)
+
+Some Usefule Addtional Features
+-   Network Datatypes
+-   Regex Support
+-   Advanced Indexing Strategies
+-   Property Constraints
