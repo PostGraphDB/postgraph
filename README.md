@@ -13,14 +13,11 @@ Utilize Graph, Vector, and Relational models together to derive insights from yo
 -   PostGIS 3.3
 -   Development Files for PostgreSQL and PostGIS
 
-Building & Installation
------------------------
-
-Here is the gist:
+## Building & Installation From Source
 ```bash
 git clone https://github.com/PostGraphDB/postgraph
 cd postgraph
-make
+make POSTGIS_DIR=/path/to/postgis/source/files
 sudo make install
 ```
 
