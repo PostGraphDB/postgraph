@@ -199,6 +199,11 @@ SELECT * FROM cypher('geometric', $$RETURN '(0,0), (1,1)'::line # '(1,0), (0,1)'
 SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::line # '(1,1), (2,2)'::line $$) AS r(c gtype);
 
 --
+-- Point ?| Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '(1,1)'::point ?| '(1,2)'::point $$) AS r(c boolean);
+
+--
 -- Geometric Functions
 --
 --
