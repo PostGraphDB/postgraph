@@ -216,6 +216,12 @@ SELECT * FROM cypher('geometric', $$RETURN height('(1,1), (0, 0)'::box) $$) AS r
 SELECT * FROM cypher('geometric', $$RETURN height('(2,2), (-1,-1)'::box) $$) AS r(c gtype);
 SELECT * FROM cypher('geometric', $$RETURN height('(4,4), (2,2)'::box) $$) AS r(c gtype);
 
+--
+-- Width
+--
+SELECT * FROM cypher('geometric', $$RETURN width('(1,1), (0, 0)'::box) $$) AS r(c gtype);
+SELECT * FROM cypher('geometric', $$RETURN width('(2,2), (-1,-1)'::box) $$) AS r(c gtype);
+SELECT * FROM cypher('geometric', $$RETURN width('(4,4), (2,2)'::box) $$) AS r(c gtype);
 
 --
 -- Clean Up

@@ -131,3 +131,13 @@ gtype_height(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(gtype_width);
+Datum
+gtype_width(PG_FUNCTION_ARGS) {
+    Datum d = DirectFunctionCall1(box_width, GT_TO_BOX_DATUM(AG_GET_ARG_GTYPE_P(0)));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value=DatumGetFloat8(d)};
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
