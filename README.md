@@ -97,3 +97,7 @@ Some Usefule Addtional Features
 -   Regex Support
 -   Advanced Indexing Strategies
 -   Property Constraints
+
+## Thank You to All the Supporters!
+[![Stargazers repo roster for @Postgraphdb/postgraph](https://reporoster.com/stars/Postgraphdb/postgraph)](https://github.com/Postgraphdb/postgraph/stargazers)
+[![Forkers repo roster for @Postgraphdb/postgraph](https://reporoster.com/forks/Postgraphdb/postgraph)](https://github.com/Postgraphdb/postgraph/network/members)
