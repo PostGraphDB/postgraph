@@ -48,6 +48,15 @@ AS 'MODULE_PATHNAME', 'gtype_perp';
 
 CREATE OPERATOR ?-| (FUNCTION = gtype_perp, LEFTARG = gtype, RIGHTARG = gtype);
 
+CREATE FUNCTION gtype_parallel(gtype, gtype)
+RETURNS boolean
+LANGUAGE c
+IMMUTABLE
+CALLED ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_parallel';
+
+CREATE OPERATOR ?|| (FUNCTION = gtype_parallel, LEFTARG = gtype, RIGHTARG = gtype);
 
 --
 -- Geometric Functions

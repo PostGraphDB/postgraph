@@ -211,6 +211,18 @@ SELECT * FROM cypher('geometric', $$RETURN '(0,0), (1,1)'::line ?-| '(1,0), (0,1
 SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::line ?-| '(2,2), (3,3)'::line $$) AS r(c gtype);
 
 --
+-- LSeg ?|| LSeg
+--
+SELECT * FROM cypher('geometric', $$RETURN '(0,0), (1,1)'::lseg ?|| '(1,0), (0,1)'::lseg $$) AS r(c gtype);
+SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::lseg ?|| '(2,2), (3,3)'::lseg $$) AS r(c gtype);
+
+--
+-- Line ?|| Line
+--
+SELECT * FROM cypher('geometric', $$RETURN '(0,0), (1,1)'::line ?|| '(1,0), (0,1)'::line $$) AS r(c gtype);
+SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2)'::line ?|| '(2,2), (3,3)'::line $$) AS r(c gtype);
+
+--
 -- Point ?| Point
 --
 SELECT * FROM cypher('geometric', $$RETURN '(1,1)'::point ?| '(1,2)'::point $$) AS r(c boolean);
