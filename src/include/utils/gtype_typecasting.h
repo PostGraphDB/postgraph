@@ -73,6 +73,8 @@ Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
     convert_to_scalar(gtype_to_point_internal, (arg), "point")
 #define GT_TO_PATH_DATUM(arg) \
     convert_to_scalar(gtype_to_path_internal, (arg), "path")
+#define GT_TO_POLYGON_DATUM(arg) \
+    convert_to_scalar(gtype_to_polygon_internal, (arg), "polygon")
 #define GT_TO_LSEG_DATUM(arg) \
     convert_to_scalar(gtype_to_lseg_internal, (arg), "lseg")
 #define GT_TO_LINE_DATUM(arg) \
