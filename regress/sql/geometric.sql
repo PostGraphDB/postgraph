@@ -247,6 +247,12 @@ SELECT * FROM cypher('geometric', $$RETURN '(1,1), (2,2), (3, 3), (4, 4)'::polyg
 SELECT * FROM cypher('geometric', $$RETURN '(1,1), 2'::circle @> '(2,2)'::point $$) AS r(c gtype);
 SELECT * FROM cypher('geometric', $$RETURN '(1,1), 2'::circle @> '(3,5)'::point $$) AS r(c gtype);
 
+--
+-- Circle @> Circle
+--
+SELECT * FROM cypher('geometric', $$RETURN '(1,1), 2'::circle @> '(1,1), 3'::circle $$) AS r(c gtype);
+SELECT * FROM cypher('geometric', $$RETURN '(1,1), 4'::circle @> '(1,1), 3'::circle $$) AS r(c gtype);
+
 
 --
 -- Point <@ Box
@@ -275,11 +281,16 @@ SELECT * FROM cypher('geometric', $$RETURN '(2,2)'::point <@ '(1,1), (2,2), (3, 
 SELECT * FROM cypher('geometric', $$RETURN '(3,5)'::point <@ '(1,1), (2,2), (3, 3), (4, 4)'::polygon $$) AS r(c gtype);
 
 --
--- Point <@ CIRCLE
+-- Point <@ Circle
 --
 SELECT * FROM cypher('geometric', $$RETURN '(2,2)'::point <@ '(1,1), 3'::circle $$) AS r(c gtype);
 SELECT * FROM cypher('geometric', $$RETURN '(3,5)'::point <@ '(1,1), 3'::circle $$) AS r(c gtype);
 
+--
+-- Circle <@ Circle
+--
+SELECT * FROM cypher('geometric', $$RETURN '(1,1), 2'::circle <@ '(1,1), 3'::circle $$) AS r(c gtype);
+SELECT * FROM cypher('geometric', $$RETURN '(1,1), 4'::circle <@ '(1,1), 3'::circle $$) AS r(c gtype);
 
 --
 -- Geometric Functions
