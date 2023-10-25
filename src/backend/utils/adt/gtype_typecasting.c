@@ -637,8 +637,7 @@ Datum gtype_tocircle(PG_FUNCTION_ARGS)
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    CIRCLE *circle = DatumGetPointer(DirectFunctionCall1(circle_in,
-                                                  convert_to_scalar(gtype_to_string_internal, agt, "string")));
+    CIRCLE *circle = DatumGetPointer(convert_to_scalar(gtype_to_circle_internal, agt, "circle"));
 
     gtype_value gtv;
     gtv.type = AGTV_CIRCLE;
@@ -2146,6 +2145,20 @@ gtype_to_polygon_internal(gtype_value *gtv) {
     // unreachable
     return CStringGetDatum("");
 }
+
+Datum
+gtype_to_circle_internal(gtype_value *gtv) {
+    if (gtv->type == AGTV_CIRCLE) {
+        return PointerGetDatum(gtv->val.circle);
+    } else if (gtv->type == AGTV_STRING){
+        return DirectFunctionCall1(circle_in, CStringGetDatum(gtv->val.string.val));
+    }  else
+        cannot_cast_gtype_value(gtv->type, "Circle");
+
+    // unreachable
+    return CStringGetDatum("");
+}
+
 
 Datum
 gtype_to_tsvector_internal(gtype_value *gtv) {

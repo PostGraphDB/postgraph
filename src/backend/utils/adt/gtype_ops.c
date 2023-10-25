@@ -833,7 +833,12 @@ Datum gtype_contains(PG_FUNCTION_ARGS) {
      }else if (GT_IS_POLYGON(lhs) && GT_IS_POINT(rhs)) {
         bool boolean = DatumGetBool(DirectFunctionCall2(poly_contain_pt, GT_TO_POLYGON_DATUM(lhs), GT_TO_POINT_DATUM(rhs)));
         PG_RETURN_BOOL(boolean);
+    } else if (GT_IS_CIRCLE(lhs) && GT_IS_POINT(rhs)) {
+        bool boolean = DatumGetBool(DirectFunctionCall2(circle_contain_pt, GT_TO_CIRCLE_DATUM(lhs), GT_TO_POINT_DATUM(rhs)));
+        PG_RETURN_BOOL(boolean);
     }
+
+
 
     gtype_iterator *constraint_it = gtype_iterator_init(&(rhs->root));
     gtype_iterator *property_it = gtype_iterator_init(&(lhs->root));
@@ -873,7 +878,11 @@ Datum gtype_contained_by(PG_FUNCTION_ARGS) {
     }  else if (GT_IS_POLYGON(rhs) && GT_IS_POINT(lhs)) {
         bool boolean = DatumGetBool(DirectFunctionCall2(pt_contained_poly, GT_TO_POINT_DATUM(lhs), GT_TO_POLYGON_DATUM(rhs)));
         PG_RETURN_BOOL(boolean);
+    } else if (GT_IS_CIRCLE(rhs) && GT_IS_POINT(lhs)) {
+        bool boolean = DatumGetBool(DirectFunctionCall2(pt_contained_circle, GT_TO_POINT_DATUM(lhs), GT_TO_CIRCLE_DATUM(rhs)));
+        PG_RETURN_BOOL(boolean);
     }
+
 
     gtype_iterator *constraint_it = gtype_iterator_init(&(rhs->root));
     gtype_iterator *property_it = gtype_iterator_init(&(lhs->root));

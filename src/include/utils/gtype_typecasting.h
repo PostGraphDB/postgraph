@@ -75,6 +75,8 @@ Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
     convert_to_scalar(gtype_to_path_internal, (arg), "path")
 #define GT_TO_POLYGON_DATUM(arg) \
     convert_to_scalar(gtype_to_polygon_internal, (arg), "polygon")
+#define GT_TO_CIRCLE_DATUM(arg) \
+    convert_to_scalar(gtype_to_circle_internal, (arg), "circle")
 #define GT_TO_LSEG_DATUM(arg) \
     convert_to_scalar(gtype_to_lseg_internal, (arg), "lseg")
 #define GT_TO_LINE_DATUM(arg) \
@@ -111,6 +113,8 @@ Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
     convert_to_scalar(gtype_to_macaddr8_internal, AG_GET_ARG_GTYPE_P(arg), "mac8")
 #define GT_ARG_TO_POINT_DATUM(arg) \
     convert_to_scalar(gtype_to_point_internal, AG_GET_ARG_GTYPE_P(arg), "point")
+#define GT_ARG_TO_CIRCLE_DATUM(arg) \
+    convert_to_scalar(gtype_to_circle_internal, AG_GET_ARG_GTYPE_P(arg), "circle")
 #define GT_ARG_TO_LSEG_DATUM(arg) \
     convert_to_scalar(gtype_to_lseg_internal, AG_GET_ARG_GTYPE_P(arg), "lseg")
 #define GT_ARG_TO_LINE_DATUM(arg) \
@@ -143,6 +147,7 @@ Datum gtype_to_macaddr8_internal(gtype_value *gtv);
 Datum gtype_to_point_internal(gtype_value *gtv);
 Datum gtype_to_path_internal(gtype_value *gtv);
 Datum gtype_to_polygon_internal(gtype_value *gtv);
+Datum gtype_to_circle_internal(gtype_value *gtv) ;
 Datum gtype_to_box_internal(gtype_value *gtv);
 Datum gtype_to_box2d_internal(gtype_value *gtv);
 Datum gtype_to_box3d_internal(gtype_value *gtv);
