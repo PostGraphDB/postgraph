@@ -71,6 +71,8 @@ Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
     convert_to_scalar(gtype_to_macaddr8_internal, (arg), "mac8")
 #define GT_TO_POINT_DATUM(arg) \
     convert_to_scalar(gtype_to_point_internal, (arg), "point")
+#define GT_TO_PATH_DATUM(arg) \
+    convert_to_scalar(gtype_to_path_internal, (arg), "path")
 #define GT_TO_LSEG_DATUM(arg) \
     convert_to_scalar(gtype_to_lseg_internal, (arg), "lseg")
 #define GT_TO_LINE_DATUM(arg) \

@@ -230,6 +230,12 @@ SELECT * FROM cypher('geometric', $$RETURN '(4,4), (2,2)'::box @> '(10,10), (5,5
 SELECT * FROM cypher('geometric', $$RETURN '(4,4), (2,2)'::box @> '(5, 5), (5,5)'::box $$) AS r(c gtype);
 
 --
+-- Path @> Point
+--
+SELECT * FROM cypher('geometric', $$RETURN '[(4,4), (2,2)]'::path @> '(2,2)'::point $$) AS r(c gtype);
+SELECT * FROM cypher('geometric', $$RETURN '[(4,4), (2,2)]'::path @> '(3,5)'::point $$) AS r(c gtype);
+
+--
 -- Point <@ Box
 --
 SELECT * FROM cypher('geometric', $$RETURN '(1,2)'::point <@ '(1,1), (5,5)'::box $$) AS r(c boolean);
@@ -242,6 +248,13 @@ SELECT * FROM cypher('geometric', $$RETURN '(1,1), (0, 0)'::box <@ '(4, 4), (3, 
 SELECT * FROM cypher('geometric', $$RETURN '(2,2), (-1,-1)'::box <@ '(1, 1), (-2, -2)'::box $$) AS r(c gtype);
 SELECT * FROM cypher('geometric', $$RETURN '(4,4), (2,2)'::box <@ '(10,10), (5,5)'::box $$) AS r(c gtype);
 SELECT * FROM cypher('geometric', $$RETURN '(4,4), (2,2)'::box <@ '(5, 5), (5,5)'::box $$) AS r(c gtype);
+
+--
+-- Point <@> Path
+--
+SELECT * FROM cypher('geometric', $$RETURN '(2,2)'::point <@ '[(4,4), (2,2)]'::path $$) AS r(c gtype);
+SELECT * FROM cypher('geometric', $$RETURN '(3,5)'::point <@ '[(4,4), (2,2)]'::path $$) AS r(c gtype);
+
 
 --
 -- Geometric Functions

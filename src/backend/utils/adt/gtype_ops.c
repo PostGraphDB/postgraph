@@ -827,6 +827,9 @@ Datum gtype_contains(PG_FUNCTION_ARGS) {
                                                         GT_TO_BOX_DATUM(lhs),
                                                         GT_TO_BOX_DATUM(rhs)));
         PG_RETURN_BOOL(boolean);
+    } else if (GT_IS_PATH(lhs) && GT_IS_POINT(rhs)) {
+        bool boolean = DatumGetBool(DirectFunctionCall2(on_ppath, GT_TO_POINT_DATUM(rhs), GT_TO_PATH_DATUM(lhs)));
+        PG_RETURN_BOOL(boolean);
     }
 
 
@@ -862,7 +865,11 @@ Datum gtype_contained_by(PG_FUNCTION_ARGS) {
                                                         GT_TO_BOX_DATUM(lhs),
                                                         GT_TO_BOX_DATUM(rhs)));
         PG_RETURN_BOOL(boolean);
+    } else if (GT_IS_PATH(rhs) && GT_IS_POINT(lhs)) {
+        bool boolean = DatumGetBool(DirectFunctionCall2(on_ppath, GT_TO_POINT_DATUM(lhs), GT_TO_PATH_DATUM(rhs)));
+        PG_RETURN_BOOL(boolean);
     }
+
 
 
 
