@@ -41,7 +41,6 @@ Set the following in `postgresql.conf` depending on the version of PostGraph and
 ```bash
 shared_preload_libraries = 'postgis-3', 'postgraph'
 ```
-
 POSTGIS Dependencies:
 autoconf
 automake
@@ -52,7 +51,29 @@ proj-devel
 protobuf-devel protobuf-c-compiler protobuf-compiler
 gdal-devel
 
-## Roadmap:
+## Quick Start
+
+Use `psql` to start a command line session with your database
+```bash
+psql postgraph
+```
+
+Create a graph
+```sql
+SELECT create_graph('graph_name');
+```
+
+Create Data with the Cypher Command
+```sql
+SELECT *
+FROM cypher('graph_name', $$
+    CREATE (v { name: 'Hello Graph!'})
+    RETURN (v)
+as (v vertex);
+```
+
+
+## Roadmap
 
 Completed:
 -   Support for the OpenCypher Query Language
