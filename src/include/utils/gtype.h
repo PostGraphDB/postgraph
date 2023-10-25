@@ -384,11 +384,20 @@ typedef struct
 #define GT_IS_POINT(agt) \
     (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_POINT)
 
+#define GT_IS_PATH(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_PATH)
+
 #define GT_IS_LSEG(agt) \
     (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_LSEG)
 
 #define GT_IS_LINE(agt) \
     (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_LINE)
+
+#define GT_IS_POLYGON(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_POLYGON)
+
+#define GT_IS_CIRCLE(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_CIRCLE)
 
 #define GT_IS_BOX(agt) \
     (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_BOX)

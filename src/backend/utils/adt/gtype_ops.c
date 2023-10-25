@@ -817,7 +817,18 @@ Datum gtype_contains(PG_FUNCTION_ARGS) {
                                                         GT_TO_TSQUERY_DATUM(rhs)));
 
 	PG_RETURN_BOOL(boolean);
+    } else if (GT_IS_BOX(lhs) && GT_IS_POINT(rhs)) {
+        bool boolean = DatumGetBool(DirectFunctionCall2(box_contain_pt,
+                                                        GT_TO_BOX_DATUM(lhs),
+                                                        GT_TO_POINT_DATUM(rhs)));
+        PG_RETURN_BOOL(boolean);
+    } else if (GT_IS_BOX(lhs) && GT_IS_BOX(rhs)) {
+        bool boolean = DatumGetBool(DirectFunctionCall2(box_contain,
+                                                        GT_TO_BOX_DATUM(lhs),
+                                                        GT_TO_BOX_DATUM(rhs)));
+        PG_RETURN_BOOL(boolean);
     }
+
 
     gtype_iterator *constraint_it = gtype_iterator_init(&(rhs->root));
     gtype_iterator *property_it = gtype_iterator_init(&(lhs->root));
@@ -841,7 +852,20 @@ Datum gtype_contained_by(PG_FUNCTION_ARGS) {
                                                         GT_TO_TSQUERY_DATUM(lhs)));
 
         PG_RETURN_BOOL(boolean);
+    } else if (GT_IS_BOX(rhs) && GT_IS_POINT(lhs)) {
+        bool boolean = DatumGetBool(DirectFunctionCall2(on_pb,
+                                                        GT_TO_POINT_DATUM(lhs),
+                                                        GT_TO_BOX_DATUM(rhs)));
+        PG_RETURN_BOOL(boolean);
+    } else if (GT_IS_BOX(lhs) && GT_IS_BOX(rhs)) {
+        bool boolean = DatumGetBool(DirectFunctionCall2(box_contained,
+                                                        GT_TO_BOX_DATUM(lhs),
+                                                        GT_TO_BOX_DATUM(rhs)));
+        PG_RETURN_BOOL(boolean);
     }
+
+
+
 
     gtype_iterator *constraint_it = gtype_iterator_init(&(rhs->root));
     gtype_iterator *property_it = gtype_iterator_init(&(lhs->root));
