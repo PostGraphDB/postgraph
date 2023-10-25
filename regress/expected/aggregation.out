@@ -600,6 +600,12 @@ $$) AS (result edge[]);
  {"{\"id\": 844424930131969, \"start_id\": 281474976710657, \"end_id\": 281474976710658, \"label\": \"e\", \"properties\": {}}","{\"id\": 844424930131970, \"start_id\": 281474976710659, \"end_id\": 281474976710660, \"label\": \"e\", \"properties\": {}}"}
 (1 row)
 
+SELECT * FROM cypher('group_by', $$MATCH () RETURN COUNT(*) $$) AS (result gtype);
+ result 
+--------
+ 7
+(1 row)
+
 --
 -- Cleanup
 --

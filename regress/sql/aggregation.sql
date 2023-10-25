@@ -286,7 +286,7 @@ SELECT * FROM cypher('edge_aggregates', $$
     RETURN collect(e, 2)
 $$) AS (result edge[]);
 
-
+SELECT * FROM cypher('group_by', $$MATCH () RETURN COUNT(*) $$) AS (result gtype);
 --
 -- Cleanup
 --

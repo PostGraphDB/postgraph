@@ -1961,8 +1961,8 @@ static transform_entity *handle_vertex(cypher_parsestate *cpstate, Query *query,
             node->name = get_next_default_alias(cpstate);
     }
 
-    // transform vertex 
-    expr = transform_cypher_node(cpstate, node, &query->targetList, INCLUDE_NODE_IN_JOIN_TREE(path, node));
+    // transform vertex
+    expr = transform_cypher_node(cpstate, node, &query->targetList, list_length(path->path) == 1 ? true :INCLUDE_NODE_IN_JOIN_TREE(path, node));
 
     entity = make_transform_entity(cpstate, ENT_VERTEX, (Node *)node, expr);
 

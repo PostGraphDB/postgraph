@@ -841,9 +841,6 @@ Datum gtype_contains(PG_FUNCTION_ARGS) {
         PG_RETURN_BOOL(boolean);
     }
 
-
-
-
     gtype_iterator *constraint_it = gtype_iterator_init(&(rhs->root));
     gtype_iterator *property_it = gtype_iterator_init(&(lhs->root));
 
