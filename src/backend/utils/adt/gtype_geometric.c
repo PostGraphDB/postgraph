@@ -172,7 +172,6 @@ gtype_center(PG_FUNCTION_ARGS) {
     gtype_value gtv = { .type = AGTV_POINT, .val.box=DatumGetPointP(d)};
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
-
 }
 
 
@@ -189,9 +188,7 @@ gtype_distance(PG_FUNCTION_ARGS) {
 
     gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value=DatumGetFloat8(d)};
     
-
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
-
 }
 
 
@@ -208,6 +205,21 @@ gtype_vertical(PG_FUNCTION_ARGS) {
 
     PG_RETURN_BOOL(DatumGetBool(d));
 }
+
+PG_FUNCTION_INFO_V1(gtype_horizontal);
+Datum
+gtype_horizontal(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d;
+    if (GT_IS_LSEG(gt))
+        d = DirectFunctionCall1(lseg_horizontal, GT_TO_LSEG_DATUM(gt));
+    else
+        d = DirectFunctionCall1(line_horizontal, GT_TO_LINE_DATUM(gt));
+
+    PG_RETURN_BOOL(DatumGetBool(d));
+}
+
 
 PG_FUNCTION_INFO_V1(gtype_perp);
 Datum

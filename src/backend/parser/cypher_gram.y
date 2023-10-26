@@ -1301,6 +1301,10 @@ expr:
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "?|", NULL, $3, @1);
         }
+    | '?' '-' expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "?-", NULL, $3, @1);
+        }
     | '@' '@' expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "@@", NULL, $3, @1);
@@ -2126,11 +2130,7 @@ static bool is_A_Expr_a_comparison_operation(A_Expr *a)
 
     /* we don't support qualified comparison operators */
     if (list_length(a->name) != 1)
-    {
-        ereport(ERROR,
-                (errcode(ERRCODE_SYNTAX_ERROR),
-                 errmsg("qualified comparison operator names are not permitted")));
-    }
+        return false;
 
     /* get the value and verify that it is a string */
     v = linitial(a->name);
@@ -2163,79 +2163,39 @@ static bool is_A_Expr_a_comparison_operation(A_Expr *a)
  * comparison.
  */
 static Node *build_comparison_expression(Node *left_node, Node *right_node, char *opr_name, int location) {
-    Node *result_expr = NULL;
+    Node *result_expr;
 
     Assert(left_node != NULL);
     Assert(right_node != NULL);
     Assert(opr_name != NULL);
 
-    /*
-     * Case 1:
-     *    If the previous expression is an A_Expr and it is also a
-     *    comparison, then this is part of a chained comparison. In this
-     *    specific case, the second chained element.
-     */
-    if (IsA(left_node, A_Expr) && is_A_Expr_a_comparison_operation((A_Expr *)left_node))
-    {
-        A_Expr *aexpr = NULL;
-        Node *lexpr = NULL;
-        Node *n = NULL;
+    if (IsA(left_node, A_Expr) && is_A_Expr_a_comparison_operation((A_Expr *)left_node)) {
+        Node *n = (Node *)makeSimpleA_Expr(AEXPR_OP, opr_name,  ((A_Expr *) left_node)->rexpr, right_node, location);
 
-        /* get the A_Expr on the left side */
-        aexpr = (A_Expr *) left_node;
-        /* get its rexpr which will be our lexpr */
-        lexpr = aexpr->rexpr;
-        /* build our comparison operator */
-        n = (Node *)makeSimpleA_Expr(AEXPR_OP, opr_name, lexpr,
-                                     right_node, location);
-
-        /* now add it (AND) to the other comparison */
         result_expr = make_and_expr(left_node, n, location);
-    }
-
-    /*
-     * Case 2:
-     *    If the previous expression is a boolean AND and its right most
-     *    expression is an A_Expr and a comparison, then this is part of
-     *    a chained comparison. In this specific case, the third and
-     *    beyond chained element.
-     */
-    if (IsA(left_node, BoolExpr) && ((BoolExpr*)left_node)->boolop == AND_EXPR)
-    {
+    } else if (IsA(left_node, BoolExpr) && ((BoolExpr*)left_node)->boolop == AND_EXPR) {
         BoolExpr *bexpr = NULL;
         Node *last = NULL;
 
-        /* cast the left to a boolean */
         bexpr = (BoolExpr *)left_node;
-        /* extract the last node - ANDs are chained in a flat list */
         last = llast(bexpr->args);
 
-        /* is the last node an A_Expr and a comparison operator */
-        if (IsA(last, A_Expr) &&
-            is_A_Expr_a_comparison_operation((A_Expr *)last))
+        if (IsA(last, A_Expr) && is_A_Expr_a_comparison_operation((A_Expr *)last))
         {
             A_Expr *aexpr = NULL;
             Node *lexpr = NULL;
             Node *n = NULL;
 
-            /* get the last expressions right expression */
             aexpr = (A_Expr *) last;
             lexpr = aexpr->rexpr;
-            /* make our comparison operator */
-            n = (Node *)makeSimpleA_Expr(AEXPR_OP, opr_name, lexpr,
-                                         right_node, location);
+            n = (Node *)makeSimpleA_Expr(AEXPR_OP, opr_name, lexpr, right_node, location);
 
             result_expr = make_and_expr(left_node, n, location);
         }
     }
-
-    /*
-     * Case 3:
-     *    The previous expression isn't a chained comparison. So, treat
-     *    it as a regular comparison expression.
-     */
-    if (result_expr == NULL)
+    else {
         result_expr = (Node *)makeSimpleA_Expr(AEXPR_OP, opr_name, left_node, right_node, location);
+    }
 
     return result_expr;
 }
