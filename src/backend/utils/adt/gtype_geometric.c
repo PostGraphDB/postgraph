@@ -118,6 +118,35 @@ gtype_vertical(PG_FUNCTION_ARGS) {
     PG_RETURN_BOOL(DatumGetBool(d));
 }
 
+PG_FUNCTION_INFO_V1(gtype_perp);
+Datum
+gtype_perp(PG_FUNCTION_ARGS) {
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+
+    Datum d;
+    if (GT_IS_LSEG(lhs) || GT_IS_LSEG(rhs))
+        d = DirectFunctionCall2(lseg_perp, GT_TO_LSEG_DATUM(lhs), GT_TO_LSEG_DATUM(rhs));
+    else
+        d = DirectFunctionCall2(line_perp, GT_TO_LINE_DATUM(lhs), GT_TO_LINE_DATUM(rhs));
+
+    PG_RETURN_BOOL(DatumGetBool(d));
+}
+
+PG_FUNCTION_INFO_V1(gtype_parallel);
+Datum
+gtype_parallel(PG_FUNCTION_ARGS) {
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+
+    Datum d;
+    if (GT_IS_LSEG(lhs) || GT_IS_LSEG(rhs))
+        d = DirectFunctionCall2(lseg_parallel, GT_TO_LSEG_DATUM(lhs), GT_TO_LSEG_DATUM(rhs));
+    else
+        d = DirectFunctionCall2(line_parallel, GT_TO_LINE_DATUM(lhs), GT_TO_LINE_DATUM(rhs));
+
+    PG_RETURN_BOOL(DatumGetBool(d));
+}
 
 PG_FUNCTION_INFO_V1(gtype_bound_box);
 Datum
