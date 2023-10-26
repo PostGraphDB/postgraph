@@ -133,6 +133,11 @@ gtype_closest_point(PG_FUNCTION_ARGS) {
 
         if (is_null)
             PG_RETURN_NULL();
+    } else if (GT_IS_LSEG(lhs) && GT_IS_LSEG(rhs)) {
+        d = PostGraphDirectFunctionCall2(close_lseg, 100, &is_null, GT_TO_LSEG_DATUM(lhs), GT_TO_LSEG_DATUM(rhs));
+
+        if (is_null)
+            PG_RETURN_NULL();
     } else {
         ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
                         errmsg("invalid type for gtype # gtype")));
