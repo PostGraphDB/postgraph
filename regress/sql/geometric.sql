@@ -317,6 +317,14 @@ SELECT * FROM cypher('geometric', $$RETURN '(1,1), 2'::circle <@ '(1,1), 3'::cir
 SELECT * FROM cypher('geometric', $$RETURN '(1,1), 4'::circle <@ '(1,1), 3'::circle $$) AS r(c gtype);
 
 --
+-- Point ## Box
+--
+SELECT * FROM cypher('geometric', $$RETURN '(10,20)'::point ## '(1,1), (5,5)'::box $$) AS (c gtype);
+SELECT * FROM cypher('geometric', $$RETURN '(1,2)'::point ## '(1,1), (5,5)'::box $$) AS (c gtype);
+SELECT * FROM cypher('geometric', $$RETURN '(1, 2)'::point ## '(0,0), (1,1)'::box $$) AS (c gtype);
+
+
+--
 -- Geometric Functions
 --
 --

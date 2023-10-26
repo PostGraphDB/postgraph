@@ -1289,6 +1289,10 @@ expr:
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "&&", $1, $4, @2);
         }
+    | expr '#' '#' expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "##", $1, $4, @2);
+        }
     | expr '?' expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "?", $1, $3, @2);

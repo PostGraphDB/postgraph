@@ -104,6 +104,31 @@ gtype_intersection_point(PG_FUNCTION_ARGS) {
     PG_RETURN_NULL();
 }
 
+
+PG_FUNCTION_INFO_V1(gtype_closest_point);
+Datum
+gtype_closest_point(PG_FUNCTION_ARGS) {
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+
+    Datum d;
+    bool is_null = false;
+    if (GT_IS_POINT(lhs) && GT_IS_BOX(rhs)) {
+        d = PostGraphDirectFunctionCall2(close_pb, 100, &is_null, GT_TO_POINT_DATUM(lhs), GT_TO_BOX_DATUM(rhs));
+
+        if (is_null)
+            PG_RETURN_NULL();
+    } else {
+        ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                        errmsg("invalid type for gtype # gtype")));
+    }
+
+    gtype_value gtv = { .type = AGTV_POINT, .val.box=DatumGetPointP(d)};
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+
 PG_FUNCTION_INFO_V1(gtype_vertical);
 Datum
 gtype_vertical(PG_FUNCTION_ARGS) {
