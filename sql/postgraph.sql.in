@@ -469,6 +469,7 @@ CREATE FUNCTION unnest (gtype, block_types boolean = false)
 RETURNS SETOF gtype
 LANGUAGE c
 IMMUTABLE
+RETURNS NULL ON NULL INPUT 
 PARALLEL SAFE
 AS 'MODULE_PATHNAME', 'gtype_unnest';
 
@@ -476,6 +477,7 @@ CREATE FUNCTION unnest (vertex[], block_types boolean = false)
 RETURNS SETOF vertex
 LANGUAGE c
 IMMUTABLE
+RETURNS NULL ON NULL INPUT 
 PARALLEL SAFE
 AS 'MODULE_PATHNAME', 'vertex_unnest';
 
@@ -483,6 +485,7 @@ CREATE FUNCTION unnest (edge[], block_types boolean = false)
 RETURNS SETOF edge
 LANGUAGE c
 IMMUTABLE
+RETURNS NULL ON NULL INPUT 
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME', 'edge_unnest';
 
