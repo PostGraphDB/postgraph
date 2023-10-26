@@ -154,6 +154,28 @@ gtype_closest_point(PG_FUNCTION_ARGS) {
 }
 
 
+PG_FUNCTION_INFO_V1(gtype_center);
+Datum
+gtype_center(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d;
+    if (GT_IS_BOX(gt))
+        d = DirectFunctionCall1(box_center, GT_TO_BOX_DATUM(gt));
+    else if (GT_IS_LSEG(gt))
+        d = DirectFunctionCall1(lseg_center, GT_TO_LSEG_DATUM(gt));
+    else if (GT_IS_CIRCLE(gt))
+        d = DirectFunctionCall1(circle_center, GT_TO_CIRCLE_DATUM(gt));
+    else
+        d = DirectFunctionCall1(poly_center, GT_TO_POLYGON_DATUM(gt));
+
+    gtype_value gtv = { .type = AGTV_POINT, .val.box=DatumGetPointP(d)};
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+
+}
+
+
 PG_FUNCTION_INFO_V1(gtype_vertical);
 Datum
 gtype_vertical(PG_FUNCTION_ARGS) {

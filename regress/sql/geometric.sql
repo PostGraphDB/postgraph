@@ -358,6 +358,14 @@ SELECT * FROM cypher('geometric', $$RETURN '(0,1), (0,2)'::line ## '(1,1), (5,5)
 SELECT * FROM cypher('geometric', $$RETURN '(0,1), (0,2)'::line ## '(1,1), (5,5)'::lseg $$) AS (c gtype);
 SELECT * FROM cypher('geometric', $$RETURN '(0,1), (0,2)'::line ## '(0,0), (1,1)'::lseg $$) AS (c gtype);
 
+--
+-- @@ Operator
+--
+SELECT * FROM cypher('geometric', $$RETURN @@ '(0,1), (0,2)'::lseg $$) AS (c gtype);
+SELECT * FROM cypher('geometric', $$RETURN @@ '(1,1), (5,5)'::box $$) AS (c gtype);
+SELECT * FROM cypher('geometric', $$RETURN @@ '(1,1), 3'::circle $$) AS (c gtype);
+SELECT * FROM cypher('geometric', $$RETURN @@ '(1,1), (2,2), (3, 3), (4, 4)'::polygon  $$) AS (c gtype);
+
 
 --
 -- Geometric Functions
