@@ -99,5 +99,5 @@ Some Usefule Addtional Features
 -   Property Constraints
 
 ## Thank You to All the Supporters!
-[![Stargazers repo roster for @Postgraphdb/postgraph](https://reporoster.com/stars/Postgraphdb/postgraph)](https://github.com/Postgraphdb/postgraph/stargazers)
-[![Forkers repo roster for @Postgraphdb/postgraph](https://reporoster.com/forks/Postgraphdb/postgraph)](https://github.com/Postgraphdb/postgraph/network/members)
+[![Stargazers repo roster for @Postgraphdb/postgraph](http://bytecrank.com/nastyox/reporoster/php/stargazersSVG.php?user=Postgraphdb&repo=postgraph)
+[![Forkers repo roster for @Postgraphdb/postgraph](http://bytecrank.com/nastyox/reporoster/php/forkersSVG.php?user=Postgraphdb&repo=postgraph)
