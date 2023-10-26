@@ -323,6 +323,12 @@ SELECT * FROM cypher('geometric', $$RETURN '(10,20)'::point ## '(1,1), (5,5)'::b
 SELECT * FROM cypher('geometric', $$RETURN '(1,2)'::point ## '(1,1), (5,5)'::box $$) AS (c gtype);
 SELECT * FROM cypher('geometric', $$RETURN '(1, 2)'::point ## '(0,0), (1,1)'::box $$) AS (c gtype);
 
+--
+-- Point ## LSeg
+--
+SELECT * FROM cypher('geometric', $$RETURN '(10,20)'::point ## '(0,1), (0,2)'::lseg $$) AS (c gtype);
+SELECT * FROM cypher('geometric', $$RETURN '(1,2)'::point ## '(0,1), (0,2)'::lseg $$) AS (c gtype);
+SELECT * FROM cypher('geometric', $$RETURN '(1, 2)'::point ## '(0,1), (0,2)'::lseg $$) AS (c gtype);
 
 --
 -- Geometric Functions

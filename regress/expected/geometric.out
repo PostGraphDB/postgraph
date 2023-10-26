@@ -753,6 +753,27 @@ SELECT * FROM cypher('geometric', $$RETURN '(1, 2)'::point ## '(0,0), (1,1)'::bo
 (1 row)
 
 --
+-- Point ## LSeg
+--
+SELECT * FROM cypher('geometric', $$RETURN '(10,20)'::point ## '(0,1), (0,2)'::lseg $$) AS (c gtype);
+   c   
+-------
+ (0,2)
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN '(1,2)'::point ## '(0,1), (0,2)'::lseg $$) AS (c gtype);
+   c   
+-------
+ (0,2)
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN '(1, 2)'::point ## '(0,1), (0,2)'::lseg $$) AS (c gtype);
+   c   
+-------
+ (0,2)
+(1 row)
+
+--
 -- Geometric Functions
 --
 --
