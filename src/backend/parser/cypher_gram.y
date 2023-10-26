@@ -1405,26 +1405,7 @@ expr:
         }
     | expr '.' expr
         {
-            /*
-             * This checks for the grammar rule -
-             *    symbolic_name '.' expr
-             * Where expr is a function call.
-             * Note: symbolic_name ends up as a ColumnRef
-             */
-            if (IsA($3, FuncCall) && IsA($1, ColumnRef))
-            {
-                FuncCall *fc = (FuncCall*)$3;
-                ColumnRef *cr = (ColumnRef*)$1;
-                List *fields = cr->fields;
-                Value *string = linitial(fields);
-
-                fc->funcname = lcons(string, fc->funcname);
-                $$ = (Node*)fc;
-            }
-            else
-            {
-                $$ = append_indirection($1, $3);
-            }
+            $$ = append_indirection($1, $3);
         }
     | expr TYPECAST schema_name
         {
