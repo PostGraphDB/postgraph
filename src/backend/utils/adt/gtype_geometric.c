@@ -176,6 +176,25 @@ gtype_center(PG_FUNCTION_ARGS) {
 }
 
 
+PG_FUNCTION_INFO_V1(gtype_distance);
+Datum
+gtype_distance(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    Datum d;
+    if (GT_IS_LSEG(gt))
+        d = DirectFunctionCall1(lseg_length, GT_TO_LSEG_DATUM(gt));
+    else
+        d = DirectFunctionCall1(path_length, GT_TO_PATH_DATUM(gt));
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value=DatumGetFloat8(d)};
+    
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+
+}
+
+
 PG_FUNCTION_INFO_V1(gtype_vertical);
 Datum
 gtype_vertical(PG_FUNCTION_ARGS) {

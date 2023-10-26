@@ -885,6 +885,33 @@ SELECT * FROM cypher('geometric', $$RETURN @@ '(1,1), (2,2), (3, 3), (4, 4)'::po
 (1 row)
 
 --
+-- @-@
+--
+SELECT * FROM cypher('geometric', $$RETURN @-@ '(1,1), (5,5)'::lseg $$) AS (c gtype);
+         c         
+-------------------
+ 5.656854249492381
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN @-@ '[(4,4), (2,2)]'::path $$) AS r(c gtype);
+         c          
+--------------------
+ 2.8284271247461903
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN @-@ '(0,1), (0,5)'::lseg $$) AS (c gtype);
+  c  
+-----
+ 4.0
+(1 row)
+
+SELECT * FROM cypher('geometric', $$RETURN @-@ '[(0,4), (0,2)]'::path $$) AS r(c gtype);
+  c  
+-----
+ 2.0
+(1 row)
+
+--
 -- Geometric Functions
 --
 --

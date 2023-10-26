@@ -1305,6 +1305,10 @@ expr:
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "@@", NULL, $3, @1);
         }
+    | '@' '-' '@' expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "@-@", NULL, $4, @1);
+        }
     | expr '?' '|' expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "?|", $1, $4, @2);
