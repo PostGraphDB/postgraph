@@ -305,11 +305,19 @@ PG_FUNCTION_INFO_V1(gserialized_below_2d);
 PG_FUNCTION_INFO_V1(gtype_below_2d);
 Datum
 gtype_below_2d(PG_FUNCTION_ARGS) {
-    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
-    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
-    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
-    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+    if (GT_IS_BOX(lhs) && GT_IS_BOX(rhs))
+       PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(box_below, GT_TO_BOX_DATUM(lhs), GT_TO_BOX_DATUM(rhs))));
+    else if (GT_IS_POLYGON(lhs) && GT_IS_POLYGON(rhs))
+       PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(poly_below, GT_TO_POLYGON_DATUM(lhs), GT_TO_POLYGON_DATUM(rhs))));
+    else if (GT_IS_CIRCLE(lhs) && GT_IS_CIRCLE(rhs))
+       PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(circle_below, GT_TO_CIRCLE_DATUM(lhs), GT_TO_CIRCLE_DATUM(rhs))));
+
+
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, lhs, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, rhs, "geometry");
 
     Datum d = DirectFunctionCall2(gserialized_below_2d, d1, d2);
 
