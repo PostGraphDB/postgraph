@@ -269,6 +269,18 @@ SELECT * FROM cypher('geometric', $$RETURN '(10,1), 3'::circle && '(1,1), 3'::ci
 SELECT * FROM cypher('geometric', $$RETURN '(2,2), (3,3), (4, 4), (5, 5)'::polygon && '(1,1), (2,2), (3, 3), (4, 4)'::polygon  $$) AS (c gtype);
 SELECT * FROM cypher('geometric', $$RETURN '(10,1), (20,2), (30, 3), (40, 4)'::polygon && '(1,1), (2,2), (3, 3), (4, 4)'::polygon  $$) AS (c gtype);
 
+--
+-- Gtype << Gtype Operator
+--
+-- Box << Box
+SELECT * FROM cypher('geometric', $$RETURN '(10,1), (50,5)'::box << '(1,1), (5,5)'::box $$) AS (c gtype);
+SELECT * FROM cypher('geometric', $$RETURN '(0,1), (4,5)'::box << '(1,1), (5,5)'::box $$) AS (c gtype);
+-- Circle << Circle
+SELECT * FROM cypher('geometric', $$RETURN '(-1,1), 3'::circle << '(1,1), 3'::circle $$) AS (c gtype);
+SELECT * FROM cypher('geometric', $$RETURN '(10,1), 3'::circle << '(1,1), 3'::circle $$) AS (c gtype);
+-- Polygon << Polygon
+SELECT * FROM cypher('geometric', $$RETURN '(2,2), (3,3), (4, 4), (5, 5)'::polygon << '(1,1), (2,2), (3, 3), (4, 4)'::polygon  $$) AS (c gtype);
+SELECT * FROM cypher('geometric', $$RETURN '(10,1), (20,2), (30, 3), (40, 4)'::polygon << '(1,1), (2,2), (3, 3), (4, 4)'::polygon  $$) AS (c gtype);
 
 --
 -- @-@

@@ -753,6 +753,16 @@ gtype_bitwise_or(PG_FUNCTION_ARGS) {
 PG_FUNCTION_INFO_V1(gtype_inet_subnet_strict_contains);
 Datum
 gtype_inet_subnet_strict_contains(PG_FUNCTION_ARGS) {
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+
+    if (GT_IS_BOX(lhs) && GT_IS_BOX(rhs))
+       PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(box_left, GT_TO_BOX_DATUM(lhs), GT_TO_BOX_DATUM(rhs))));
+    else if (GT_IS_POLYGON(lhs) && GT_IS_POLYGON(rhs))
+       PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(poly_left, GT_TO_POLYGON_DATUM(lhs), GT_TO_POLYGON_DATUM(rhs))));
+    else if (GT_IS_CIRCLE(lhs) && GT_IS_CIRCLE(rhs))
+       PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(circle_left, GT_TO_CIRCLE_DATUM(lhs), GT_TO_CIRCLE_DATUM(rhs))));
+
     PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(network_sub, GT_ARG_TO_INET_DATUM(0), GT_ARG_TO_INET_DATUM(1))));
 }
 
@@ -956,6 +966,7 @@ Datum gtype_exists_any(PG_FUNCTION_ARGS)
 
         PG_RETURN_BOOL(DatumGetBool(d));
     }
+
     if (!AGT_ROOT_IS_ARRAY(keys) || AGT_ROOT_IS_SCALAR(keys))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("gtype ?| gtype rhs must be a list of strings")));

@@ -176,7 +176,7 @@
 %left AND
 %left XOR
 %right NOT
-%left '=' NOT_EQ '<' LT_EQ '>' GT_EQ '~' '!' '?' '@' '#'
+%left '=' NOT_EQ '<' LT_EQ '>' GT_EQ '~' '!'
 %left OPERATOR
 %left '+' '-'
 %left '*' '/' '%'
