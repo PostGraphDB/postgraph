@@ -777,7 +777,19 @@ gtype_inet_subnet_contained_by(PG_FUNCTION_ARGS) {
 PG_FUNCTION_INFO_V1(gtype_inet_subnet_contain_both);
 Datum
 gtype_inet_subnet_contain_both(PG_FUNCTION_ARGS) {
-    PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(network_overlap, GT_ARG_TO_INET_DATUM(0), GT_ARG_TO_INET_DATUM(1))));
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+
+    if (GT_IS_BOX(lhs) && GT_IS_BOX(rhs))
+       PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(box_overlap, GT_TO_BOX_DATUM(lhs), GT_TO_BOX_DATUM(rhs))));
+    else if (GT_IS_BOX(lhs) && GT_IS_BOX(rhs))
+       PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(box_overlap, GT_TO_BOX_DATUM(lhs), GT_TO_BOX_DATUM(rhs))));
+    else if (GT_IS_POLYGON(lhs) && GT_IS_POLYGON(rhs))
+       PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(poly_overlap, GT_TO_POLYGON_DATUM(lhs), GT_TO_POLYGON_DATUM(rhs))));
+    else if (GT_IS_CIRCLE(lhs) && GT_IS_CIRCLE(rhs))
+       PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(circle_overlap, GT_TO_CIRCLE_DATUM(lhs), GT_TO_CIRCLE_DATUM(rhs))));
+
+    PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(network_overlap, GT_TO_INET_DATUM(lhs), GT_TO_INET_DATUM(rhs))));
 }
 
 #define GTYPECMPFUNC( type, action)                                                        \
