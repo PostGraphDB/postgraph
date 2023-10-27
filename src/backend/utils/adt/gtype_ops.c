@@ -775,6 +775,16 @@ gtype_inet_subnet_contains(PG_FUNCTION_ARGS) {
 PG_FUNCTION_INFO_V1(gtype_inet_subnet_strict_contained_by);
 Datum
 gtype_inet_subnet_strict_contained_by(PG_FUNCTION_ARGS) {
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+
+    if (GT_IS_BOX(lhs) && GT_IS_BOX(rhs))
+       PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(box_right, GT_TO_BOX_DATUM(lhs), GT_TO_BOX_DATUM(rhs))));
+    else if (GT_IS_POLYGON(lhs) && GT_IS_POLYGON(rhs))
+       PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(poly_right, GT_TO_POLYGON_DATUM(lhs), GT_TO_POLYGON_DATUM(rhs))));
+    else if (GT_IS_CIRCLE(lhs) && GT_IS_CIRCLE(rhs))
+       PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(circle_right, GT_TO_CIRCLE_DATUM(lhs), GT_TO_CIRCLE_DATUM(rhs))));
+
     PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(network_sup, GT_ARG_TO_INET_DATUM(0), GT_ARG_TO_INET_DATUM(1))));
 }
 
