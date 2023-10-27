@@ -78,9 +78,10 @@
 %token <string> IDENTIFIER
 %token <string> INET
 %token <string> PARAMETER
+%token <string> OPERATOR
 
 /* operators that have more than 1 character */
-%token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ EQ_TILDE
+%token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ
 
 /* keywords in alphabetical order */
 %token <keyword> ALL AND AS ASC ASCENDING
@@ -176,6 +177,7 @@
 %left XOR
 %right NOT
 %left '=' NOT_EQ '<' LT_EQ '>' GT_EQ '~' '!' '?' '@' '#'
+%left OPERATOR
 %left '+' '-'
 %left '*' '/' '%'
 %left '^' '&' '|'
@@ -1166,65 +1168,17 @@ expr:
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "^", $1, $3, @2);
         }
+    | expr OPERATOR expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, $2, $1, $3, @2);
+        }
+    | OPERATOR expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, $1, NULL, $2, @1);
+        }
     | expr '<' '-' '>' expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<->", $1, $5, @3);
-        }
-    | expr LT_EQ '>' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<=>", $1, $4, @3);
-        }
-    | expr '<' '#' '>' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<#>", $1, $5, @3);
-        }
-    | expr '@' '>' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "@>", $1, $4, @2);
-        }
-    | expr '<' '@' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<@", $1, $4, @2);
-        }
-    | expr '|' '=' '|' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "|=|", $1, $5, @2);
-        }//|&>
-    | expr '@' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "@", $1, $3, @2);
-        }
-    | expr '&' '<' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "&<", $1, $4, @2);
-        }
-    | expr '<' '<' '|' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<<|", $1, $5, @2);
-        }
-    | expr '~' '=' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~=", $1, $4, @2);
-        }
-    | expr '&' '<' '|' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "&<|", $1, $5, @2);
-        }
-    | expr '&' '>' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "&>", $1, $4, @2);
-        }
-    | expr '|' '&' '>' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "|&>", $1, $5, @2);
-        }
-    | expr '|' '>' '>' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "|>>", $1, $5, @2);
-        }
-    | expr '#' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "#", $1, $3, @2);
         }
     | expr IN expr
         {
@@ -1261,74 +1215,6 @@ expr:
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~", NULL, $2, @1);
         }
-    | expr '&' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "&", $1, $3, @2);
-        }
-    | expr '|' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "|", $1, $3, @2);
-        }
-    | expr '<' '<' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<<", $1, $4, @2);
-        }
-    | expr '<' LT_EQ expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<<=", $1, $4, @2);
-        }
-    | expr '>' '>' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, ">>", $1, $4, @2);
-        }
-    | expr '>' GT_EQ expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, ">>=", $1, $4, @2);
-        }
-    | expr '&' '&' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "&&", $1, $4, @2);
-        }
-    | expr '#' '#' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "##", $1, $4, @2);
-        }
-    | expr '?' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "?", $1, $3, @2);
-        }
-    | '?' '|' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "?|", NULL, $3, @1);
-        }
-    | '?' '-' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "?-", NULL, $3, @1);
-        }
-    | '@' '@' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "@@", NULL, $3, @1);
-        }
-    | '@' '-' '@' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "@-@", NULL, $4, @1);
-        }
-    | expr '?' '|' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "?|", $1, $4, @2);
-        }
-    | expr '?' '-' '|' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "?-|", $1, $5, @2);
-        }
-    | expr '?' '|' '|' expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "?||", $1, $5, @2);
-        }
-    | expr '?' '&' expr
-        { 
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "?&", $1, $4, @2);
-        } 
     | expr STARTS WITH expr %prec STARTS
         {
             cypher_string_match *n;
@@ -1365,25 +1251,9 @@ expr:
 
             $$ = (Node *)n;
         }
-    | expr EQ_TILDE expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~", $1, $3, @2);
-        }
     | expr '~' expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~", $1, $3, @2);
-        }
-    | expr '~' '*'  expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~*", $1, $4, @2);
-        }
-    | expr '!' '~'  expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "!~", $1, $4, @2);
-        }
-    | expr '!' '~' '*' expr
-        { 
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "!~*", $1, $5, @2);
         }
     | expr '[' expr ']'  %prec '.'
         {

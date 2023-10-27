@@ -45,8 +45,8 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner)
         GT_EQ,
         DOT_DOT,
         TYPECAST,
+	OPERATOR,
         PLUS_EQ,
-        EQ_TILDE,
 	INET
     };
 
@@ -64,6 +64,7 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner)
     case AG_TOKEN_DECIMAL:
     case AG_TOKEN_STRING:
     case AG_TOKEN_INET:
+    case AG_TOKEN_OPERATOR:
 	lvalp->string = pstrdup(token.value.s);
         break;
     case AG_TOKEN_IDENTIFIER:
@@ -96,7 +97,6 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner)
     case AG_TOKEN_GT_EQ:
     case AG_TOKEN_DOT_DOT:
     case AG_TOKEN_PLUS_EQ:
-    case AG_TOKEN_EQ_TILDE:
         break;
     case AG_TOKEN_TYPECAST:
         break;

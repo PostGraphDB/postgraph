@@ -61,6 +61,12 @@ CREATE OPERATOR ~ (
     RIGHTARG = gtype
 );
 
+CREATE OPERATOR =~ (
+    FUNCTION = regex_match_case_sensitive,
+    LEFTARG = gtype,
+    RIGHTARG = gtype
+);
+
 CREATE FUNCTION regex_match_case_insensitive(gtype, gtype)
 RETURNS boolean  
 LANGUAGE c  

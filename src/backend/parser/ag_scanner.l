@@ -245,8 +245,9 @@ lt_eq    "<="
 gt_eq    ">="
 dot_dot  ".."
 plus_eq  "+="
-eq_tilde "=~"
 typecast "::"
+operator [&<=>|~!*?@#%]{2,3}|[@|?&#]|"?-|"|"?-"|"@-@"
+operatorfail1 "@-"
 self     [?&!@#%()*+,\-.~/:;<=>[\]^{|}]
 
 other .
@@ -789,17 +790,25 @@ ag_token token;
     return token;
 }
 
-{eq_tilde} {
+{typecast} {
     update_location();
-    token.type = AG_TOKEN_EQ_TILDE;
+    token.type = AG_TOKEN_TYPECAST;
     token.value.s = yytext;
     token.location = get_location();
     return token;
 }
 
-{typecast} {
+{operatorfail1} {
     update_location();
-    token.type = AG_TOKEN_TYPECAST;
+    ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                    scan_errmsg("invalid literal"),
+                    scan_errposition()));
+}
+
+
+{operator} {
+    update_location();
+    token.type = AG_TOKEN_OPERATOR;
     token.value.s = yytext;
     token.location = get_location();
     return token;
