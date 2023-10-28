@@ -98,7 +98,8 @@ REGRESS = scan \
           variable_edge \
           traversal \
           catalog \
-          cypher \
+          cypher  \
+          lists\
           expr \
 	  vector \
           cypher_create \
