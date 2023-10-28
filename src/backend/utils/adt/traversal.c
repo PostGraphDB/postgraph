@@ -175,6 +175,16 @@ Datum traversal_size(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(traversal_length);
+Datum traversal_length(PG_FUNCTION_ARGS) {
+    traversal *v = AG_GET_ARG_TRAVERSAL(0);
+
+    gtype_value gtv = { .type = AGTV_INTEGER, .val = { .int_value = (v->children[0] - 1) / 2 } };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv)); 
+}
+
+
 static int32 compare_traversal_orderability(traversal *lhs, traversal *rhs) {
     char *lhs_ptr = TRAVERSAL_GET_FIRST_ENTITY(lhs);
     char *rhs_ptr = TRAVERSAL_GET_FIRST_ENTITY(rhs);

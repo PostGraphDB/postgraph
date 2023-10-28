@@ -391,7 +391,6 @@ SELECT * FROM cypher('geometric', $$RETURN '(10,1), 3'::circle |>> '(1,1), 3'::c
 SELECT * FROM cypher('geometric', $$RETURN '(2,2), (3,3), (4, 4), (5, 5)'::polygon |>> '(1,1), (2,2), (3, 3), (4, 4)'::polygon  $$) AS (c gtype);
 SELECT * FROM cypher('geometric', $$RETURN '(10,1), (20,2), (30, 3), (40, 4)'::polygon |>> '(1,1), (2,2), (3, 3), (4, 4)'::polygon  $$) AS (c gtype);
 
-
 --
 -- @-@
 --
