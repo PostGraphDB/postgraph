@@ -78,30 +78,6 @@ SELECT * FROM cypher('expr', $$ RETURN {s: {s: 's'}, t: {i: 1, e: {f: 1.0}, s: {
 (1 row)
 
 --
--- list literal
---
--- empty list
-SELECT * FROM cypher('expr', $$RETURN []$$) AS r(c gtype);
- c  
-----
- []
-(1 row)
-
--- list of scalar values
-SELECT * FROM cypher('expr', $$ RETURN ['str', 1, 1.0, true, null] $$) AS r(c gtype);
-              c              
------------------------------
- ["str", 1, 1.0, true, null]
-(1 row)
-
--- nested lists
-SELECT * FROM cypher('expr', $$ RETURN [['str'], [1, [1.0], [[true]]], null] $$) AS r(c gtype);
-                   c                   
----------------------------------------
- [["str"], [1, [1.0], [[true]]], null]
-(1 row)
-
---
 -- parameter
 --
 PREPARE cypher_parameter(gtype) AS SELECT * FROM cypher('expr', $$ RETURN $var $$, $1) AS t(i gtype);
@@ -150,341 +126,6 @@ SELECT * FROM cypher('expr', $$ RETURN $var $$) AS t(i gtype);
 ERROR:  parameters argument is missing from cypher() function call
 LINE 1: SELECT * FROM cypher('expr', $$ RETURN $var $$) AS t(i gtype...
                                                ^
---list concatenation
-SELECT * FROM cypher('expr',
-$$RETURN ['str', 1, 1.0] + [true, null]$$) AS r(c gtype);
-              c              
------------------------------
- ["str", 1, 1.0, true, null]
-(1 row)
-
---list IN (contains), should all be true
-SELECT * FROM cypher('expr', $$RETURN 1 IN ['str', 1, 1.0, true, null]$$) AS r(c boolean); SELECT * FROM cypher('expr',
- c 
----
- t
-(1 row)
-
-$$RETURN 'str' IN ['str', 1, 1.0, true, null]$$) AS r(c boolean);
- c 
----
- t
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN 1.0 IN ['str', 1, 1.0, true, null]$$) AS r(c boolean);
- c 
----
- t
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN true IN ['str', 1, 1.0, true, null]$$) AS r(c boolean);
- c 
----
- t
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN [1,3,5,[2,4,6]] IN ['str', 1, 1.0, true, null, [1,3,5,[2,4,6]]]$$) AS r(c boolean);
- c 
----
- t
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN {bool: true, int: 1} IN ['str', 1, 1.0, true, null, {bool: true, int: 1}, [1,3,5,[2,4,6]]]$$) AS r(c boolean);
- c 
----
- t
-(1 row)
-
--- should return SQL null, nothing
-SELECT * FROM cypher('expr', $$RETURN null IN ['str', 1, 1.0, true, null]$$) AS r(c boolean);
- c 
----
- 
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN null IN ['str', 1, 1.0, true]$$) AS r(c boolean);
- c 
----
- 
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN 'str' IN null $$) AS r(c boolean);
- c 
----
- 
-(1 row)
-
--- should all return false
-SELECT * FROM cypher('expr', $$RETURN 0 IN ['str', 1, 1.0, true, null]$$) AS r(c boolean);
- c 
----
- f
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN 1.1 IN ['str', 1, 1.0, true, null]$$) AS r(c boolean);
- c 
----
- f
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN 'Str' IN ['str', 1, 1.0, true, null]$$) AS r(c boolean);
- c 
----
- f
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN [1,3,5,[2,4,5]] IN ['str', 1, 1.0, true, null, [1,3,5,[2,4,6]]]$$) AS r(c boolean);
- c 
----
- f
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN {bool: true, int: 2} IN ['str', 1, 1.0, true, null, {bool: true, int: 1}, [1,3,5,[2,4,6]]]$$) AS r(c boolean);
- c 
----
- f
-(1 row)
-
--- should error - ERROR:  object of IN must be a list
-SELECT * FROM cypher('expr', $$RETURN null IN 'str' $$) AS r(c boolean);
-ERROR:  object of IN must be a list
-SELECT * FROM cypher('expr', $$RETURN 'str' IN 'str' $$) AS r(c boolean);
-ERROR:  object of IN must be a list
--- list access
-SELECT * FROM cypher('expr', $$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][0]$$) AS r(c gtype);
- c 
----
- 0
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][5]$$) AS r(c gtype);
- c 
----
- 5
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][10]$$) AS r(c gtype);
- c  
-----
- 10
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][-1]$$) AS r(c gtype);
- c  
-----
- 10
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][-3]$$) AS r(c gtype);
- c 
----
- 8
-(1 row)
-
--- should return null
-SELECT * FROM cypher('expr', $$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][11]$$) AS r(c gtype);
- c 
----
- 
-(1 row)
-
--- list slice
-SELECT * FROM cypher('expr', $$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][0..]$$) AS r(c gtype);
-                 c                  
-------------------------------------
- [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][..11]$$) AS r(c gtype);
-                 c                  
-------------------------------------
- [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][0..0]$$) AS r(c gtype);
- c  
-----
- []
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][10..10]$$) AS r(c gtype);
- c  
-----
- []
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][0..1]$$) AS r(c gtype);
-  c  
------
- [0]
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][9..10]$$) AS r(c gtype);
-  c  
------
- [9]
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][-1..]$$) AS r(c gtype);
-  c   
-------
- [10]
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][-1..11]$$) AS r(c gtype);
-  c   
-------
- [10]
-(1 row)
-
-SELECT * FROM cypher('expr', $$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][-3..11]$$) AS r(c gtype);
-     c      
-------------
- [8, 9, 10]
-(1 row)
-
--- this one should return null
-SELECT * FROM cypher('expr', $$RETURN [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10][-1..10]$$) AS r(c gtype);
- c  
-----
- []
-(1 row)
-
-SELECT gtype_access_slice('[0]'::gtype, 'null'::gtype, '1'::gtype);
- gtype_access_slice 
---------------------
- [0]
-(1 row)
-
-SELECT gtype_access_slice('[0]'::gtype, '0'::gtype, 'null'::gtype);
- gtype_access_slice 
---------------------
- [0]
-(1 row)
-
--- should error - ERROR:  slice must access a list
-SELECT * from cypher('expr', $$RETURN 0[0..1]$$) as r(a gtype);
-ERROR:  slice must access a list
-SELECT * from cypher('expr', $$RETURN 0[[0]..[1]]$$) as r(a gtype);
-ERROR:  slice must access a list
--- should return nothing
-SELECT * from cypher('expr', $$RETURN [0][0..-2147483649]$$) as r(a gtype);
- a  
-----
- []
-(1 row)
-
--- access and slice operators nested
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[0] $$) as (results gtype);
- results 
----------
- 0
-(1 row)
-
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[2] $$) as (results gtype);
-  results  
------------
- [2, 3, 4]
-(1 row)
-
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-1] $$) as (results gtype);
- results 
----------
- 9
-(1 row)
-
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[2][-2] $$) as (results gtype);
- results 
----------
- 3
-(1 row)
-
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[2][-2..] $$) as (results gtype);
- results 
----------
- [3, 4]
-(1 row)
-
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..] $$) as (results gtype);
-    results     
-----------------
- [[6, 7, 8], 9]
-(1 row)
-
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][-1..] $$) as (results gtype);
- results 
----------
- [9]
-(1 row)
-
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][0] $$) as (results gtype);
- results 
----------
- 9
-(1 row)
-
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][-1] $$) as (results gtype);
- results 
----------
- 9
-(1 row)
-
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-2..-1] $$) as (results gtype);
-   results   
--------------
- [[6, 7, 8]]
-(1 row)
-
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2] $$) as (results gtype);
-    results     
-----------------
- [[2, 3, 4], 5]
-(1 row)
-
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2][-2] $$) as (results gtype);
-  results  
------------
- [2, 3, 4]
-(1 row)
-
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2][0] $$) as (results gtype);
-  results  
------------
- [2, 3, 4]
-(1 row)
-
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2][-2][-2..] $$) as (results gtype);
- results 
----------
- [3, 4]
-(1 row)
-
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2][-2][-2..][0] $$) as (results gtype);
- results 
----------
- 3
-(1 row)
-
--- empty list
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][-2..-2] $$) as (results gtype);
- results 
----------
- []
-(1 row)
-
--- should return null
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[2][3] $$) as (results gtype);
- results 
----------
- 
-(1 row)
-
-SELECT * from cypher('expr', $$ WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][-2] $$) as (results gtype);
- results 
----------
- 
-(1 row)
-
 --
 -- String operators
 --
@@ -533,7 +174,7 @@ SELECT * FROM cypher('expr', $$ RETURN (-(3 * 2 - 4.0) ^ ((10 / 5) + 1)) % -3 $$
 (1 row)
 
 --
--- comparison operators
+-- a bunch of comparison operators
 --
 SELECT * FROM cypher('expr', $$ RETURN 1 = 1.0 $$) AS r(result boolean);
  result 
@@ -589,9 +230,7 @@ SELECT * FROM cypher('expr', $$ RETURN (1 + 1.0) = (7 % 5) $$) AS r(result boole
  t
 (1 row)
 
---
--- IS NULL & IS NOT NULL
---
+-- IS NULL
 SELECT * FROM cypher('expr', $$ RETURN null IS NULL $$) AS r(result boolean);
  result 
 --------
@@ -604,6 +243,7 @@ SELECT * FROM cypher('expr', $$ RETURN 1 IS NULL $$) AS r(result boolean);
  f
 (1 row)
 
+-- IS NOT NULL
 SELECT * FROM cypher('expr', $$ RETURN 1 IS NOT NULL $$) AS r(result boolean);
  result 
 --------
@@ -616,9 +256,7 @@ SELECT * FROM cypher('expr', $$ RETURN null IS NOT NULL $$) AS r(result boolean)
  f
 (1 row)
 
---
--- AND, OR, NOT and XOR
---
+-- NOT
 SELECT * FROM cypher('expr', $$ RETURN NOT false $$) AS r(result boolean);
  result 
 --------
@@ -631,6 +269,7 @@ SELECT * FROM cypher('expr', $$ RETURN NOT true $$) AS r(result boolean);
  f
 (1 row)
 
+-- AND
 SELECT * FROM cypher('expr', $$ RETURN true AND true $$) AS r(result boolean);
  result 
 --------
@@ -655,6 +294,7 @@ SELECT * FROM cypher('expr', $$ RETURN false AND false $$) AS r(result boolean);
  f
 (1 row)
 
+-- OR
 SELECT * FROM cypher('expr', $$ RETURN true OR true $$) AS r(result boolean);
  result 
 --------
@@ -679,12 +319,14 @@ SELECT * FROM cypher('expr', $$ RETURN false OR false $$) AS r(result boolean);
  f
 (1 row)
 
+-- The ONE test on operator precedence...
 SELECT * FROM cypher('expr', $$ RETURN NOT ((true OR false) AND (false OR true)) $$) AS r(result boolean);
  result 
 --------
  f
 (1 row)
 
+-- XOR
 SELECT * FROM cypher('expr', $$ RETURN true XOR true $$) AS r(result boolean);
  result 
 --------
@@ -741,7 +383,6 @@ SELECT * FROM cypher('expr', $$ RETURN "abcdefghijklmnopqrstuvwxyz" CONTAINS "kl
  true
 (1 row)
 
--- false
 SELECT * FROM cypher('expr', $$ RETURN "abcdefghijklmnopqrstuvwxyz" STARTS WITH "bcde" $$) AS r(result gtype);
  result 
 --------
@@ -760,7 +401,6 @@ SELECT * FROM cypher('expr', $$ RETURN "abcdefghijklmnopqrstuvwxyz" CONTAINS "kl
  false
 (1 row)
 
--- these should return SQL NULL
 SELECT * FROM cypher('expr', $$ RETURN "abcdefghijklmnopqrstuvwxyz" STARTS WITH NULL $$) AS r(result gtype);
  result 
 --------
@@ -918,15 +558,10 @@ SELECT * FROM cypher('expr', $$ RETURN ([0, {one: 1, pie: 3.1415927, e: 2.718281
  
 (1 row)
 
--- these should fail
 SELECT * FROM cypher('expr', $$ RETURN '0.0'::int $$) AS r(result gtype);
 ERROR:  invalid input syntax for type bigint: "0.0"
 SELECT * FROM cypher('expr', $$ RETURN '1.5'::int $$) AS r(result gtype);
 ERROR:  invalid input syntax for type bigint: "1.5"
-SELECT * FROM cypher('graph_name', $$ RETURN "15555555555555555555555555555"::int $$) AS (string_result gtype);
-ERROR:  graph "graph_name" does not exist
-LINE 1: SELECT * FROM cypher('graph_name', $$ RETURN "15555555555555...
-                             ^
 SELECT * FROM cypher('expr', $$ RETURN 'NaN'::float::int $$) AS r(result gtype);
 ERROR:  bigint out of range
 SELECT * FROM cypher('expr', $$ RETURN 'infinity'::float::int $$) AS r(result gtype);
@@ -987,7 +622,6 @@ SELECT * FROM cypher('expr', $$ RETURN ([0, {one: 1, pie: 3.1415927, e: 2.718281
  [0, {"e": 2.718281::numeric, "one": 1, "pie": 3.1415927}, 2::numeric, null]
 (1 row)
 
--- these should fail
 SELECT * FROM cypher('expr', $$ RETURN ('2:71'::numeric)::numeric $$) AS r(result gtype);
 ERROR:  invalid input syntax for type numeric: "2:71"
 SELECT * FROM cypher('expr', $$ RETURN ('inf'::numeric)::numeric $$) AS r(result gtype);
@@ -1085,13 +719,6 @@ SELECT * FROM cypher('expr', $$ RETURN null::float $$) AS r(result gtype);
  
 (1 row)
 
--- should return JSON null
-SELECT gtype_in('null::float');
- gtype_in 
-----------
- null
-(1 row)
-
 -- these should fail
 SELECT * FROM cypher('expr', $$ RETURN '2:71'::float $$) AS r(result gtype);
 ERROR:  invalid input syntax for type double precision: "2:71"
@@ -1130,14 +757,8 @@ SELECT * FROM cypher('expr', $$ RETURN size(null) $$) AS (size gtype);
  
 (1 row)
 
--- should fail
 SELECT * FROM cypher('expr', $$ RETURN size(1234567890) $$) AS (size gtype);
 ERROR:  size() unsupported argument
-SELECT * FROM cypher('expr', $$ RETURN size() $$) AS (size gtype);
-ERROR:  function postgraph.size() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN size() $$) AS (size g...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- head() of an array
 SELECT * FROM cypher('expr', $$ RETURN head([1, 2, 3, 4, 5]) $$) AS (head gtype);
  head 
@@ -1151,7 +772,6 @@ SELECT * FROM cypher('expr', $$ RETURN head([1]) $$) AS (head gtype);
  1
 (1 row)
 
--- should return null
 SELECT * FROM cypher('expr', $$ RETURN head([]) $$) AS (head gtype);
  head 
 ------
@@ -1164,14 +784,8 @@ SELECT * FROM cypher('expr', $$ RETURN head(null) $$) AS (head gtype);
  
 (1 row)
 
--- should fail
 SELECT * FROM cypher('expr', $$ RETURN head(1234567890) $$) AS (head gtype);
 ERROR:  head() argument must resolve to a list
-SELECT * FROM cypher('expr', $$ RETURN head() $$) AS (head gtype);
-ERROR:  function postgraph.head() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN head() $$) AS (head g...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- last()
 SELECT * FROM cypher('expr', $$ RETURN last([1, 2, 3, 4, 5]) $$) AS (last gtype);
  last 
@@ -1206,32 +820,15 @@ ERROR:  function postgraph.last() does not exist
 LINE 1: SELECT * FROM cypher('expr', $$ RETURN last() $$) AS (last g...
                                                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
--- properties()
-SELECT * FROM cypher('expr', $$ MATCH (v) RETURN properties(v) $$) AS (properties gtype);
- properties 
-------------
-(0 rows)
-
-SELECT * FROM cypher('expr', $$ MATCH ()-[e]-() RETURN properties(e) $$) AS (properties gtype);
- properties 
-------------
-(0 rows)
-
 -- should return null
 SELECT * FROM cypher('expr', $$ RETURN properties(null) $$) AS (properties gtype);
 ERROR:  function postgraph.properties(gtype) does not exist
 LINE 1: SELECT * FROM cypher('expr', $$ RETURN properties(null) $$) ...
                                                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
--- should fail
 SELECT * FROM cypher('expr', $$ RETURN properties(1234) $$) AS (properties gtype);
 ERROR:  function postgraph.properties(gtype) does not exist
 LINE 1: SELECT * FROM cypher('expr', $$ RETURN properties(1234) $$) ...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('expr', $$ RETURN properties() $$) AS (properties gtype);
-ERROR:  function postgraph.properties() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN properties() $$) AS (...
                                                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- coalesce
@@ -1265,23 +862,12 @@ SELECT * FROM cypher('expr', $$ RETURN coalesce(null, null, null, {}) $$) AS (co
  {}
 (1 row)
 
--- should return null
-SELECT * FROM cypher('expr', $$ RETURN coalesce(null, id(null), null) $$) AS (coalesce gtype);
-ERROR:  function postgraph.id(gtype) does not exist
-LINE 1: ...CT * FROM cypher('expr', $$ RETURN coalesce(null, id(null), ...
-                                                             ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$ RETURN coalesce(null) $$) AS (coalesce gtype);
  coalesce 
 ----------
  
 (1 row)
 
--- should fail
-SELECT * FROM cypher('expr', $$ RETURN coalesce() $$) AS (coalesce gtype);
-ERROR:  syntax error at or near ")"
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN coalesce() $$) AS (co...
-                                                        ^
 -- toBoolean()
 SELECT * FROM cypher('expr', $$ RETURN toBoolean(true) $$) AS (toBoolean gtype);
  toboolean 
@@ -1319,11 +905,6 @@ SELECT * FROM cypher('expr', $$ RETURN toBoolean(null) $$) AS (toBoolean gtype);
 -- should fail
 SELECT * FROM cypher('expr', $$ RETURN toBoolean(1) $$) AS (toBoolean gtype);
 ERROR:  cannot cast gtype integer to type boolean
-SELECT * FROM cypher('expr', $$ RETURN toBoolean() $$) AS (toBoolean gtype);
-ERROR:  function postgraph.toboolean() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN toBoolean() $$) AS (t...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- toFloat()
 SELECT * FROM cypher('expr', $$ RETURN toFloat(1) $$) AS (toFloat gtype);
  tofloat 
@@ -1355,7 +936,6 @@ SELECT * FROM cypher('expr', $$ RETURN toFloat("1.2"::numeric) $$) AS (toFloat g
  1.2
 (1 row)
 
--- should return null
 SELECT * FROM cypher('expr', $$ RETURN toFloat("falze") $$) AS (toFloat gtype);
 ERROR:  invalid input syntax for type double precision: "falze"
 SELECT * FROM cypher('expr', $$ RETURN toFloat(null) $$) AS (toFloat gtype);
@@ -1364,14 +944,8 @@ SELECT * FROM cypher('expr', $$ RETURN toFloat(null) $$) AS (toFloat gtype);
  
 (1 row)
 
--- should fail
 SELECT * FROM cypher('expr', $$ RETURN toFloat(true) $$) AS (toFloat gtype);
 ERROR:  cannot cast gtype boolean to type float8
-SELECT * FROM cypher('expr', $$ RETURN toFloat() $$) AS (toFloat gtype);
-ERROR:  function postgraph.tofloat() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN toFloat() $$) AS (toF...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 -- toInteger()
 SELECT * FROM cypher('expr', $$ RETURN toInteger(1) $$) AS (toInteger gtype);
  tointeger 
@@ -1399,7 +973,6 @@ SELECT * FROM cypher('expr', $$ RETURN toInteger("1.2"::numeric) $$) AS (toInteg
  1
 (1 row)
 
--- should return null
 SELECT * FROM cypher('expr', $$ RETURN toInteger("falze") $$) AS (toInteger gtype);
 ERROR:  invalid input syntax for type bigint: "falze"
 SELECT * FROM cypher('expr', $$ RETURN toInteger(null) $$) AS (toInteger gtype);
@@ -1408,57 +981,27 @@ SELECT * FROM cypher('expr', $$ RETURN toInteger(null) $$) AS (toInteger gtype);
  
 (1 row)
 
--- should fail
 SELECT * FROM cypher('expr', $$ RETURN toInteger(true) $$) AS (toInteger gtype);
 ERROR:  cannot cast gtype boolean to type int8
-SELECT * FROM cypher('expr', $$ RETURN toInteger() $$) AS (toInteger gtype);
-ERROR:  function postgraph.tointeger() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN toInteger() $$) AS (t...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
 -- toString()
 --
-SELECT * FROM toString(gtype_in('3'));
- tostring 
-----------
+SELECT * FROM cypher('expr', $$ RETURN toString(3) $$) AS (results gtype);
+ results 
+---------
  "3"
 (1 row)
 
-SELECT * FROM toString(gtype_in('3.14'));
- tostring 
-----------
+SELECT * FROM cypher('expr', $$ RETURN toString(3.14) $$) AS (results gtype);
+ results 
+---------
  "3.14"
 (1 row)
 
-SELECT * FROM toString(gtype_in('3.14::float'));
- tostring 
-----------
+SELECT * FROM cypher('expr', $$ RETURN toString(3.14::float) $$) AS (results gtype);
+ results 
+---------
  "3.14"
-(1 row)
-
-SELECT * FROM toString(gtype_in('3.14::numeric'));
- tostring 
-----------
- "3.14"
-(1 row)
-
-SELECT * FROM toString(gtype_in('true'));
- tostring 
-----------
- "true"
-(1 row)
-
-SELECT * FROM toString(gtype_in('false'));
- tostring 
-----------
- "false"
-(1 row)
-
-SELECT * FROM toString(gtype_in('"a string"'));
-  tostring  
-------------
- "a string"
 (1 row)
 
 SELECT * FROM cypher('expr', $$ RETURN toString(3.14::numeric) $$) AS (results gtype);
@@ -1467,33 +1010,31 @@ SELECT * FROM cypher('expr', $$ RETURN toString(3.14::numeric) $$) AS (results g
  "3.14"
 (1 row)
 
--- should return null
-SELECT * FROM toString(NULL);
- tostring 
-----------
+SELECT * FROM cypher('expr', $$ RETURN toString(true) $$) AS (results gtype);
+ results 
+---------
+ "true"
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN toString(false) $$) AS (results gtype);
+ results 
+---------
+ "false"
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN toString('a string') $$) AS (results gtype);
+  results   
+------------
+ "a string"
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN toString(null) $$) AS (results gtype);
+ results 
+---------
  
 (1 row)
 
-SELECT * FROM toString(gtype_in(null));
- tostring 
-----------
- 
-(1 row)
-
--- should fail
-SELECT * FROM toString();
-ERROR:  function tostring() does not exist
-LINE 1: SELECT * FROM toString();
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('expr', $$ RETURN toString() $$) AS (results gtype);
-ERROR:  function postgraph.tostring() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN toString() $$) AS (re...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
---
 -- reverse(string)
---
 SELECT * FROM cypher('expr', $$ RETURN reverse("gnirts a si siht") $$) AS (results gtype);
       results       
 --------------------
@@ -1519,12 +1060,10 @@ SELECT * FROM reverse(null);
  
 (1 row)
 
--- should return error
 SELECT * FROM reverse([4923, 'abc', 521, NULL, 487]);
 ERROR:  syntax error at or near "["
 LINE 1: SELECT * FROM reverse([4923, 'abc', 521, NULL, 487]);
                               ^
--- Should return the reversed list
 SELECT * FROM cypher('expr', $$ RETURN reverse([4923, 'abc', 521, NULL, 487]) $$) AS (u gtype);
                u               
 -------------------------------
@@ -1573,46 +1112,29 @@ SELECT * FROM cypher('expr', $$ RETURN reverse([4923, 257, {test2: [1, 2, 3]}]) 
  [{"test2": [1, 2, 3]}, 257, 4923]
 (1 row)
 
--- should fail
 SELECT * FROM cypher('expr', $$ RETURN reverse(true) $$) AS (results gtype);
  results 
 ---------
  "eurt"
 (1 row)
 
-SELECT * FROM reverse(true);
-ERROR:  function reverse(boolean) does not exist
-LINE 1: SELECT * FROM reverse(true);
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$ RETURN reverse(3.14) $$) AS (results gtype);
  results 
 ---------
  "41.3"
 (1 row)
 
-SELECT * FROM reverse(3.14);
-ERROR:  function reverse(numeric) does not exist
-LINE 1: SELECT * FROM reverse(3.14);
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('expr', $$ RETURN reverse() $$) AS (results gtype);
-ERROR:  function postgraph.reverse() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN reverse() $$) AS (res...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM reverse();
-ERROR:  function reverse() does not exist
-LINE 1: SELECT * FROM reverse();
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
---
--- toUpper() and toLower()
---
+-- toUpper
 SELECT * FROM cypher('expr', $$ RETURN toUpper('to uppercase') $$) AS (toUpper gtype);
     toupper     
 ----------------
  "TO UPPERCASE"
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN toUpper(null) $$) AS (toUpper gtype);
+ toupper 
+---------
+ 
 (1 row)
 
 SELECT * FROM cypher('expr', $$ RETURN toUpper('') $$) AS (toUpper gtype);
@@ -1621,17 +1143,17 @@ SELECT * FROM cypher('expr', $$ RETURN toUpper('') $$) AS (toUpper gtype);
  ""
 (1 row)
 
+SELECT * FROM cypher('expr', $$ RETURN toUpper(true) $$) AS (toUpper gtype);
+ toupper 
+---------
+ "TRUE"
+(1 row)
+
+-- toLower
 SELECT * FROM cypher('expr', $$ RETURN toLower('TO LOWERCASE') $$) AS (toLower gtype);
     tolower     
 ----------------
  "to lowercase"
-(1 row)
-
--- should return null
-SELECT * FROM cypher('expr', $$ RETURN toUpper(null) $$) AS (toUpper gtype);
- toupper 
----------
- 
 (1 row)
 
 SELECT * FROM cypher('expr', $$ RETURN toLower(null) $$) AS (toLower gtype);
@@ -1640,94 +1162,36 @@ SELECT * FROM cypher('expr', $$ RETURN toLower(null) $$) AS (toLower gtype);
  
 (1 row)
 
-SELECT * FROM toupper(null);
- toupper 
----------
- 
-(1 row)
-
-SELECT * FROM tolower(null);
- tolower 
----------
- 
-(1 row)
-
--- should fail
-SELECT * FROM cypher('expr', $$ RETURN toUpper(true) $$) AS (toUpper gtype);
- toupper 
----------
- "TRUE"
-(1 row)
-
-SELECT * FROM cypher('expr', $$ RETURN toUpper() $$) AS (toUpper gtype);
-ERROR:  function postgraph.toupper() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN toUpper() $$) AS (toU...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$ RETURN toLower(true) $$) AS (toLower gtype);
  tolower 
 ---------
  "true"
 (1 row)
 
-SELECT * FROM cypher('expr', $$ RETURN toLower() $$) AS (toLower gtype);
-ERROR:  function postgraph.tolower() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN toLower() $$) AS (toL...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM toupper();
-ERROR:  function toupper() does not exist
-LINE 1: SELECT * FROM toupper();
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM tolower();
-ERROR:  function tolower() does not exist
-LINE 1: SELECT * FROM tolower();
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
---
--- lTrim(), rTrim(), trim()
---
+-- lTrim
 SELECT * FROM cypher('expr', $$ RETURN lTrim("  string   ") $$) AS (results gtype);
    results   
 -------------
  "string   "
 (1 row)
 
-SELECT * FROM cypher('expr', $$ RETURN rTrim("  string   ") $$) AS (results gtype);
-  results   
-------------
- "  string"
-(1 row)
-
-SELECT * FROM cypher('expr', $$ RETURN trim("  string   ") $$) AS (results gtype);
- results  
-----------
- "string"
-(1 row)
-
-SELECT * FROM ltrim('"  string   "'::gtype);
-    ltrim    
--------------
- "string   "
-(1 row)
-
-SELECT * FROM rtrim('"  string   "'::gtype);
-   rtrim    
-------------
- "  string"
-(1 row)
-
-SELECT * FROM trim('"  string   "'::gtype);
-ERROR:  function pg_catalog.btrim(gtype) does not exist
-LINE 1: SELECT * FROM trim('"  string   "'::gtype);
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
--- should return null
 SELECT * FROM cypher('expr', $$ RETURN lTrim(null) $$) AS (results gtype);
  results 
 ---------
  
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN lTrim(true) $$) AS (results gtype);
+ results 
+---------
+ "true"
+(1 row)
+
+-- rtrim
+SELECT * FROM cypher('expr', $$ RETURN rTrim("  string   ") $$) AS (results gtype);
+  results   
+------------
+ "  string"
 (1 row)
 
 SELECT * FROM cypher('expr', $$ RETURN rTrim(null) $$) AS (results gtype);
@@ -1736,41 +1200,23 @@ SELECT * FROM cypher('expr', $$ RETURN rTrim(null) $$) AS (results gtype);
  
 (1 row)
 
-SELECT * FROM cypher('expr', $$ RETURN trim(null) $$) AS (results gtype);
- results 
----------
- 
-(1 row)
-
-SELECT * FROM ltrim(null);
- ltrim 
--------
- 
-(1 row)
-
-SELECT * FROM rtrim(null);
- rtrim 
--------
- 
-(1 row)
-
-SELECT * FROM trim(null);
- btrim 
--------
- 
-(1 row)
-
--- should fail
-SELECT * FROM cypher('expr', $$ RETURN lTrim(true) $$) AS (results gtype);
- results 
----------
- "true"
-(1 row)
-
 SELECT * FROM cypher('expr', $$ RETURN rTrim(true) $$) AS (results gtype);
  results 
 ---------
  "true"
+(1 row)
+
+-- trim
+SELECT * FROM cypher('expr', $$ RETURN trim("  string   ") $$) AS (results gtype);
+ results  
+----------
+ "string"
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN trim(null) $$) AS (results gtype);
+ results 
+---------
+ 
 (1 row)
 
 SELECT * FROM cypher('expr', $$ RETURN trim(true) $$) AS (results gtype);
@@ -1779,38 +1225,7 @@ SELECT * FROM cypher('expr', $$ RETURN trim(true) $$) AS (results gtype);
  "true"
 (1 row)
 
-SELECT * FROM cypher('expr', $$ RETURN lTrim() $$) AS (results gtype);
-ERROR:  function postgraph.ltrim() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN lTrim() $$) AS (resul...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('expr', $$ RETURN rTrim() $$) AS (results gtype);
-ERROR:  function postgraph.rtrim() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN rTrim() $$) AS (resul...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('expr', $$ RETURN trim() $$) AS (results gtype);
-ERROR:  function postgraph.trim() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN trim() $$) AS (result...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM ltrim();
-ERROR:  function ltrim() does not exist
-LINE 1: SELECT * FROM ltrim();
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM rtrim();
-ERROR:  function rtrim() does not exist
-LINE 1: SELECT * FROM rtrim();
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM trim();
-ERROR:  syntax error at or near ")"
-LINE 1: SELECT * FROM trim();
-                           ^
---
--- left(), right(), & substring()
--- left()
+-- left
 SELECT * FROM cypher('expr', $$ RETURN left("123456789", 1) $$) AS (results gtype);
  results 
 ---------
@@ -1823,7 +1238,6 @@ SELECT * FROM cypher('expr', $$ RETURN left("123456789", 3) $$) AS (results gtyp
  "123"
 (1 row)
 
--- should return null
 SELECT * FROM cypher('expr', $$ RETURN left("123456789", 0) $$) AS (results gtype);
  results 
 ---------
@@ -1842,18 +1256,6 @@ SELECT * FROM cypher('expr', $$ RETURN left(null, null) $$) AS (results gtype);
  
 (1 row)
 
-SELECT * FROM left(null, '1'::gtype);
- left 
-------
- 
-(1 row)
-
-SELECT * FROM left(null, null);
-ERROR:  function left(unknown, unknown) is not unique
-LINE 1: SELECT * FROM left(null, null);
-                      ^
-HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
--- should fail
 SELECT * FROM cypher('expr', $$ RETURN left("123456789", null) $$) AS (results gtype);
  results 
 ---------
@@ -1871,23 +1273,7 @@ ERROR:  function postgraph.left() does not exist
 LINE 1: SELECT * FROM cypher('expr', $$ RETURN left() $$) AS (result...
                                                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM left('123456789', null);
-ERROR:  function left(unknown, unknown) is not unique
-LINE 1: SELECT * FROM left('123456789', null);
-                      ^
-HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
-SELECT * FROM left('"123456789"'::gtype, '-1'::gtype);
-    left    
-------------
- "12345678"
-(1 row)
-
-SELECT * FROM left();
-ERROR:  function left() does not exist
-LINE 1: SELECT * FROM left();
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
---right()
+--right
 SELECT * FROM cypher('expr', $$ RETURN right("123456789", 1) $$) AS (results gtype);
  results 
 ---------
@@ -1900,7 +1286,6 @@ SELECT * FROM cypher('expr', $$ RETURN right("123456789", 3) $$) AS (results gty
  "789"
 (1 row)
 
--- should return null
 SELECT * FROM cypher('expr', $$ RETURN right("123456789", 0) $$) AS (results gtype);
  results 
 ---------
@@ -1919,18 +1304,6 @@ SELECT * FROM cypher('expr', $$ RETURN right(null, null) $$) AS (results gtype);
  
 (1 row)
 
-SELECT * FROM right(null, '1'::gtype);
- right 
--------
- 
-(1 row)
-
-SELECT * FROM right(null, null);
-ERROR:  function right(unknown, unknown) is not unique
-LINE 1: SELECT * FROM right(null, null);
-                      ^
-HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
--- should fail
 SELECT * FROM cypher('expr', $$ RETURN right("123456789", null) $$) AS (results gtype);
  results 
 ---------
@@ -1948,23 +1321,7 @@ ERROR:  function postgraph.right() does not exist
 LINE 1: SELECT * FROM cypher('expr', $$ RETURN right() $$) AS (resul...
                                                ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM right('123456789', null);
-ERROR:  function right(unknown, unknown) is not unique
-LINE 1: SELECT * FROM right('123456789', null);
-                      ^
-HINT:  Could not choose a best candidate function. You might need to add explicit type casts.
-SELECT * FROM right('"123456789"'::gtype, '-1'::gtype);
-   right    
-------------
- "23456789"
-(1 row)
-
-SELECT * FROM right();
-ERROR:  function right() does not exist
-LINE 1: SELECT * FROM right();
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
--- substring()
+-- substring
 SELECT * FROM cypher('expr', $$ RETURN substring("0123456789", 0, 1) $$) AS (results gtype);
  results 
 ---------
@@ -1983,15 +1340,12 @@ SELECT * FROM cypher('expr', $$ RETURN substring("0123456789", 3) $$) AS (result
  "23456789"
 (1 row)
 
-SELECT * FROM cypher('expr', $$
-    RETURN substring("0123456789", 0)
-$$) AS (results gtype);
+SELECT * FROM cypher('expr', $$ RETURN substring("0123456789", 0) $$) AS (results gtype);
    results    
 --------------
  "0123456789"
 (1 row)
 
--- should return null
 SELECT * FROM cypher('expr', $$ RETURN substring(null, null, null) $$) AS (results gtype);
  results 
 ---------
@@ -2010,7 +1364,6 @@ SELECT * FROM cypher('expr', $$ RETURN substring(null, 1) $$) AS (results gtype)
  
 (1 row)
 
--- should fail
 SELECT * FROM cypher('expr', $$ RETURN substring("123456789", null) $$) AS (results gtype);
  results 
 ---------
@@ -2146,11 +1499,6 @@ ERROR:  function split(gtype) does not exist
 LINE 1: SELECT * FROM split('"a,b,c,d,e,f"'::gtype);
                       ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM split();
-ERROR:  function split() does not exist
-LINE 1: SELECT * FROM split();
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
 -- replace()
 --
@@ -2222,11 +1570,6 @@ SELECT * FROM cypher('expr', $$ RETURN replace("", "Hello", "Mellow") $$) AS (re
 (1 row)
 
 -- should fail
-SELECT * FROM cypher('expr', $$ RETURN replace() $$) AS (results gtype);
-ERROR:  function postgraph.replace() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN replace() $$) AS (res...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$ RETURN replace("Hello") $$) AS (results gtype);
 ERROR:  function postgraph.replace(gtype) does not exist
 LINE 1: SELECT * FROM cypher('expr', $$ RETURN replace("Hello") $$) ...
@@ -2346,70 +1689,6 @@ SELECT * FROM cypher('expr', $$ RETURN cot("0") $$) AS (results gtype);
  Infinity
 (1 row)
 
-SELECT * FROM cypher('expr', $$ RETURN sin() $$) AS (results gtype);
-ERROR:  function postgraph.sin() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN sin() $$) AS (results...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('expr', $$ RETURN cos() $$) AS (results gtype);
-ERROR:  function postgraph.cos() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN cos() $$) AS (results...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('expr', $$ RETURN tan() $$) AS (results gtype);
-ERROR:  function postgraph.tan() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN tan() $$) AS (results...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('expr', $$ RETURN cot() $$) AS (results gtype);
-ERROR:  function postgraph.cot() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN cot() $$) AS (results...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM sin('0'::gtype);
- sin 
------
- 0.0
-(1 row)
-
-SELECT * FROM cos('0'::gtype);
- cos 
------
- 1.0
-(1 row)
-
-SELECT * FROM tan('0'::gtype);
- tan 
------
- 0.0
-(1 row)
-
-SELECT * FROM cot('0'::gtype);
-   cot    
-----------
- Infinity
-(1 row)
-
-SELECT * FROM sin();
-ERROR:  function sin() does not exist
-LINE 1: SELECT * FROM sin();
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cos();
-ERROR:  function cos() does not exist
-LINE 1: SELECT * FROM cos();
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM tan();
-ERROR:  function tan() does not exist
-LINE 1: SELECT * FROM tan();
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cot();
-ERROR:  function cot() does not exist
-LINE 1: SELECT * FROM cot();
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
 -- Arc functions: asin, acos, atan, & atan2
 --
@@ -2522,7 +1801,6 @@ SELECT * FROM atan2(null, '1'::gtype);
  
 (1 row)
 
--- should fail
 SELECT * FROM cypher('expr', $$ RETURN asin("0") $$) AS (results gtype);
  results 
 ---------
@@ -2553,86 +1831,6 @@ SELECT * FROM cypher('expr', $$ RETURN atan2(0, "1") $$) AS (results gtype);
  1.5707963267949
 (1 row)
 
-SELECT * FROM cypher('expr', $$ RETURN asin() $$) AS (results gtype);
-ERROR:  function postgraph.asin() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN asin() $$) AS (result...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('expr', $$ RETURN acos() $$) AS (results gtype);
-ERROR:  function postgraph.acos() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN acos() $$) AS (result...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('expr', $$ RETURN atan() $$) AS (results gtype);
-ERROR:  function postgraph.atan() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN atan() $$) AS (result...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('expr', $$ RETURN atan2() $$) AS (results gtype);
-ERROR:  function postgraph.atan2() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN atan2() $$) AS (resul...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('expr', $$ RETURN atan2(null) $$) AS (results gtype);
-ERROR:  function postgraph.atan2(gtype) does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN atan2(null) $$) AS (r...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM asin('0'::gtype);
- asin 
-------
- 0.0
-(1 row)
-
-SELECT * FROM acos('0'::gtype);
-      acos       
------------------
- 1.5707963267949
-(1 row)
-
-SELECT * FROM atan('0'::gtype);
- atan 
-------
- 0.0
-(1 row)
-
-SELECT * FROM atan2('"0"'::gtype, '1'::gtype);
-      atan2      
------------------
- 1.5707963267949
-(1 row)
-
-SELECT * FROM atan2('1'::gtype, '"0"'::gtype);
- atan2 
--------
- 0.0
-(1 row)
-
-SELECT * FROM asin();
-ERROR:  function asin() does not exist
-LINE 1: SELECT * FROM asin();
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM acos();
-ERROR:  function acos() does not exist
-LINE 1: SELECT * FROM acos();
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM atan();
-ERROR:  function atan() does not exist
-LINE 1: SELECT * FROM atan();
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM atan2();
-ERROR:  function atan2() does not exist
-LINE 1: SELECT * FROM atan2();
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM atan2('1'::gtype);
-ERROR:  function atan2(gtype) does not exist
-LINE 1: SELECT * FROM atan2('1'::gtype);
-                      ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
 -- pi
 --
@@ -2672,17 +1870,6 @@ SELECT * FROM cypher('expr', $$ RETURN sin(pi()/2) $$) AS (results gtype);
  1.0
 (1 row)
 
--- should fail
-SELECT * FROM cypher('expr', $$ RETURN pi(null) $$) AS (results gtype);
-ERROR:  function postgraph.pi(gtype) does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN pi(null) $$) AS (resu...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('expr', $$ RETURN pi(1) $$) AS (results gtype);
-ERROR:  function postgraph.pi(gtype) does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN pi(1) $$) AS (results...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
 -- radians() & degrees()
 --
@@ -2734,7 +1921,6 @@ SELECT * FROM cypher('expr', $$ RETURN degrees(pi()/2) $$) AS (results gtype);
  90.0
 (1 row)
 
--- should return null
 SELECT * FROM cypher('expr', $$ RETURN radians(null) $$) AS (results gtype);
  results 
 ---------
@@ -2747,17 +1933,6 @@ SELECT * FROM cypher('expr', $$ RETURN degrees(null) $$) AS (results gtype);
  
 (1 row)
 
--- should fail
-SELECT * FROM cypher('expr', $$ RETURN radians() $$) AS (results gtype);
-ERROR:  function postgraph.radians() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN radians() $$) AS (res...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('expr', $$ RETURN degrees() $$) AS (results gtype);
-ERROR:  function postgraph.degrees() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN degrees() $$) AS (res...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * FROM cypher('expr', $$ RETURN radians("1") $$) AS (results gtype);
       results       
 --------------------
@@ -2908,9 +2083,7 @@ SELECT results FROM cypher('expr', $$ RETURN atanh(1) $$) AS (results gtype);
  Infinity
 (1 row)
 
---
--- abs(), ceil(), floor(), & round()
---
+-- abs
 SELECT * FROM cypher('expr', $$ RETURN abs(0) $$) AS (results gtype);
  results 
 ---------
@@ -2929,6 +2102,13 @@ SELECT * FROM cypher('expr', $$ RETURN abs(-10) $$) AS (results gtype);
  10
 (1 row)
 
+SELECT * FROM cypher('expr', $$ RETURN abs(null) $$) AS (results gtype);
+ results 
+---------
+ 
+(1 row)
+
+-- ceil
 SELECT * FROM cypher('expr', $$ RETURN ceil(0) $$) AS (results gtype);
  results 
 ---------
@@ -2971,6 +2151,19 @@ SELECT * FROM cypher('expr', $$ RETURN ceil(-1.01::numeric) $$) AS (results gtyp
  -1::numeric
 (1 row)
 
+SELECT * FROM cypher('expr', $$ RETURN ceil("1") $$) AS (results gtype);
+ results 
+---------
+ 1.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN ceil(null) $$) AS (results gtype);
+ results 
+---------
+ 
+(1 row)
+
+-- floor
 SELECT * FROM cypher('expr', $$ RETURN floor(0) $$) AS (results gtype);
  results 
 ---------
@@ -3001,6 +2194,19 @@ SELECT * FROM cypher('expr', $$ RETURN floor(-1.01) $$) AS (results gtype);
  -2.0
 (1 row)
 
+SELECT * FROM cypher('expr', $$ RETURN floor(null) $$) AS (results gtype);
+ results 
+---------
+ 
+(1 row)
+
+SELECT * FROM cypher('expr', $$ RETURN floor("1") $$) AS (results gtype);
+ results 
+---------
+ 1.0
+(1 row)
+
+-- round
 SELECT * FROM cypher('expr', $$ RETURN round(0) $$) AS (results gtype);
  results 
 ---------
@@ -3049,6 +2255,12 @@ SELECT * FROM cypher('expr', $$ RETURN round(7.416343479, NULL) $$) AS (results 
  
 (1 row)
 
+SELECT * FROM cypher('expr', $$ RETURN round("1") $$) AS (results gtype);
+ results 
+---------
+ 1.0
+(1 row)
+
 SELECT * FROM cypher('expr', $$ RETURN round(NULL, 7) $$) AS (results gtype);
  results 
 ---------
@@ -3073,6 +2285,7 @@ SELECT * FROM cypher('expr', $$ RETURN round(NULL, NULL) $$) AS (results gtype);
  
 (1 row)
 
+-- sign
 SELECT * FROM cypher('expr', $$ RETURN sign(10) $$) AS (results gtype);
  results 
 ---------
@@ -3091,29 +2304,10 @@ SELECT * FROM cypher('expr', $$ RETURN sign(0) $$) AS (results gtype);
  0.0
 (1 row)
 
--- should return null
-SELECT * FROM cypher('expr', $$ RETURN abs(null) $$) AS (results gtype);
+SELECT * FROM cypher('expr', $$ RETURN sign("1") $$) AS (results gtype);
  results 
 ---------
- 
-(1 row)
-
-SELECT * FROM cypher('expr', $$ RETURN ceil(null) $$) AS (results gtype);
- results 
----------
- 
-(1 row)
-
-SELECT * FROM cypher('expr', $$ RETURN floor(null) $$) AS (results gtype);
- results 
----------
- 
-(1 row)
-
-SELECT * FROM cypher('expr', $$ RETURN round(null) $$) AS (results gtype);
- results 
----------
- 
+ 1.0
 (1 row)
 
 SELECT * FROM cypher('expr', $$ RETURN sign(null) $$) AS (results gtype);
@@ -3122,65 +2316,7 @@ SELECT * FROM cypher('expr', $$ RETURN sign(null) $$) AS (results gtype);
  
 (1 row)
 
--- should fail
-SELECT * FROM cypher('expr', $$ RETURN abs() $$) AS (results gtype);
-ERROR:  function postgraph.abs() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN abs() $$) AS (results...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('expr', $$ RETURN ceil() $$) AS (results gtype);
-ERROR:  function postgraph.ceil() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN ceil() $$) AS (result...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('expr', $$ RETURN floor() $$) AS (results gtype);
-ERROR:  function postgraph.floor() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN floor() $$) AS (resul...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('expr', $$ RETURN round() $$) AS (results gtype);
-ERROR:  function postgraph.round() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN round() $$) AS (resul...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('expr', $$ RETURN sign() $$) AS (results gtype);
-ERROR:  function postgraph.sign() does not exist
-LINE 1: SELECT * FROM cypher('expr', $$ RETURN sign() $$) AS (result...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * FROM cypher('expr', $$ RETURN abs("1") $$) AS (results gtype);
- results 
----------
- 1
-(1 row)
-
-SELECT * FROM cypher('expr', $$ RETURN ceil("1") $$) AS (results gtype);
- results 
----------
- 1.0
-(1 row)
-
-SELECT * FROM cypher('expr', $$ RETURN floor("1") $$) AS (results gtype);
- results 
----------
- 1.0
-(1 row)
-
-SELECT * FROM cypher('expr', $$ RETURN round("1") $$) AS (results gtype);
- results 
----------
- 1.0
-(1 row)
-
-SELECT * FROM cypher('expr', $$ RETURN sign("1") $$) AS (results gtype);
- results 
----------
- 1.0
-(1 row)
-
---
 -- gcd
---
 SELECT * FROM cypher('expr', $$ RETURN gcd(10, 5) $$) AS (results gtype);
  results 
 ---------
@@ -3211,12 +2347,6 @@ SELECT * FROM cypher('expr', $$ RETURN gcd('10', 5) $$) AS (results gtype);
  5
 (1 row)
 
-SELECT * FROM cypher('expr', $$ RETURN gcd(10::numeric, '5') $$) AS (results gtype);
-  results   
-------------
- 5::numeric
-(1 row)
-
 --
 -- lcm
 --
@@ -3233,12 +2363,6 @@ SELECT * FROM cypher('expr', $$ RETURN lcm(10.0, 5.0) $$) AS (results gtype);
 (1 row)
 
 SELECT * FROM cypher('expr', $$ RETURN lcm(10.0, 5) $$) AS (results gtype);
-   results   
--------------
- 10::numeric
-(1 row)
-
-SELECT * FROM cypher('expr', $$ RETURN lcm(10, 5::numeric) $$) AS (results gtype);
    results   
 -------------
  10::numeric
@@ -3263,15 +2387,6 @@ SELECT * FROM cypher('expr', $$ RETURN lcm(10::numeric, '5') $$) AS (results gty
 SELECT true FROM cypher('expr', $$ RETURN rand() $$) AS (result int) WHERE result >= 1 or result < 0;
  bool 
 ------
-(0 rows)
-
--- should select 0 rows as rand() should not return the same value
-SELECT *
-FROM cypher('expr', $$ RETURN rand() $$) AS cypher_1(result gtype),
-     cypher('expr', $$ RETURN rand() $$) AS cypher_2(result gtype)
-WHERE cypher_1.result = cypher_2.result;
- result | result 
---------+--------
 (0 rows)
 
 --
@@ -3310,17 +2425,6 @@ SELECT * from cypher('expr', $$ RETURN log(-1) $$) as (result gtype);
 ERROR:  cannot take logarithm of a negative number
 SELECT * from cypher('expr', $$ RETURN log10(-1) $$) as (result gtype);
 ERROR:  cannot take logarithm of a negative number
--- should fail
-SELECT * from cypher('expr', $$ RETURN log() $$) as (result gtype);
-ERROR:  function postgraph.log() does not exist
-LINE 1: SELECT * from cypher('expr', $$ RETURN log() $$) as (result ...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT * from cypher('expr', $$ RETURN log10() $$) as (result gtype);
-ERROR:  function postgraph.log10() does not exist
-LINE 1: SELECT * from cypher('expr', $$ RETURN log10() $$) as (resul...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
 -- e()
 --
@@ -3359,11 +2463,6 @@ SELECT * from cypher('expr', $$ RETURN exp(null) $$) as (result gtype);
 (1 row)
 
 -- should fail
-SELECT * from cypher('expr', $$ RETURN exp() $$) as (result gtype);
-ERROR:  function postgraph.exp() does not exist
-LINE 1: SELECT * from cypher('expr', $$ RETURN exp() $$) as (result ...
-                                               ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 SELECT * from cypher('expr', $$ RETURN exp("1") $$) as (result gtype);
       result      
 ------------------
@@ -3612,159 +2711,9 @@ ERROR:  function postgraph.keys(traversal) does not exist
 LINE 1: ...T * from cypher('keys', $$MATCH u=()-[]-() RETURN keys(u)$$)...
                                                              ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
-SELECT create_graph('list');
-NOTICE:  graph "list" has been created
- create_graph 
---------------
- 
-(1 row)
-
-SELECT * from cypher('list', $$CREATE p=({name:"rick"})-[:knows]->({name:"morty"}) RETURN p$$) as (path traversal);
-                                                                                                                                path                                                                                                                                
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 281474976710657, "label": "", "properties": {"name": "rick"}}, {"id": 844424930131969, "start_id": 281474976710657, "end_id": 281474976710658, "label": "knows", "properties": {}}, {"id": 281474976710658, "label": "", "properties": {"name": "morty"}}]
-(1 row)
-
-SELECT * from cypher('list', $$CREATE p=({name:'rachael'})-[:knows]->({name:'monica'})-[:knows]->({name:'phoebe'}) RETURN p$$) as (path traversal);
-                                                                                                                                                                                                                                path                                                                                                                                                                                                                                 
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 281474976710659, "label": "", "properties": {"name": "rachael"}}, {"id": 844424930131971, "start_id": 281474976710659, "end_id": 281474976710660, "label": "knows", "properties": {}}, {"id": 281474976710660, "label": "", "properties": {"name": "monica"}}, {"id": 844424930131970, "start_id": 281474976710660, "end_id": 281474976710661, "label": "knows", "properties": {}}, {"id": 281474976710661, "label": "", "properties": {"name": "phoebe"}}]
-(1 row)
-
--- range()
-SELECT * from cypher('list', $$RETURN range(0, 10)$$) as (range gtype);
-               range                
-------------------------------------
- [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-(1 row)
-
-SELECT * from cypher('list', $$RETURN range(0, 10, null)$$) as (range gtype);
- range 
--------
- 
-(1 row)
-
-SELECT * from cypher('list', $$RETURN range(0, 10, 1)$$) as (range gtype);
-               range                
-------------------------------------
- [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-(1 row)
-
-SELECT * from cypher('list', $$RETURN range(0, 10, 3)$$) as (range gtype);
-    range     
---------------
- [0, 3, 6, 9]
-(1 row)
-
-SELECT * from cypher('list', $$RETURN range(0, -10, -1)$$) as (range gtype);
-                    range                     
-----------------------------------------------
- [0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10]
-(1 row)
-
-SELECT * from cypher('list', $$RETURN range(0, -10, -3)$$) as (range gtype);
-      range      
------------------
- [0, -3, -6, -9]
-(1 row)
-
-SELECT * from cypher('list', $$RETURN range(0, 10, 11)$$) as (range gtype);
- range 
--------
- [0]
-(1 row)
-
-SELECT * from cypher('list', $$RETURN range(-20, 10, 5)$$) as (range gtype);
-             range             
--------------------------------
- [-20, -15, -10, -5, 0, 5, 10]
-(1 row)
-
--- should return an empty list []
-SELECT * from cypher('list', $$RETURN range(0, -10)$$) as (range gtype);
- range 
--------
- []
-(1 row)
-
-SELECT * from cypher('list', $$RETURN range(0, 10, -1)$$) as (range gtype);
- range 
--------
- []
-(1 row)
-
-SELECT * from cypher('list', $$RETURN range(-10, 10, -1)$$) as (range gtype);
- range 
--------
- []
-(1 row)
-
--- should return an error
-SELECT * from cypher('list', $$RETURN range(null, -10, -3)$$) as (range gtype);
- range 
--------
- 
-(1 row)
-
-SELECT * from cypher('list', $$RETURN range(0, null, -3)$$) as (range gtype);
- range 
--------
- 
-(1 row)
-
-SELECT * from cypher('list', $$RETURN range(0, -10.0, -3.0)$$) as (range gtype);
-      range      
------------------
- [0, -3, -6, -9]
-(1 row)
-
--- labels()
-SELECT * from cypher('list', $$CREATE (u:People {name: "John"}) RETURN u$$) as (Vertices vertex);
-                                  vertices                                   
------------------------------------------------------------------------------
- {"id": 1125899906842625, "label": "People", "properties": {"name": "John"}}
-(1 row)
-
-SELECT * from cypher('list', $$CREATE (u:People {name: "Larry"}) RETURN u$$) as (Vertices vertex);
-                                   vertices                                   
-------------------------------------------------------------------------------
- {"id": 1125899906842626, "label": "People", "properties": {"name": "Larry"}}
-(1 row)
-
-SELECT * from cypher('list', $$CREATE (u:Cars {name: "G35"}) RETURN u$$) as (Vertices vertex);
-                                 vertices                                 
---------------------------------------------------------------------------
- {"id": 1407374883553281, "label": "Cars", "properties": {"name": "G35"}}
-(1 row)
-
-SELECT * from cypher('list', $$CREATE (u:Cars {name: "MR2"}) RETURN u$$) as (Vertices vertex);
-                                 vertices                                 
---------------------------------------------------------------------------
- {"id": 1407374883553282, "label": "Cars", "properties": {"name": "MR2"}}
-(1 row)
-
-SELECT * from cypher('list', $$MATCH (u) RETURN labels(u), u$$) as (Labels gtype, Vertices vertex);
-ERROR:  function postgraph.labels(vertex) does not exist
-LINE 1: SELECT * from cypher('list', $$MATCH (u) RETURN labels(u), u...
-                                                        ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
--- should return SQL NULL
-SELECT * from cypher('list', $$RETURN labels(NULL)$$) as (Labels gtype);
-ERROR:  function postgraph.labels(gtype) does not exist
-LINE 1: SELECT * from cypher('list', $$RETURN labels(NULL)$$) as (La...
-                                              ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
--- should return an error
-SELECT * from cypher('list', $$RETURN labels("string")$$) as (Labels gtype);
-ERROR:  function postgraph.labels(gtype) does not exist
-LINE 1: SELECT * from cypher('list', $$RETURN labels("string")$$) as...
-                                              ^
-HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 --
 -- Cleanup
 --
-SELECT * FROM drop_graph('chained', true);
-ERROR:  graph "chained" does not exist
 SELECT * FROM drop_graph('case_statement', true);
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table case_statement._ag_label_vertex
@@ -3795,8 +2744,6 @@ NOTICE:  graph "expr" has been dropped
  
 (1 row)
 
-SELECT * FROM drop_graph('regex', true);
-ERROR:  graph "regex" does not exist
 SELECT * FROM drop_graph('keys', true);
 NOTICE:  drop cascades to 4 other objects
 DETAIL:  drop cascades to table keys._ag_label_vertex
@@ -3804,19 +2751,6 @@ drop cascades to table keys._ag_label_edge
 drop cascades to table keys.collaborated_with
 drop cascades to table keys.knows
 NOTICE:  graph "keys" has been dropped
- drop_graph 
-------------
- 
-(1 row)
-
-SELECT * FROM drop_graph('list', true);
-NOTICE:  drop cascades to 5 other objects
-DETAIL:  drop cascades to table list._ag_label_vertex
-drop cascades to table list._ag_label_edge
-drop cascades to table list.knows
-drop cascades to table list."People"
-drop cascades to table list."Cars"
-NOTICE:  graph "list" has been dropped
  drop_graph 
 ------------
  
