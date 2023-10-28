@@ -1445,6 +1445,14 @@ SELECT * FROM cypher('expr', $$
     RETURN ceil(-1.01)
 $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
+    RETURN ceiling(-1.01)
+$$) AS (results gtype);
+
+SELECT * FROM cypher('expr', $$
+    RETURN ceil(-1.01::numeric)
+$$) AS (results gtype);
+
+SELECT * FROM cypher('expr', $$
     RETURN floor(0)
 $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$
