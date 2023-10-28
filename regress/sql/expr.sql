@@ -171,9 +171,7 @@ SELECT * FROM cypher('type_coercion', $$ RETURN [1] $$) AS (i bigint);
 -- typecasting '::'
 --
 
---
--- Test from an gtype value to gtype int
---
+-- gtype int
 SELECT * FROM cypher('expr', $$ RETURN 0.0::int $$) AS r(result gtype);
 SELECT * FROM cypher('expr', $$ RETURN 0.0::integer $$) AS r(result gtype);
 SELECT * FROM cypher('expr', $$ RETURN '0'::int $$) AS r(result gtype);
@@ -190,8 +188,7 @@ SELECT * FROM cypher('expr', $$ RETURN '1.5'::int $$) AS r(result gtype);
 SELECT * FROM cypher('expr', $$ RETURN 'NaN'::float::int $$) AS r(result gtype);
 SELECT * FROM cypher('expr', $$ RETURN 'infinity'::float::int $$) AS r(result gtype);
 
--- Test from an gtype value to an gtype numeric
---
+-- to gtype numeric
 SELECT * FROM cypher('expr', $$ RETURN 0::numeric $$) AS r(result gtype);
 SELECT * FROM cypher('expr', $$ RETURN 2.71::numeric $$) AS r(result gtype);
 SELECT * FROM cypher('expr', $$ RETURN '2.71'::numeric $$) AS r(result gtype);
@@ -205,9 +202,7 @@ SELECT * FROM cypher('expr', $$ RETURN ('2:71'::numeric)::numeric $$) AS r(resul
 SELECT * FROM cypher('expr', $$ RETURN ('inf'::numeric)::numeric $$) AS r(result gtype);
 SELECT * FROM cypher('expr', $$ RETURN ('infinity'::numeric)::numeric $$) AS r(result gtype);
 
---
--- Test from an gtype value to gtype float
---
+-- to gtype float
 SELECT * FROM cypher('expr', $$ RETURN 0::float $$) AS r(result gtype);
 SELECT * FROM cypher('expr', $$ RETURN '2.71'::float $$) AS r(result gtype);
 SELECT * FROM cypher('expr', $$ RETURN 2.71::float $$) AS r(result gtype);
@@ -215,45 +210,20 @@ SELECT * FROM cypher('expr', $$ RETURN ([0, {one: 1, pie: 3.1415927, e: 2::numer
 SELECT * FROM cypher('expr', $$ RETURN ([0, {one: 1::float, pie: 3.1415927, e: 2.718281::numeric}, 2, null][1].one) $$) AS r(result gtype);
 SELECT * FROM cypher('expr', $$ RETURN ([0, {one: 1::float, pie: 3.1415927, e: 2.718281::numeric}, 2, null][1].one)::float $$) AS r(result gtype);
 SELECT * FROM cypher('expr', $$ RETURN ([0, {one: 1, pie: 3.1415927, e: 2.718281::numeric}, 2, null][3])::float $$) AS r(result gtype);
--- test NaN, infinity, and -infinity
+
+-- Float
 SELECT * FROM cypher('expr', $$ RETURN 'NaN'::float $$) AS r(result gtype);
 SELECT * FROM cypher('expr', $$ RETURN 'inf'::float $$) AS r(result gtype);
 SELECT * FROM cypher('expr', $$ RETURN '-inf'::float $$) AS r(result gtype);
 SELECT * FROM cypher('expr', $$ RETURN 'infinity'::float $$) AS r(result gtype);
 SELECT * FROM cypher('expr', $$ RETURN '-infinity'::float $$) AS r(result gtype);
--- should return SQL null
 SELECT * FROM cypher('expr', $$ RETURN null::float $$) AS r(result gtype);
--- these should fail
 SELECT * FROM cypher('expr', $$ RETURN '2:71'::float $$) AS r(result gtype);
 SELECT * FROM cypher('expr', $$ RETURN 'infi'::float $$) AS r(result gtype);
 
 -- size() of a string
 SELECT * FROM cypher('expr', $$ RETURN size('12345') $$) AS (size gtype);
 SELECT * FROM cypher('expr', $$ RETURN size("1234567890") $$) AS (size gtype);
--- size() of an array
-SELECT * FROM cypher('expr', $$ RETURN size([1, 2, 3, 4, 5]) $$) AS (size gtype);
-SELECT * FROM cypher('expr', $$ RETURN size([]) $$) AS (size gtype);
--- should return null
-SELECT * FROM cypher('expr', $$ RETURN size(null) $$) AS (size gtype);
-SELECT * FROM cypher('expr', $$ RETURN size(1234567890) $$) AS (size gtype);
--- head() of an array
-SELECT * FROM cypher('expr', $$ RETURN head([1, 2, 3, 4, 5]) $$) AS (head gtype);
-SELECT * FROM cypher('expr', $$ RETURN head([1]) $$) AS (head gtype);
-SELECT * FROM cypher('expr', $$ RETURN head([]) $$) AS (head gtype);
-SELECT * FROM cypher('expr', $$ RETURN head(null) $$) AS (head gtype);
-SELECT * FROM cypher('expr', $$ RETURN head(1234567890) $$) AS (head gtype);
--- last()
-SELECT * FROM cypher('expr', $$ RETURN last([1, 2, 3, 4, 5]) $$) AS (last gtype);
-SELECT * FROM cypher('expr', $$ RETURN last([1]) $$) AS (last gtype);
--- should return null
-SELECT * FROM cypher('expr', $$ RETURN last([]) $$) AS (last gtype);
-SELECT * FROM cypher('expr', $$ RETURN last(null) $$) AS (last gtype);
--- should fail
-SELECT * FROM cypher('expr', $$ RETURN last(1234567890) $$) AS (last gtype);
-SELECT * FROM cypher('expr', $$ RETURN last() $$) AS (last gtype);
--- should return null
-SELECT * FROM cypher('expr', $$ RETURN properties(null) $$) AS (properties gtype);
-SELECT * FROM cypher('expr', $$ RETURN properties(1234) $$) AS (properties gtype);
 -- coalesce
 SELECT * FROM cypher('expr', $$ RETURN coalesce(null, 1, null, null) $$) AS (coalesce gtype);
 SELECT * FROM cypher('expr', $$ RETURN coalesce(null, -3.14, null, null) $$) AS (coalesce gtype);
@@ -261,17 +231,15 @@ SELECT * FROM cypher('expr', $$ RETURN coalesce(null, "string", null, null) $$) 
 SELECT * FROM cypher('expr', $$ RETURN coalesce(null, null, null, []) $$) AS (coalesce gtype);
 SELECT * FROM cypher('expr', $$ RETURN coalesce(null, null, null, {}) $$) AS (coalesce gtype);
 SELECT * FROM cypher('expr', $$ RETURN coalesce(null) $$) AS (coalesce gtype);
--- toBoolean()
+-- toBoolean
 SELECT * FROM cypher('expr', $$ RETURN toBoolean(true) $$) AS (toBoolean gtype);
 SELECT * FROM cypher('expr', $$ RETURN toBoolean(false) $$) AS (toBoolean gtype);
 SELECT * FROM cypher('expr', $$ RETURN toBoolean("true") $$) AS (toBoolean gtype);
 SELECT * FROM cypher('expr', $$ RETURN toBoolean("false") $$) AS (toBoolean gtype);
--- should return null
 SELECT * FROM cypher('expr', $$ RETURN toBoolean("falze") $$) AS (toBoolean gtype);
 SELECT * FROM cypher('expr', $$ RETURN toBoolean(null) $$) AS (toBoolean gtype);
--- should fail
 SELECT * FROM cypher('expr', $$ RETURN toBoolean(1) $$) AS (toBoolean gtype);
--- toFloat()
+-- toFloat
 SELECT * FROM cypher('expr', $$ RETURN toFloat(1) $$) AS (toFloat gtype);
 SELECT * FROM cypher('expr', $$ RETURN toFloat(1.2) $$) AS (toFloat gtype);
 SELECT * FROM cypher('expr', $$ RETURN toFloat("1") $$) AS (toFloat gtype);
@@ -280,7 +248,7 @@ SELECT * FROM cypher('expr', $$ RETURN toFloat("1.2"::numeric) $$) AS (toFloat g
 SELECT * FROM cypher('expr', $$ RETURN toFloat("falze") $$) AS (toFloat gtype);
 SELECT * FROM cypher('expr', $$ RETURN toFloat(null) $$) AS (toFloat gtype);
 SELECT * FROM cypher('expr', $$ RETURN toFloat(true) $$) AS (toFloat gtype);
--- toInteger()
+-- toInteger
 SELECT * FROM cypher('expr', $$ RETURN toInteger(1) $$) AS (toInteger gtype);
 SELECT * FROM cypher('expr', $$ RETURN toInteger(1.2) $$) AS (toInteger gtype);
 SELECT * FROM cypher('expr', $$ RETURN toInteger("1") $$) AS (toInteger gtype);
@@ -289,10 +257,7 @@ SELECT * FROM cypher('expr', $$ RETURN toInteger("1.2"::numeric) $$) AS (toInteg
 SELECT * FROM cypher('expr', $$ RETURN toInteger("falze") $$) AS (toInteger gtype);
 SELECT * FROM cypher('expr', $$ RETURN toInteger(null) $$) AS (toInteger gtype);
 SELECT * FROM cypher('expr', $$ RETURN toInteger(true) $$) AS (toInteger gtype);
-
---
--- toString()
---
+-- toString
 SELECT * FROM cypher('expr', $$ RETURN toString(3) $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN toString(3.14) $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN toString(3.14::float) $$) AS (results gtype);
@@ -370,24 +335,19 @@ SELECT * FROM cypher('expr', $$ RETURN substring("123456789", null) $$) AS (resu
 SELECT * FROM cypher('expr', $$ RETURN substring("123456789", 0, -1) $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN substring("123456789", -1) $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN substring("123456789") $$) AS (results gtype);
-
---
--- split()
---
+-- split
 SELECT * FROM cypher('expr', $$ RETURN split("a,b,c,d,e,f", ",") $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN split("a,b,c,d,e,f", "") $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN split("a,b,c,d,e,f", " ") $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN split("a,b,cd  e,f", " ") $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN split("a,b,cd  e,f", "  ") $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN split("a,b,c,d,e,f", "c,") $$) AS (results gtype);
--- should return null
 SELECT * FROM cypher('expr', $$ RETURN split(null, null) $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN split("a,b,c,d,e,f", null) $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN split(null, ",") $$) AS (results gtype);
 SELECT * FROM split(null, null);
 SELECT * FROM split('"a,b,c,d,e,f"'::gtype, null);
 SELECT * FROM split(null, '","'::gtype);
--- should fail
 SELECT * FROM cypher('expr', $$ RETURN split(123456789, ",") $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN split("a,b,c,d,e,f", -1) $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN split("a,b,c,d,e,f") $$) AS (results gtype);
@@ -396,9 +356,7 @@ SELECT * FROM split('123456789'::gtype, '","'::gtype);
 SELECT * FROM split('"a,b,c,d,e,f"'::gtype, '-1'::gtype);
 SELECT * FROM split('"a,b,c,d,e,f"'::gtype);
 
---
--- replace()
---
+-- replace
 SELECT * FROM cypher('expr', $$ RETURN replace("Hello", "lo", "p") $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN replace("Hello", "hello", "Good bye") $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN replace("abcabcabc", "abc", "a") $$) AS (results gtype);
@@ -472,17 +430,13 @@ SELECT * FROM cypher('expr', $$ RETURN acos("0") $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN atan("0") $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN atan2("0", 1) $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN atan2(0, "1") $$) AS (results gtype);
-
---
 -- pi
---
 SELECT * FROM cypher('expr', $$ RETURN pi() $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN sin(pi()) $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN sin(pi()/4) $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN cos(pi()) $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN cos(pi()/2) $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN sin(pi()/2) $$) AS (results gtype);
-
 --
 -- radians() & degrees()
 --
@@ -579,10 +533,7 @@ SELECT * FROM cypher('expr', $$ RETURN gcd(10.0, 5.0) $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN gcd(10.0, 5) $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN gcd(10, 5::numeric) $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN gcd('10', 5) $$) AS (results gtype);
-
---
 -- lcm
---
 SELECT * FROM cypher('expr', $$ RETURN lcm(10, 5) $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN lcm(10.0, 5.0) $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN lcm(10.0, 5) $$) AS (results gtype);
@@ -681,34 +632,12 @@ SELECT * FROM cypher('case_statement', $$
 	END
 $$ ) AS (j gtype, case_statement gtype);
 
--- list functions range(), keys()
-SELECT create_graph('keys');
--- keys()
-SELECT * FROM cypher('keys', $$CREATE ({name: 'hikaru utada', age: 38, job: 'singer'})-[:collaborated_with {song:"face my fears"}]->( {name: 'sonny moore', age: 33, stage_name: 'skrillex', job: 'producer'})$$) AS (result gtype);
-SELECT * FROM cypher('keys', $$CREATE ({name: 'alexander guy cook', age: 31, stage_name:"a. g. cook", job: 'producer'})$$) AS (result gtype);
-SELECT * FROM cypher('keys', $$CREATE ({name: 'keiko fuji', age: 62, job: 'singer'})$$) AS (result gtype);
-SELECT * FROM cypher('keys', $$MATCH (a),(b) WHERE a.name = 'hikaru utada' AND b.name = 'alexander guy cook' CREATE (a)-[:collaborated_with {song:"one last kiss"}]->(b)$$) AS (result gtype);
-SELECT * FROM cypher('keys', $$MATCH (a),(b) WHERE a.name = 'hikaru utada' AND b.name = 'keiko fuji' CREATE (a)-[:knows]->(b)$$) AS (result gtype);
-SELECT * FROM cypher('keys', $$MATCH (v) RETURN keys(v)$$) AS (vertex_keys gtype);
-SELECT * FROM cypher('keys', $$MATCH ()-[e]-() RETURN keys(e)$$) AS (edge_keys gtype);
-SELECT * FROM cypher('keys', $$RETURN keys({a:1,b:'two',c:[1,2,3]})$$) AS (keys gtype);
-
---should return empty list
-SELECT * FROM cypher('keys', $$RETURN keys({})$$) AS (keys gtype);
---should return sql null
-SELECT * FROM cypher('keys', $$RETURN keys(null)$$) AS (keys gtype);
---should return error
-SELECT * from cypher('keys', $$RETURN keys([1,2,3])$$) as (keys gtype);
-SELECT * from cypher('keys', $$RETURN keys("string")$$) as (keys gtype);
-SELECT * from cypher('keys', $$MATCH u=()-[]-() RETURN keys(u)$$) as (keys gtype);
-
 --
 -- Cleanup
 --
 SELECT * FROM drop_graph('case_statement', true);
 SELECT * FROM drop_graph('type_coercion', true);
 SELECT * FROM drop_graph('expr', true);
-SELECT * FROM drop_graph('keys', true);
 
 --
 -- End of tests

@@ -176,8 +176,8 @@ SELECT * FROM cypher('cypher_create', $$
 	RETURN a
 $$) as (a vertex);
 
-SELECT * FROM cypher_create.n_var;
-SELECT * FROM cypher_create.e_var;
+SELECT * FROM cypher('cypher_create', $$MATCH (n:n_var) RETURN n$$) AS (n vertex);
+SELECT * FROM cypher('cypher_create', $$MATCH ()-[e:e_var]->() RETURN e$$) AS (e edge);
 
 --Check every label has been created
 SELECT name, kind FROM ag_label ORDER BY name;
