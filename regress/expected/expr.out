@@ -3654,6 +3654,22 @@ $$) AS (results gtype);
 (1 row)
 
 SELECT * FROM cypher('expr', $$
+    RETURN ceiling(-1.01)
+$$) AS (results gtype);
+ results 
+---------
+ -1.0
+(1 row)
+
+SELECT * FROM cypher('expr', $$
+    RETURN ceil(-1.01::numeric)
+$$) AS (results gtype);
+   results   
+-------------
+ -1::numeric
+(1 row)
+
+SELECT * FROM cypher('expr', $$
     RETURN floor(0)
 $$) AS (results gtype);
  results 
