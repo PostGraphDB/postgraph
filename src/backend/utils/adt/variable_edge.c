@@ -352,6 +352,15 @@ Datum variable_edge_nodes(PG_FUNCTION_ARGS) {
     PG_RETURN_ARRAYTYPE_P(construct_array(array_value, size, VERTEXOID, -1, false, TYPALIGN_INT));
 }
 
+PG_FUNCTION_INFO_V1(variable_edge_length);
+Datum variable_edge_length(PG_FUNCTION_ARGS) {
+    VariableEdge *v = AG_GET_ARG_VARIABLE_EDGE(0);
+
+    gtype_value gtv = { .type = AGTV_INTEGER, .val = { .int_value = (v->children[0] + 1) / 2 } };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
 
 static void
 append_to_buffer(StringInfo buffer, const char *data, int len) {

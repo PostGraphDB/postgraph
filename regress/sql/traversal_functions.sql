@@ -63,6 +63,11 @@ SELECT * FROM cypher('traversal_functions', $$
     MATCH p=(u:begin)-[*3..3]->(v:end) RETURN size(p)
 $$) AS (e gtype);
 
+SELECT * FROM cypher('traversal_functions', $$
+    MATCH p=(u:begin)-[*]->(v:end) RETURN DISTINCT @-@ p
+$$) AS (e gtype);
+
+
 --
 -- Clean up
 --

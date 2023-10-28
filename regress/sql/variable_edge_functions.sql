@@ -80,6 +80,10 @@ SELECT * FROM cypher('variable_edge_functions', $$
     RETURN ve <@ e, id(e), edges(ve)
 $$) AS (contained boolean, e graphid, edges edge[]);
 
+SELECT c
+FROM cypher('variable_edge_functions', $$
+    MATCH (:begin)-[e*]->(:end) RETURN DISTINCT @-@ e
+$$) AS (c gtype);
 
 --
 -- Clean up

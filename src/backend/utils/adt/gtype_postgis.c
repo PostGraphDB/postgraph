@@ -251,22 +251,6 @@ gtype_zmax(PG_FUNCTION_ARGS) {
 /*
  * 2D Geometry Operators
  */
-// ~=
-PG_FUNCTION_INFO_V1(gserialized_same_2d);
-PG_FUNCTION_INFO_V1(gtype_same_2d);
-Datum
-gtype_same_2d(PG_FUNCTION_ARGS) {
-    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
-    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
-
-    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
-    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
-
-    Datum d = DirectFunctionCall2(gserialized_same_2d, d1, d2);
-
-    PG_RETURN_BOOL(DatumGetBool(d));
-}
-
 // @
 PG_FUNCTION_INFO_V1(gserialized_within_2d);
 PG_FUNCTION_INFO_V1(gtype_within_2d);
@@ -299,7 +283,6 @@ gtype_##postgis_type(PG_FUNCTION_ARGS) { \
     else if (GT_IS_CIRCLE(lhs) && GT_IS_CIRCLE(rhs)) \
        PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(circle_##type, GT_TO_CIRCLE_DATUM(lhs), GT_TO_CIRCLE_DATUM(rhs)))); \
 \
-\
     Datum d1 = convert_to_scalar(gtype_to_geometry_internal, lhs, "geometry"); \
     Datum d2 = convert_to_scalar(gtype_to_geometry_internal, rhs, "geometry"); \
 \
@@ -309,6 +292,10 @@ gtype_##postgis_type(PG_FUNCTION_ARGS) { \
 } \
 /* keep compiler quiet - no extra ; */                                                     \
 extern int no_such_variable
+
+// ~=
+PG_FUNCTION_INFO_V1(gserialized_same_2d);
+GEOMETRIC2DOPERATOR(same, same_2d);
 
 // &<
 GEOMETRIC2DOPERATOR(overleft, overleft_2d);

@@ -103,6 +103,21 @@ $$) AS (e gtype);
  7
 (2 rows)
 
+SELECT * FROM cypher('traversal_functions', $$
+    MATCH p=(u:begin)-[*]->(v:end) RETURN DISTINCT @-@ p
+$$) AS (e gtype);
+ e  
+----
+ 9
+ 4
+ 6
+ 8
+ 5
+ 7
+ 10
+ 3
+(8 rows)
+
 --
 -- Clean up
 --
