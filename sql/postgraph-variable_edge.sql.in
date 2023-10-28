@@ -231,3 +231,16 @@ IMMUTABLE
 RETURNS NULL ON NULL INPUT 
 PARALLEL SAFE
 AS 'MODULE_PATHNAME', 'variable_edge_edges';
+
+CREATE FUNCTION length(variable_edge) RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'variable_edge_length';
+
+CREATE OPERATOR @-@ (
+    FUNCTION = length,
+    RIGHTARG = variable_edge
+);
+

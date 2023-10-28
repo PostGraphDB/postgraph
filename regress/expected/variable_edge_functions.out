@@ -170,6 +170,22 @@ $$) AS (contained boolean, e graphid, edges edge[]);
  f         | 2533274790395906 | {"{\"id\": 1125899906842628, \"start_id\": 844424930131969, \"end_id\": 1407374883553281, \"label\": \"edge\", \"properties\": {}}","{\"id\": 1125899906842627, \"start_id\": 1407374883553281, \"end_id\": 1407374883553282, \"label\": \"edge\", \"properties\": {}}","{\"id\": 2533274790395905, \"start_id\": 1407374883553282, \"end_id\": 1688849860263937, \"label\": \"bypass_edge\", \"properties\": {}}"}
 (26 rows)
 
+SELECT c
+FROM cypher('variable_edge_functions', $$
+    MATCH (:begin)-[e*]->(:end) RETURN DISTINCT @-@ e
+$$) AS (c gtype);
+ c  
+----
+ 9
+ 10
+ 4
+ 7
+ 3
+ 6
+ 5
+ 8
+(8 rows)
+
 --
 -- Clean up
 --
