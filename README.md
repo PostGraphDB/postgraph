@@ -4,6 +4,7 @@
 <p align="center">
  <img src="/logo.png">
 </p>
+
 ## Introduction
 PostGraph is the first Graph based Postgres extension to support Vector Embeddings. Query your database using a tradition graph query query language, use embeddings to infer relationships or combine the two along with relational data and spatial data powered by PostGIS. 
 
