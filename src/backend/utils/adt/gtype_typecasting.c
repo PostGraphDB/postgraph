@@ -1154,9 +1154,7 @@ gtype_to_text(PG_FUNCTION_ARGS) {
 }
 
 PG_FUNCTION_INFO_V1(gtype_to_bool);
-/*
- * Cast gtype to boolean
- */
+// gtype -> boolean
 Datum gtype_to_bool(PG_FUNCTION_ARGS)
 {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
@@ -1309,7 +1307,9 @@ gtype_to_point(PG_FUNCTION_ARGS) {
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
     
-    Datum d = DatumGetPointer(convert_to_scalar(gtype_to_point_internal, agt, "point"));
+    Datum d = convert_to_scalar(gtype_to_point_internal, agt, "point");
+
+    PG_FREE_IF_COPY(agt, 0);
 
     PG_RETURN_DATUM(d);
 }
@@ -1323,7 +1323,9 @@ gtype_to_path(PG_FUNCTION_ARGS) {
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    Datum d = DatumGetPointer(convert_to_scalar(gtype_to_path_internal, agt, "path"));
+    Datum d = convert_to_scalar(gtype_to_path_internal, agt, "path");
+
+    PG_FREE_IF_COPY(agt, 0);
 
     PG_RETURN_DATUM(d);
 }
@@ -1337,7 +1339,9 @@ gtype_to_polygon(PG_FUNCTION_ARGS) {
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    Datum d = DatumGetPointer(convert_to_scalar(gtype_to_polygon_internal, agt, "polygon"));
+    Datum d = convert_to_scalar(gtype_to_polygon_internal, agt, "polygon");
+
+    PG_FREE_IF_COPY(agt, 0);
 
     PG_RETURN_DATUM(d);
 }
@@ -1351,7 +1355,9 @@ gtype_to_box(PG_FUNCTION_ARGS) {
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    Datum d = DatumGetPointer(convert_to_scalar(gtype_to_box_internal, agt, "box"));
+    Datum d = convert_to_scalar(gtype_to_box_internal, agt, "box");
+
+    PG_FREE_IF_COPY(agt, 0);
 
     PG_RETURN_DATUM(d);
 }
@@ -1366,7 +1372,9 @@ gtype_to_geometry(PG_FUNCTION_ARGS) {
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    Datum d = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, agt, "geometry"));
+    Datum d = convert_to_scalar(gtype_to_geometry_internal, agt, "geometry");
+
+    PG_FREE_IF_COPY(agt, 0);
 
     PG_RETURN_DATUM(d);
 }   
@@ -1380,7 +1388,9 @@ gtype_to_box3d(PG_FUNCTION_ARGS) {
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    Datum d = DatumGetPointer(convert_to_scalar(gtype_to_box3d_internal, agt, "box3d"));
+    Datum d = convert_to_scalar(gtype_to_box3d_internal, agt, "box3d");
+
+    PG_FREE_IF_COPY(agt, 0);
 
     PG_RETURN_DATUM(d);
 }
@@ -1394,7 +1404,9 @@ gtype_to_box2d(PG_FUNCTION_ARGS) {
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    Datum d = DatumGetPointer(convert_to_scalar(gtype_to_box2d_internal, agt, "box2d"));
+    Datum d = convert_to_scalar(gtype_to_box2d_internal, agt, "box2d");
+
+    PG_FREE_IF_COPY(agt, 0);
 
     PG_RETURN_DATUM(d);
 }
@@ -1408,7 +1420,9 @@ gtype_to_tsvector(PG_FUNCTION_ARGS) {
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    Datum d = DatumGetPointer(convert_to_scalar(gtype_to_tsvector_internal, agt, "tsvector"));
+    Datum d = convert_to_scalar(gtype_to_tsvector_internal, agt, "tsvector");
+
+    PG_FREE_IF_COPY(agt, 0);
 
     PG_RETURN_DATUM(d);
 }
@@ -1422,7 +1436,9 @@ gtype_to_tsquery(PG_FUNCTION_ARGS) {
     if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    Datum d = DatumGetPointer(convert_to_scalar(gtype_to_tsquery_internal, agt, "tsquery"));
+    Datum d = convert_to_scalar(gtype_to_tsquery_internal, agt, "tsquery");
+
+    PG_FREE_IF_COPY(agt, 0);
 
     PG_RETURN_DATUM(d);
 }
@@ -1651,12 +1667,10 @@ tsquery_to_gtype(PG_FUNCTION_ARGS) {
 PG_FUNCTION_INFO_V1(array_to_gtype);
 Datum
 array_to_gtype(PG_FUNCTION_ARGS) {
-    Datum arg = PG_GETARG_DATUM(0);
-
     gtype_in_state in_state;
     memset(&in_state, 0, sizeof(gtype_in_state));
 
-    array_to_gtype_internal(arg, &in_state);
+    array_to_gtype_internal(PG_GETARG_DATUM(0), &in_state);
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(in_state.res));
 }
