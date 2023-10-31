@@ -1219,6 +1219,22 @@ gtype_to_time(PG_FUNCTION_ARGS) {
     PG_RETURN_DATUM(d);
 }
 
+PG_FUNCTION_INFO_V1(gtype_to_timetz);
+// gtype -> timetz
+Datum
+gtype_to_timetz(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    Datum d = convert_to_scalar(gtype_to_timetz_internal, agt, "timetz");
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    PG_RETURN_DATUM(d);
+}
+
 PG_FUNCTION_INFO_V1(gtype_to_interval);
 // gtype -> interval
 Datum

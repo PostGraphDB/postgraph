@@ -1337,6 +1337,9 @@ SELECT * FROM cypher('temporal', $$ RETURN TIMESTAMP WITH TIME ZONE '12/17/1997 
 SELECT * FROM cypher('temporal', $$ RETURN '12/17/1997 07:37:16.00+00' $$) AS r(result timestamptz);
 -- time 
 SELECT * from cypher('temporal', $$RETURN make_time(8, 20, 0.0)$$) as (g time);
+-- timetz
+SELECT * FROM cypher('temporal', $$ RETURN TIME WITH TIME ZONE '07:37:16.00+00' $$) AS r(result timetz);
+SELECT * FROM cypher('temporal', $$ RETURN '07:37:16.00+00' $$) AS r(result timetz);
 
 --
 -- Clean up
