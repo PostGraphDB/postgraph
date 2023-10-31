@@ -1524,6 +1524,21 @@ timetz_to_gtype(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(interval_to_gtype);
+//interval -> gtype
+Datum
+interval_to_gtype(PG_FUNCTION_ARGS) {
+    Interval *i = PG_GETARG_INTERVAL_P(0);
+
+    gtype_value gtv;
+    gtv.type = AGTV_INTERVAL;
+    gtv.val.interval.time = i->time;
+    gtv.val.interval.day = i->day;
+    gtv.val.interval.month = i->month;
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
 PG_FUNCTION_INFO_V1(inet_to_gtype);
 //inet -> gtype
 Datum

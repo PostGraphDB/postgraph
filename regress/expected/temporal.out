@@ -3475,6 +3475,19 @@ SELECT * FROM cypher('temporal', $$ RETURN '07:37:16.00+00' $$) AS r(result time
  07:37:16+00
 (1 row)
 
+--interval
+SELECT * FROM cypher('temporal', $$ RETURN '7 Hours 37 Minutes 16 Seconds'::interval $$) AS r(result interval);
+          result           
+---------------------------
+ @ 7 hours 37 mins 16 secs
+(1 row)
+
+SELECT '7 Hours 37 Minutes 16 Seconds'::interval::gtype;
+           gtype           
+---------------------------
+ @ 7 hours 37 mins 16 secs
+(1 row)
+
 --
 -- Clean up
 --

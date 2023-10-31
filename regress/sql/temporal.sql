@@ -1342,6 +1342,9 @@ SELECT * from cypher('temporal', $$RETURN make_time(8, 20, 0.0)$$) as (g time);
 -- timetz
 SELECT * FROM cypher('temporal', $$ RETURN TIME WITH TIME ZONE '07:37:16.00+00' $$) AS r(result timetz);
 SELECT * FROM cypher('temporal', $$ RETURN '07:37:16.00+00' $$) AS r(result timetz);
+--interval
+SELECT * FROM cypher('temporal', $$ RETURN '7 Hours 37 Minutes 16 Seconds'::interval $$) AS r(result interval);
+SELECT '7 Hours 37 Minutes 16 Seconds'::interval::gtype;
 
 --
 -- Clean up
