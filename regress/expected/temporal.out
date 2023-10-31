@@ -3448,6 +3448,13 @@ SELECT * FROM cypher('temporal', $$ RETURN '12/17/1997 07:37:16.00+00' $$) AS r(
  Wed Dec 17 07:37:16 1997 GMT
 (1 row)
 
+-- date
+SELECT * from cypher('temporal', $$RETURN make_date(2000, 7, 15)$$) as (g date);
+     g      
+------------
+ 07-15-2000
+(1 row)
+
 -- time 
 SELECT * from cypher('temporal', $$RETURN make_time(8, 20, 0.0)$$) as (g time);
     g     
