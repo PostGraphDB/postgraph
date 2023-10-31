@@ -504,6 +504,20 @@ AS 'MODULE_PATHNAME';
 CREATE CAST (gtype AS interval)
 WITH FUNCTION gtype_to_interval(gtype);
 
+-- interval[] -> gtype
+CREATE FUNCTION interval_array_to_gtype(interval[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'array_to_gtype';
+
+CREATE CAST (interval[] as gtype)
+WITH FUNCTION interval_array_to_gtype(interval[]);
+
+
+
 -- gtype -> int8[]
 CREATE FUNCTION gtype_to_int8_array(gtype) 
 RETURNS bigint[] 

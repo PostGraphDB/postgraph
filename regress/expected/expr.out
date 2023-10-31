@@ -131,6 +131,12 @@ SELECT '{"07:37:16.00+04", "17:45:32.21+08"}'::timetz[]::gtype;
  ["07:37:16+04", "17:45:32.21+08"]
 (1 row)
 
+SELECT '{"5 Days", "1 Month", "2 Years Ago"}'::interval[]::gtype;
+               gtype                
+------------------------------------
+ [@ 5 days, @ 1 mon, @ 2 years ago]
+(1 row)
+
 --
 -- map literal
 --

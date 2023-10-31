@@ -1257,13 +1257,14 @@ static void datum_to_gtype(Datum val, bool is_null, gtype_in_state *result, agt_
             agtv.val.timetz.zone = timetz->zone;
             break;
 	case AGT_TYPE_INTERVAL:
-            {
-                Interval *i = DatumGetIntervalP(val);
-                agtv.val.interval.time = i->time;
-                agtv.val.interval.day = i->day;
-                agtv.val.interval.month = i->month;
-            }
+        {
+            Interval *i = DatumGetIntervalP(val);
+            agtv.type = AGTV_INTERVAL;
+            agtv.val.interval.time = i->time;
+            agtv.val.interval.day = i->day;
+            agtv.val.interval.month = i->month;
             break;
+	}
 	case AGT_TYPE_INET:
 	{
            inet *i = DatumGetInetPP(val);
