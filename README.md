@@ -6,9 +6,13 @@
 </p>
 
 ## Introduction
-PostGraph is the first Graph based Postgres extension to support Vector Embeddings. Query your database using a tradition graph query query language, use embeddings to infer relationships or combine the two along with relational data and spatial data powered by PostGIS. 
+PostGraph is a multi-model, graph centric query engine build on Postgres. PostGraph is designed to work fast with your OLTP, OLAP and AI Applications.
 
-Utilize Graph, Vector, and Relational models together to derive insights from your data in innovative powerful ways. Including the ability to use database normalization techniques from Relational Databases in your Graph Database.
+### PostGraph Supports
+-   Cypher - Use the Cypher Query Language to explore your data and run Graph queries.
+-   Vectors - Combine Vectors with your graph data to unlock new and valuable insights 
+-   PostGIS - Unlock the power of spatial data in your graph database.
+-   Full Text Search - Sift through vast amounts of textual data and combine with Vectors to unlock your natural language processing models
 
 ## Requirements
 -   Linux
@@ -74,7 +78,6 @@ FROM cypher('graph_name', $$
     RETURN (v)
 as (v vertex);
 ```
-
 
 ## Roadmap
 
