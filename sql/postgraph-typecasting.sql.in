@@ -237,6 +237,19 @@ CREATE CAST (gtype AS bigint)
 WITH FUNCTION gtype_to_int8(gtype) 
 AS ASSIGNMENT;
 
+-- int8[] -> gtype
+CREATE FUNCTION int8_array_to_gtype(int8[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'array_to_gtype';
+
+CREATE CAST (int8[] as gtype)
+WITH FUNCTION int8_array_to_gtype(int8[]);
+
+
 -- timestamp -> gtype
 CREATE FUNCTION timestamp_to_gtype(timestamp) 
 RETURNS gtype 

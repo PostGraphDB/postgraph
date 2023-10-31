@@ -59,6 +59,12 @@ SELECT '{"Hello", "World"}'::text[]::gtype;
  ["Hello", "World"]
 (1 row)
 
+SELECT '{1, 2, 3, 4, 5, 6}'::int8[]::gtype;
+       gtype        
+--------------------
+ [1, 2, 3, 4, 5, 6]
+(1 row)
+
 SELECT '{1.0, 2, 3.0, 4, 5, 6}'::float4[]::gtype;
              gtype              
 --------------------------------
