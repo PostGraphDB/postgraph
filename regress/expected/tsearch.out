@@ -979,6 +979,18 @@ SELECT '1'::tsvector::gtype;
  '1'
 (1 row)
 
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('a fat cat sat on a mat and ate a fat rat') $$) as (a tsvector);
+                         a                          
+----------------------------------------------------
+ 'a' 'and' 'ate' 'cat' 'fat' 'mat' 'on' 'rat' 'sat'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN 'a fat cat sat on a mat and ate a fat rat' $$) as (a tsvector);
+                         a                          
+----------------------------------------------------
+ 'a' 'and' 'ate' 'cat' 'fat' 'mat' 'on' 'rat' 'sat'
+(1 row)
+
 -- TSQuery -> gtype
 SELECT 'cat & rat'::tsquery::gtype;
      gtype     

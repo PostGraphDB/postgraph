@@ -255,6 +255,8 @@ SELECT * FROM cypher('tsearch', $$ RETURN 'cat'::tsquery <@ 'cat & rat'::tsquery
 --
 -- TSVector -> gtype 
 SELECT '1'::tsvector::gtype;
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('a fat cat sat on a mat and ate a fat rat') $$) as (a tsvector);
+SELECT * FROM cypher('tsearch', $$ RETURN 'a fat cat sat on a mat and ate a fat rat' $$) as (a tsvector);
 -- TSQuery -> gtype
 SELECT 'cat & rat'::tsquery::gtype;
 

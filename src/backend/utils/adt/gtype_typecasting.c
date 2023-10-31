@@ -1399,6 +1399,20 @@ gtype_to_box2d(PG_FUNCTION_ARGS) {
     PG_RETURN_DATUM(d);
 }
 
+PG_FUNCTION_INFO_V1(gtype_to_tsvector);
+// gtype -> tsvector
+Datum
+gtype_to_tsvector(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    Datum d = DatumGetPointer(convert_to_scalar(gtype_to_tsvector_internal, agt, "tsvector"));
+
+    PG_RETURN_DATUM(d);
+}
+
 /*
  * Postgres types to gtype
  */
