@@ -59,6 +59,12 @@ SELECT '{"Hello", "World"}'::text[]::gtype;
  ["Hello", "World"]
 (1 row)
 
+SELECT '{1.0, 2, 3.0, 4, 5, 6}'::float8[]::gtype;
+             gtype              
+--------------------------------
+ [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+(1 row)
+
 --
 -- map literal
 --
