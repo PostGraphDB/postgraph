@@ -259,6 +259,30 @@ AS 'MODULE_PATHNAME';
 
 CREATE CAST (timetz AS gtype) 
 WITH FUNCTION timetz_to_gtype(timetz);
+/*
+-- interval -> gtype
+CREATE FUNCTION interval_to_gtype(interval)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (interval AS gtype)
+WITH FUNCTION interval_to_gtype(interval);
+*/
+-- gtype -> interval
+CREATE FUNCTION gtype_to_interval(gtype)
+RETURNS interval
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype AS interval)
+WITH FUNCTION gtype_to_interval(gtype);
 
 -- gtype -> int8[]
 CREATE FUNCTION gtype_to_int8_array(gtype) 

@@ -1323,6 +1323,13 @@ SELECT * from cypher('temporal', $$RETURN make_timestamptz(2023, 2, 14, 5, 30, 0
 SELECT * from cypher('temporal', $$RETURN make_timestamptz(2023, 2, 14, 5, 30, 0.0, 'KST')$$) as (g gtype);
 SELECT * from cypher('temporal', $$RETURN make_timestamptz(2023, 2, 14, 5, 30, 0.0, 'GMT')$$) as (g gtype);
 
+
+--
+-- Typeasting
+--
+--Interval
+SELECT * FROM cypher('temporal', $$ RETURN '30 Seconds'::interval $$) AS r(result interval);
+
 --
 -- Clean up
 --

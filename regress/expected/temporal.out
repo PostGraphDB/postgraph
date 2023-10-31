@@ -3413,6 +3413,16 @@ SELECT * from cypher('temporal', $$RETURN make_timestamptz(2023, 2, 14, 5, 30, 0
 (1 row)
 
 --
+-- Typeasting
+--
+--Interval
+SELECT * FROM cypher('temporal', $$ RETURN '30 Seconds'::interval $$) AS r(result interval);
+  result   
+-----------
+ @ 30 secs
+(1 row)
+
+--
 -- Clean up
 --
 SELECT * FROM drop_graph('temporal', true);

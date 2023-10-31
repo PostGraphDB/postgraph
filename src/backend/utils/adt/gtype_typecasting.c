@@ -361,29 +361,20 @@ Datum totimetz(PG_FUNCTION_ARGS)
 PG_FUNCTION_INFO_V1(tointerval);
 Datum tointerval(PG_FUNCTION_ARGS) {
     gtype *agt = AG_GET_ARG_GTYPE_P(0);
-    gtype_value *gtv = get_ith_gtype_value_from_container(&agt->root, 0);
     Interval *i;
 
-    if (gtv->type == AGTV_NULL)
+    if (is_gtype_null(agt))
         PG_RETURN_NULL();
 
-    if (gtv->type == AGTV_INTERVAL)
-        AG_RETURN_GTYPE_P(agt);
+    i = DatumGetIntervalP(convert_to_scalar(gtype_to_interval_internal, agt, "interval"));
+   
+    gtype_value gtv; 
+    gtv.type = AGTV_INTERVAL;
+    gtv.val.interval.time = i->time;
+    gtv.val.interval.day = i->day;
+    gtv.val.interval.month = i->month;
 
-    if (gtv->type != AGTV_STRING)
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("typecastint to interval must be a string")));
-
-    i = DatumGetIntervalP(DirectFunctionCall3(interval_in, CStringGetDatum(gtv->val.string.val),
-                                                           ObjectIdGetDatum(InvalidOid),
-                                                           Int32GetDatum(-1)));
-    gtv->type = AGTV_INTERVAL;
-    gtv->val.interval.time = i->time;
-    gtv->val.interval.day = i->day;
-    gtv->val.interval.month = i->month;
-
-    PG_RETURN_POINTER(gtype_value_to_gtype(gtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(todate);
@@ -1179,6 +1170,23 @@ Datum gtype_to_bool(PG_FUNCTION_ARGS)
 
     PG_RETURN_DATUM(d);
 }
+
+PG_FUNCTION_INFO_V1(gtype_to_interval);
+// gtype -> interval
+Datum
+gtype_to_interval(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    Datum d = convert_to_scalar(gtype_to_interval_internal, agt, "interval");
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    PG_RETURN_DATUM(d);
+}
+
 
 PG_FUNCTION_INFO_V1(gtype_to_inet);
 // gtype -> inet
