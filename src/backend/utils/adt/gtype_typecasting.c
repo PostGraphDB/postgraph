@@ -1630,6 +1630,21 @@ tsquery_to_gtype(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+/*
+ * postgres array to gtype list
+ */
+PG_FUNCTION_INFO_V1(array_to_gtype);
+Datum
+array_to_gtype(PG_FUNCTION_ARGS) {
+    Datum arg = PG_GETARG_DATUM(0);
+
+    gtype_in_state in_state;
+    memset(&in_state, 0, sizeof(gtype_in_state));
+
+    array_to_gtype_internal(arg, &in_state);
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(in_state.res));
+}
 
 /*
  * gtype to postgres array functions

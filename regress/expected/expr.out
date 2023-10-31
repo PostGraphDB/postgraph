@@ -53,6 +53,12 @@ SELECT tobytea('"abc \153\154\155 \052\251\124"');
  abc klm *\251T
 (1 row)
 
+SELECT '{"Hello", "World"}'::text[]::gtype;
+       gtype        
+--------------------
+ ["Hello", "World"]
+(1 row)
+
 --
 -- map literal
 --
