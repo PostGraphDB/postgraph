@@ -3435,6 +3435,19 @@ SELECT * FROM cypher('temporal', $$ RETURN '2020-02-11 15:44:17' $$) AS r(result
  Tue Feb 11 15:44:17 2020
 (1 row)
 
+--timestamptz
+SELECT * FROM cypher('temporal', $$ RETURN TIMESTAMP WITH TIME ZONE '12/17/1997 07:37:16.00+00' $$) AS r(result timestamptz);
+            result            
+------------------------------
+ Wed Dec 17 07:37:16 1997 GMT
+(1 row)
+
+SELECT * FROM cypher('temporal', $$ RETURN '12/17/1997 07:37:16.00+00' $$) AS r(result timestamptz);
+            result            
+------------------------------
+ Wed Dec 17 07:37:16 1997 GMT
+(1 row)
+
 --
 -- Clean up
 --

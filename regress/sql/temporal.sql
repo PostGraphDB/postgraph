@@ -1332,6 +1332,9 @@ SELECT * FROM cypher('temporal', $$ RETURN '30 Seconds'::interval $$) AS r(resul
 --timestamp
 SELECT * FROM cypher('temporal', $$ RETURN TIMESTAMP '2020-02-11 15:44:17' $$) AS r(result timestamp);
 SELECT * FROM cypher('temporal', $$ RETURN '2020-02-11 15:44:17' $$) AS r(result timestamp);
+--timestamptz
+SELECT * FROM cypher('temporal', $$ RETURN TIMESTAMP WITH TIME ZONE '12/17/1997 07:37:16.00+00' $$) AS r(result timestamptz);
+SELECT * FROM cypher('temporal', $$ RETURN '12/17/1997 07:37:16.00+00' $$) AS r(result timestamptz);
 
 --
 -- Clean up
