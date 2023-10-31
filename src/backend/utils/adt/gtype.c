@@ -126,11 +126,9 @@ static void composite_to_gtype(Datum composite, gtype_in_state *result);
 static void array_dim_to_gtype(gtype_in_state *result, int dim, int ndims, int *dims, Datum *vals, bool *nulls, int *valcount, agt_type_category tcategory, Oid outfuncoid);
 static void datum_to_gtype(Datum val, bool is_null, gtype_in_state *result, agt_type_category tcategory, Oid outfuncoid, bool key_scalar);
 static char *gtype_to_cstring_worker(StringInfo out, gtype_container *in, int estimated_len, bool indent);
-static text *gtype_value_to_text(gtype_value *scalar_val, bool err_not_scalar);
 static void add_indent(StringInfo out, bool indent, int level);
 static gtype_value *execute_array_access_operator_internal(gtype *array, int64 array_index);
 static gtype_iterator *get_next_object_key(gtype_iterator *it, gtype_container *agtc, gtype_value *key);
-static Datum process_access_operator_result(FunctionCallInfo fcinfo, gtype_value *agtv, bool as_text);
 static Datum process_access_operator_result(FunctionCallInfo fcinfo, gtype_value *agtv, bool as_text);
 Datum gtype_array_element_impl(FunctionCallInfo fcinfo, gtype *gtype_in, int element, bool as_text);
 
@@ -957,41 +955,6 @@ static char *gtype_to_cstring_worker(StringInfo out, gtype_container *in, int es
     return out->data;
 }
 
-/*
- * Convert gtype_value(scalar) to text
- */
-static text *gtype_value_to_text(gtype_value *scalar_val, bool err_not_scalar)
-{
-    text *result = NULL;
-    switch (scalar_val->type)
-    {
-    case AGTV_INTEGER:
-        result = cstring_to_text(DatumGetCString(DirectFunctionCall1(int8out, Int64GetDatum(scalar_val->val.int_value))));
-        break;
-    case AGTV_FLOAT:
-        result = cstring_to_text(DatumGetCString(DirectFunctionCall1(float8out, Float8GetDatum(scalar_val->val.float_value))));
-        break;
-    case AGTV_STRING:
-        result = cstring_to_text_with_len(scalar_val->val.string.val, scalar_val->val.string.len);
-        break;
-    case AGTV_NUMERIC:
-        result = cstring_to_text(DatumGetCString(DirectFunctionCall1(numeric_out, PointerGetDatum(scalar_val->val.numeric))));
-        break;
-    case AGTV_BOOL:
-        result = cstring_to_text((scalar_val->val.boolean) ? "true" : "false");
-        break;
-    case AGTV_NULL:
-        result = NULL;
-        break;
-    default:
-        if (err_not_scalar) {
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("gtype_value_to_text: unsupported argument gtype %d", scalar_val->type)));
-        }
-    }
-    return result;
-}
-
 static void add_indent(StringInfo out, bool indent, int level) {
     if (indent) {
         int i;
@@ -1718,9 +1681,11 @@ static Datum process_access_operator_result(FunctionCallInfo fcinfo, gtype_value
         str = gtype_to_cstring(out, agtc, agtv->val.binary.len);
 
         result = cstring_to_text(str);
-     } else {
-        result = gtype_value_to_text(agtv, false);
-     }
+    } else {
+	StringInfo si = makeStringInfo();
+	gtype_put_escaped_value(si, agtv);
+	result = cstring_to_text(si->data);
+    }
 
     if (result)
         PG_RETURN_TEXT_P(result);
