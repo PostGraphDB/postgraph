@@ -1413,6 +1413,20 @@ gtype_to_tsvector(PG_FUNCTION_ARGS) {
     PG_RETURN_DATUM(d);
 }
 
+PG_FUNCTION_INFO_V1(gtype_to_tsquery);
+// gtype -> tsquery
+Datum
+gtype_to_tsquery(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    Datum d = DatumGetPointer(convert_to_scalar(gtype_to_tsquery_internal, agt, "tsquery"));
+
+    PG_RETURN_DATUM(d);
+}
+
 /*
  * Postgres types to gtype
  */

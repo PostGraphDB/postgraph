@@ -607,6 +607,17 @@ AS 'MODULE_PATHNAME';
 
 CREATE CAST (tsquery as gtype) WITH FUNCTION tsquery_to_gtype(tsquery);
 
+-- gtype -> tsquery
+CREATE FUNCTION gtype_to_tsquery(gtype)
+RETURNS tsquery
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE CAST (gtype as tsquery) WITH FUNCTION gtype_to_tsquery(gtype);
+
 --
 -- gtype - typecasting to other gtype types
 --
