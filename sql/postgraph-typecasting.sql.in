@@ -212,6 +212,18 @@ AS 'MODULE_PATHNAME';
 CREATE CAST (gtype AS numeric[])
 WITH FUNCTION gtype_to_numeric_array(gtype);
 
+-- numeric[] -> gtype
+CREATE FUNCTION numeric_array_to_gtype(numeric[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'array_to_gtype';
+
+CREATE CAST (numeric[] as gtype)
+WITH FUNCTION numeric_array_to_gtype(numeric[]);
+
 -- int8 -> gtype
 CREATE FUNCTION int8_to_gtype(int8) 
 RETURNS gtype 
@@ -248,6 +260,30 @@ AS 'MODULE_PATHNAME', 'array_to_gtype';
 
 CREATE CAST (int8[] as gtype)
 WITH FUNCTION int8_array_to_gtype(int8[]);
+
+-- int4[] -> gtype
+CREATE FUNCTION int4_array_to_gtype(int4[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'array_to_gtype';
+
+CREATE CAST (int4[] as gtype)
+WITH FUNCTION int4_array_to_gtype(int4[]);
+
+-- int2[] -> gtype
+CREATE FUNCTION int2_array_to_gtype(int2[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'array_to_gtype';
+
+CREATE CAST (int2[] as gtype)
+WITH FUNCTION int2_array_to_gtype(int2[]);
 
 
 -- timestamp -> gtype

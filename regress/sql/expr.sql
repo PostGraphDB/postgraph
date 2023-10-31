@@ -34,12 +34,14 @@ SELECT tobytea('"abc \153\154\155 \052\251\124"');
 
 SELECT '{"Hello", "World"}'::text[]::gtype;
 
+SELECT '{1, 2, 3, 4, 5, 6}'::int2[]::gtype;
+SELECT '{1, 2, 3, 4, 5, 6}'::int4[]::gtype;
 SELECT '{1, 2, 3, 4, 5, 6}'::int8[]::gtype;
 
 SELECT '{1.0, 2, 3.0, 4, 5, 6}'::float4[]::gtype;
 SELECT '{1.0, 2, 3.0, 4, 5, 6}'::float8[]::gtype;
 
-
+SELECT '{1.0, 2, 3.0, 4, 5, 6}'::numeric[]::gtype;
 --
 -- map literal
 --
