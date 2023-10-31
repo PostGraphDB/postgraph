@@ -992,65 +992,51 @@ static void gtype_categorize_type(Oid typoid, agt_type_category *tcategory, Oid 
     case BOOLOID:
         *tcategory = AGT_TYPE_BOOL;
         break;
-
     case INT2OID:
     case INT4OID:
     case INT8OID:
         getTypeOutputInfo(typoid, outfuncoid, &typisvarlena);
         *tcategory = AGT_TYPE_INTEGER;
         break;
-
     case FLOAT4OID:
     case FLOAT8OID:
         getTypeOutputInfo(typoid, outfuncoid, &typisvarlena);
         *tcategory = AGT_TYPE_FLOAT;
         break;
-
     case NUMERICOID:
         getTypeOutputInfo(typoid, outfuncoid, &typisvarlena);
         *tcategory = AGT_TYPE_NUMERIC;
         break;
-
     case DATEOID:
         *tcategory = AGT_TYPE_DATE;
         break;
-
     case TIMESTAMPOID:
         *tcategory = AGT_TYPE_TIMESTAMP;
         break;
-
     case TIMESTAMPTZOID:
         *tcategory = AGT_TYPE_TIMESTAMPTZ;
         break;
-
     case INTERVALOID:
         *tcategory = AGT_TYPE_INTERVAL;
         break;
-
     case INETOID:
         *tcategory = AGT_TYPE_INET;
         break;
-
     case CIDROID:
         *tcategory = AGT_TYPE_CIDR;
         break;
-
     case MACADDROID:
         *tcategory = AGT_TYPE_MAC;
         break;
-
     case MACADDR8OID:
         *tcategory = AGT_TYPE_MAC8;
         break;
-
     case JSONBOID:
         *tcategory = AGT_TYPE_JSONB;
         break;
-
     case JSONOID:
         *tcategory = AGT_TYPE_JSON;
         break;
-
     default:
         // Check for arrays and composites 
         if (typoid == GTYPEOID) {
@@ -1347,14 +1333,11 @@ static void array_dim_to_gtype(gtype_in_state *result, int dim, int ndims,
                                 int *dims, Datum *vals, bool *nulls,
                                 int *valcount, agt_type_category tcategory,
                                 Oid outfuncoid) {
-    int i;
-
     Assert(dim < ndims);
 
     result->res = push_gtype_value(&result->parse_state, WGT_BEGIN_ARRAY, NULL);
 
-    for (i = 1; i <= dims[dim]; i++)
-    {
+    for (int i = 1; i <= dims[dim]; i++) {
         if (dim + 1 == ndims) {
             datum_to_gtype(vals[*valcount], nulls[*valcount], result, tcategory, outfuncoid, false);
             (*valcount)++;
@@ -1484,9 +1467,7 @@ static void composite_to_gtype(Datum composite, gtype_in_state *result)
  * will be printed many times, avoid using this; better to do the
  * gtype_categorize_type lookups only once.
  */
-void add_gtype(Datum val, bool is_null, gtype_in_state *result,
-                       Oid val_type, bool key_scalar)
-{
+void add_gtype(Datum val, bool is_null, gtype_in_state *result, Oid val_type, bool key_scalar) {
     agt_type_category tcategory;
     Oid outfuncoid;
 
@@ -1536,28 +1517,21 @@ Datum gtype_build_map(PG_FUNCTION_ARGS)
         PG_RETURN_NULL();
 
     if (nargs % 2 != 0)
-    {
-        ereport(
-            ERROR,
-            (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
              errmsg("argument list must have been even number of elements"),
              errhint("The arguments of gtype_build_map() must consist of alternating keys and values.")));
-    }
 
     memset(&result, 0, sizeof(gtype_in_state));
 
-    result.res = push_gtype_value(&result.parse_state, WGT_BEGIN_OBJECT,
-                                   NULL);
+    result.res = push_gtype_value(&result.parse_state, WGT_BEGIN_OBJECT, NULL);
 
     for (i = 0; i < nargs; i += 2)
     {
         // process key 
         if (nulls[i])
-        {
             ereport(ERROR,
                     (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                      errmsg("argument %d: key must not be null", i + 1)));
-        }
 
         add_gtype(args[i], false, &result, types[i], true);
 
@@ -1592,8 +1566,7 @@ Datum gtype_build_list(PG_FUNCTION_ARGS)
 
     memset(&result, 0, sizeof(gtype_in_state));
 
-    result.res = push_gtype_value(&result.parse_state, WGT_BEGIN_ARRAY,
-                                   NULL);
+    result.res = push_gtype_value(&result.parse_state, WGT_BEGIN_ARRAY, NULL);
 
     for (i = 0; i < nargs; i++)
         add_gtype(args[i], nulls[i], &result, types[i], false);
@@ -1604,12 +1577,7 @@ Datum gtype_build_list(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(gtype_build_list_noargs);
-
-/*
- * degenerate case of gtype_build_list where it gets 0 arguments.
- */
-Datum gtype_build_list_noargs(PG_FUNCTION_ARGS)
-{
+Datum gtype_build_list_noargs(PG_FUNCTION_ARGS) {
     gtype_in_state result;
 
     memset(&result, 0, sizeof(gtype_in_state));
@@ -1620,8 +1588,7 @@ Datum gtype_build_list_noargs(PG_FUNCTION_ARGS)
     PG_RETURN_POINTER(gtype_value_to_gtype(result.res));
 }
 
-static gtype_value *execute_array_access_operator_internal(gtype *array, int64 array_index)
-{
+static gtype_value *execute_array_access_operator_internal(gtype *array, int64 array_index) {
     uint32 size;
 
     // get the size of the array, given the type of the input 
@@ -1780,42 +1747,30 @@ Datum gtype_access_slice(PG_FUNCTION_ARGS)
     // get the array parameter and verify that it is a list 
     array = AG_GET_ARG_GTYPE_P(0);
     if (!AGT_ROOT_IS_ARRAY(array) || AGT_ROOT_IS_SCALAR(array))
-    {
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("slice must access a list")));
-    }
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("slice must access a list")));
 
     // get its size 
     array_size = AGT_ROOT_COUNT(array);
 
     // if we don't have a lower bound, make it 0 
-    if (PG_ARGISNULL(1))
-    {
+    if (PG_ARGISNULL(1)) {
         lower_index = 0;
-    }
-    else
-    {
+    } else {
         lidx_value = get_ith_gtype_value_from_container(&(AG_GET_ARG_GTYPE_P(1))->root, 0);
 
-        if (lidx_value->type == AGTV_NULL)
-        {
+        if (lidx_value->type == AGTV_NULL) {
             lower_index = 0;
             lidx_value = NULL;
         }
     }
 
     // if we don't have an upper bound, make it the size of the array 
-    if (PG_ARGISNULL(2))
-    {
+    if (PG_ARGISNULL(2)) {
         upper_index = array_size;
-    }
-    else
-    {
-        uidx_value = get_ith_gtype_value_from_container(
-            &(AG_GET_ARG_GTYPE_P(2))->root, 0);
+    } else {
+        uidx_value = get_ith_gtype_value_from_container(&(AG_GET_ARG_GTYPE_P(2))->root, 0);
         // adjust for AGTV_NULL 
-        if (uidx_value->type == AGTV_NULL)
-        {
+        if (uidx_value->type == AGTV_NULL) {
             upper_index = array_size;
             uidx_value = NULL;
         }
@@ -1829,18 +1784,13 @@ Datum gtype_access_slice(PG_FUNCTION_ARGS)
     // key must be an integer or NULL 
     if ((lidx_value != NULL && lidx_value->type != AGTV_INTEGER) ||
         (uidx_value != NULL && uidx_value->type != AGTV_INTEGER))
-        ereport(ERROR,
-                (errmsg("array slices must resolve to an integer value")));
+        ereport(ERROR, (errmsg("array slices must resolve to an integer value")));
 
     // set indices if not already set 
     if (lidx_value)
-    {
         lower_index = lidx_value->val.int_value;
-    }
     if (uidx_value)
-    {
         upper_index = uidx_value->val.int_value;
-    }
 
     // adjust for negative and out of bounds index values 
     if (lower_index < 0)
@@ -1862,10 +1812,8 @@ Datum gtype_access_slice(PG_FUNCTION_ARGS)
     result.res = push_gtype_value(&result.parse_state, WGT_BEGIN_ARRAY, NULL);
 
     // get array elements 
-    for (i = lower_index; i < upper_index; i++)
-    {
-        result.res = push_gtype_value(&result.parse_state, WGT_ELEM,
-            get_ith_gtype_value_from_container(&array->root, i));
+    for (i = lower_index; i < upper_index; i++) {
+        result.res = push_gtype_value(&result.parse_state, WGT_ELEM, get_ith_gtype_value_from_container(&array->root, i));
     }
 
     result.res = push_gtype_value(&result.parse_state, WGT_END_ARRAY, NULL);
@@ -1886,62 +1834,47 @@ Datum gtype_in_operator(PG_FUNCTION_ARGS)
     bool result = false;
     uint32 i = 0;
 
-    // return null if the array is null 
     if (PG_ARGISNULL(1))
         PG_RETURN_NULL();
 
-    // get the array parameter and verify that it is a list 
     agt_array = AG_GET_ARG_GTYPE_P(1);
     if (!AGT_ROOT_IS_ARRAY(agt_array))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("object of IN must be a list")));
 
-    // init array iterator 
     it_array = gtype_iterator_init(&agt_array->root);
-    // open array container 
     gtype_iterator_next(&it_array, &agtv_elem, false);
-    // check for an array scalar value 
-    if (agtv_elem.type == AGTV_ARRAY && agtv_elem.val.array.raw_scalar)
-    {
+    if (agtv_elem.type == AGTV_ARRAY && agtv_elem.val.array.raw_scalar) {
         gtype_iterator_next(&it_array, &agtv_elem, false);
-        // check for GTYPE NULL 
         if (agtv_elem.type == AGTV_NULL)
             PG_RETURN_NULL();
-        // if it is a scalar, but not AGTV_NULL, error out 
+
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("object of IN must be a list")));
     }
 
     array_size = AGT_ROOT_COUNT(agt_array);
 
-    // return null if the item to find is null 
     if (PG_ARGISNULL(0))
         PG_RETURN_NULL();
-    // get the item to search for 
+    
     agt_item = AG_GET_ARG_GTYPE_P(0);
 
-    // init item iterator 
     it_item = gtype_iterator_init(&agt_item->root);
 
-    // get value of item 
     gtype_iterator_next(&it_item, &agtv_item, false);
-    if (agtv_item.type == AGTV_ARRAY && agtv_item.val.array.raw_scalar)
-    {
+    if (agtv_item.type == AGTV_ARRAY && agtv_item.val.array.raw_scalar) {
         gtype_iterator_next(&it_item, &agtv_item, false);
-        // check for GTYPE NULL 
+        
         if (agtv_item.type == AGTV_NULL)
             PG_RETURN_NULL();
     }
 
-    // iterate through the array, but stop if we find it 
     for (i = 0; i < array_size && !result; i++)
     {
-        // get next element 
         gtype_iterator_next(&it_array, &agtv_elem, true);
-        // if both are containers, compare containers 
         if (!IS_A_GTYPE_SCALAR(&agtv_item) && !IS_A_GTYPE_SCALAR(&agtv_elem))
             result = (compare_gtype_containers_orderability( &agt_item->root, agtv_elem.val.binary.data) == 0);
-        // if both are scalars and of the same type, compare scalars 
         else if (IS_A_GTYPE_SCALAR(&agtv_item) && IS_A_GTYPE_SCALAR(&agtv_elem) && agtv_item.type == agtv_elem.type)
             result = (compare_gtype_scalar_values(&agtv_item, &agtv_elem) == 0);
     }
@@ -1949,9 +1882,7 @@ Datum gtype_in_operator(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(gtype_string_match_starts_with);
-// STARTS WITH
-Datum gtype_string_match_starts_with(PG_FUNCTION_ARGS)
-{
+Datum gtype_string_match_starts_with(PG_FUNCTION_ARGS) {
     Datum x = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(0), "text");
     Datum y = convert_to_scalar(gtype_to_text_internal, AG_GET_ARG_GTYPE_P(1), "text");
 
@@ -1961,11 +1892,7 @@ Datum gtype_string_match_starts_with(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(gtype_string_match_ends_with);
-/*
- * Execution function for ENDS WITH
- */
-Datum gtype_string_match_ends_with(PG_FUNCTION_ARGS)
-{
+Datum gtype_string_match_ends_with(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
@@ -1980,13 +1907,13 @@ Datum gtype_string_match_ends_with(PG_FUNCTION_ARGS)
         if (lhs_value->type == AGTV_STRING && rhs_value->type == AGTV_STRING)
         {
             if (lhs_value->val.string.len < rhs_value->val.string.len)
-                return boolean_to_gtype(false);
+                AG_RETURN_GTYPE_P(boolean_to_gtype(false));
 
             if (strncmp(lhs_value->val.string.val + lhs_value->val.string.len - rhs_value->val.string.len,
                         rhs_value->val.string.val, rhs_value->val.string.len) == 0)
-                return boolean_to_gtype(true);
+                AG_RETURN_GTYPE_P(boolean_to_gtype(true));
             else
-                return boolean_to_gtype(false);
+                AG_RETURN_GTYPE_P(boolean_to_gtype(false));
         }
     }
     ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
@@ -1994,37 +1921,28 @@ Datum gtype_string_match_ends_with(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(gtype_string_match_contains);
-/*
- * Execution function for CONTAINS
- */
-Datum gtype_string_match_contains(PG_FUNCTION_ARGS)
-{
+Datum gtype_string_match_contains(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
-    if (AGT_ROOT_IS_SCALAR(lhs) && AGT_ROOT_IS_SCALAR(rhs))
-    {
+    if (AGT_ROOT_IS_SCALAR(lhs) && AGT_ROOT_IS_SCALAR(rhs)) {
         gtype_value *lhs_value;
         gtype_value *rhs_value;
 
         lhs_value = get_ith_gtype_value_from_container(&lhs->root, 0);
         rhs_value = get_ith_gtype_value_from_container(&rhs->root, 0);
 
-        if (lhs_value->type == AGTV_STRING && rhs_value->type == AGTV_STRING)
-        {
-            char *l;
-            char *r;
-
+        if (lhs_value->type == AGTV_STRING && rhs_value->type == AGTV_STRING) {
             if (lhs_value->val.string.len < rhs_value->val.string.len)
-                return boolean_to_gtype(false);
+                AG_RETURN_GTYPE_P(boolean_to_gtype(false));
 
-            l = pnstrdup(lhs_value->val.string.val, lhs_value->val.string.len);
-            r = pnstrdup(rhs_value->val.string.val, rhs_value->val.string.len);
+            char *l = pnstrdup(lhs_value->val.string.val, lhs_value->val.string.len);
+            char *r = pnstrdup(rhs_value->val.string.val, rhs_value->val.string.len);
 
             if (strstr(l, r) == NULL)
-                return boolean_to_gtype(false);
+                AG_RETURN_GTYPE_P(boolean_to_gtype(false));
             else
-                return boolean_to_gtype(true);
+                AG_RETURN_GTYPE_P(boolean_to_gtype(true));
         }
     }
     ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
@@ -2054,8 +1972,7 @@ Datum gtype_hash_cmp(PG_FUNCTION_ARGS)
     r = palloc0(sizeof(gtype_value));
 
     it = gtype_iterator_init(&agt->root);
-    while ((tok = gtype_iterator_next(&it, r, false)) != WGT_DONE)
-    {
+    while ((tok = gtype_iterator_next(&it, r, false)) != WGT_DONE) {
         if (IS_A_GTYPE_SCALAR(r) && GTYPE_ITERATOR_TOKEN_IS_HASHABLE(tok))
             gtype_hash_scalar_value_extended(r, &hash, seed);
         else if (tok == WGT_BEGIN_ARRAY && !r->val.array.raw_scalar)
@@ -2280,8 +2197,7 @@ gtype_value *alter_property_value(gtype *properties, char *var_name,
         remove_property = true;
 
     found = false;
-    while (true)
-    {
+    while (true) {
         char *str;
 
         tok = gtype_iterator_next(&it, r, true);
@@ -2297,30 +2213,25 @@ gtype_value *alter_property_value(gtype *properties, char *var_name,
          * in gtype. Otherwise pass the existing value to the
          * new properties gtype_value.
          */
-        if (strcmp(str, var_name))
-        {
+        if (strcmp(str, var_name)) {
             // push the key
             parsed_gtype_value = push_gtype_value(&parse_state, tok, tok < WGT_BEGIN_ARRAY ? r : NULL);
 
             // get the value and push the value
             tok = gtype_iterator_next(&it, r, true);
             parsed_gtype_value = push_gtype_value(&parse_state, tok, r);
-        }
-        else
-        {
+        } else {
             gtype_value *new_gtype_value_v;
 
             // if the remove flag is set, don't push the key or any value
-            if(remove_property)
-            {
+            if(remove_property) {
                 // skip the value
                 tok = gtype_iterator_next(&it, r, true);
                 continue;
             }
 
             // push the key
-            parsed_gtype_value = push_gtype_value(
-                &parse_state, tok, tok < WGT_BEGIN_ARRAY ? r : NULL);
+            parsed_gtype_value = push_gtype_value(&parse_state, tok, tok < WGT_BEGIN_ARRAY ? r : NULL);
 
             // skip the existing value for the key
             tok = gtype_iterator_next(&it, r, true);
@@ -2332,15 +2243,12 @@ gtype_value *alter_property_value(gtype *properties, char *var_name,
              * This will save uncessary deserialization and serialization
              * logic from running.
              */
-            if (GTYPE_CONTAINER_IS_SCALAR(&new_v->root))
-            {
+            if (GTYPE_CONTAINER_IS_SCALAR(&new_v->root)) {
                 //get the scalar value and push as the value
                 new_gtype_value_v = get_ith_gtype_value_from_container(&new_v->root, 0);
 
                 parsed_gtype_value = push_gtype_value(&parse_state, WGT_VALUE, new_gtype_value_v);
-            }
-            else
-            {
+            } else {
                 gtype_value *result = palloc(sizeof(gtype_value)); 
 
                 result->type = AGTV_BINARY;
@@ -2357,8 +2265,7 @@ gtype_value *alter_property_value(gtype *properties, char *var_name,
      * If we have not found the property and we aren't trying to remove it,
      * add the key/value pair now.
      */
-    if (!found && !remove_property)
-    {
+    if (!found && !remove_property) {
         gtype_value *new_gtype_value_v;
         gtype_value *key = string_to_gtype_value(var_name);
 
@@ -2372,15 +2279,12 @@ gtype_value *alter_property_value(gtype *properties, char *var_name,
          * This will save uncessary deserialization and serialization
          * logic from running.
          */
-        if (GTYPE_CONTAINER_IS_SCALAR(&new_v->root))
-        {
+        if (GTYPE_CONTAINER_IS_SCALAR(&new_v->root)) {
             new_gtype_value_v = get_ith_gtype_value_from_container(&new_v->root, 0);
 
             // convert the gtype array or object to a binary gtype_value
             parsed_gtype_value = push_gtype_value(&parse_state, WGT_VALUE, new_gtype_value_v);
-        }
-        else
-        {
+        } else {
             gtype_value *result = palloc(sizeof(gtype_value)); 
 
             result->type = AGTV_BINARY;
@@ -2404,9 +2308,7 @@ gtype_value *alter_property_value(gtype *properties, char *var_name,
  * result type.
  */
 PG_FUNCTION_INFO_V1(gtype_gtype_sum);
-
-Datum gtype_gtype_sum(PG_FUNCTION_ARGS)
-{
+Datum gtype_gtype_sum(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
@@ -2442,199 +2344,46 @@ Datum gtype_gtype_sum(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(gtype_accum);
-
-Datum gtype_accum(PG_FUNCTION_ARGS)
-{
+Datum gtype_accum(PG_FUNCTION_ARGS) {
     PG_RETURN_DATUM(DirectFunctionCall2(float8_accum, PG_GETARG_DATUM(0),
 		                        convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(1), "float")));
 }
 
 PG_FUNCTION_INFO_V1(gtype_regr_accum);
-
-Datum gtype_regr_accum(PG_FUNCTION_ARGS)
-{
+Datum gtype_regr_accum(PG_FUNCTION_ARGS) {
     PG_RETURN_DATUM(DirectFunctionCall3(float8_regr_accum, PG_GETARG_DATUM(0), 
 		                        convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(1), "float"),
-				                convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(2), "float")));
+				        convert_to_scalar(gtype_to_float8_internal, AG_GET_ARG_GTYPE_P(2), "float")));
 }   
 
 
-PG_FUNCTION_INFO_V1(gtype_corr_final);
-Datum
-gtype_corr_final(PG_FUNCTION_ARGS) {
-    Datum result = (*float8_corr) (fcinfo);
-
-    if (fcinfo->isnull)
-        PG_RETURN_NULL();
-
-    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(result) };
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+#define REGRESSIONAGGFINAL(name) \
+PG_FUNCTION_INFO_V1(gtype_##name); \
+Datum gtype_##name(PG_FUNCTION_ARGS) { \
+    Datum result = (*float8_##name) (fcinfo);\
+\
+    if (fcinfo->isnull)\
+        PG_RETURN_NULL();\
+\
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(result) };\
+\
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));\
 }
 
-PG_FUNCTION_INFO_V1(gtype_covar_pop_final);
-Datum
-gtype_covar_pop_final(PG_FUNCTION_ARGS) {
-    Datum result = (*float8_corr) (fcinfo);
+REGRESSIONAGGFINAL(corr);
+REGRESSIONAGGFINAL(covar_pop);
+REGRESSIONAGGFINAL(covar_samp);
+REGRESSIONAGGFINAL(regr_sxx);
+REGRESSIONAGGFINAL(regr_sxy);
+REGRESSIONAGGFINAL(regr_syy);
+REGRESSIONAGGFINAL(regr_slope);
+REGRESSIONAGGFINAL(regr_intercept);
+REGRESSIONAGGFINAL(regr_avgx);
+REGRESSIONAGGFINAL(regr_avgy);
+REGRESSIONAGGFINAL(regr_r2);
+REGRESSIONAGGFINAL(stddev_samp);
+REGRESSIONAGGFINAL(stddev_pop);
 
-    if (fcinfo->isnull)
-        PG_RETURN_NULL();
-
-    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(result) };
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
-}
-
-PG_FUNCTION_INFO_V1(gtype_covar_samp_final);
-Datum
-gtype_covar_samp_final(PG_FUNCTION_ARGS) {
-    Datum result = (*float8_covar_samp) (fcinfo);
-
-    if (fcinfo->isnull)
-        PG_RETURN_NULL();
-
-    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(result) };
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
-}
-
-PG_FUNCTION_INFO_V1(gtype_regr_sxx_final);
-Datum
-gtype_regr_sxx_final(PG_FUNCTION_ARGS) {
-    Datum result = (*float8_regr_sxx) (fcinfo);
-
-    if (fcinfo->isnull)
-        PG_RETURN_NULL();
-
-    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(result) };
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
-}
-
-PG_FUNCTION_INFO_V1(gtype_regr_syy_final);
-Datum
-gtype_regr_syy_final(PG_FUNCTION_ARGS) {
-    Datum result = (*float8_regr_syy) (fcinfo);
-
-    if (fcinfo->isnull)
-        PG_RETURN_NULL();
-
-    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(result) };
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
-}
-
-PG_FUNCTION_INFO_V1(gtype_regr_sxy_final);
-Datum
-gtype_regr_sxy_final(PG_FUNCTION_ARGS) {
-    Datum result = (*float8_regr_syy) (fcinfo);
-
-    if (fcinfo->isnull)
-        PG_RETURN_NULL();
-
-    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(result) };
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
-}
-
-PG_FUNCTION_INFO_V1(gtype_regr_slope_final);
-Datum
-gtype_regr_slope_final(PG_FUNCTION_ARGS) {
-    Datum result = (*float8_regr_slope) (fcinfo);
-
-    if (fcinfo->isnull)
-        PG_RETURN_NULL();
-
-    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(result) };
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
-}
-
-PG_FUNCTION_INFO_V1(gtype_regr_intercept_final);
-Datum
-gtype_regr_intercept_final(PG_FUNCTION_ARGS) {
-    Datum result = (*float8_regr_intercept) (fcinfo);
-
-    if (fcinfo->isnull)
-        PG_RETURN_NULL();
-
-    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(result) };
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
-}
-
-PG_FUNCTION_INFO_V1(gtype_regr_avgx_final);
-Datum
-gtype_regr_avgx_final(PG_FUNCTION_ARGS) {
-    Datum result = (*float8_regr_avgx) (fcinfo);
-
-    if (fcinfo->isnull)
-        PG_RETURN_NULL();
-
-    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(result) };
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
-}
-
-PG_FUNCTION_INFO_V1(gtype_regr_avgy_final);
-Datum
-gtype_regr_avgy_final(PG_FUNCTION_ARGS) {
-    Datum result = (*float8_regr_avgy) (fcinfo);
-
-    if (fcinfo->isnull)
-        PG_RETURN_NULL();
-
-    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(result) };
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
-}
-
-PG_FUNCTION_INFO_V1(gtype_regr_r2_final);
-Datum
-gtype_regr_r2_final(PG_FUNCTION_ARGS) {
-    Datum result = (*float8_regr_r2) (fcinfo);
-
-    if (fcinfo->isnull)
-        PG_RETURN_NULL();
-
-    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(result) };
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
-}
-
-PG_FUNCTION_INFO_V1(gtype_stddev_samp_final);
-
-Datum gtype_stddev_samp_final(PG_FUNCTION_ARGS)
-{
-    PGFunction func = float8_stddev_samp;
-    Datum result = (*func) (fcinfo);
-
-    if (fcinfo->isnull)
-        PG_RETURN_NULL();
-
-    gtype_value gtv;
-    gtv.type = AGTV_FLOAT;
-    gtv.val.float_value = DatumGetFloat8(result);
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
-}
-
-PG_FUNCTION_INFO_V1(gtype_stddev_pop_final);
-
-Datum gtype_stddev_pop_final(PG_FUNCTION_ARGS)
-{
-    PGFunction func = float8_stddev_pop;
-    Datum result = (*func) (fcinfo);
-
-    if (fcinfo->isnull)
-        PG_RETURN_NULL();
-
-    gtype_value gtv;
-    gtv.type = AGTV_FLOAT;
-    gtv.val.float_value = DatumGetFloat8(result);
-
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
-}
 
 PG_FUNCTION_INFO_V1(gtype_max_trans);
 
@@ -3014,15 +2763,14 @@ static gtype_iterator *get_next_object_key(gtype_iterator *it, gtype_container *
 }
 
 PG_FUNCTION_INFO_V1(vertex_keys);
-Datum vertex_keys(PG_FUNCTION_ARGS)
-{
+Datum vertex_keys(PG_FUNCTION_ARGS) {
     gtype *agt_arg = NULL;
     gtype_value *agtv_result = NULL;
     gtype_value obj_key = {0};
     gtype_iterator *it = NULL;
     gtype_parse_state *parse_state = NULL;
     vertex *v = AG_GET_ARG_VERTEX(0);
-    	agt_arg = extract_vertex_properties(v);
+    agt_arg = extract_vertex_properties(v);
 
     agtv_result = push_gtype_value(&parse_state, WGT_BEGIN_ARRAY, NULL);
 
@@ -3048,7 +2796,7 @@ Datum edge_keys(PG_FUNCTION_ARGS)
     gtype_iterator *it = NULL;
     gtype_parse_state *parse_state = NULL;
     edge *v = AG_GET_ARG_EDGE(0);
-        agt_arg = extract_edge_properties(v);
+    agt_arg = extract_edge_properties(v);
 
     agtv_result = push_gtype_value(&parse_state, WGT_BEGIN_ARRAY, NULL);
 
@@ -3199,12 +2947,10 @@ Datum gtype_unnest(PG_FUNCTION_ARGS)
 
     it = gtype_iterator_init(&gtype_arg->root);
 
-    while ((r = gtype_iterator_next(&it, &v, skipNested)) != WGT_DONE)
-    {
+    while ((r = gtype_iterator_next(&it, &v, skipNested)) != WGT_DONE) {
         skipNested = true;
 
-        if (r == WGT_ELEM)
-        {
+        if (r == WGT_ELEM) {
             HeapTuple tuple;
             Datum values[1];
             bool nulls[1] = {false};
@@ -3231,5 +2977,3 @@ Datum gtype_unnest(PG_FUNCTION_ARGS)
 
     PG_RETURN_NULL();
 }
-
-

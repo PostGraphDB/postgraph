@@ -92,7 +92,7 @@ CREATE AGGREGATE count(variable_edge) (
 --
 -- stdev
 --
-CREATE FUNCTION gtype_stddev_samp_final(float8[]) 
+CREATE FUNCTION gtype_stddev_samp(float8[]) 
 RETURNS gtype 
 LANGUAGE c 
 IMMUTABLE 
@@ -102,7 +102,7 @@ AS 'MODULE_PATHNAME';
 CREATE AGGREGATE stdev(gtype) (
     stype = float8[],
     sfunc = gtype_accum, 
-    finalfunc = gtype_stddev_samp_final, 
+    finalfunc = gtype_stddev_samp, 
     combinefunc = float8_combine, 
     finalfunc_modify = READ_ONLY, 
     initcond = '{0,0,0}',
@@ -112,7 +112,7 @@ CREATE AGGREGATE stdev(gtype) (
 --
 -- stdevp
 --
-CREATE FUNCTION gtype_stddev_pop_final(float8[])
+CREATE FUNCTION gtype_stddev_pop(float8[])
 RETURNS gtype 
 LANGUAGE c 
 IMMUTABLE 
@@ -123,7 +123,7 @@ AS 'MODULE_PATHNAME';
 CREATE AGGREGATE stdevp(gtype) (
     stype = float8[],
     sfunc = gtype_accum, 
-    finalfunc = gtype_stddev_pop_final, 
+    finalfunc = gtype_stddev_pop, 
     combinefunc = float8_combine, 
     finalfunc_modify = READ_ONLY, 
     initcond = '{0,0,0}', 
@@ -342,25 +342,25 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 AS 'MODULE_PATHNAME';
 
-CREATE FUNCTION gtype_corr_final(float8[])
+CREATE FUNCTION gtype_corr(float8[])
 RETURNS gtype
 LANGUAGE c
 IMMUTABLE
 CALLED ON NULL INPUT
 PARALLEL SAFE
-AS 'MODULE_PATHNAME';
+AS 'MODULE_PATHNAME', 'gtype_corr';
 
 CREATE AGGREGATE corr(gtype, gtype) (
     stype = float8[],
     sfunc = gtype_regr_accum,
-    finalfunc = gtype_corr_final,
+    finalfunc = gtype_corr,
     combinefunc = float8_regr_combine,
     finalfunc_modify = READ_ONLY,
     initcond = '{0,0,0,0,0,0}',
     parallel = SAFE
 );
 
-CREATE FUNCTION gtype_covar_pop_final(float8[])
+CREATE FUNCTION gtype_covar_pop(float8[])
 RETURNS gtype
 LANGUAGE c
 IMMUTABLE
@@ -371,14 +371,14 @@ AS 'MODULE_PATHNAME';
 CREATE AGGREGATE covar_pop(gtype, gtype) (
     stype = float8[],
     sfunc = gtype_regr_accum,
-    finalfunc = gtype_covar_pop_final,
+    finalfunc = gtype_covar_pop,
     combinefunc = float8_regr_combine,
     finalfunc_modify = READ_ONLY,
     initcond = '{0,0,0,0,0,0}',
     parallel = SAFE
 );
 
-CREATE FUNCTION gtype_covar_samp_final(float8[])
+CREATE FUNCTION gtype_covar_samp(float8[])
 RETURNS gtype
 LANGUAGE c
 IMMUTABLE
@@ -389,14 +389,14 @@ AS 'MODULE_PATHNAME';
 CREATE AGGREGATE covar_samp(gtype, gtype) (
     stype = float8[],
     sfunc = gtype_regr_accum,
-    finalfunc = gtype_covar_samp_final,
+    finalfunc = gtype_covar_samp,
     combinefunc = float8_regr_combine,
     finalfunc_modify = READ_ONLY,
     initcond = '{0,0,0,0,0,0}',
     parallel = SAFE
 );
 
-CREATE FUNCTION gtype_regr_sxx_final(float8[])
+CREATE FUNCTION gtype_regr_sxx(float8[])
 RETURNS gtype
 LANGUAGE c
 IMMUTABLE
@@ -407,14 +407,14 @@ AS 'MODULE_PATHNAME';
 CREATE AGGREGATE regr_sxx(gtype, gtype) (
     stype = float8[],
     sfunc = gtype_regr_accum,
-    finalfunc = gtype_regr_sxx_final,
+    finalfunc = gtype_regr_sxx,
     combinefunc = float8_regr_combine,
     finalfunc_modify = READ_ONLY,
     initcond = '{0,0,0,0,0,0}',
     parallel = SAFE
 );
 
-CREATE FUNCTION gtype_regr_syy_final(float8[])
+CREATE FUNCTION gtype_regr_syy(float8[])
 RETURNS gtype
 LANGUAGE c
 IMMUTABLE
@@ -425,14 +425,14 @@ AS 'MODULE_PATHNAME';
 CREATE AGGREGATE regr_syy(gtype, gtype) (
     stype = float8[],
     sfunc = gtype_regr_accum,
-    finalfunc = gtype_regr_syy_final,
+    finalfunc = gtype_regr_syy,
     combinefunc = float8_regr_combine,
     finalfunc_modify = READ_ONLY,
     initcond = '{0,0,0,0,0,0}',
     parallel = SAFE
 );
 
-CREATE FUNCTION gtype_regr_sxy_final(float8[])
+CREATE FUNCTION gtype_regr_sxy(float8[])
 RETURNS gtype
 LANGUAGE c
 IMMUTABLE
@@ -443,14 +443,14 @@ AS 'MODULE_PATHNAME';
 CREATE AGGREGATE regr_sxy(gtype, gtype) (
     stype = float8[],
     sfunc = gtype_regr_accum,
-    finalfunc = gtype_regr_sxy_final,
+    finalfunc = gtype_regr_sxy,
     combinefunc = float8_regr_combine,
     finalfunc_modify = READ_ONLY,
     initcond = '{0,0,0,0,0,0}',
     parallel = SAFE
 );
 
-CREATE FUNCTION gtype_regr_slope_final(float8[])
+CREATE FUNCTION gtype_regr_slope(float8[])
 RETURNS gtype
 LANGUAGE c
 IMMUTABLE
@@ -461,14 +461,14 @@ AS 'MODULE_PATHNAME';
 CREATE AGGREGATE regr_slope(gtype, gtype) (
     stype = float8[],
     sfunc = gtype_regr_accum,
-    finalfunc = gtype_regr_slope_final,
+    finalfunc = gtype_regr_slope,
     combinefunc = float8_regr_combine,
     finalfunc_modify = READ_ONLY,
     initcond = '{0,0,0,0,0,0}',
     parallel = SAFE
 );
 
-CREATE FUNCTION gtype_regr_intercept_final(float8[])
+CREATE FUNCTION gtype_regr_intercept(float8[])
 RETURNS gtype
 LANGUAGE c
 IMMUTABLE
@@ -479,14 +479,14 @@ AS 'MODULE_PATHNAME';
 CREATE AGGREGATE regr_intercept(gtype, gtype) (
     stype = float8[],
     sfunc = gtype_regr_accum,
-    finalfunc = gtype_regr_intercept_final,
+    finalfunc = gtype_regr_intercept,
     combinefunc = float8_regr_combine,
     finalfunc_modify = READ_ONLY,
     initcond = '{0,0,0,0,0,0}',
     parallel = SAFE
 );
 
-CREATE FUNCTION gtype_regr_avgx_final(float8[])
+CREATE FUNCTION gtype_regr_avgx(float8[])
 RETURNS gtype
 LANGUAGE c
 IMMUTABLE            
@@ -497,14 +497,14 @@ AS 'MODULE_PATHNAME';
 CREATE AGGREGATE regr_avgx(gtype, gtype) (
     stype = float8[],
     sfunc = gtype_regr_accum,
-    finalfunc = gtype_regr_avgx_final,
+    finalfunc = gtype_regr_avgx,
     combinefunc = float8_regr_combine,
     finalfunc_modify = READ_ONLY,
     initcond = '{0,0,0,0,0,0}',
     parallel = SAFE
 );
 
-CREATE FUNCTION gtype_regr_avgy_final(float8[])
+CREATE FUNCTION gtype_regr_avgy(float8[])
 RETURNS gtype
 LANGUAGE c
 IMMUTABLE            
@@ -515,14 +515,14 @@ AS 'MODULE_PATHNAME';
 CREATE AGGREGATE regr_avgy(gtype, gtype) (
     stype = float8[],
     sfunc = gtype_regr_accum,
-    finalfunc = gtype_regr_avgy_final,
+    finalfunc = gtype_regr_avgy,
     combinefunc = float8_regr_combine,
     finalfunc_modify = READ_ONLY,
     initcond = '{0,0,0,0,0,0}',
     parallel = SAFE
 );
 
-CREATE FUNCTION gtype_regr_r2_final(float8[])
+CREATE FUNCTION gtype_regr_r2(float8[])
 RETURNS gtype
 LANGUAGE c
 IMMUTABLE
@@ -533,7 +533,7 @@ AS 'MODULE_PATHNAME';
 CREATE AGGREGATE regr_r2(gtype, gtype) (
     stype = float8[],
     sfunc = gtype_regr_accum,
-    finalfunc = gtype_regr_avgy_final,
+    finalfunc = gtype_regr_avgy,
     combinefunc = float8_regr_combine,
     finalfunc_modify = READ_ONLY,
     initcond = '{0,0,0,0,0,0}',
