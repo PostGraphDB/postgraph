@@ -3422,6 +3422,19 @@ SELECT * FROM cypher('temporal', $$ RETURN '30 Seconds'::interval $$) AS r(resul
  @ 30 secs
 (1 row)
 
+--timestamp
+SELECT * FROM cypher('temporal', $$ RETURN TIMESTAMP '2020-02-11 15:44:17' $$) AS r(result timestamp);
+          result          
+--------------------------
+ Tue Feb 11 15:44:17 2020
+(1 row)
+
+SELECT * FROM cypher('temporal', $$ RETURN '2020-02-11 15:44:17' $$) AS r(result timestamp);
+          result          
+--------------------------
+ Tue Feb 11 15:44:17 2020
+(1 row)
+
 --
 -- Clean up
 --

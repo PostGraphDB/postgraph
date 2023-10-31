@@ -1171,6 +1171,22 @@ Datum gtype_to_bool(PG_FUNCTION_ARGS)
     PG_RETURN_DATUM(d);
 }
 
+PG_FUNCTION_INFO_V1(gtype_to_timestamp);
+// gtype -> timestamp
+Datum
+gtype_to_timestamp(PG_FUNCTION_ARGS) {
+    gtype *agt = AG_GET_ARG_GTYPE_P(0);
+
+    if (is_gtype_null(agt))
+        PG_RETURN_NULL();
+
+    Datum d = convert_to_scalar(gtype_to_timestamp_internal, agt, "interval");
+
+    PG_FREE_IF_COPY(agt, 0);
+
+    PG_RETURN_DATUM(d);
+}
+
 PG_FUNCTION_INFO_V1(gtype_to_interval);
 // gtype -> interval
 Datum
