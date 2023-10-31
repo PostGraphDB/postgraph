@@ -176,6 +176,18 @@ AS 'MODULE_PATHNAME';
 CREATE CAST (gtype AS float4[])
 WITH FUNCTION gtype_to_float4_array(gtype);
 
+-- float4[] -> gtype
+CREATE FUNCTION float4_array_to_gtype(float4[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'array_to_gtype';
+
+CREATE CAST (float4[] as gtype)
+WITH FUNCTION float4_array_to_gtype(float4[]);
+
 -- gtype -> numeric
 CREATE FUNCTION gtype_to_numeric(gtype)
 RETURNS numeric

@@ -1037,12 +1037,12 @@ static void gtype_categorize_type(Oid typoid, agt_type_category *tcategory, Oid 
         *tcategory = AGT_TYPE_INTEGER;
         break;
 
+    case FLOAT4OID:
     case FLOAT8OID:
         getTypeOutputInfo(typoid, outfuncoid, &typisvarlena);
         *tcategory = AGT_TYPE_FLOAT;
         break;
 
-    case FLOAT4OID:
     case NUMERICOID:
         getTypeOutputInfo(typoid, outfuncoid, &typisvarlena);
         *tcategory = AGT_TYPE_NUMERIC;
@@ -1199,8 +1199,11 @@ static void datum_to_gtype(Datum val, bool is_null, gtype_in_state *result, agt_
                 agtv.val.string.len = strlen(outputstr);
                 agtv.val.string.val = outputstr;
             } else {
+                Datum intd;
+
+                intd = DirectFunctionCall1(float8in, CStringGetDatum(outputstr));
                 agtv.type = AGTV_FLOAT;
-                agtv.val.float_value = DatumGetFloat8(val);
+                agtv.val.float_value = DatumGetFloat8(intd);
             }
             break;
         case AGT_TYPE_NUMERIC:
