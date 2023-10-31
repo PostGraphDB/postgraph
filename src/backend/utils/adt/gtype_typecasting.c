@@ -1591,6 +1591,17 @@ tsvector_to_gtype(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(tsquery_to_gtype);
+//tsquery -> gtype
+Datum
+tsquery_to_gtype(PG_FUNCTION_ARGS) {
+    gtype_value gtv;
+    gtv.type = AGTV_TSQUERY;
+    gtv.val.tsquery = PG_GETARG_POINTER(0);
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
 
 /*
  * gtype to postgres array functions

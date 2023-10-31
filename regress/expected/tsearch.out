@@ -972,11 +972,18 @@ SELECT * FROM cypher('tsearch', $$ RETURN 'cat'::tsquery <@ 'cat & rat'::tsquery
 --
 -- Typecasting
 --
--- TSVector 
+-- TSVector -> gtype 
 SELECT '1'::tsvector::gtype;
  gtype 
 -------
  '1'
+(1 row)
+
+-- TSQuery -> gtype
+SELECT 'cat & rat'::tsquery::gtype;
+     gtype     
+---------------
+ 'cat' & 'rat'
 (1 row)
 
 --

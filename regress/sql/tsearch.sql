@@ -253,8 +253,10 @@ SELECT * FROM cypher('tsearch', $$ RETURN 'cat'::tsquery <@ 'cat & rat'::tsquery
 --
 -- Typecasting
 --
--- TSVector 
+-- TSVector -> gtype 
 SELECT '1'::tsvector::gtype;
+-- TSQuery -> gtype
+SELECT 'cat & rat'::tsquery::gtype;
 
 --
 -- Cleanup
