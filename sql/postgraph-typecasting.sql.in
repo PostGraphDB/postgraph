@@ -311,6 +311,18 @@ AS 'MODULE_PATHNAME';
 CREATE CAST (timestamp AS gtype) 
 WITH FUNCTION timestamp_to_gtype(timestamp);
 
+-- timestamp[] -> gtype
+CREATE FUNCTION timestamp_array_to_gtype(timestamp[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'array_to_gtype';
+
+CREATE CAST (timestamp[] as gtype)
+WITH FUNCTION timestamp_array_to_gtype(timestamp[]);
+
 -- timestamptz -> gtype
 CREATE FUNCTION timestamptz_to_gtype(timestamptz) 
 RETURNS gtype 
@@ -321,6 +333,18 @@ AS 'MODULE_PATHNAME';
 
 CREATE CAST (timestamptz AS gtype) 
 WITH FUNCTION timestamptz_to_gtype(timestamptz);
+
+-- timestamptz[] -> gtype
+CREATE FUNCTION timestamptz_array_to_gtype(timestamptz[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'array_to_gtype';
+
+CREATE CAST (timestamptz[] as gtype)
+WITH FUNCTION timestamptz_array_to_gtype(timestamptz[]);
 
 -- date -> gtype
 CREATE FUNCTION date_to_gtype(date) 
@@ -334,6 +358,19 @@ AS 'MODULE_PATHNAME';
 CREATE CAST (date AS gtype) 
 WITH FUNCTION date_to_gtype(date);
 
+-- date[] -> gtype
+CREATE FUNCTION date_array_to_gtype(date[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'array_to_gtype';
+
+CREATE CAST (date[] as gtype)
+WITH FUNCTION date_array_to_gtype(date[]);
+
+
 -- time -> gtype
 CREATE FUNCTION time_to_gtype(time) 
 RETURNS gtype 
@@ -346,6 +383,18 @@ AS 'MODULE_PATHNAME';
 CREATE CAST (time AS gtype) 
 WITH FUNCTION time_to_gtype(time);
 
+-- time[] -> gtype
+CREATE FUNCTION time_array_to_gtype(time[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'array_to_gtype';
+
+CREATE CAST (time[] as gtype)
+WITH FUNCTION time_array_to_gtype(time[]);
+
 -- timetz -> gtype
 CREATE FUNCTION timetz_to_gtype(timetz) 
 RETURNS gtype 
@@ -357,6 +406,18 @@ AS 'MODULE_PATHNAME';
 
 CREATE CAST (timetz AS gtype) 
 WITH FUNCTION timetz_to_gtype(timetz);
+
+-- timetz[] -> gtype
+CREATE FUNCTION timetz_array_to_gtype(timetz[])
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'array_to_gtype';
+
+CREATE CAST (timetz[] as gtype)
+WITH FUNCTION timetz_array_to_gtype(timetz[]);
 
 -- gtype -> timestamp
 CREATE FUNCTION gtype_to_timestamp(gtype)

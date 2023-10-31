@@ -45,6 +45,16 @@ SELECT '{1.0, 2, 3.0, 4, 5, 6}'::numeric[]::gtype;
 
 SELECT '{true, false, true, true, false}'::boolean[]::gtype;
 
+SELECT '{"12/17/1997 07:37:16.00+00", "1/25/2015 17:45:32.21+00"}'::timestamp[]::gtype;
+
+SELECT '{"12/17/1997 07:37:16.00+04", "1/25/2015 17:45:32.21+08"}'::timestamptz[]::gtype;
+
+SELECT '{"12/17/1997", "1/25/2015"}'::date[]::gtype;
+
+SELECT '{"07:37:16.00+00", "17:45:32.21+00"}'::time[]::gtype;
+
+SELECT '{"07:37:16.00+04", "17:45:32.21+08"}'::timetz[]::gtype;
+
 --
 -- map literal
 --
