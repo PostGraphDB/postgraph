@@ -970,6 +970,16 @@ SELECT * FROM cypher('tsearch', $$ RETURN 'cat'::tsquery <@ 'cat & rat'::tsquery
 (1 row)
 
 --
+-- Typecasting
+--
+-- TSVector 
+SELECT '1'::tsvector::gtype;
+ gtype 
+-------
+ '1'
+(1 row)
+
+--
 -- Cleanup
 --
 SELECT drop_graph('tsearch', true);

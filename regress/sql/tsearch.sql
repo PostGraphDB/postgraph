@@ -249,6 +249,13 @@ SELECT * FROM cypher('tsearch', $$ RETURN 'cat'::tsquery @> 'cat & rat'::tsquery
 --
 SELECT * FROM cypher('tsearch', $$ RETURN 'cat & rat'::tsquery <@ 'rat'::tsquery $$) as (a gtype);
 SELECT * FROM cypher('tsearch', $$ RETURN 'cat'::tsquery <@ 'cat & rat'::tsquery $$) as (a gtype);
+
+--
+-- Typecasting
+--
+-- TSVector 
+SELECT '1'::tsvector::gtype;
+
 --
 -- Cleanup
 --
