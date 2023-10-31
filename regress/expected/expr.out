@@ -95,6 +95,12 @@ SELECT '{1.0, 2, 3.0, 4, 5, 6}'::numeric[]::gtype;
  [1.0::numeric, 2::numeric, 3.0::numeric, 4::numeric, 5::numeric, 6::numeric]
 (1 row)
 
+SELECT '{true, false, true, true, false}'::boolean[]::gtype;
+              gtype               
+----------------------------------
+ [true, false, true, true, false]
+(1 row)
+
 --
 -- map literal
 --

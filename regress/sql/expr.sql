@@ -42,6 +42,9 @@ SELECT '{1.0, 2, 3.0, 4, 5, 6}'::float4[]::gtype;
 SELECT '{1.0, 2, 3.0, 4, 5, 6}'::float8[]::gtype;
 
 SELECT '{1.0, 2, 3.0, 4, 5, 6}'::numeric[]::gtype;
+
+SELECT '{true, false, true, true, false}'::boolean[]::gtype;
+
 --
 -- map literal
 --
