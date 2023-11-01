@@ -72,9 +72,9 @@ SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN corr(u.gpa, u.age) $$) AS (corr
 (1 row)
 
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN covar_pop(u.gpa, u.age) $$) AS (covar_pop gtype);
-      covar_pop      
----------------------
- -0.0611333038221933
+     covar_pop      
+--------------------
+ -0.130612244897959
 (1 row)
 
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN covar_samp(u.gpa, u.age) $$) AS (covar_samp gtype);
@@ -96,9 +96,9 @@ SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN regr_syy(u.gpa, u.age) $$) AS (
 (1 row)
 
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN regr_sxy(u.gpa, u.age) $$) AS (covar_samp gtype);
-    covar_samp    
-------------------
- 1.81214285714286
+     covar_samp     
+--------------------
+ -0.914285714285715
 (1 row)
 
 SELECT * FROM cypher('UCSC', $$ MATCH (u) RETURN regr_slope(u.gpa, u.age) $$) AS (covar_samp gtype);

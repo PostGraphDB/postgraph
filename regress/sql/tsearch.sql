@@ -126,6 +126,14 @@ SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1') >= totsvector('2') $$)
 SELECT * FROM cypher('tsearch', $$ RETURN totsvector('2') >= totsvector('1') $$) as (a gtype);
 
 --
+-- TSVector || TSVector
+--
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1') || totsvector('1') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('1') || totsvector('2') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN totsvector('2') || totsvector('1') $$) as (a gtype);
+
+
+--
 -- TS_Delete
 --
 SELECT * FROM cypher('tsearch', $$
@@ -184,6 +192,12 @@ SELECT * FROM cypher('tsearch', $$ RETURN totsquery('a & !!b') $$) as (a gtype);
 SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!!a & b') $$) as (a gtype);
 
 --
+-- PhraseTo_TSQuery
+--
+SELECT * FROM cypher('tsearch', $$ RETURN PhraseTo_TSQuery('The Fat Rats') $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN PhraseTo_TSQuery('The Cat and Rats') $$) as (a gtype);
+
+--
 -- TSQuery = TSQuery
 --
 SELECT * FROM cypher('tsearch', $$ RETURN totsquery('1') = totsquery('1') $$) as (a gtype);
@@ -230,6 +244,12 @@ SELECT * FROM cypher('tsearch', $$ RETURN totsquery('2') >= totsquery('1') $$) a
 --
 SELECT * FROM cypher('tsearch', $$ RETURN '1'::tsquery & '2'::tsquery $$) as (a gtype);
 SELECT * FROM cypher('tsearch', $$ RETURN '2'::tsquery & '1'::tsquery $$) as (a gtype);
+
+--
+-- TSQuery || TSQuery
+--
+SELECT * FROM cypher('tsearch', $$ RETURN '1'::tsquery || '2'::tsquery $$) as (a gtype);
+SELECT * FROM cypher('tsearch', $$ RETURN '2'::tsquery || '1'::tsquery $$) as (a gtype);
 
 --
 -- TSQuery_Phrase and <-> Operator

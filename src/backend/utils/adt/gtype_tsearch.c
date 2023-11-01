@@ -31,18 +31,32 @@
 #include "utils/gtype.h"
 #include "utils/gtype_typecasting.h"
 
-/*
-PG_FUNCTION_INFO_V1(gtype_tsquery_and);
-Datum gtype_tsquery_and(PG_FUNCTION_ARGS) {
-    TSQuery tsquery = DatumGetPointer(DirectFunctionCall2(tsquery_and,
-                                                            GT_ARG_TO_TSQUERY_DATUM(0),
-							    GT_ARG_TO_TSQUERY_DATUM(1)));
 
-    gtype_value gtv = { .type = AGTV_TSQUERY, .val.tsvector = tsquery };
+PG_FUNCTION_INFO_V1(gtype_tsquery_or);
+Datum gtype_tsquery_or(PG_FUNCTION_ARGS) {
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+    if (GT_IS_TSQUERY(lhs) || GT_IS_TSQUERY(rhs)) {
+        TSQuery tsquery = DatumGetPointer(DirectFunctionCall2(tsquery_or,
+                                                              GT_ARG_TO_TSQUERY_DATUM(0),
+	  	  	  	  	  	  	      GT_ARG_TO_TSQUERY_DATUM(1)));
+
+        gtype_value gtv = { .type = AGTV_TSQUERY, .val.tsquery = tsquery };
+
+        AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+    } else {
+        TSVector tsvector = DatumGetPointer(DirectFunctionCall2(tsvector_concat,
+                                                              GT_ARG_TO_TSVECTOR_DATUM(0),
+                                                              GT_ARG_TO_TSVECTOR_DATUM(1)));
+
+        gtype_value gtv = { .type = AGTV_TSVECTOR, .val.tsvector = tsvector };
+
+        AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+
+    }
 }
-*/
+
 
 /*
  * Text Search Functions
@@ -85,6 +99,15 @@ Datum gtype_tsquery_phrase_distance(PG_FUNCTION_ARGS) {
                                                             GT_ARG_TO_TSQUERY_DATUM(0),
                                                             GT_ARG_TO_TSQUERY_DATUM(1),
                                                             GT_ARG_TO_INT4_DATUM(2)));
+
+    gtype_value gtv = { .type = AGTV_TSQUERY, .val.tsvector = tsquery };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+PG_FUNCTION_INFO_V1(gtype_phraseto_tsquery);
+Datum gtype_phraseto_tsquery(PG_FUNCTION_ARGS) {
+    TSQuery tsquery = DatumGetPointer(DirectFunctionCall1(phraseto_tsquery, GT_ARG_TO_TEXT_DATUM(0)));
 
     gtype_value gtv = { .type = AGTV_TSQUERY, .val.tsvector = tsquery };
 
