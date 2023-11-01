@@ -64,6 +64,14 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 AS 'MODULE_PATHNAME', 'gtype_tsquery_phrase_distance';
 
+CREATE FUNCTION plainto_tsquery(gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME', 'gtype_plainto_tsquery';
+
 CREATE FUNCTION phraseto_tsquery(gtype)
 RETURNS gtype
 LANGUAGE c

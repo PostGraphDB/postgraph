@@ -105,6 +105,15 @@ Datum gtype_tsquery_phrase_distance(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(gtype_plainto_tsquery);
+Datum gtype_plainto_tsquery(PG_FUNCTION_ARGS) {
+    TSQuery tsquery = DatumGetPointer(DirectFunctionCall1(plainto_tsquery, GT_ARG_TO_TEXT_DATUM(0)));
+
+    gtype_value gtv = { .type = AGTV_TSQUERY, .val.tsvector = tsquery };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
 PG_FUNCTION_INFO_V1(gtype_phraseto_tsquery);
 Datum gtype_phraseto_tsquery(PG_FUNCTION_ARGS) {
     TSQuery tsquery = DatumGetPointer(DirectFunctionCall1(phraseto_tsquery, GT_ARG_TO_TEXT_DATUM(0)));

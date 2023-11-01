@@ -799,6 +799,27 @@ SELECT * FROM cypher('tsearch', $$ RETURN totsquery('!!a & b') $$) as (a gtype);
 (1 row)
 
 --
+-- PlainTo_TSQuery
+--
+SELECT * FROM cypher('tsearch', $$ RETURN PlainTo_TSQuery('"fat rat" or cat dog') $$) as (a gtype);
+               a               
+-------------------------------
+ 'fat' & 'rat' & 'cat' & 'dog'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN PlainTo_TSQuery('The Fat Rats') $$) as (a gtype);
+       a       
+---------------
+ 'fat' & 'rat'
+(1 row)
+
+SELECT * FROM cypher('tsearch', $$ RETURN PlainTo_TSQuery('The Cat and Rats') $$) as (a gtype);
+       a       
+---------------
+ 'cat' & 'rat'
+(1 row)
+
+--
 -- PhraseTo_TSQuery
 --
 SELECT * FROM cypher('tsearch', $$ RETURN PhraseTo_TSQuery('The Fat Rats') $$) as (a gtype);
