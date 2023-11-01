@@ -114,3 +114,12 @@ Datum gtype_phraseto_tsquery(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(gtype_websearch_to_tsquery);
+Datum gtype_websearch_to_tsquery(PG_FUNCTION_ARGS) {
+    TSQuery tsquery = DatumGetPointer(DirectFunctionCall1(websearch_to_tsquery, GT_ARG_TO_TEXT_DATUM(0)));
+
+    gtype_value gtv = { .type = AGTV_TSQUERY, .val.tsvector = tsquery };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
