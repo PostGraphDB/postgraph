@@ -155,6 +155,8 @@ SELECT * FROM cypher('tsearch', $$ RETURN 'cat'::tsquery @> 'cat & rat'::tsquery
 -- TSQuery <@ TSQuery
 SELECT * FROM cypher('tsearch', $$ RETURN 'cat & rat'::tsquery <@ 'rat'::tsquery $$) as (a gtype);
 SELECT * FROM cypher('tsearch', $$ RETURN 'cat'::tsquery <@ 'cat & rat'::tsquery $$) as (a gtype);
+-- !! TSQuery
+SELECT * FROM cypher('tsearch', $$ RETURN !! totsquery('!1|2&3') $$) as (a gtype);
 
 --
 -- Typecasting

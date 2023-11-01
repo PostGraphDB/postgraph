@@ -57,6 +57,14 @@ Datum gtype_tsquery_or(PG_FUNCTION_ARGS) {
     }
 }
 
+PG_FUNCTION_INFO_V1(gtype_tsquery_not);
+Datum gtype_tsquery_not(PG_FUNCTION_ARGS) {
+    TSQuery tsquery = DatumGetPointer(DirectFunctionCall1(tsquery_not, GT_ARG_TO_TSQUERY_DATUM(0)));
+
+    gtype_value gtv = { .type = AGTV_TSQUERY, .val.tsquery = tsquery };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
 
 /*
  * Text Search Functions

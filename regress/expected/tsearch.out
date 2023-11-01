@@ -566,6 +566,13 @@ SELECT * FROM cypher('tsearch', $$ RETURN 'cat'::tsquery <@ 'cat & rat'::tsquery
  true
 (1 row)
 
+-- !! TSQuery
+SELECT * FROM cypher('tsearch', $$ RETURN !! totsquery('!1|2&3') $$) as (a gtype);
+           a           
+-----------------------
+ !( !'1' | '2' & '3' )
+(1 row)
+
 --
 -- Typecasting
 --
