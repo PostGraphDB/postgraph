@@ -37,6 +37,9 @@
 #include "utils/varlena.h"
 #include "tsearch/ts_utils.h"
 
+#include "liblwgeom/liblwgeom.h"
+#include "liblwgeom/gserialized.h"
+
 #include "utils/gtype.h"
 #include "utils/gtype_ext.h"
 #include "utils/graphid.h"
@@ -302,6 +305,7 @@ int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b
                 case AGTV_RANGE_TSTZ:
 		case AGTV_TSQUERY:
 		case AGTV_TSVECTOR:
+		case AGTV_GSERIALIZED:
                     res = compare_gtype_scalar_values(&va, &vb);
                     break;
                 case AGTV_ARRAY:
@@ -1615,6 +1619,8 @@ static bool equals_gtype_scalar_value(const gtype_value *a, const gtype_value *b
 	    return silly_cmp_tsvector(a->val.tsvector, b->val.tsvector) == 0;
 	case AGTV_FLOAT:
             return a->val.float_value == b->val.float_value;
+        case AGTV_GSERIALIZED:
+            return gserialized_cmp(a->val.gserialized, b->val.gserialized) == 0;
         default:
             ereport(ERROR, (errmsg("invalid gtype scalar type %d for equals", a->type)));
         }
@@ -1814,6 +1820,8 @@ int compare_gtype_scalar_values(gtype_value *a, gtype_value *b)
             return silly_cmp_tsvector(a->val.tsvector, b->val.tsvector);
 	case AGTV_FLOAT:
             return compare_two_floats_orderability(a->val.float_value, b->val.float_value);
+        case AGTV_GSERIALIZED:
+	    return gserialized_cmp(a->val.gserialized, b->val.gserialized);
 	default:
             ereport(ERROR, (errmsg("invalid gtype scalar type %d for compare", a->type)));
         }

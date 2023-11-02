@@ -127,6 +127,31 @@ SELECT * FROM cypher('postgis', $$RETURN ST_AsEwkt(postgis_addbbox('SRID=4326;PO
 
 
 --
+-- Comparison Operators
+--
+WITH p0 AS (SELECT 'POINT(0 0)'::geometry::gtype geom),
+     p1 AS (SELECT 'POINT(1 1)'::geometry::gtype geom)
+SELECT '#4445',
+       p0.geom  <    p0.geom,
+       p0.geom  <=   p0.geom,
+       p0.geom  =    p0.geom,
+       p0.geom  >=   p0.geom,
+       p0.geom  >    p0.geom,
+       p0.geom  <    p1.geom,
+       p0.geom  <=   p1.geom,
+       p0.geom  =    p1.geom,
+       p0.geom  >=   p1.geom,
+       p0.geom  >    p1.geom,
+       p1.geom  <    p0.geom,
+       p1.geom  <=   p0.geom,
+       p1.geom  =    p0.geom,
+       p1.geom  >=   p0.geom,
+       p1.geom  >    p0.geom
+FROM p0, p1;
+
+
+
+--
 -- 2D Operators
 --
 -- ~=

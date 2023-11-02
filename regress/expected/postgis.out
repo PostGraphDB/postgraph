@@ -362,6 +362,33 @@ SELECT * FROM cypher('postgis', $$RETURN ST_AsEwkt(postgis_addbbox('SRID=4326;PO
 (1 row)
 
 --
+-- Comparison Operators
+--
+WITH p0 AS (SELECT 'POINT(0 0)'::geometry::gtype geom),
+     p1 AS (SELECT 'POINT(1 1)'::geometry::gtype geom)
+SELECT '#4445',
+       p0.geom  <    p0.geom,
+       p0.geom  <=   p0.geom,
+       p0.geom  =    p0.geom,
+       p0.geom  >=   p0.geom,
+       p0.geom  >    p0.geom,
+       p0.geom  <    p1.geom,
+       p0.geom  <=   p1.geom,
+       p0.geom  =    p1.geom,
+       p0.geom  >=   p1.geom,
+       p0.geom  >    p1.geom,
+       p1.geom  <    p0.geom,
+       p1.geom  <=   p0.geom,
+       p1.geom  =    p0.geom,
+       p1.geom  >=   p0.geom,
+       p1.geom  >    p0.geom
+FROM p0, p1;
+ ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? | ?column? 
+----------+----------+----------+----------+----------+----------+----------+----------+----------+----------+----------+----------+----------+----------+----------+----------
+ #4445    | f        | t        | t        | t        | f        | t        | t        | f        | f        | f        | f        | f        | f        | t        | t
+(1 row)
+
+--
 -- 2D Operators
 --
 -- ~=
