@@ -69,6 +69,8 @@ SELECT * FROM cypher('expr', $$RETURN sha384('Hello World 2') $$) AS r(c gtype);
 SELECT * FROM cypher('expr', $$RETURN sha512('Hello World') $$) AS r(c gtype);
 SELECT * FROM cypher('expr', $$RETURN sha512('Hello World 2') $$) AS r(c gtype);
 
+SELECT * FROM cypher('expr', $$RETURN md5('Hello World') $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$RETURN md5('Hello World 2') $$) AS r(c gtype);
 
 --
 -- map literal

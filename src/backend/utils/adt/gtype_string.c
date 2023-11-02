@@ -225,3 +225,15 @@ Datum gtype_sha512(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(gtype_md5);
+// md5(gtype)
+Datum gtype_md5(PG_FUNCTION_ARGS)
+{
+    Datum d = DirectFunctionCall1Coll(md5_text, C_COLLATION_OID, GT_ARG_TO_TEXT_DATUM(0));
+
+    gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(DatumGetTextP(d)) }};
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+
