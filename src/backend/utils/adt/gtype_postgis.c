@@ -40,6 +40,33 @@
 #include "catalog/ag_label.h"
 #include "utils/graphid.h"
 
+Datum
+PostGraphDirectFunctionCall3(PGFunction func, Oid collation, bool *is_null, Datum arg1, Datum arg2, Datum arg3)
+{
+        LOCAL_FCINFO(fcinfo, 3);
+        fcinfo->flinfo = palloc0(sizeof(FmgrInfo));
+
+        InitFunctionCallInfoData(*fcinfo, NULL, 3, collation, NULL, NULL);
+
+        fcinfo->args[0].value = arg1;
+        fcinfo->args[0].isnull = false;
+        fcinfo->args[1].value = arg2;
+        fcinfo->args[1].isnull = false;
+        fcinfo->args[2].value = arg3;
+        fcinfo->args[2].isnull = false;
+
+        Datum result = (*func) (fcinfo);
+
+        /* Check for null result, since caller is clearly not expecting one */
+        if (fcinfo->isnull) {
+            *is_null = true;
+            return NULL;
+        }
+
+        *is_null = false;
+
+        return result;
+}
 
 PG_FUNCTION_INFO_V1(LWGEOM_asEWKT);
 
@@ -944,7 +971,6 @@ gtype_st_symdifference(PG_FUNCTION_ARGS) {
     Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
     Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
 
-
     Datum d;
     if (PG_NARGS() == 3) {
         gtype *gt_3 = AG_GET_ARG_GTYPE_P(2);
@@ -957,6 +983,62 @@ gtype_st_symdifference(PG_FUNCTION_ARGS) {
     }
 
     gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.gserialized = DatumGetPointer(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+/**
+ *  @brief Compute the Hausdorff distance thanks to the corresponding GEOS function
+ *  @example ST_HausdorffDistance {@link #hausdorffdistance} - SELECT ST_HausdorffDistance(
+ *      'POLYGON((0 0, 0 2, 1 2, 2 2, 2 0, 0 0))'::geometry,
+ *      'POLYGON((0.5 0.5, 0.5 2.5, 1.5 2.5, 2.5 2.5, 2.5 0.5, 0.5 0.5))'::geometry);
+ */
+PG_FUNCTION_INFO_V1(hausdorffdistance);
+PG_FUNCTION_INFO_V1(gtype_hausdorffdistance);
+Datum
+gtype_hausdorffdistance(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+    bool is_null;
+
+    Datum d = PostGraphDirectFunctionCall2(hausdorffdistance, 100, &is_null, d1, d2);
+
+    if (is_null)
+        PG_RETURN_NULL();
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+/**
+ *  @brief Compute the Hausdorff distance with densification thanks to the corresponding GEOS function
+ *  @example hausdorffdistancedensify {@link #hausdorffdistancedensify} - SELECT ST_HausdorffDistance(
+ *      'POLYGON((0 0, 0 2, 1 2, 2 2, 2 0, 0 0))'::geometry,
+ *      'POLYGON((0.5 0.5, 0.5 2.5, 1.5 2.5, 2.5 2.5, 2.5 0.5, 0.5 0.5))'::geometry,
+ *       0.5);
+ */
+PG_FUNCTION_INFO_V1(hausdorffdistancedensify);
+PG_FUNCTION_INFO_V1(gtype_hausdorffdistancedensify);
+Datum
+gtype_hausdorffdistancedensify(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+    gtype *gt_3 = AG_GET_ARG_GTYPE_P(2);
+    Datum d3 = convert_to_scalar(gtype_to_float8_internal, gt_3, "float");
+
+    bool is_null;
+
+    Datum d = PostGraphDirectFunctionCall3(hausdorffdistancedensify, 100, &is_null, d1, d2, d3);
+
+    if (is_null)
+        PG_RETURN_NULL();
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
