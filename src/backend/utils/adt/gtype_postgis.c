@@ -930,4 +930,34 @@ gtype_convexhull(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+/**
+ *  @example symdifference {@link #symdifference} - SELECT ST_SymDifference(
+ *      'POLYGON((0 0, 10 0, 10 10, 0 10, 0 0))',
+ *      'POLYGON((5 5, 15 5, 15 7, 5 7, 5 5))');
+ */
+PG_FUNCTION_INFO_V1(ST_SymDifference);
+PG_FUNCTION_INFO_V1(gtype_st_symdifference);
+Datum
+gtype_st_symdifference(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+
+
+    Datum d;
+    if (PG_NARGS() == 3) {
+        gtype *gt_3 = AG_GET_ARG_GTYPE_P(2);
+
+        Datum d3 = convert_to_scalar(gtype_to_float8_internal, gt_3, "float");
+
+	d = DirectFunctionCall3(ST_SymDifference, d1, d2, d3);
+    } else {
+        d = DirectFunctionCall2(ST_SymDifference, d1, d2);
+    }
+
+    gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.gserialized = DatumGetPointer(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
 
