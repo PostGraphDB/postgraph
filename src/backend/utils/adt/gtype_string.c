@@ -178,3 +178,50 @@ Datum gtype_regex_not_ci(PG_FUNCTION_ARGS)
 {
     PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2Coll(texticregexne, C_COLLATION_OID, GT_ARG_TO_TEXT_DATUM(0), GT_ARG_TO_TEXT_DATUM(1))));
 }
+
+PG_FUNCTION_INFO_V1(gtype_sha224);
+// sha224(gtype)
+Datum gtype_sha224(PG_FUNCTION_ARGS)
+{
+    Datum d = DirectFunctionCall1Coll(sha224_bytea, C_COLLATION_OID, GT_ARG_TO_TEXT_DATUM(0));
+
+    gtype_value gtv = { .type = AGTV_BYTEA, .val.bytea = DatumGetPointer(d)};
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+PG_FUNCTION_INFO_V1(gtype_sha256);
+// sha256(gtype)
+Datum gtype_sha256(PG_FUNCTION_ARGS)
+{
+    Datum d = DirectFunctionCall1Coll(sha256_bytea, C_COLLATION_OID, GT_ARG_TO_TEXT_DATUM(0));
+
+    gtype_value gtv = { .type = AGTV_BYTEA, .val.bytea = DatumGetPointer(d)};
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+
+PG_FUNCTION_INFO_V1(gtype_sha384);
+// sha384(gtype)
+Datum gtype_sha384(PG_FUNCTION_ARGS)
+{
+    Datum d = DirectFunctionCall1Coll(sha384_bytea, C_COLLATION_OID, GT_ARG_TO_TEXT_DATUM(0));
+
+    gtype_value gtv = { .type = AGTV_BYTEA, .val.bytea = DatumGetPointer(d)};
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+
+PG_FUNCTION_INFO_V1(gtype_sha512);
+// sha512(gtype)
+Datum gtype_sha512(PG_FUNCTION_ARGS)
+{
+    Datum d = DirectFunctionCall1Coll(sha512_bytea, C_COLLATION_OID, GT_ARG_TO_TEXT_DATUM(0));
+
+    gtype_value gtv = { .type = AGTV_BYTEA, .val.bytea = DatumGetPointer(d)};
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+

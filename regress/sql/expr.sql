@@ -57,6 +57,19 @@ SELECT '{"07:37:16.00+04", "17:45:32.21+08"}'::timetz[]::gtype;
 
 SELECT '{"5 Days", "1 Month", "2 Years Ago"}'::interval[]::gtype;
 
+SELECT * FROM cypher('expr', $$RETURN sha224('Hello World') $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$RETURN sha224('Hello World 2') $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$RETURN sha256('Hello World') $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$RETURN sha256('Hello World 2') $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$RETURN sha384('Hello World') $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$RETURN sha384('Hello World 2') $$) AS r(c gtype);
+
+SELECT * FROM cypher('expr', $$RETURN sha512('Hello World') $$) AS r(c gtype);
+SELECT * FROM cypher('expr', $$RETURN sha512('Hello World 2') $$) AS r(c gtype);
+
+
 --
 -- map literal
 --
