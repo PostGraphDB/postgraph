@@ -43,6 +43,34 @@ ERROR:  expression item must be aliased
 LINE 2: WITH 1 + 1
              ^
 HINT:  Items can be aliased by using AS.
+SELECT * FROM cypher('cypher_with', $$
+    CREATE ({i: 1}), ({i: 1, j: 2}), ({i: 2})
+$$) as (a gtype);
+ a 
+---
+(0 rows)
+
+SELECT * FROM cypher('cypher_with', $$
+    MATCH (n)
+    WITH n as a WHERE n.i = 1
+    RETURN a
+$$) as (n vertex);
+                                  n                                   
+----------------------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {"i": 1}}
+ {"id": 281474976710658, "label": "", "properties": {"i": 1, "j": 2}}
+(2 rows)
+
+SELECT * FROM cypher('cypher_with', $$
+    MATCH (n)
+    WITH n as a WHERE n.i = 1 and n.j = 2
+    RETURN a
+$$) as (n vertex);
+                                  n                                   
+----------------------------------------------------------------------
+ {"id": 281474976710658, "label": "", "properties": {"i": 1, "j": 2}}
+(1 row)
+
 SELECT drop_graph('cypher_with', true);
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table cypher_with._ag_label_vertex

@@ -1544,6 +1544,10 @@ static Query *transform_cypher_return(cypher_parsestate *cpstate, cypher_clause 
 
     markTargetListOrigins(pstate, query->targetList);
 
+    Expr *expr = NULL;
+    if (self->where != NULL)
+        expr = transform_cypher_expr(cpstate, self->where, EXPR_KIND_WHERE);
+
     // ORDER BY
     query->sortClause = transform_cypher_order_by(cpstate, self->order_by, &query->targetList, EXPR_KIND_ORDER_BY);
 
@@ -1572,7 +1576,7 @@ static Query *transform_cypher_return(cypher_parsestate *cpstate, cypher_clause 
     query->limitCount = transform_cypher_limit(cpstate, self->limit, EXPR_KIND_LIMIT, "LIMIT");
 
     query->rtable = pstate->p_rtable;
-    query->jointree = makeFromExpr(pstate->p_joinlist, NULL);
+    query->jointree = makeFromExpr(pstate->p_joinlist, expr);
     query->hasAggs = pstate->p_hasAggs;
 
     assign_query_collations(pstate, query);
@@ -1664,6 +1668,7 @@ static Query *transform_cypher_with(cypher_parsestate *cpstate, cypher_clause *c
     return_clause->order_by = self->order_by;
     return_clause->skip = self->skip;
     return_clause->limit = self->limit;
+    return_clause->where = self->where;
 
     wrapper = palloc(sizeof(*wrapper));
     wrapper->self = (Node *)return_clause;

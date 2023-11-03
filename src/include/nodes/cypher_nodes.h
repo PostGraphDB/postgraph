@@ -63,7 +63,7 @@ typedef struct cypher_return
     List *order_by;
     Node *skip;
     Node *limit;
-
+    Node *where;
     bool all_or_distinct;
     SetOperation op;
     List *larg; // lefthand argument of the unions

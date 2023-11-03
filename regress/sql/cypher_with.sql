@@ -33,4 +33,21 @@ WITH 1 + 1
 RETURN i
 $$) AS (i int);
 
+SELECT * FROM cypher('cypher_with', $$
+    CREATE ({i: 1}), ({i: 1, j: 2}), ({i: 2})
+$$) as (a gtype);
+
+SELECT * FROM cypher('cypher_with', $$
+    MATCH (n)
+    WITH n as a WHERE n.i = 1
+    RETURN a
+$$) as (n vertex);
+
+SELECT * FROM cypher('cypher_with', $$
+    MATCH (n)
+    WITH n as a WHERE n.i = 1 and n.j = 2
+    RETURN a
+$$) as (n vertex);
+
+
 SELECT drop_graph('cypher_with', true);

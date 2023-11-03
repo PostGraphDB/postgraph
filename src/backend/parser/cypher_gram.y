@@ -513,6 +513,7 @@ return:
             n->order_by = $5;
             n->skip = $6;
             n->limit = $7;
+            n->where = NULL;
 
             $$ = (Node *)n;
         }
@@ -527,6 +528,7 @@ return:
             n->order_by = $4;
             n->skip = $5;
             n->limit = $6;
+            n->where = NULL;
 
             $$ = (Node *)n;
         }
@@ -2009,6 +2011,7 @@ static Node *make_set_op(SetOperation op, bool all_or_distinct, List *larg, List
 
     n->op = op;
     n->all_or_distinct = all_or_distinct;
+    n->where = NULL;
     n->larg = (List *) larg;
     n->rarg = (List *) rarg;
     return (Node *) n;
