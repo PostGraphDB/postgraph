@@ -86,10 +86,10 @@
 /* keywords in alphabetical order */
 %token <keyword> ALL AND AS ASC ASCENDING
                  BY
-                 CALL CASE COALESCE CONTAINS CREATE CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
+                 CALL CASE COALESCE CONTAINS CREATE CUBE CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
                  DATE DECADE DELETE DESC DESCENDING DETACH DISTINCT
                  ELSE END_P ENDS EXCEPT EXISTS EXTRACT
-                 GROUP
+                 GROUP GROUPING
                  FALSE_P FROM
                  IN INTERSECT INTERVAL IS
                  LIMIT LOCALTIME LOCALTIMESTAMP
@@ -97,7 +97,7 @@
                  NOT NULL_P
                  OPTIONAL OR ORDER OVERLAPS
                  REMOVE RETURN ROLLUP
-                 SET SKIP STARTS
+                 SET SETS SKIP STARTS
                  TIME THEN TIMESTAMP TRUE_P
                  UNION UNWIND
                  WHEN WHERE WITH WITHOUT
@@ -112,7 +112,7 @@
 %type <node> reading_clause updating_clause
 
 /* RETURN and WITH clause */
-%type <node> rollup_clause group_item return return_item sort_item skip_opt limit_opt with
+%type <node> empty_grouping_set cube_clause rollup_clause group_item return return_item sort_item skip_opt limit_opt with
 %type <list> group_item_list return_item_list order_by_opt sort_item_list group_by_opt
 %type <integer> order_opt 
 
@@ -499,7 +499,9 @@ group_item_list:
 
 group_item:
 	expr { $$ = $1; }
+        | cube_clause { $$ = $1; }
         | rollup_clause { $$ = $1; }
+        | empty_grouping_set { $$ = $1; }
 ;
 
 rollup_clause:
@@ -508,6 +510,21 @@ rollup_clause:
             $$ = (Node *) makeGroupingSet(GROUPING_SET_ROLLUP, $3, @1);
         }
 ;
+
+cube_clause:
+     CUBE '(' expr_list ')'
+     {
+         $$ = (Node *) makeGroupingSet(GROUPING_SET_CUBE, $3, @1);
+     }
+;
+
+empty_grouping_set:
+    '(' ')'
+    {
+        $$ = (Node *) makeGroupingSet(GROUPING_SET_EMPTY, NIL, @1);
+    }
+;
+
 
 return:
     RETURN DISTINCT return_item_list group_by_opt order_by_opt skip_opt limit_opt
