@@ -1157,6 +1157,42 @@ cypher_update_information *transform_cypher_set_item_list(cypher_parsestate *cps
     return info;
 }
 
+/*-------------------------------------------------------------------------
+ * Flatten out parenthesized sublists in grouping lists, and some cases
+ * of nested grouping sets.
+ *
+ * Inside a grouping set (ROLLUP, CUBE, or GROUPING SETS), we expect the
+ * content to be nested no more than 2 deep: i.e. ROLLUP((a,b),(c,d)) is
+ * ok, but ROLLUP((a,(b,c)),d) is flattened to ((a,b,c),d), which we then
+ * (later) normalize to ((a,b,c),(d)).
+ *
+ * CUBE or ROLLUP can be nested inside GROUPING SETS (but not the reverse),
+ * and we leave that alone if we find it. But if we see GROUPING SETS inside
+ * GROUPING SETS, we can flatten and normalize as follows:
+ *       GROUPING SETS (a, (b,c), GROUPING SETS ((c,d),(e)), (f,g))
+ * becomes
+ *       GROUPING SETS ((a), (b,c), (c,d), (e), (f,g))
+ *
+ * This is per the spec's syntax transformations, but these are the only such
+ * transformations we do in parse analysis, so that queries retain the
+ * originally specified grouping set syntax for CUBE and ROLLUP as much as
+ * possible when deparsed. (Full expansion of the result into a list of
+ * grouping sets is left to the planner.)
+ *
+ * When we're done, the resulting list should contain only these possible
+ * elements:
+ *       - an expression
+ *       - a CUBE or ROLLUP with a list of expressions nested 2 deep
+ *       - a GROUPING SET containing any of:
+ *              - expression lists
+ *              - empty grouping sets
+ *              - CUBE or ROLLUP nodes with lists nested 2 deep
+ * The return is a new list, but doesn't deep-copy the old nodes except for
+ * GroupingSet nodes.
+ *
+ * As a side effect, flag whether the list has any GroupingSet nodes.
+ *-------------------------------------------------------------------------
+ */
 static Node *flatten_grouping_sets(Node *expr, bool toplevel, bool *hasGroupingSets) {
     // just in case of pathological input 
     check_stack_depth();
@@ -1206,7 +1242,7 @@ static Node *flatten_grouping_sets(Node *expr, bool toplevel, bool *hasGroupingS
 
 // from PG's addTargetToGroupList 
 static List *add_target_to_group_list(cypher_parsestate *cpstate, TargetEntry *tle, List *grouplist, List *targetlist, int location) {
-    ParseState *pstate = &cpstate->pstate;
+    ParseState *pstate = (ParseState *)cpstate;
     Oid restype = exprType((Node *) tle->expr);
 
     // if tlist item is an UNKNOWN literal, change it to TEXT 
@@ -1314,8 +1350,114 @@ static Index transform_group_clause_expr(List **flatresult, Bitmapset *seen_loca
     return tle->ressortgroupref;
 }
 
+/*
+ * Transform a list of expressions within a GROUP BY clause or grouping set.
+ *
+ * The list of expressions belongs to a single clause within which duplicates
+ * can be safely eliminated.
+ *
+ * Returns an integer list of ressortgroupref values.
+ *
+ * flatresult   reference to flat list of SortGroupClause nodes
+ * pstate               ParseState
+ * list                 nodes to transform
+ * targetlist   reference to TargetEntry list
+ * sortClause   ORDER BY clause (SortGroupClause nodes)
+ * exprKind             expression kind
+ * useSQL99             SQL99 rather than SQL92 syntax
+ * toplevel             false if within any grouping set
+ */
+static List * transformGroupClauseList(List **flatresult, ParseState *pstate, List *list, List **targetlist,
+		                       List *sortClause, ParseExprKind exprKind, bool useSQL99, bool toplevel) {
+    Bitmapset *seen_local = NULL;
+    List *result = NIL;
+    ListCell *gl;
+
+    foreach(gl, list)
+    {
+        Node *gexpr = (Node *) lfirst(gl);
+
+        Index ref = transform_group_clause_expr(flatresult, seen_local, pstate, gexpr, targetlist, sortClause,
+                                             exprKind, toplevel);
+
+        if (ref > 0) {
+            seen_local = bms_add_member(seen_local, ref);
+            result = lappend_int(result, ref);
+        }
+    }
+
+    return result;
+}
+
+/*
+ * Transform a grouping set and (recursively) its content.
+ *
+ * The grouping set might be a GROUPING SETS node with other grouping sets
+ * inside it, but SETS within SETS have already been flattened out before
+ * reaching here.
+ *
+ * Returns the transformed node, which now contains SIMPLE nodes with lists
+ * of ressortgrouprefs rather than expressions.
+ *
+ * flatresult   reference to flat list of SortGroupClause nodes
+ * pstate               ParseState
+ * gset                 grouping set to transform
+ * targetlist   reference to TargetEntry list
+ * sortClause   ORDER BY clause (SortGroupClause nodes)
+ * exprKind             expression kind
+ * useSQL99             SQL99 rather than SQL92 syntax
+ * toplevel             false if within any grouping set
+ */
+static Node *
+transformGroupingSet(List **flatresult, ParseState *pstate, GroupingSet *gset, List **targetlist, List *sortClause,
+                     ParseExprKind exprKind, bool useSQL99, bool toplevel) {
+    ListCell *gl;
+    List *content = NIL;
+
+    Assert(toplevel || gset->kind != GROUPING_SET_SETS);
+
+    foreach(gl, gset->content)
+    {
+        Node *n = lfirst(gl);
+
+        if (IsA(n, List))
+        {
+            List *l = transformGroupClauseList(flatresult, pstate, (List *) n, targetlist, sortClause,
+                                               exprKind, useSQL99, false);
+
+            content = lappend(content, makeGroupingSet(GROUPING_SET_SIMPLE, l, exprLocation(n)));
+        }
+        else if (IsA(n, GroupingSet))
+        {
+            GroupingSet *gset2 = (GroupingSet *) lfirst(gl);
+
+            content = lappend(content, transformGroupingSet(flatresult, pstate, gset2, targetlist, sortClause,
+                                                            exprKind, useSQL99, false));
+        }
+        else
+        {
+            Index ref = transform_group_clause_expr(flatresult, NULL, pstate, n, targetlist, sortClause,
+			                         exprKind, false);
+
+            content = lappend(content, makeGroupingSet(GROUPING_SET_SIMPLE, list_make1_int(ref), exprLocation(n)));
+        }
+    }
+
+    /* Arbitrarily cap the size of CUBE, which has exponential growth */
+    if (gset->kind == GROUPING_SET_CUBE)
+    {
+        if (list_length(content) > 12)
+             ereport(ERROR, (errcode(ERRCODE_TOO_MANY_COLUMNS),
+                             errmsg("CUBE is limited to 12 elements"),
+                             parser_errposition(pstate, gset->location)));
+    }
+
+    return (Node *) makeGroupingSet(gset->kind, content, gset->location);
+}
+
 static List * transform_group_clause(cypher_parsestate *cpstate, List *grouplist, List **groupingSets,
                                      List **targetlist, List *sortClause, ParseExprKind exprKind) {
+    ParseState *pstate = (ParseState *)cpstate;
     List *result = NIL;
     List *flat_grouplist;
     List *gsets = NIL;
@@ -1330,25 +1472,55 @@ static List * transform_group_clause(cypher_parsestate *cpstate, List *grouplist
      */
     flat_grouplist = (List *) flatten_grouping_sets((Node *) grouplist, true, &hasGroupingSets);
 
+    /*
+     * If the list is now empty, but hasGroupingSets is true, it's because we
+     * elided redundant empty grouping sets. Restore a single empty grouping
+     * set to leave a canonical form: GROUP BY ()
+     */
+
+    if (flat_grouplist == NIL && hasGroupingSets)
+        flat_grouplist = list_make1(makeGroupingSet(GROUPING_SET_EMPTY, NIL, exprLocation((Node *) grouplist)));
+
+
     foreach(gl, flat_grouplist) {
         Node *gexpr = (Node *) lfirst(gl);
 
         if (IsA(gexpr, GroupingSet)) {
-            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("GroupingSet is not implemented")));
+                        GroupingSet *gset = (GroupingSet *) gexpr;
+
+            switch (gset->kind)
+            {
+            case GROUPING_SET_EMPTY:
+                gsets = lappend(gsets, gset);
+                break;
+            case GROUPING_SET_SIMPLE:
+                /* can't happen */
+                Assert(false);
+                break;
+            case GROUPING_SET_SETS:
+            case GROUPING_SET_CUBE:
+            case GROUPING_SET_ROLLUP:
+                gsets = lappend(gsets,
+                    transformGroupingSet(&result, pstate, gset, targetlist, sortClause, exprKind, true, true));
+            break;
+	    }
+
         } else {
             Index ref = transform_group_clause_expr(&result, seen_local, cpstate, gexpr, targetlist,
                                                     sortClause, exprKind, true);
             if (ref > 0) {
                 seen_local = bms_add_member(seen_local, ref);
-                if (hasGroupingSets)
-                    ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                            errmsg("GroupingSet is not implemented")));
+                if (hasGroupingSets) {
+                    seen_local = bms_add_member(seen_local, ref);
+                    if (hasGroupingSets)
+                        gsets = lappend(gsets,
+                            makeGroupingSet(GROUPING_SET_SIMPLE, list_make1_int(ref), exprLocation(gexpr)));
+                
+		}
             }
         }
     }
 
-    // parser should prevent this
-    Assert(gsets == NIL || groupingSets != NULL);
 
     if (groupingSets)
         *groupingSets = gsets;
@@ -1375,9 +1547,16 @@ static Query *transform_cypher_return(cypher_parsestate *cpstate, cypher_clause 
     // ORDER BY
     query->sortClause = transform_cypher_order_by(cpstate, self->order_by, &query->targetList, EXPR_KIND_ORDER_BY);
 
+    if (self->real_group_clause != NIL)
+        query->groupClause = transform_group_clause(cpstate, self->real_group_clause, &query->groupingSets,
+			                            &query->targetList,
+                                                    query->sortClause, EXPR_KIND_GROUP_BY);
+    else if (groupClause != NIL)
     // auto GROUP BY
     query->groupClause = transform_group_clause(cpstate, groupClause, &query->groupingSets, &query->targetList,
                                                 query->sortClause, EXPR_KIND_GROUP_BY);
+    else 
+       query->groupClause = NULL;
 
     // DISTINCT
     if (self->distinct) {

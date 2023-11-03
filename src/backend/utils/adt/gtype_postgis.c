@@ -1043,3 +1043,33 @@ gtype_hausdorffdistancedensify(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+/**
+ *  @brief Compute the Frechet distance with optional densification thanks to the corresponding GEOS function
+ *  @example ST_FrechetDistance {@link #frechetdistance} - SELECT ST_FrechetDistance(
+ *      'LINESTRING (0 0, 50 200, 100 0, 150 200, 200 0)'::geometry,
+ *      'LINESTRING (0 200, 200 150, 0 100, 200 50, 0 0)'::geometry, 0.5);
+ */
+PG_FUNCTION_INFO_V1(ST_FrechetDistance);
+PG_FUNCTION_INFO_V1(gtype_st_frechet_distance);
+Datum
+gtype_st_frechet_distance(PG_FUNCTION_ARGS) {
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+    gtype *gt_3 = AG_GET_ARG_GTYPE_P(2);
+    Datum d3 = convert_to_scalar(gtype_to_float8_internal, gt_3, "float");
+
+    bool is_null;
+
+    Datum d = PostGraphDirectFunctionCall3(ST_FrechetDistance, 100, &is_null, d1, d2, d3);
+
+    if (is_null)
+        PG_RETURN_NULL();
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+

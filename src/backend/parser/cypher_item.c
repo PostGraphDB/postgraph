@@ -80,24 +80,18 @@ List *transform_cypher_item_list(cypher_parsestate *cpstate, List *item_list,
 	cpstate->prop_node = NULL;
 	cpstate->prop_name = NULL;
 
-        if (expand_star)
-        {
-            if (IsA(item->val, ColumnRef))
-            {
+        if (expand_star) {
+            if (IsA(item->val, ColumnRef)) {
                 ColumnRef  *cref = (ColumnRef *) item->val;
 
-                if (IsA(llast(cref->fields), A_Star))
-                {
+                if (IsA(llast(cref->fields), A_Star)) {
                     ParseState *pstate = &cpstate->pstate;
 
                     /* we only allow a bare '*' */
                     if (list_length(cref->fields) != 1)
-                    {
                         ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
                                         errmsg("Invalid number of fields for *"),
-                                        parser_errposition(pstate,
-                                                           cref->location)));
-                    }
+                                        parser_errposition(pstate, cref->location)));
 
                     target_list = list_concat(target_list, ExpandAllTables(pstate, cref->location));
                     continue;
@@ -119,13 +113,9 @@ List *transform_cypher_item_list(cypher_parsestate *cpstate, List *item_list,
          * an aggregate in an expression
          */
         if (!cpstate->exprHasAgg)
-        {
             group_clause = lappend(group_clause, item->val);
-	}
         else
-        {
             hasAgg = true;
-        }
     }
 
     /*
@@ -134,9 +124,7 @@ List *transform_cypher_item_list(cypher_parsestate *cpstate, List *item_list,
      * will verify if it is valid.
      */
     if (hasAgg)
-    {
         *groupClause = group_clause;
-    }
 
     return target_list;
 }

@@ -257,6 +257,34 @@ SELECT * FROM cypher('group_by', $$
     RETURN v + cnt + cnt
 $$) AS (result gtype);
 
+
+SELECT * FROM cypher('group_by', $$
+     MATCH (x:L)
+     RETURN x.a, x.a + count(*) + x.b + count(*) + x.c
+     GROUP BY x.a, x.b, x.c
+$$) AS (a gtype, result gtype);
+
+SELECT * FROM cypher('group_by', $$
+     MATCH (x:L)
+     RETURN x.a + count(*) + x.b + count(*) + x.c
+     GROUP BY x.a, x.b, x.c
+$$) AS (result gtype);
+
+
+SELECT * FROM cypher('group_by', $$
+     MATCH (x:L)
+     RETURN x.a + x.b + x.c + count(*) + count(*)
+     GROUP BY x.a + x.b + x.c
+$$) AS (result gtype);
+
+
+
+SELECT * FROM cypher('group_by', $$
+     MATCH (x:L)
+     RETURN x.a + x.b + x.c + count(*) + count(*)
+$$) AS (result gtype);
+
+
 -- should fail
 SELECT * FROM cypher('group_by', $$
      MATCH (x:L)

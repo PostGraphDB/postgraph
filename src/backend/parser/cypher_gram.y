@@ -89,6 +89,7 @@
                  CALL CASE COALESCE CONTAINS CREATE CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
                  DATE DECADE DELETE DESC DESCENDING DETACH DISTINCT
                  ELSE END_P ENDS EXCEPT EXISTS EXTRACT
+                 GROUP
                  FALSE_P FROM
                  IN INTERSECT INTERVAL IS
                  LIMIT LOCALTIME LOCALTIMESTAMP
@@ -111,9 +112,9 @@
 %type <node> reading_clause updating_clause
 
 /* RETURN and WITH clause */
-%type <node> return return_item sort_item skip_opt limit_opt with
-%type <list> return_item_list order_by_opt sort_item_list
-%type <integer> order_opt
+%type <node> group_item return return_item sort_item skip_opt limit_opt with
+%type <list> group_item_list return_item_list order_by_opt sort_item_list group_by_opt
+%type <integer> order_opt 
 
 /* MATCH clause */
 %type <node> match cypher_varlen_opt cypher_range_opt cypher_range_idx
@@ -481,31 +482,51 @@ Iconst: INTEGER
 /*
  * RETURN and WITH clause
  */
+group_by_opt:
+    /* empty */
+        {
+            $$ = NIL;
+        }
+    | GROUP BY group_item_list
+        {
+            $$ = $3;
+        }
+
+group_item_list:
+	group_item { $$ = list_make1($1); }
+        | group_item_list ',' group_item { $$ = lappend($1, $3); }
+;
+
+group_item:
+	expr { $$ = $1; }
+;
 
 return:
-    RETURN DISTINCT return_item_list order_by_opt skip_opt limit_opt
+    RETURN DISTINCT return_item_list group_by_opt order_by_opt skip_opt limit_opt
         {
             cypher_return *n;
 
             n = make_ag_node(cypher_return);
             n->distinct = true;
             n->items = $3;
-            n->order_by = $4;
-            n->skip = $5;
-            n->limit = $6;
+            n->real_group_clause = $4;
+            n->order_by = $5;
+            n->skip = $6;
+            n->limit = $7;
 
             $$ = (Node *)n;
         }
-    | RETURN return_item_list order_by_opt skip_opt limit_opt
+    | RETURN return_item_list group_by_opt order_by_opt skip_opt limit_opt
         {
             cypher_return *n;
 
             n = make_ag_node(cypher_return);
             n->distinct = false;
             n->items = $2;
-            n->order_by = $3;
-            n->skip = $4;
-            n->limit = $5;
+            n->real_group_clause = $3;
+            n->order_by = $4;
+            n->skip = $5;
+            n->limit = $6;
 
             $$ = (Node *)n;
         }
@@ -651,7 +672,7 @@ limit_opt:
     ;
 
 with:
-    WITH DISTINCT return_item_list order_by_opt skip_opt limit_opt where_opt
+    WITH DISTINCT return_item_list where_opt order_by_opt skip_opt limit_opt
         {
             ListCell *li;
             cypher_with *n;
@@ -675,15 +696,14 @@ with:
             n = make_ag_node(cypher_with);
             n->distinct = true;
             n->items = $3;
-            n->order_by = $4;
-            n->skip = $5;
-            n->limit = $6;
-            n->where = $7;
+            n->order_by = $5;
+            n->skip = $6;
+            n->limit = $7;
+            n->where = $4;
 
             $$ = (Node *)n;
         }
-    | WITH return_item_list order_by_opt skip_opt limit_opt
-    where_opt
+    | WITH return_item_list where_opt order_by_opt skip_opt limit_opt
         {
             ListCell *li;
             cypher_with *n;
@@ -707,10 +727,10 @@ with:
             n = make_ag_node(cypher_with);
             n->distinct = false;
             n->items = $2;
-            n->order_by = $3;
-            n->skip = $4;
-            n->limit = $5;
-            n->where = $6;
+            n->order_by = $4;
+            n->skip = $5;
+            n->limit = $6;
+            n->where = $3;
 
             $$ = (Node *)n;
         }
