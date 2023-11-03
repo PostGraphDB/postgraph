@@ -586,6 +586,30 @@ $$) AS (result gtype);
 ERROR:  "x" must be either part of an explicitly listed key or used inside an aggregate function
 LINE 3:      RETURN x.a + x.b + x.c + count(*) + count(*)
                     ^
+SELECT * FROM cypher('group_by', $$
+     MATCH (x:L)
+     WITH x.a + count(*) + x.b + count(*) + x.c as cnt
+     GROUP BY x.a, x.b, x.c
+     RETURN cnt
+$$) AS (cnt gtype);
+ cnt 
+-----
+ 8
+ 8
+ 8
+(3 rows)
+
+SELECT * FROM cypher('group_by', $$
+     MATCH (x:L)
+     WITH x.a + x.b + x.c + count(*) + count(*) as cnt
+     GROUP BY x.a + x.b + x.c 
+     RETURN cnt
+$$) AS (cnt gtype);
+ cnt 
+-----
+ 12
+(1 row)
+
 -- should fail
 SELECT * FROM cypher('group_by', $$
      MATCH (x:L)

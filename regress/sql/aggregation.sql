@@ -285,6 +285,22 @@ SELECT * FROM cypher('group_by', $$
 $$) AS (result gtype);
 
 
+SELECT * FROM cypher('group_by', $$
+     MATCH (x:L)
+     WITH x.a + count(*) + x.b + count(*) + x.c as cnt
+     GROUP BY x.a, x.b, x.c
+     RETURN cnt
+$$) AS (cnt gtype);
+
+
+SELECT * FROM cypher('group_by', $$
+     MATCH (x:L)
+     WITH x.a + x.b + x.c + count(*) + count(*) as cnt
+     GROUP BY x.a + x.b + x.c 
+     RETURN cnt
+$$) AS (cnt gtype);
+
+
 -- should fail
 SELECT * FROM cypher('group_by', $$
      MATCH (x:L)

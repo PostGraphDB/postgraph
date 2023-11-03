@@ -75,6 +75,7 @@ typedef struct cypher_with
     ExtensibleNode extensible;
     bool distinct;
     List *items; // a list of ResTargets
+    List *real_group_clause;
     cypher_group_by *group_by;
     List *order_by;
     Node *skip;

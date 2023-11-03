@@ -629,7 +629,7 @@ sort_item:
 order_opt:
     /* empty */
         {
-            $$ = SORTBY_DEFAULT; // is the same with SORTBY_ASC
+            $$ = SORTBY_DEFAULT;
         }
     | ASC
         {
@@ -672,7 +672,7 @@ limit_opt:
     ;
 
 with:
-    WITH DISTINCT return_item_list where_opt order_by_opt skip_opt limit_opt
+    WITH DISTINCT return_item_list where_opt group_by_opt order_by_opt skip_opt limit_opt
         {
             ListCell *li;
             cypher_with *n;
@@ -696,14 +696,15 @@ with:
             n = make_ag_node(cypher_with);
             n->distinct = true;
             n->items = $3;
-            n->order_by = $5;
-            n->skip = $6;
-            n->limit = $7;
+            n->real_group_clause = $5;
+            n->order_by = $6;
+            n->skip = $7;
+            n->limit = $8;
             n->where = $4;
 
             $$ = (Node *)n;
         }
-    | WITH return_item_list where_opt order_by_opt skip_opt limit_opt
+    | WITH return_item_list where_opt group_by_opt order_by_opt skip_opt limit_opt
         {
             ListCell *li;
             cypher_with *n;
@@ -727,9 +728,10 @@ with:
             n = make_ag_node(cypher_with);
             n->distinct = false;
             n->items = $2;
-            n->order_by = $4;
-            n->skip = $5;
-            n->limit = $6;
+            n->real_group_clause = $4;
+            n->order_by = $5;
+            n->skip = $6;
+            n->limit = $7;
             n->where = $3;
 
             $$ = (Node *)n;

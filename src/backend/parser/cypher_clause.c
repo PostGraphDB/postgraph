@@ -1660,6 +1660,7 @@ static Query *transform_cypher_with(cypher_parsestate *cpstate, cypher_clause *c
     return_clause = make_ag_node(cypher_return);
     return_clause->distinct = self->distinct;
     return_clause->items = self->items;
+    return_clause->real_group_clause = self->real_group_clause;
     return_clause->order_by = self->order_by;
     return_clause->skip = self->skip;
     return_clause->limit = self->limit;
