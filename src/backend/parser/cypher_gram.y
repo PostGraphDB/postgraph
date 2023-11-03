@@ -96,7 +96,7 @@
                  MATCH MERGE 
                  NOT NULL_P
                  OPTIONAL OR ORDER OVERLAPS
-                 REMOVE RETURN
+                 REMOVE RETURN ROLLUP
                  SET SKIP STARTS
                  TIME THEN TIMESTAMP TRUE_P
                  UNION UNWIND
@@ -112,7 +112,7 @@
 %type <node> reading_clause updating_clause
 
 /* RETURN and WITH clause */
-%type <node> group_item return return_item sort_item skip_opt limit_opt with
+%type <node> rollup_clause group_item return return_item sort_item skip_opt limit_opt with
 %type <list> group_item_list return_item_list order_by_opt sort_item_list group_by_opt
 %type <integer> order_opt 
 
@@ -499,6 +499,14 @@ group_item_list:
 
 group_item:
 	expr { $$ = $1; }
+        | rollup_clause { $$ = $1; }
+;
+
+rollup_clause:
+    ROLLUP '(' expr_list ')'
+        {
+            $$ = (Node *) makeGroupingSet(GROUPING_SET_ROLLUP, $3, @1);
+        }
 ;
 
 return:

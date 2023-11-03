@@ -625,6 +625,33 @@ $$) AS (result gtype);
 ERROR:  "x" must be either part of an explicitly listed key or used inside an aggregate function
 LINE 3:     RETURN x.a + count(*) + x.b + count(*) + x.c
                    ^
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    RETURN x.i, x.j, x.k, COUNT(*)
+    GROUP BY ROLLUP (x.i, x.j, x.k)
+$$) AS (i int, j int, k int, cnt int);
+ i | j | k | cnt 
+---+---+---+-----
+   |   |   |   7
+   |   |   |   3
+ 1 | 3 | 5 |   1
+ 1 | 2 | 4 |   1
+ 1 | 2 | 3 |   1
+ 2 | 3 | 6 |   1
+   |   |   |   3
+ 2 | 3 |   |   1
+ 1 | 3 |   |   1
+ 1 | 2 |   |   2
+ 1 |   |   |   3
+   |   |   |   3
+ 2 |   |   |   1
+(13 rows)
+
+SELECT * FROM cypher('group_by', $$CREATE (:row {i: 1, j: 3, k:5})$$) AS (result gtype);
+ result 
+--------
+(0 rows)
+
 SELECT create_graph('edge_aggregates');
 NOTICE:  graph "edge_aggregates" has been created
  create_graph 
@@ -668,7 +695,7 @@ $$) AS (result edge[]);
 SELECT * FROM cypher('group_by', $$MATCH () RETURN COUNT(*) $$) AS (result gtype);
  result 
 --------
- 7
+ 8
 (1 row)
 
 --

@@ -1211,10 +1211,49 @@ static Node *flatten_grouping_sets(Node *expr, bool toplevel, bool *hasGroupingS
             break;
         }
         case T_GroupingSet:
-            ereport(ERROR,
-                    (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                     errmsg("flattening of GroupingSet is not implemented")));
+        {
+            GroupingSet *gset = (GroupingSet *) expr;
+            ListCell   *l2;
+            List       *result_set = NIL;
+
+            if (hasGroupingSets)
+                *hasGroupingSets = true;
+
+            /*
+             * at the top level, we skip over all empty grouping sets; the
+             * caller can supply the canonical GROUP BY () if nothing is
+             * left.
+             */
+
+            if (toplevel && gset->kind == GROUPING_SET_EMPTY)
+                return (Node *) NIL;
+
+            foreach(l2, gset->content)
+            {
+                Node       *n1 = lfirst(l2);
+                Node       *n2 = flatten_grouping_sets(n1, false, NULL);
+
+                if (IsA(n1, GroupingSet) && ((GroupingSet *) n1)->kind == GROUPING_SET_SETS)
+                    result_set = list_concat(result_set, (List *) n2);
+                else
+                    result_set = lappend(result_set, n2);
+            }
+
+            /*
+             * At top level, keep the grouping set node; but if we're in a
+             * nested grouping set, then we need to concat the flattened
+             * result into the outer list if it's simply nested.
+             */
+
+            if (toplevel || (gset->kind != GROUPING_SET_SETS))
+            {
+                return (Node *) makeGroupingSet(gset->kind, result_set, gset->location);
+            }
+            else
+                return (Node *) result_set;
+
             break;
+	}
         case T_List:
         {
             List *result = NIL;
@@ -1890,13 +1929,16 @@ static Query *transform_cypher_match_pattern(cypher_parsestate *cpstate, cypher_
              */
             pnsi = get_namespace_item(pstate, rte);
             query->targetList = expandNSItemAttrs(pstate, pnsi, 0, -1);
-        }
+            transform_match_pattern(cpstate, query, self->pattern, where);
 
-        transform_match_pattern(cpstate, query, self->pattern, where);
+	} else {
+
+             transform_match_pattern(cpstate, query, self->pattern, where);
+	}
+        // ORDER BY
+        query->sortClause = transform_cypher_order_by(cpstate, self->order_by, &query->targetList, EXPR_KIND_ORDER_BY);
+
     }
-
-    // ORDER BY
-    query->sortClause = transform_cypher_order_by(cpstate, self->order_by, &query->targetList, EXPR_KIND_ORDER_BY);
 
     markTargetListOrigins(pstate, query->targetList);
 

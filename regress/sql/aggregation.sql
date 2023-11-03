@@ -313,6 +313,13 @@ SELECT * FROM cypher('group_by', $$
 $$) AS (result gtype);
 
 
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    RETURN x.i, x.j, x.k, COUNT(*)
+    GROUP BY ROLLUP (x.i, x.j, x.k)
+$$) AS (i int, j int, k int, cnt int);
+
+
 
 SELECT create_graph('edge_aggregates');
 
