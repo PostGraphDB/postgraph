@@ -570,19 +570,9 @@ transform_column_ref_for_indirection(cypher_parsestate *cpstate, ColumnRef *cr) 
     pnsi = refnameNamespaceItem(pstate, NULL, relname, cr->location, &levels_up);
 
     // This column ref is referencing something that was created in a previous query and is a variable.
-    if (!pnsi) {
-/*
-        node = colNameToVar(pstate, make_property_alias(relname), false, -1);
-
-        pnsi = refnameNamespaceItem(pstate, NULL, "_", cr->location, &levels_up);
-
-
-        if (node != NULL) {
-            return node;
-        }
-*/
+    if (!pnsi)
         return transform_cypher_expr_recurse(cpstate, (Node *)cr);
-    }
+
     // try to identify the properties column of the RTE
     node = scanNSItemForColumn(pstate, pnsi, 0, "properties", cr->location);
 
@@ -1025,47 +1015,370 @@ transform_case_expr(cypher_parsestate *cpstate, CaseExpr *cexpr) {
     return (Node *) newcexpr;
 }
 
+/*
+ * Transform a "row compare-op row" construct
+ *
+ * The inputs are lists of already-transformed expressions.
+ * As with coerce_type, pstate may be NULL if no special unknown-Param
+ * processing is wanted.
+ *
+ * The output may be a single OpExpr, an AND or OR combination of OpExprs,
+ * or a RowCompareExpr.  In all cases it is guaranteed to return boolean.
+ * The AND, OR, and RowCompareExpr cases further imply things about the
+ * behavior of the operators (ie, they behave as =, <>, or < <= > >=).
+ */
+static Node *
+make_row_comparison_op(ParseState *pstate, List *opname, List *largs, List *rargs, int location)
+{
+    RowCompareExpr *rcexpr;
+    RowCompareType rctype;
+    List *opexprs;
+    List *opnos;
+    List *opfamilies;
+    ListCell *l, *r;
+    List **opinfo_lists;
+    Bitmapset  *strats;
+    int nopers;
+    int i;
+
+    nopers = list_length(largs);
+    if (nopers != list_length(rargs))
+        ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                        errmsg("unequal number of entries in row expressions"),
+                        parser_errposition(pstate, location)));
+
+    /*
+     * We can't compare zero-length rows because there is no principled basis
+     * for figuring out what the operator is.
+     */
+    if (nopers == 0)
+        ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+                        errmsg("cannot compare rows of zero length"),
+                        parser_errposition(pstate, location)));
+    /*
+     * Identify all the pairwise operators, using make_op so that behavior is
+     * the same as in the simple scalar case.
+     */
+    opexprs = NIL;
+    forboth(l, largs, r, rargs)
+    {
+        Node *larg = (Node *) lfirst(l);
+        Node *rarg = (Node *) lfirst(r);
+        OpExpr *cmp;
+
+        cmp = castNode(OpExpr, make_op(pstate, opname, larg, rarg, pstate->p_last_srf, location));
+
+        /*
+         * We don't use coerce_to_boolean here because we insist on the
+         * operator yielding boolean directly, not via coercion.  If it
+         * doesn't yield bool it won't be in any index opfamilies...
+         */
+        if (cmp->opresulttype != BOOLOID)
+            ereport(ERROR, (errcode(ERRCODE_DATATYPE_MISMATCH),
+                            errmsg("row comparison operator must yield type boolean, " "not type %s",
+                                   format_type_be(cmp->opresulttype)),
+                            parser_errposition(pstate, location)));
+        if (expression_returns_set((Node *) cmp))
+            ereport(ERROR, (errcode(ERRCODE_DATATYPE_MISMATCH),
+                            errmsg("row comparison operator must not return a set"),
+                            parser_errposition(pstate, location)));
+        opexprs = lappend(opexprs, cmp);
+    }
+    /*
+     * If rows are length 1, just return the single operator.  In this case we
+     * don't insist on identifying btree semantics for the operator (but we
+     * still require it to return boolean).
+     */
+    if (nopers == 1)
+                return (Node *) linitial(opexprs);
+
+    /*
+     * Now we must determine which row comparison semantics (= <> < <= > >=)
+     * apply to this set of operators.  We look for btree opfamilies
+     * containing the operators, and see which interpretations (strategy
+     * numbers) exist for each operator.
+     */
+    opinfo_lists = (List **) palloc(nopers * sizeof(List *));
+    strats = NULL;
+    i = 0;
+    foreach(l, opexprs)
+    {
+        Oid opno = ((OpExpr *) lfirst(l))->opno;
+        Bitmapset *this_strats;
+        ListCell *j;
+
+        opinfo_lists[i] = get_op_btree_interpretation(opno);
+
+        /*
+         * convert strategy numbers into a Bitmapset to make the intersection
+         * calculation easy.
+         */
+        this_strats = NULL;
+        foreach(j, opinfo_lists[i])
+        {
+            OpBtreeInterpretation *opinfo = lfirst(j);
+
+            this_strats = bms_add_member(this_strats, opinfo->strategy);
+        }
+        if (i == 0)
+            strats = this_strats;
+        else
+            strats = bms_int_members(strats, this_strats);
+        i++;
+    }
+    /*
+     * If there are multiple common interpretations, we may use any one of
+     * them ... this coding arbitrarily picks the lowest btree strategy
+     * number.
+     */
+    i = bms_first_member(strats);
+    if (i < 0)
+    {
+        /* No common interpretation, so fail */
+        ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+            errmsg("could not determine interpretation of row comparison operator %s", strVal(llast(opname))),
+            errhint("Row comparison operators must be associated with btree operator families."),
+            parser_errposition(pstate, location)));
+    }
+    rctype = (RowCompareType) i;
+
+    /*
+     * For = and <> cases, we just combine the pairwise operators with AND or
+     * OR respectively.
+     */
+    if (rctype == ROWCOMPARE_EQ)
+        return (Node *) makeBoolExpr(AND_EXPR, opexprs, location);
+    if (rctype == ROWCOMPARE_NE)
+        return (Node *) makeBoolExpr(OR_EXPR, opexprs, location);
+
+    /*
+     * Otherwise we need to choose exactly which opfamily to associate with
+     * each operator.
+     */
+    opfamilies = NIL;
+    for (i = 0; i < nopers; i++)
+    {
+        Oid opfamily = InvalidOid;
+        ListCell *j;
+
+        foreach(j, opinfo_lists[i])
+        {
+             OpBtreeInterpretation *opinfo = lfirst(j);
+
+             if (opinfo->strategy == rctype)
+             {
+                 opfamily = opinfo->opfamily_id;
+                 break;
+             }
+        }
+        if (OidIsValid(opfamily))
+            opfamilies = lappend_oid(opfamilies, opfamily);
+        else /* should not happen */
+            ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+                            errmsg("could not determine interpretation of row comparison operator %s",
+                                   strVal(llast(opname))),
+                            errdetail("There are multiple equally-plausible candidates."),
+                            parser_errposition(pstate, location)));
+    }
+
+    /*
+     * Now deconstruct the OpExprs and create a RowCompareExpr.
+     *
+     * Note: can't just reuse the passed largs/rargs lists, because of
+     * possibility that make_op inserted coercion operations.
+     */
+    opnos = NIL;
+    largs = NIL;
+    rargs = NIL;
+    foreach(l, opexprs)
+    {
+        OpExpr *cmp = (OpExpr *) lfirst(l);
+
+        opnos = lappend_oid(opnos, cmp->opno);
+        largs = lappend(largs, linitial(cmp->args));
+        rargs = lappend(rargs, lsecond(cmp->args));
+    }
+
+    rcexpr = makeNode(RowCompareExpr);
+    rcexpr->rctype = rctype;
+    rcexpr->opnos = opnos;
+    rcexpr->opfamilies = opfamilies;
+    rcexpr->inputcollids = NIL; /* assign_expr_collations will fix this */
+    rcexpr->largs = largs;
+    rcexpr->rargs = rargs;
+
+    return (Node *) rcexpr;
+}
+
+
 static Node *
 transform_sub_link(cypher_parsestate *cpstate, SubLink *sublink) {
     ParseState *pstate = (ParseState*)cpstate;
-
+    const char *err;
     /*
      * Check to see if the sublink is in an invalid place within the query. We
      * allow sublinks everywhere in SELECT/INSERT/UPDATE/DELETE, but generally
      * not in utility statements.
      */
+    err = NULL;
     switch (pstate->p_expr_kind)
     {
         case EXPR_KIND_OTHER: /* Accept sublink here; caller must throw error if wanted */
-        case EXPR_KIND_SELECT_TARGET:
+        case EXPR_KIND_JOIN_ON:
+        case EXPR_KIND_JOIN_USING:
         case EXPR_KIND_FROM_SUBSELECT:
+        case EXPR_KIND_FROM_FUNCTION:
         case EXPR_KIND_WHERE:
+        case EXPR_KIND_POLICY:
+        case EXPR_KIND_HAVING:
+        case EXPR_KIND_FILTER:
+        case EXPR_KIND_WINDOW_PARTITION:
+        case EXPR_KIND_WINDOW_ORDER:
+        case EXPR_KIND_WINDOW_FRAME_RANGE:
+        case EXPR_KIND_WINDOW_FRAME_ROWS:
+        case EXPR_KIND_WINDOW_FRAME_GROUPS:
+        case EXPR_KIND_SELECT_TARGET:
+        case EXPR_KIND_INSERT_TARGET:
+        case EXPR_KIND_UPDATE_SOURCE:
+        case EXPR_KIND_UPDATE_TARGET:
+        case EXPR_KIND_GROUP_BY:
+        case EXPR_KIND_ORDER_BY:
+        case EXPR_KIND_DISTINCT_ON:
+        case EXPR_KIND_LIMIT:
+        case EXPR_KIND_OFFSET:
+        case EXPR_KIND_RETURNING:
+        case EXPR_KIND_VALUES:
+        case EXPR_KIND_VALUES_SINGLE:
+        case EXPR_KIND_CYCLE_MARK:
             break;
-        default:
-            ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                            errmsg_internal("unsupported SubLink"),
-                            parser_errposition(pstate, sublink->location)));
+        case EXPR_KIND_CHECK_CONSTRAINT:
+        case EXPR_KIND_DOMAIN_CHECK:
+            err = _("cannot use subquery in check constraint");
+            break;
+        case EXPR_KIND_COLUMN_DEFAULT:
+        case EXPR_KIND_FUNCTION_DEFAULT:
+            err = _("cannot use subquery in DEFAULT expression");
+            break;
+        case EXPR_KIND_INDEX_EXPRESSION:
+            err = _("cannot use subquery in index expression");
+            break;
+        case EXPR_KIND_INDEX_PREDICATE:
+            err = _("cannot use subquery in index predicate");
+            break;
+        case EXPR_KIND_STATS_EXPRESSION:
+            err = _("cannot use subquery in statistics expression");
+            break;
+        case EXPR_KIND_ALTER_COL_TRANSFORM:
+            err = _("cannot use subquery in transform expression");
+            break;
+        case EXPR_KIND_EXECUTE_PARAMETER:
+            err = _("cannot use subquery in EXECUTE parameter");
+            break;
+        case EXPR_KIND_TRIGGER_WHEN:
+            err = _("cannot use subquery in trigger WHEN condition");
+            break;
+        case EXPR_KIND_PARTITION_BOUND:
+            err = _("cannot use subquery in partition bound");
+            break;
+        case EXPR_KIND_PARTITION_EXPRESSION:
+            err = _("cannot use subquery in partition key expression");
+            break;
+        case EXPR_KIND_CALL_ARGUMENT:
+            err = _("cannot use subquery in CALL argument");
+            break;
+        case EXPR_KIND_COPY_WHERE:
+            err = _("cannot use subquery in COPY FROM WHERE condition");
+            break;
+        case EXPR_KIND_GENERATED_COLUMN:
+            err = _("cannot use subquery in column generation expression");
+            break;
     }
+    if (err)
+        ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+                        errmsg_internal("%s", err),
+                        parser_errposition(pstate, sublink->location)));
 
     pstate->p_hasSubLinks = true;
 
     //transform the sub-query.
     Query *query = cypher_parse_sub_analyze(sublink->subselect, cpstate, NULL, false, true);
 
-    Assert (IsA(query, Query) && query->commandType == CMD_SELECT);
+    if (!IsA(query, Query) || query->commandType != CMD_SELECT)
+        elog(ERROR, "unexpected non-SELECT command in SubLink");
 
     sublink->subselect = (Node *)query;
 
     if (sublink->subLinkType == EXISTS_SUBLINK) {
-        /*
-         * EXISTS needs no test expression or combining operator. These fields
-         * should be null already, but make sure.
-         */
         sublink->testexpr = NULL;
         sublink->operName = NIL;
+    } else if (sublink->subLinkType == MULTIEXPR_SUBLINK) {
+        /* Same as EXPR case, except no restriction on number of columns */
+        sublink->testexpr = NULL;
+        sublink->operName = NIL;
+    } else {
+        /* ALL, ANY, or ROWCOMPARE: generate row-comparing expression */
+        Node *lefthand;
+        List *left_list;
+        List *right_list;
+        ListCell *l;
+
+        /*
+         * If the source was "x IN (select)", convert to "x = ANY (select)".
+         */
+        if (sublink->operName == NIL)
+            sublink->operName = list_make1(makeString("="));
+
+        /*
+         * Transform lefthand expression, and convert to a list
+         */
+        lefthand = transform_cypher_expr_recurse(pstate, sublink->testexpr);
+        if (lefthand && IsA(lefthand, RowExpr))
+            left_list = ((RowExpr *) lefthand)->args;
+        else
+            left_list = list_make1(lefthand);
+
+        /*
+         * Build a list of PARAM_SUBLINK nodes representing the output columns
+         * of the subquery.
+         */
+        right_list = NIL;
+        foreach(l, query->targetList)
+        {
+            TargetEntry *tent = (TargetEntry *) lfirst(l);
+            Param      *param;
+
+            if (tent->resjunk)
+                 continue;
+
+            param = makeNode(Param);
+            param->paramkind = PARAM_SUBLINK;
+            param->paramid = tent->resno;
+            param->paramtype = exprType((Node *) tent->expr);
+            param->paramtypmod = exprTypmod((Node *) tent->expr);
+            param->paramcollid = exprCollation((Node *) tent->expr);
+            param->location = -1;
+
+            right_list = lappend(right_list, param);
+        }
+
+        /*
+         * We could rely on make_row_comparison_op to complain if the list
+         * lengths differ, but we prefer to generate a more specific error
+         * message.
+         */
+        if (list_length(left_list) < list_length(right_list))
+            ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR), errmsg("subquery has too many columns"),
+                            parser_errposition(pstate, sublink->location)));
+        if (list_length(left_list) > list_length(right_list))
+            ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR), errmsg("subquery has too few columns"),
+                            parser_errposition(pstate, sublink->location)));
+
+        /*
+         * Identify the combining operator(s) and generate a suitable
+         * row-comparison expression.
+         */
+        sublink->testexpr = make_row_comparison_op(pstate, sublink->operName, left_list, right_list, sublink->location);
     }
-    else
-        elog(ERROR, "unsupported SubLink type");
 
     return (Node *)sublink;
 }

@@ -2022,49 +2022,32 @@ static List *makeTargetListFromPNSItem(ParseState *pstate, ParseNamespaceItem *p
  * This works in tandem with transform_Sublink in cypher_expr.c
  */
 static Query *transform_cypher_sub_pattern(cypher_parsestate *cpstate, cypher_clause *clause) {
-    cypher_match *match;
-    cypher_clause *c;
+    cypher_clause *c = NULL;
     Query *qry;
-    ParseState *pstate = (ParseState *)cpstate;
     cypher_sub_pattern *subpat = (cypher_sub_pattern*)clause->self;
-    ParseNamespaceItem *pnsi;
     cypher_parsestate *child_parse_state = make_cypher_parsestate(cpstate);
-    ParseState *p_child_parse_state = (ParseState *) child_parse_state;
-    p_child_parse_state->p_expr_kind = pstate->p_expr_kind;
+
+    // Since the first clause in stmt is the innermost subquery, the order of the clauses is inverted.
+    ListCell *lc;
+    foreach (lc, subpat->pattern) {
+        cypher_clause *next;
+
+        next = palloc(sizeof(*next));
+        next->next = NULL;
+        next->self = lfirst(lc);
+        next->prev = c;
+
+        if (c != NULL)
+            c->next = next;
+        c = next;
+    }
+
+    //ParseExprKind old_expr_kind = pstate->p_expr_kind;
+    child_parse_state->entities = list_concat(NIL, cpstate->entities);
+     child_parse_state->pstate.p_expr_kind = EXPR_KIND_WHERE;
+    qry = transform_cypher_clause(child_parse_state, c);
 
 
-    // create a cypher match node and assign it the sub pattern 
-    match = make_ag_node(cypher_match);
-    match->pattern = subpat->pattern;
-    match->where = NULL;
-    // wrap it in a clause 
-    c = palloc(sizeof(cypher_clause));
-    c->self = (Node *)match;
-    c->prev = NULL;
-    c->next = NULL;
-
-    // set up a select query and run it as a sub query to the parent match 
-    qry = makeNode(Query);
-    qry->commandType = CMD_SELECT;
-
-    pnsi = transform_cypher_clause_as_subquery(child_parse_state, transform_cypher_clause, c, NULL, true);
-
-    qry->targetList = makeTargetListFromPNSItem(p_child_parse_state, pnsi);
-
-    markTargetListOrigins(p_child_parse_state, qry->targetList);
-
-    qry->rtable = p_child_parse_state->p_rtable;
-    qry->jointree = makeFromExpr(p_child_parse_state->p_joinlist, NULL);
-
-    // the state will be destroyed so copy the data we need 
-    qry->hasSubLinks = p_child_parse_state->p_hasSubLinks;
-    qry->hasTargetSRFs = p_child_parse_state->p_hasTargetSRFs;
-    qry->hasAggs = p_child_parse_state->p_hasAggs;
-
-    if (qry->hasAggs)
-        parse_check_aggregates(p_child_parse_state, qry);
-
-    assign_query_collations(p_child_parse_state, qry);
 
     free_cypher_parsestate(child_parse_state);
 
@@ -3047,6 +3030,18 @@ static char *get_accessor_function_name(enum transform_entity_type type, char *n
     // keeps compiler silent
     return NULL;
 }
+static Node *make_id_expr(cypher_parsestate *cpstate, FuncExpr *arg) {
+    ParseState *pstate = (ParseState *)cpstate;
+
+    Oid func_oid = get_ag_func_oid("id", 1, VERTEXOID);
+
+    List *args = list_make1(arg);
+
+    FuncExpr *func_expr = makeFuncExpr(func_oid, GTYPEOID, args, InvalidOid, InvalidOid, COERCE_EXPLICIT_CALL);
+    func_expr->location = -1;
+
+    return (Node *)func_expr;
+}
 
 /*
  * For the given entity and column name, construct an expression that will
@@ -3067,11 +3062,32 @@ static Node *make_qual(cypher_parsestate *cpstate, transform_entity *entity, cha
         args = list_make1(entity->expr);
         node = (Node *)makeFuncCall(qualified_name, args, COERCE_EXPLICIT_CALL, -1);
     } else {
+	int sublevels;
+	char *entity_name;
+        if (entity->type == ENT_EDGE)
+            entity_name = entity->entity.node->name;
+        else if (entity->type == ENT_VERTEX)
+            entity_name = entity->entity.rel->name;
+        else
+            ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED), errmsg("unknown entity type")));
+
+	ParseNamespaceItem *pnsi = refnameNamespaceItem(cpstate, NULL, entity_name, -1, &sublevels);
+
+        if (!pnsi) {
+            if (IsA(entity->expr, FuncExpr)) {
+                FuncExpr *fe = entity->expr;
+            //    return make_id_expr(cpstate, fe);
+                return copyObject(linitial(fe->args));
+            }
+
+
+            ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+		            errmsg("could not find ParseNamespaceItem %s", entity_name)));
+	}
+        return scanNSItemForColumn(cpstate, pnsi, sublevels, col_name, -1);
+	/*
         char *entity_name;
         ColumnRef *cr = makeNode(ColumnRef);
-
-        // cast graphid to gtype
-        qualified_name = list_make2(makeString(CATALOG_SCHEMA), makeString("graphid_to_gtype"));
 
         if (entity->type == ENT_EDGE)
             entity_name = entity->entity.node->name;
@@ -3083,6 +3099,7 @@ static Node *make_qual(cypher_parsestate *cpstate, transform_entity *entity, cha
         cr->fields = list_make2(makeString(entity_name), makeString(col_name));
 
         node = (Node *)cr;
+  */
     }
 
     return node;
@@ -3130,14 +3147,8 @@ static Expr *transform_cypher_edge(cypher_parsestate *cpstate, cypher_relationsh
          * variables, we want to use the existing ones. So, error if otherwise.
          */
         if (pstate->p_expr_kind == EXPR_KIND_WHERE) {
-            cypher_parsestate *parent_cpstate = (cypher_parsestate *)pstate->parentParseState->parentParseState;
-            /*
-             *  If expr_kind is WHERE, the expressions are in the parent's
-             *  parent's parsestate, due to the way we transform sublinks.
-             */
-            transform_entity *entity = find_variable(parent_cpstate, rel->name);
-
-            if (entity != NULL)
+                        transform_entity *entity = find_transform_entity(cpstate, rel->name, ENT_EDGE);
+            if (entity)
                 return entity->expr;
             else
                 ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
@@ -3250,22 +3261,11 @@ static Expr *transform_cypher_node(cypher_parsestate *cpstate, cypher_node *node
          * variables, we want to use the existing ones. So, error if otherwise.
          */
         if (pstate->p_expr_kind == EXPR_KIND_WHERE) {
-            cypher_parsestate *parent_cpstate = (cypher_parsestate *)pstate->parentParseState->parentParseState;
-            /*
-             *  If expr_kind is WHERE, the expressions are in the parent's
-             *  parent's parsestate, due to the way we transform sublinks.
-             */
-            transform_entity *entity = find_variable(parent_cpstate, node->name);
-
-
+  	    transform_entity *entity = find_transform_entity(cpstate, node->name, ENT_VERTEX);
             if (entity)
                 return entity->expr;
-            else
-                ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                        errmsg("variable `%s` does not exist", node->name),
-                        parser_errposition(pstate, node->location)));
         }
-
+        else {
         te = findTarget(*target_list, node->name);
         expr = colNameToVar(pstate, node->name, false, node->location);
 
@@ -3286,6 +3286,7 @@ static Expr *transform_cypher_node(cypher_parsestate *cpstate, cypher_node *node
                          parser_errposition(pstate, node->location)));
 
             return te->expr;
+	    }
         }
     } else {
         node->name = get_next_default_alias(cpstate);
@@ -3969,6 +3970,10 @@ static Query *analyze_cypher_clause(transform_method transform, cypher_clause *c
 
     // copy the expr_kind down to the child
     pstate->p_expr_kind = parent_pstate->p_expr_kind;
+
+    if (pstate->p_expr_kind == EXPR_KIND_WHERE) {
+        cpstate->entities = list_concat(NIL, parent_cpstate->entities);
+    }
 
     query = transform(cpstate, clause);
 
