@@ -261,7 +261,7 @@ EXPLAIN SELECT * FROM cypher('cypher_index', $$
 $$) as (n vertex);
                                                      QUERY PLAN                                                      
 ---------------------------------------------------------------------------------------------------------------------
- Hash Join  (cost=10000000008.23..20000000036.61 rows=15 width=32)
+ Hash Join  (cost=10000000008.23..20000000038.45 rows=15 width=32)
    Hash Cond: (_age_default_alias_0.start_id = c.id)
    ->  Append  (cost=10000000000.00..20000000024.56 rows=971 width=8)
          ->  Seq Scan on _ag_label_edge _age_default_alias_0_1  (cost=10000000000.00..10000000000.00 rows=1 width=8)
@@ -388,7 +388,7 @@ EXPLAIN SELECT * FROM cypher('cypher_index', $$
 $$) as (n vertex);
                                     QUERY PLAN                                     
 -----------------------------------------------------------------------------------
- Bitmap Heap Scan on "Country" c  (cost=8.00..12.02 rows=1 width=32)
+ Bitmap Heap Scan on "Country" c  (cost=8.00..12.14 rows=1 width=32)
    Recheck Cond: (properties ? '"gdp"'::gtype)
    ->  Bitmap Index Scan on load_country_gin_idx  (cost=0.00..8.00 rows=1 width=0)
          Index Cond: (properties ? '"gdp"'::gtype)
@@ -400,7 +400,7 @@ EXPLAIN SELECT * FROM cypher('cypher_index', $$
 $$) as (n vertex);
                                    QUERY PLAN                                   
 --------------------------------------------------------------------------------
- Seq Scan on "Country" c  (cost=10000000000.00..10000000001.04 rows=1 width=32)
+ Seq Scan on "Country" c  (cost=10000000000.00..10000000001.16 rows=1 width=32)
    Filter: (properties ?| '["gdp"]'::gtype)
 (2 rows)
 
@@ -410,7 +410,7 @@ EXPLAIN SELECT * FROM cypher('cypher_index', $$
 $$) as (n vertex);
                                    QUERY PLAN                                   
 --------------------------------------------------------------------------------
- Seq Scan on "Country" c  (cost=10000000000.00..10000000001.04 rows=1 width=32)
+ Seq Scan on "Country" c  (cost=10000000000.00..10000000001.16 rows=1 width=32)
    Filter: (properties ?& '["gdp"]'::gtype)
 (2 rows)
 

@@ -514,8 +514,8 @@ SELECT * FROM cypher('cypher_delete', $$CREATE (n:v)-[:e2]->()$$) AS (a gtype);
 SELECT * FROM cypher('cypher_delete', $$MATCH p=()-[]->() RETURN p$$) AS (a traversal);
                                                                                                                   a                                                                                                                   
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 844424930132012, "label": "v", "properties": {}}, {"id": 1125899906842643, "start_id": 844424930132012, "end_id": 281474976710657, "label": "e", "properties": {}}, {"id": 281474976710657, "label": "", "properties": {}}]
  [{"id": 844424930132013, "label": "v", "properties": {}}, {"id": 2251799813685249, "start_id": 844424930132013, "end_id": 281474976710658, "label": "e2", "properties": {}}, {"id": 281474976710658, "label": "", "properties": {}}]
+ [{"id": 844424930132012, "label": "v", "properties": {}}, {"id": 1125899906842643, "start_id": 844424930132012, "end_id": 281474976710657, "label": "e", "properties": {}}, {"id": 281474976710657, "label": "", "properties": {}}]
 (2 rows)
 
 SELECT * FROM cypher('cypher_delete', $$MATCH(n)-[e]->(m)  DELETE e$$) AS (a gtype);
@@ -552,8 +552,8 @@ SELECT * FROM cypher('cypher_delete', $$CREATE (n:v)-[:e2]->()$$) AS (a gtype);
 SELECT * FROM cypher('cypher_delete', $$MATCH p=()-[]->() RETURN p$$) AS (a traversal);
                                                                                                                   a                                                                                                                   
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 844424930132014, "label": "v", "properties": {}}, {"id": 1125899906842644, "start_id": 844424930132014, "end_id": 281474976710659, "label": "e", "properties": {}}, {"id": 281474976710659, "label": "", "properties": {}}]
  [{"id": 844424930132015, "label": "v", "properties": {}}, {"id": 2251799813685250, "start_id": 844424930132015, "end_id": 281474976710660, "label": "e2", "properties": {}}, {"id": 281474976710660, "label": "", "properties": {}}]
+ [{"id": 844424930132014, "label": "v", "properties": {}}, {"id": 1125899906842644, "start_id": 844424930132014, "end_id": 281474976710659, "label": "e", "properties": {}}, {"id": 281474976710659, "label": "", "properties": {}}]
 (2 rows)
 
 SELECT * FROM cypher('cypher_delete', $$MATCH(n)-[]->() DETACH DELETE n$$) AS (a gtype);
