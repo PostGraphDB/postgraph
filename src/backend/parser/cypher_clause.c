@@ -1827,6 +1827,76 @@ static void get_res_cols(ParseState *pstate, ParseNamespaceItem *l_pnsi,
 }
 
 /*
+ * transform_cypher_match_clause
+ *      Transform the previous clauses and OPTIONAL MATCH clauses to be LATERAL LEFT JOIN
+ *   transform_cypher_match_clause   to construct a result value.
+ */
+static RangeTblEntry *transform_cypher_match_clause(cypher_parsestate *cpstate, cypher_clause *clause) {
+    cypher_clause *prevclause;
+    RangeTblEntry *l_rte, *r_rte;
+    ParseNamespaceItem *l_nsitem, *r_nsitem;
+    ParseState *pstate = (ParseState *) cpstate;
+    JoinExpr* j = makeNode(JoinExpr);
+    List *res_colnames = NIL, *res_colvars = NIL;
+    Alias *l_alias, *r_alias;
+    ParseNamespaceItem *jnsitem;
+    int i = 0;
+
+    j->jointype = JOIN_INNER;
+
+    l_alias = makeAlias(PREV_CYPHER_CLAUSE_ALIAS, NIL);
+    r_alias = makeAlias(CYPHER_OPT_RIGHT_ALIAS, NIL);
+
+    j->larg = transform_clause_for_join(cpstate, clause->prev, &l_rte, &l_nsitem, l_alias);
+    pstate->p_namespace = lappend(pstate->p_namespace, l_nsitem);
+        
+    /*
+     * Remove the previous clause so when the transform_clause_for_join function
+     * transforms the OPTIONAL MATCH, the previous clause will not be transformed
+     * again.
+     */
+    prevclause = clause->prev;
+    clause->prev = NULL;
+
+    //set the lateral flag to true
+    pstate->p_lateral_active = true;
+
+    j->rarg = transform_clause_for_join(cpstate, clause, &r_rte, &r_nsitem, r_alias);
+
+    // we are done transform the lateral left join
+    pstate->p_lateral_active = false;
+
+    /*
+     * We are done with the previous clause in the transform phase, but
+     * reattach the previous clause for semantics.
+     */
+    clause->prev = prevclause;
+
+    pstate->p_namespace = NIL;
+
+    // get the colnames and colvars from the rtes
+    get_res_cols(pstate, l_nsitem, r_nsitem, &res_colnames, &res_colvars);
+
+    jnsitem = addRangeTableEntryForJoin(pstate, res_colnames, NULL, j->jointype, 0, res_colvars, NIL,
+                                        NIL, j->alias, NULL, false);
+
+    j->rtindex = jnsitem->p_rtindex;
+
+    for (i = list_length(pstate->p_joinexprs) + 1; i < j->rtindex; i++)
+        pstate->p_joinexprs = lappend(pstate->p_joinexprs, NULL);
+    pstate->p_joinexprs = lappend(pstate->p_joinexprs, j);
+    Assert(list_length(pstate->p_joinexprs) == j->rtindex);
+
+    pstate->p_joinlist = lappend(pstate->p_joinlist, j);
+
+    // add jrte to column namespace only 
+    addNSItemToQuery(pstate, jnsitem, false, false, true);
+
+    return jnsitem->p_rte;
+}
+
+
+/*
  * transform_cypher_optional_match_clause
  *      Transform the previous clauses and OPTIONAL MATCH clauses to be LATERAL LEFT JOIN
  *   transform_cypher_optional_match_clause   to construct a result value.
@@ -1913,7 +1983,14 @@ static Query *transform_cypher_match_pattern(cypher_parsestate *cpstate, cypher_
         query->jointree = makeFromExpr(pstate->p_joinlist, NULL);
     } else {
         if (clause->prev) {
-            RangeTblEntry *rte;
+            RangeTblEntry *rte = transform_cypher_match_clause(cpstate, clause);
+
+            query->targetList = make_target_list_from_join(pstate, rte);
+            query->rtable = pstate->p_rtable;
+            query->jointree = makeFromExpr(pstate->p_joinlist, NULL);
+
+   /* 
+		RangeTblEntry *rte;
             int rtindex;
             ParseNamespaceItem *pnsi;
 
@@ -1921,16 +1998,16 @@ static Query *transform_cypher_match_pattern(cypher_parsestate *cpstate, cypher_
             rte = pnsi->p_rte;
             rtindex = list_length(pstate->p_rtable);
             Assert(rtindex == 1); // rte is the first RangeTblEntry in pstate
-
+*/
             /*
              * add all the target entries in rte to the current target list to pass
              * all the variables that are introduced in the previous clause to the
              * next clause
              */
-            pnsi = get_namespace_item(pstate, rte);
+  /*          pnsi = get_namespace_item(pstate, rte);
             query->targetList = expandNSItemAttrs(pstate, pnsi, 0, -1);
             transform_match_pattern(cpstate, query, self->pattern, where);
-
+*/
 	} else {
 
              transform_match_pattern(cpstate, query, self->pattern, where);
