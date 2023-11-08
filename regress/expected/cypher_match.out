@@ -751,22 +751,25 @@ AS (u vertex);
 SELECT * FROM cypher('cypher_match',
  $$MATCH (u) WHERE EXISTS(MATCH (v {id: 'middle'}) MATCH (u)-[]->(v) RETURN 1) RETURN u $$)
 AS (u vertex);
- u 
----
-(0 rows)
+                                    u                                     
+--------------------------------------------------------------------------
+ {"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}
+ {"id": 2251799813685249, "label": "v3", "properties": {"id": "initial"}}
+ {"id": 2251799813685251, "label": "v3", "properties": {"id": "end"}}
+(3 rows)
 
 EXPLAIN SELECT * FROM cypher('cypher_match',
  $$MATCH (u) WHERE EXISTS(MATCH (v {id: 'middle'}) MATCH (u)-[]->(v) RETURN 1) RETURN u $$)
 AS (u vertex);
-                                                              QUERY PLAN                                                               
----------------------------------------------------------------------------------------------------------------------------------------
- Result  (cost=0.00..239006.40 rows=3060 width=32)
-   ->  Append  (cost=0.00..238593.30 rows=3060 width=40)
-         ->  Seq Scan on _ag_label_vertex u_1  (cost=0.00..4678.00 rows=60 width=40)
+                                                     QUERY PLAN                                                      
+---------------------------------------------------------------------------------------------------------------------
+ Result  (cost=0.00..222941.40 rows=3060 width=32)
+   ->  Append  (cost=0.00..222528.30 rows=3060 width=40)
+         ->  Seq Scan on _ag_label_vertex u_1  (cost=0.00..4363.00 rows=60 width=40)
                Filter: (SubPlan 1)
                SubPlan 1
-                 ->  Nested Loop  (cost=0.00..233.79 rows=6 width=0)
-                       Join Filter: (build_vertex(v.id, '20944'::oid, v.properties) OPERATOR(postgraph.=) _age_default_alias_0.end_id)
+                 ->  Nested Loop  (cost=0.00..218.04 rows=6 width=0)
+                       Join Filter: (v.id = _age_default_alias_0.end_id)
                        ->  Append  (cost=0.00..88.61 rows=21 width=8)
                              ->  Seq Scan on _ag_label_edge _age_default_alias_0_1  (cost=0.00..0.00 rows=1 width=8)
                                    Filter: (start_id = u_1.id)
@@ -778,29 +781,29 @@ AS (u vertex);
                                    Filter: (start_id = u_1.id)
                              ->  Seq Scan on self _age_default_alias_0_5  (cost=0.00..22.12 rows=5 width=8)
                                    Filter: (start_id = u_1.id)
-                       ->  Materialize  (cost=0.00..127.56 rows=6 width=40)
-                             ->  Append  (cost=0.00..127.53 rows=6 width=40)
-                                   ->  Seq Scan on _ag_label_vertex v_1  (cost=0.00..2.50 rows=1 width=40)
+                       ->  Materialize  (cost=0.00..127.56 rows=6 width=8)
+                             ->  Append  (cost=0.00..127.53 rows=6 width=8)
+                                   ->  Seq Scan on _ag_label_vertex v_1  (cost=0.00..2.50 rows=1 width=8)
                                          Filter: (properties @> '{"id": "middle"}'::gtype)
-                                   ->  Seq Scan on v v_2  (cost=0.00..25.00 rows=1 width=40)
+                                   ->  Seq Scan on v v_2  (cost=0.00..25.00 rows=1 width=8)
                                          Filter: (properties @> '{"id": "middle"}'::gtype)
-                                   ->  Seq Scan on v1 v_3  (cost=0.00..25.00 rows=1 width=40)
+                                   ->  Seq Scan on v1 v_3  (cost=0.00..25.00 rows=1 width=8)
                                          Filter: (properties @> '{"id": "middle"}'::gtype)
-                                   ->  Seq Scan on v2 v_4  (cost=0.00..25.00 rows=1 width=40)
+                                   ->  Seq Scan on v2 v_4  (cost=0.00..25.00 rows=1 width=8)
                                          Filter: (properties @> '{"id": "middle"}'::gtype)
-                                   ->  Seq Scan on v3 v_5  (cost=0.00..25.00 rows=1 width=40)
+                                   ->  Seq Scan on v3 v_5  (cost=0.00..25.00 rows=1 width=8)
                                          Filter: (properties @> '{"id": "middle"}'::gtype)
-                                   ->  Seq Scan on loop v_6  (cost=0.00..25.00 rows=1 width=40)
+                                   ->  Seq Scan on loop v_6  (cost=0.00..25.00 rows=1 width=8)
                                          Filter: (properties @> '{"id": "middle"}'::gtype)
-         ->  Seq Scan on v u_2  (cost=0.00..46780.00 rows=600 width=40)
+         ->  Seq Scan on v u_2  (cost=0.00..43630.00 rows=600 width=40)
                Filter: (SubPlan 1)
-         ->  Seq Scan on v1 u_3  (cost=0.00..46780.00 rows=600 width=40)
+         ->  Seq Scan on v1 u_3  (cost=0.00..43630.00 rows=600 width=40)
                Filter: (SubPlan 1)
-         ->  Seq Scan on v2 u_4  (cost=0.00..46780.00 rows=600 width=40)
+         ->  Seq Scan on v2 u_4  (cost=0.00..43630.00 rows=600 width=40)
                Filter: (SubPlan 1)
-         ->  Seq Scan on v3 u_5  (cost=0.00..46780.00 rows=600 width=40)
+         ->  Seq Scan on v3 u_5  (cost=0.00..43630.00 rows=600 width=40)
                Filter: (SubPlan 1)
-         ->  Seq Scan on loop u_6  (cost=0.00..46780.00 rows=600 width=40)
+         ->  Seq Scan on loop u_6  (cost=0.00..43630.00 rows=600 width=40)
                Filter: (SubPlan 1)
 (42 rows)
 
@@ -890,16 +893,16 @@ AS (u gtype);
  2
  2
  2
+ 1
+ 1
  2
  2
+ 1
  2
+ 1
  2
- 2
- 2
- 2
- 2
- 2
- 2
+ 1
+ 1
 (15 rows)
 
 EXPLAIN SELECT * FROM cypher('cypher_match', $$
@@ -909,26 +912,26 @@ $$)
 AS (u gtype);
                                             QUERY PLAN                                             
 ---------------------------------------------------------------------------------------------------
- Result  (cost=4.22..208.22 rows=6120 width=32)
-   InitPlan 1 (returns $0)
+ Result  (cost=0.00..26026.03 rows=6120 width=32)
+   ->  Append  (cost=0.00..142.80 rows=6120 width=8)
+         ->  Seq Scan on _ag_label_vertex u_1  (cost=0.00..2.20 rows=120 width=8)
+         ->  Seq Scan on v u_2  (cost=0.00..22.00 rows=1200 width=8)
+         ->  Seq Scan on v1 u_3  (cost=0.00..22.00 rows=1200 width=8)
+         ->  Seq Scan on v2 u_4  (cost=0.00..22.00 rows=1200 width=8)
+         ->  Seq Scan on v3 u_5  (cost=0.00..22.00 rows=1200 width=8)
+         ->  Seq Scan on loop u_6  (cost=0.00..22.00 rows=1200 width=8)
+   SubPlan 1
      ->  Append  (cost=0.00..88.61 rows=21 width=0)
            ->  Seq Scan on _ag_label_edge _age_default_alias_0_1  (cost=0.00..0.00 rows=1 width=0)
-                 Filter: (start_id = id)
+                 Filter: (start_id = u.id)
            ->  Seq Scan on e1 _age_default_alias_0_2  (cost=0.00..22.12 rows=5 width=0)
-                 Filter: (start_id = id)
+                 Filter: (start_id = u.id)
            ->  Seq Scan on e2 _age_default_alias_0_3  (cost=0.00..22.12 rows=5 width=0)
-                 Filter: (start_id = id)
+                 Filter: (start_id = u.id)
            ->  Seq Scan on e3 _age_default_alias_0_4  (cost=0.00..22.12 rows=5 width=0)
-                 Filter: (start_id = id)
+                 Filter: (start_id = u.id)
            ->  Seq Scan on self _age_default_alias_0_5  (cost=0.00..22.12 rows=5 width=0)
-                 Filter: (start_id = id)
-   ->  Append  (cost=0.00..142.80 rows=6120 width=0)
-         ->  Seq Scan on _ag_label_vertex u_1  (cost=0.00..2.20 rows=120 width=0)
-         ->  Seq Scan on v u_2  (cost=0.00..22.00 rows=1200 width=0)
-         ->  Seq Scan on v1 u_3  (cost=0.00..22.00 rows=1200 width=0)
-         ->  Seq Scan on v2 u_4  (cost=0.00..22.00 rows=1200 width=0)
-         ->  Seq Scan on v3 u_5  (cost=0.00..22.00 rows=1200 width=0)
-         ->  Seq Scan on loop u_6  (cost=0.00..22.00 rows=1200 width=0)
+                 Filter: (start_id = u.id)
 (20 rows)
 
 EXPLAIN
