@@ -598,6 +598,22 @@ SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN *$$) AS (col1 ve
 SELECT * FROM cypher('cypher_match', $$MATCH (n) ORDER BY n.i RETURN n$$) AS (n vertex);
 
 EXPLAIN SELECT * FROM cypher('cypher_match', $$MATCH (n) ORDER BY n.i RETURN n$$) AS (n vertex);
+
+
+EXPLAIN SELECT * FROM cypher('cypher_match', $$
+	MATCH (n)
+	MATCH (n)-[]->(m) ORDER BY m
+	RETURN n
+$$) AS (n vertex);
+
+SELECT * FROM cypher('cypher_match', $$
+        MATCH (n) MATCH (n)-[]-(m) ORDER BY m DESC RETURN m
+$$) AS (n vertex);
+
+SELECT * FROM cypher('cypher_match', $$
+        MATCH (n) MATCH (n)-[]-(m) ORDER BY m ASC RETURN m
+$$) AS (n vertex);
+
 --
 -- Clean up
 --
