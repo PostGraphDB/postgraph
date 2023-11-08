@@ -425,6 +425,13 @@ EXPLAIN SELECT * FROM cypher('cypher_match', $$
 $$)
 AS (u gtype);
 
+SELECT * FROM cypher('cypher_match', $$
+    MATCH (u)
+    RETURN case WHEN EXISTS((u)-[]->()) THEN 1 ELSE 2 END
+$$)
+AS (u gtype);
+
+
 EXPLAIN
 SELECT *
 FROM cypher_match._ag_label_vertex as v
@@ -590,7 +597,6 @@ SELECT * FROM cypher('opt_forms', $$MATCH (u)<--(v) RETURN u.i, v.i$$) AS (u gty
 SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN u.i, v.i$$) AS (u gtype, v gtype);
 SELECT * FROM cypher('opt_forms', $$MATCH (u) CREATE (u)-[:edge]->() RETURN *$$) AS (results vertex);
 SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN *$$) AS (col1 vertex, col2 vertex);
-
 
 --
 -- ORDER BY

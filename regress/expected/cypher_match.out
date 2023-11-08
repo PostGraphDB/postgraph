@@ -934,6 +934,30 @@ AS (u gtype);
                  Filter: (start_id = u.id)
 (20 rows)
 
+SELECT * FROM cypher('cypher_match', $$
+    MATCH (u)
+    RETURN case WHEN EXISTS((u)-[]->()) THEN 1 ELSE 2 END
+$$)
+AS (u gtype);
+ u 
+---
+ 2
+ 2
+ 2
+ 2
+ 2
+ 1
+ 1
+ 2
+ 2
+ 1
+ 2
+ 1
+ 2
+ 1
+ 1
+(15 rows)
+
 EXPLAIN
 SELECT *
 FROM cypher_match._ag_label_vertex as v
