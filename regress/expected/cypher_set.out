@@ -205,8 +205,8 @@ SELECT * FROM cypher('cypher_set', $$
 $$) AS (a vertex);
                                                 a                                                
 -------------------------------------------------------------------------------------------------
- {"id": 281474976710658, "label": "", "properties": {"y": 1}}
  {"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 50, "j": 5, "y": 1, "z": 99}}
+ {"id": 281474976710658, "label": "", "properties": {"y": 1}}
 (2 rows)
 
 SELECT * FROM cypher('cypher_set', $$
@@ -217,8 +217,8 @@ SELECT * FROM cypher('cypher_set', $$
 $$) AS (a vertex);
                                                 a                                                
 -------------------------------------------------------------------------------------------------
- {"id": 281474976710659, "label": "", "properties": {"y": 2}}
  {"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 50, "j": 5, "y": 2, "z": 99}}
+ {"id": 281474976710659, "label": "", "properties": {"y": 2}}
 (2 rows)
 
 SELECT * FROM cypher('cypher_set', $$MATCH (n)-[]->(n) SET n.y = 99 RETURN n$$) AS (a vertex);

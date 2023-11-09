@@ -359,10 +359,94 @@ SELECT * FROM cypher('cypher_match',
  $$MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) AND EXISTS((v)-[e]->(v)) RETURN u, e, v $$)
 AS (u vertex, e edge, v vertex);
 
--- variable creation error
 SELECT * FROM cypher('cypher_match',
  $$MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(x)) RETURN u, e, v $$)
 AS (u vertex, e edge, v vertex);
+
+SELECT * FROM cypher('cypher_match',
+ $$MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "middle"}) RETURN 1) RETURN u $$)
+AS (u vertex);
+
+SELECT * FROM cypher('cypher_match',
+ $$MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "middle"}) RETURN u) RETURN u $$)
+AS (u vertex);
+
+SELECT * FROM cypher('cypher_match',
+ $$MATCH (u) WHERE EXISTS(MATCH (u)-[]->(v {id: "middle"}) RETURN v) RETURN u $$)
+AS (u vertex);
+
+
+SELECT * FROM cypher('cypher_match', $$
+    MATCH (u)
+    WHERE EXISTS(
+	MATCH (u)-[]->(v) 
+	WHERE v.id = "middle"
+	RETURN 1
+    )
+    RETURN u
+$$) AS (u vertex);
+
+SELECT * FROM cypher('cypher_match',
+ $$MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "gsjka"}) RETURN 1) RETURN u $$)
+AS (u vertex);
+
+
+SELECT * FROM cypher('cypher_match',
+ $$MATCH (u) WHERE EXISTS(MATCH (v {id: 'middle'}) MATCH (u)-[]->(v) RETURN 1) RETURN u $$)
+AS (u vertex);
+
+EXPLAIN SELECT * FROM cypher('cypher_match',
+ $$MATCH (u) WHERE EXISTS(MATCH (v {id: 'middle'}) MATCH (u)-[]->(v) RETURN 1) RETURN u $$)
+AS (u vertex);
+
+EXPLAIN
+SELECT * FROM cypher('cypher_match',
+ $$MATCH (u) WHERE EXISTS(MATCH (u)-[]->(v {id: 'middle'}) RETURN 1) RETURN u $$)
+AS (u vertex);
+
+
+
+SELECT * FROM cypher('cypher_match', $$
+    MATCH (u) 
+    RETURN case WHEN EXISTS(MATCH (u)-[]->({id: "gsjka"}) RETURN 1) THEN 1 ELSE 2 END
+$$)
+AS (u gtype);
+
+SELECT * FROM cypher('cypher_match', $$
+    MATCH (u)
+    RETURN case WHEN EXISTS(MATCH (u)-[]->() RETURN 1) THEN 1 ELSE 2 END
+$$)
+AS (u gtype);
+
+
+EXPLAIN SELECT * FROM cypher('cypher_match', $$
+    MATCH (u)
+    RETURN case WHEN EXISTS(MATCH (u)-[]->() RETURN 1) THEN 1 ELSE 2 END
+$$)
+AS (u gtype);
+
+SELECT * FROM cypher('cypher_match', $$
+    MATCH (u)
+    RETURN case WHEN EXISTS((u)-[]->()) THEN 1 ELSE 2 END
+$$)
+AS (u gtype);
+
+
+EXPLAIN
+SELECT *
+FROM cypher_match._ag_label_vertex as v
+WHERE EXISTS (
+    SELECT * FROM cypher_match._ag_label_edge as e WHERE v.id = e.start_id
+);
+
+EXPLAIN
+SELECT *
+FROM cypher_match._ag_label_vertex as u
+WHERE EXISTS (
+    SELECT * FROM cypher_match._ag_label_edge as e 
+    JOIN cypher_match._ag_label_vertex as v ON v.id = e.end_id
+    WHERE u.id = e.start_id
+);
 
 --
 --Distinct
@@ -514,13 +598,28 @@ SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN u.i, v.i$$) AS (
 SELECT * FROM cypher('opt_forms', $$MATCH (u) CREATE (u)-[:edge]->() RETURN *$$) AS (results vertex);
 SELECT * FROM cypher('opt_forms', $$MATCH (u)-->()<--(v) RETURN *$$) AS (col1 vertex, col2 vertex);
 
-
 --
 -- ORDER BY
 --
 SELECT * FROM cypher('cypher_match', $$MATCH (n) ORDER BY n.i RETURN n$$) AS (n vertex);
 
 EXPLAIN SELECT * FROM cypher('cypher_match', $$MATCH (n) ORDER BY n.i RETURN n$$) AS (n vertex);
+
+
+EXPLAIN SELECT * FROM cypher('cypher_match', $$
+	MATCH (n)
+	MATCH (n)-[]->(m) ORDER BY m
+	RETURN n
+$$) AS (n vertex);
+
+SELECT * FROM cypher('cypher_match', $$
+        MATCH (n) MATCH (n)-[]-(m) ORDER BY m DESC RETURN m
+$$) AS (n vertex);
+
+SELECT * FROM cypher('cypher_match', $$
+        MATCH (n) MATCH (n)-[]-(m) ORDER BY m ASC RETURN m
+$$) AS (n vertex);
+
 --
 -- Clean up
 --

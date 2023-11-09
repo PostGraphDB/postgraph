@@ -1462,7 +1462,28 @@ expr_func_subexpr:
             sub = make_ag_node(cypher_sub_pattern);
             sub->kind = CSP_EXISTS;
             sub->pattern = list_make1($3);
-
+            cypher_match *match = make_ag_node(cypher_match);
+            match->pattern = list_make1($3);//subpat->pattern;
+            match->where = NULL;
+            sub->pattern = list_make1(match);
+            n = makeNode(SubLink);
+            n->subLinkType = EXISTS_SUBLINK;
+            n->subLinkId = 0;
+            n->testexpr = NULL;
+            n->operName = NIL;
+            n->subselect = (Node *) sub;
+            n->location = @1;
+            $$ = (Node *) n;
+        }
+    | EXISTS '(' cypher_stmt ')'
+        {        
+            cypher_sub_pattern *sub;
+            SubLink    *n;
+                 
+            sub = make_ag_node(cypher_sub_pattern);
+            sub->kind = CSP_EXISTS;
+            sub->pattern = $3;
+            
             n = makeNode(SubLink);
             n->subLinkType = EXISTS_SUBLINK;
             n->subLinkId = 0;
