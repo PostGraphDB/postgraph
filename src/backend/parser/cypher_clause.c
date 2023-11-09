@@ -191,7 +191,7 @@ Query *transform_cypher_clause(cypher_parsestate *cpstate, cypher_clause *clause
 
         if (n->op == SETOP_NONE)
             result = transform_cypher_return(cpstate, clause);
-        else if (n->op == SETOP_UNION | n->op == SETOP_INTERSECT | n->op == SETOP_EXCEPT)
+        else if (n->op == SETOP_UNION || n->op == SETOP_INTERSECT || n->op == SETOP_EXCEPT)
             result = transform_cypher_union(cpstate, clause);
         else
             ereport(ERROR, (errmsg_internal("unexpected Node for cypher_return")));
@@ -776,55 +776,6 @@ static Query *transform_cypher_delete(cypher_parsestate *cpstate, cypher_clause 
     return query;
 }
 
-
-static Query *add_extra_subquery_layer(cypher_parsestate *cpstate, Query *subquery) {
-    ParseState *pstate = (ParseState *) cpstate;
-    Query *query = makeNode(Query);
-
-    query->commandType = CMD_SELECT;
-
-    Alias *alias = makeAlias(PREV_CYPHER_CLAUSE_ALIAS, NIL);
-
-    ParseNamespaceItem *pnsi = addRangeTableEntryForSubquery(pstate, subquery, alias, false, true);
-
-
-    if (list_length(pstate->p_rtable) > 1) {
-        List *namespace = NULL;
-        int rtindex = 0;
-
-        rtindex = list_length(pstate->p_rtable);
-
-        if (pnsi->p_rte != rt_fetch(rtindex, pstate->p_rtable))
-            ereport(ERROR,
-                    (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                     errmsg("rte must be last entry in p_rtable")));
-
-        namespace = list_make1(pnsi);
-
-        checkNameSpaceConflicts(pstate, pstate->p_namespace, namespace);
-    }
-
-
-    addNSItemToQuery(pstate, pnsi, true, false, true);
-
-
-        int rtindex = list_length(pstate->p_rtable);
-        Assert(rtindex == 1); // rte is the first RangeTblEntry in pstate
-
-    query->targetList = expandNSItemAttrs(pstate, pnsi, 0, -1);
-
-
-
-    query->rtable = pstate->p_rtable;
-    query->jointree = makeFromExpr(pstate->p_joinlist, NULL);
-    query->hasTargetSRFs = pstate->p_hasTargetSRFs;
-
-    assign_query_collations(pstate, query);
-
-
-    return query;
-}
-
 /*
  * transform_cypher_unwind
  *      It contains logic to convert the form of an array into a row. Here, we
@@ -884,12 +835,8 @@ ParseState *pstate = (ParseState *) child_cpstate;
 
     assign_query_collations(pstate, query);
 
-    Query *new_query = add_extra_subquery_layer(cpstate, query);
-
-
     free_cypher_parsestate(child_cpstate);
-
-    return new_query;
+    return query;
 }
 
 /*
@@ -1226,12 +1173,10 @@ static Node *flatten_grouping_sets(Node *expr, bool toplevel, bool *hasGroupingS
              * caller can supply the canonical GROUP BY () if nothing is
              * left.
              */
-
             if (toplevel && gset->kind == GROUPING_SET_EMPTY)
                 return (Node *) NIL;
 
-            foreach(l2, gset->content)
-            {
+            foreach(l2, gset->content) {
                 Node       *n1 = lfirst(l2);
                 Node       *n2 = flatten_grouping_sets(n1, false, NULL);
 
@@ -1248,9 +1193,7 @@ static Node *flatten_grouping_sets(Node *expr, bool toplevel, bool *hasGroupingS
              */
 
             if (toplevel || (gset->kind != GROUPING_SET_SETS))
-            {
                 return (Node *) makeGroupingSet(gset->kind, result_set, gset->location);
-            }
             else
                 return (Node *) result_set;
 
@@ -1418,8 +1361,7 @@ static List * transformGroupClauseList(List **flatresult, ParseState *pstate, Li
     {
         Node *gexpr = (Node *) lfirst(gl);
 
-        Index ref = transform_group_clause_expr(flatresult, seen_local, pstate, gexpr, targetlist, sortClause,
-                                             exprKind, toplevel);
+        Index ref = transform_group_clause_expr(flatresult, seen_local, pstate, gexpr, targetlist, sortClause, exprKind, toplevel);
 
         if (ref > 0) {
             seen_local = bms_add_member(seen_local, ref);
@@ -1948,8 +1890,7 @@ static RangeTblEntry *transform_cypher_optional_match_clause(cypher_parsestate *
     // get the colnames and colvars from the rtes
     get_res_cols(pstate, l_nsitem, r_nsitem, &res_colnames, &res_colvars);
 
-    jnsitem = addRangeTableEntryForJoin(pstate, res_colnames, NULL, j->jointype, 0, res_colvars, NIL,
-                                        NIL, j->alias, NULL, false);
+    jnsitem = addRangeTableEntryForJoin(pstate, res_colnames, NULL, j->jointype, 0, res_colvars, NIL, NIL, j->alias, NULL, false);
 
     j->rtindex = jnsitem->p_rtindex;
 
@@ -2081,8 +2022,7 @@ static Query *transform_cypher_sub_pattern(cypher_parsestate *cpstate, cypher_cl
 
     return qry;
 }
-static Node *make_null_const(int location)
-{
+static Node *make_null_const(int location) {
     A_Const *n;
 
     n = makeNode(A_Const);
@@ -2091,8 +2031,7 @@ static Node *make_null_const(int location)
 
     return (Node *)n;
 }
-static Node *make_int_const(int i, int location)
-{
+static Node *make_int_const(int i, int location) {
     A_Const *n;
 
     n = makeNode(A_Const);
@@ -2103,8 +2042,7 @@ static Node *make_int_const(int i, int location)
     return (Node *)n;
 }
 
-static Node *make_string_const(char *s, int location)
-{
+static Node *make_string_const(char *s, int location) {
     A_Const *n;
 
     n = makeNode(A_Const);
@@ -2136,8 +2074,7 @@ static ParseNamespaceItem *add_vle_to_query(cypher_parsestate *cpstate, Node *n)
     return lfirst(list_head(namespace));
 }
 
-static FuncCall *make_vle_func_call(cypher_parsestate *cpstate,
-       cypher_node *prev_node, cypher_relationship *rel, cypher_node *next_node)
+static FuncCall *make_vle_func_call(cypher_parsestate *cpstate, cypher_node *prev_node, cypher_relationship *rel, cypher_node *next_node)
 {
     ColumnRef *cref;
     A_Indices *ai = (A_Indices *)rel->varlen;
@@ -2265,8 +2202,7 @@ static List *insert_vle_entity(List *entities, transform_entity *next_entity, tr
     return entities;
 }
 
-static Node *transform_VLE_Function(cypher_parsestate *cpstate, Node *n, RangeTblEntry **top_rte, int *top_rti,
-                                    List **namespace) {
+static Node *transform_VLE_Function(cypher_parsestate *cpstate, Node *n, RangeTblEntry **top_rte, int *top_rti, List **namespace) {
     ParseState *pstate = &cpstate->pstate;
 
     Assert(IsA(n, RangeFunction));
@@ -2453,12 +2389,10 @@ static FuncCall *prevent_duplicate_edges(cypher_parsestate *cpstate, List *entit
     qualified_function_name = list_make2(ag_catalog, edge_fn);
 
     bool has_vle =  false;
-    foreach (lc, entities)
-    {
+    foreach (lc, entities) {
         transform_entity *entity = lfirst(lc);
 
-        if (entity->type == ENT_VLE_EDGE)
-        {
+        if (entity->type == ENT_VLE_EDGE) {
             has_vle = true;
             break;
         }
@@ -2477,14 +2411,11 @@ static FuncCall *prevent_duplicate_edges(cypher_parsestate *cpstate, List *entit
             transform_entity *entity = lfirst(lc);
             Node *edge;
 
-            if (entity->type == ENT_EDGE)
-            {
+            if (entity->type == ENT_EDGE) {
                 edge = make_qual(cpstate, entity, AG_EDGE_COLNAME_ID);
 
                  edges = lappend(edges, edge);
-            }
-            else if (entity->type == ENT_VLE_EDGE)
-            {
+            } else if (entity->type == ENT_VLE_EDGE) {
                 edges = lappend(edges, entity->expr);
             }
         }
@@ -2496,7 +2427,6 @@ static FuncCall *prevent_duplicate_edges(cypher_parsestate *cpstate, List *entit
         transform_entity *entity_i = (transform_entity *)list_nth_cell(entities, i)->ptr_value;
 
         if (entity_i->type == ENT_EDGE) {
-
             for (int j = i + 1; j < list_length(entities); j++) {
                 transform_entity *entity_j = (transform_entity *)list_nth_cell(entities, j)->ptr_value;
                 if (entity_j->type == ENT_EDGE) {
@@ -2691,12 +2621,6 @@ static List *make_edge_quals(cypher_parsestate *cpstate, transform_entity *edge,
 
     Assert(edge->type == ENT_EDGE);
 
-    /*
-     * When the rel is on the left side in a pattern, then a left directed path
-     * is concerned with the start id and a right directed path is concerned
-     * with the end id. When the rel is on the right side of a pattern, the
-     * above statement is inverted.
-     */
     switch (side) {
         case JOIN_SIDE_LEFT:
             left_dir = AG_EDGE_COLNAME_START_ID;
@@ -2753,8 +2677,7 @@ static A_Expr *filter_vertices_on_label_id(cypher_parsestate *cpstate, Node *id_
  * edge in a MATCH clause. creates the gtype @> with the enitity's properties
  * on the right and the contraints in the MATCH clause on the left.
  */
-static Node *create_property_constraints(cypher_parsestate *cpstate, transform_entity *entity,
-                                         Node *property_constraints) {
+static Node *create_property_constraints(cypher_parsestate *cpstate, transform_entity *entity, Node *property_constraints) {
     ParseState *pstate = (ParseState *)cpstate;
     char *entity_name;
     ColumnRef *cr;
@@ -3113,12 +3036,6 @@ static Node *make_qual(cypher_parsestate *cpstate, transform_entity *entity, cha
 	ParseNamespaceItem *pnsi = refnameNamespaceItem(cpstate, NULL, entity_name, -1, &sublevels);
 
         if (!pnsi) {
-  /*          if (IsA(entity->expr, FuncExpr)) {
-                FuncExpr *fe = entity->expr;
-            //    return make_id_expr(cpstate, fe);
-                return copyObject(linitial(fe->args));
-            }
-*/
             Node *expr = colNameToVar(cpstate, get_alias_colref_name(col_name, entity_name), false, -1);
         
 	    if (expr)
@@ -3127,21 +3044,6 @@ static Node *make_qual(cypher_parsestate *cpstate, transform_entity *entity, cha
 		            errmsg("could not find ParseNamespaceItem %s here", get_alias_colref_name(col_name, entity_name))));
 	}
         return scanNSItemForColumn(cpstate, pnsi, sublevels, col_name, -1);
-	/*
-        char *entity_name;
-        ColumnRef *cr = makeNode(ColumnRef);
-
-        if (entity->type == ENT_EDGE)
-            entity_name = entity->entity.node->name;
-        else if (entity->type == ENT_VERTEX)
-            entity_name = entity->entity.rel->name;
-        else
-            ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED), errmsg("unknown entity type")));
-
-        cr->fields = list_make2(makeString(entity_name), makeString(col_name));
-
-        node = (Node *)cr;
-  */
     }
 
     return node;
