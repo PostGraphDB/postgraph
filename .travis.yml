@@ -13,6 +13,6 @@ jobs:
         - postgresql-server-dev-14
         - postgresql-14-postgis-3
     script:
-    - sudo make install -j$(nproc)
+    - sudo make install -j$(nproc) POSTGIS_DIR=/usr/lib/postgresql/14/bin
     - make installcheck
     after_failure: cat regress/regression.diffs
