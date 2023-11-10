@@ -9,8 +9,8 @@ jobs:
     addons:
       apt:
         packages:
-        - postgresql-14-postgis-3
-        - postgresql-server-dev-14
+        - postgresql-14
+        - postgis-3
     script:
     - sudo make install -j$(nproc)
     - make installcheck
