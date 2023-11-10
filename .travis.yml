@@ -1,6 +1,6 @@
 language: c
 os: linux
-dist: bionic
+dist: jammy
 arch: amd64
 jobs:
   include:
