@@ -10,6 +10,7 @@ jobs:
       apt:
         packages:
         - postgresql-14
+        - postgresql-server-dev-14
     script:
     - sudo make install -j$(nproc)
     - make installcheck
