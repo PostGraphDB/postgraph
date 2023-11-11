@@ -148,6 +148,8 @@ static void transform_cypher_merge_mark_tuple_position(cypher_parsestate *cpstat
 static TargetEntry *placeholder_vertex(cypher_parsestate *cpstate, char *name);
 static TargetEntry *placeholder_edge(cypher_parsestate *cpstate, char *name);
 static TargetEntry *placeholder_traversal(cypher_parsestate *cpstate, char *name);
+// call
+static Query *transform_cypher_call(cypher_parsestate *cpstate, cypher_clause *clause);
 // transform
 #define PREV_CYPHER_CLAUSE_ALIAS    "_"
 #define CYPHER_OPT_RIGHT_ALIAS      "_R"
@@ -197,6 +199,8 @@ Query *transform_cypher_clause(cypher_parsestate *cpstate, cypher_clause *clause
             ereport(ERROR, (errmsg_internal("unexpected Node for cypher_return")));
     } else if (is_ag_node(self, cypher_with)) {
         result = transform_cypher_with(cpstate, clause);
+    } else if (is_ag_node(self, cypher_call)) {
+        result = transform_cypher_call(cpstate, clause);
     } else if (is_ag_node(self, cypher_match)) {
         result = transform_cypher_match(cpstate, clause);
     } else if (is_ag_node(self, cypher_create)) {
@@ -248,6 +252,10 @@ static cypher_clause *make_cypher_clause(List *stmt) {
         clause = next;
     }
     return clause;
+}
+
+static Query *transform_cypher_call(cypher_parsestate *cpstate, cypher_clause *clause) {
+        ereport(ERROR, (errmsg_internal("Call Clause in the transform stage")));
 }
 
 /*

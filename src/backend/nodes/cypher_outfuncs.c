@@ -137,6 +137,19 @@ void out_cypher_with(StringInfo str, const ExtensibleNode *node)
     WRITE_NODE_FIELD(where);
 }
 
+// serialization function for the cypher_with ExtensibleNode.
+void out_cypher_call(StringInfo str, const ExtensibleNode *node)
+{
+    DEFINE_AG_NODE(cypher_call);
+
+    WRITE_ENUM_FIELD(cck, cypher_call_kind);
+    WRITE_NODE_FIELD(func);
+    WRITE_NODE_FIELD(yield_list);
+    WRITE_NODE_FIELD(where);
+    WRITE_NODE_FIELD(cypher);
+    WRITE_NODE_FIELD(query_tree);
+}
+
 // serialization function for the cypher_match ExtensibleNode.
 void out_cypher_match(StringInfo str, const ExtensibleNode *node)
 {

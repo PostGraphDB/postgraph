@@ -280,11 +280,15 @@ cypher_stmt:
 call_stmt:
     CALL expr_func_norm
         {
-            ereport(ERROR,
-                    (errcode(ERRCODE_SYNTAX_ERROR),
-                     errmsg("CALL not supported yet"),
-                     ag_scanner_errposition(@1, scanner)));
-        }
+            cypher_call *call = make_ag_node(cypher_call);
+            call->cck = CCK_FUNCTION;
+            call->func = $2;
+            call->yield_list = NIL;
+            call->where = NULL;
+            call->cypher = NIL;
+            call->query_tree = NULL;
+            $$ = call;
+       }
     | CALL expr_func_norm YIELD yield_item_list where_opt
         {
             ereport(ERROR,
