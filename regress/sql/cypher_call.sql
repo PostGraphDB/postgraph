@@ -33,6 +33,13 @@ FROM cypher('cypher_call', $$
     CALL sin(1) as b RETURN b
 $$) AS (a gtype);
 
+SELECT *
+FROM cypher('cypher_call', $$
+    WITH [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as lst
+    CALL unnest(lst) as b 
+    RETURN b
+$$) AS (a gtype);
+
 
 SELECT *
 FROM cypher('cypher_call', $$
