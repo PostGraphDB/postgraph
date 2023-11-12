@@ -254,8 +254,101 @@ static cypher_clause *make_cypher_clause(List *stmt) {
     return clause;
 }
 
+static Node *transform_srf_function(cypher_parsestate *cpstate, Node *n, RangeTblEntry **top_rte, int *top_rti, List **namespace);
+
+static ParseNamespaceItem *add_srf_to_query(cypher_parsestate *cpstate, Node *n) {
+    RangeTblEntry *rte = NULL;
+    RangeTblRef *rtr;
+    List *namespace = NULL;
+    int rtindex;
+    ParseState *pstate = (ParseState *)cpstate;
+
+    Alias *alias = make_alias(get_next_default_alias(cpstate), NIL);
+    RangeFunction *rf = make_range_function(n, alias, false, false, false);
+
+   // ereport(ERROR, (errmsg_internal("Transform of CALL srf not done")));
+
+    rtr = transform_srf_function(cpstate, rf, &rte, &rtindex, &namespace);
+    Assert(rtr != NULL);
+
+    checkNameSpaceConflicts(pstate, pstate->p_namespace, namespace);
+
+    setNamespaceLateralState(namespace, true, true);
+
+    pstate->p_joinlist = lappend(pstate->p_joinlist, rtr);
+    pstate->p_namespace = list_concat(pstate->p_namespace, namespace);
+
+    setNamespaceLateralState(pstate->p_namespace, false, true);
+
+    return lfirst(list_head(namespace));
+}
+
+static Node *transform_srf_function(cypher_parsestate *cpstate, Node *n, RangeTblEntry **top_rte, int *top_rti, List **namespace) {
+    ParseState *pstate = (ParseState *)cpstate;
+    
+    Assert(IsA(n, RangeFunction));
+    
+    if (IsA(n, RangeFunction)) {
+        RangeTblRef *rtr;
+        RangeTblEntry *rte;
+        ParseNamespaceItem *nsitem;
+        int rtindex;
+    
+        nsitem = transform_RangeFunction(cpstate, (RangeFunction *) n);
+        rte = nsitem->p_rte;
+        rtindex = list_length(pstate->p_rtable);
+        Assert(rte == rt_fetch(rtindex, pstate->p_rtable));
+        *top_rte = rte;
+        *top_rti = rtindex;
+        *namespace = list_make1(nsitem);
+        rtr = makeNode(RangeTblRef);
+        rtr->rtindex = rtindex;
+        return (Node *) rtr;
+    }
+    
+    return NULL;
+}
+
 static Query *transform_cypher_call(cypher_parsestate *cpstate, cypher_clause *clause) {
-        ereport(ERROR, (errmsg_internal("Call Clause in the transform stage")));
+    cypher_call *call = clause->self;
+    if (call->cck != CCK_FUNCTION)
+        ereport(ERROR, (errmsg_internal("Call only supports set-returning functions at this time")));
+
+    Node *expr;
+    TargetEntry *te;
+    ParseNamespaceItem *pnsi;
+
+    cypher_parsestate *child_cpstate = make_cypher_parsestate(cpstate);
+    ParseState *pstate = (ParseState *) child_cpstate;
+
+    Query *query = makeNode(Query);
+    query->commandType = CMD_SELECT;
+
+    if (clause->prev) {
+        int rtindex;
+
+        pnsi = transform_prev_cypher_clause(child_cpstate, clause->prev, true);
+        rtindex = list_length(pstate->p_rtable);
+        Assert(rtindex == 1); // rte is the first RangeTblEntry in pstate
+        query->targetList = expandNSItemAttrs(pstate, pnsi, 0, -1);
+    }
+
+    expr = transform_cypher_expr(child_cpstate, call->func, EXPR_KIND_SELECT_TARGET);
+    te = makeTargetEntry((Expr *) expr, (AttrNumber) pstate->p_next_resno++, call->alias, false);
+
+    query->targetList = lappend(query->targetList, te);
+    query->rtable = pstate->p_rtable;
+    query->jointree = makeFromExpr(pstate->p_joinlist, NULL);
+    query->hasTargetSRFs = pstate->p_hasTargetSRFs;
+
+    assign_query_collations(pstate, query);
+
+    free_cypher_parsestate(child_cpstate);
+    return query;
+
+
+
+
 }
 
 /*

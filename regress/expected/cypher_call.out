@@ -26,14 +26,47 @@ NOTICE:  graph "cypher_call" has been created
 --
 -- Create table to hold the start and end vertices to test the SRF
 --
+SELECT *
+FROM cypher('cypher_call', $$
+    CALL sin(1) as a RETURN a
+$$) AS (a gtype);
+         a          
+--------------------
+ 0.8414709848078965
+(1 row)
+
+SELECT *
+FROM cypher('cypher_call', $$
+    CALL sin(1) as b RETURN b
+$$) AS (a gtype);
+         a          
+--------------------
+ 0.8414709848078965
+(1 row)
+
+SELECT *
+FROM cypher('cypher_call', $$
+    CALL pg_catalog.generate_series(1, 2, 3)
+$$) AS (a gtype);
+ERROR:  syntax error at or near "."
+LINE 3:     CALL pg_catalog.generate_series(1, 2, 3)
+                           ^
 -- Create a graph to test
 SELECT *
 FROM cypher('cypher_call', $$
     CALL this_isnt_a_real_function(1, 2, 3)
 $$) AS (a gtype);
-ERROR:  Call Clause in the transform stage
-LINE 2: FROM cypher('cypher_call', $$
-                                    ^
+ERROR:  syntax error at end of input
+LINE 4: $$) AS (a gtype);
+        ^
+SELECT *
+FROM cypher('cypher_call', $$
+    MATCH (n)
+    CALL this_isnt_a_real_function(1, 2, 3)
+$$) AS (a gtype);
+ERROR:  syntax error at end of input
+LINE 5: $$) AS (a gtype);
+        ^
 --
 -- Clean up
 --

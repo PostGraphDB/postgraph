@@ -23,12 +23,35 @@ SELECT create_graph('cypher_call');
 --
 -- Create table to hold the start and end vertices to test the SRF
 --
+SELECT *
+FROM cypher('cypher_call', $$
+    CALL sin(1) as a RETURN a
+$$) AS (a gtype);
+
+SELECT *
+FROM cypher('cypher_call', $$
+    CALL sin(1) as b RETURN b
+$$) AS (a gtype);
+
+
+SELECT *
+FROM cypher('cypher_call', $$
+    CALL pg_catalog.generate_series(1, 2, 3)
+$$) AS (a gtype);
 
 -- Create a graph to test
 SELECT *
 FROM cypher('cypher_call', $$
     CALL this_isnt_a_real_function(1, 2, 3)
 $$) AS (a gtype);
+
+SELECT *
+FROM cypher('cypher_call', $$
+    MATCH (n)
+    CALL this_isnt_a_real_function(1, 2, 3)
+$$) AS (a gtype);
+
+
 
 --
 -- Clean up

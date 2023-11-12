@@ -150,6 +150,7 @@ typedef struct cypher_call
     Node *func;
     List *yield_list;
     Node *where;
+    char *alias;
     // cypher Subquery
     List *cypher;
     // sql subquery

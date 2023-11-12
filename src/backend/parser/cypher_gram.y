@@ -278,12 +278,13 @@ cypher_stmt:
     ;
 
 call_stmt:
-    CALL expr_func_norm
+    CALL expr_func_norm AS var_name
         {
             cypher_call *call = make_ag_node(cypher_call);
             call->cck = CCK_FUNCTION;
             call->func = $2;
             call->yield_list = NIL;
+            call->alias = $4;
             call->where = NULL;
             call->cypher = NIL;
             call->query_tree = NULL;
