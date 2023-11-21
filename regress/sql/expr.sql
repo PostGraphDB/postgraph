@@ -579,7 +579,8 @@ SELECT * from cypher('expr', $$ RETURN cbrt(0) $$) as (result gtype);
 SELECT * from cypher('expr', $$ RETURN cbrt(-1) $$) as (result gtype);
 SELECT * from cypher('expr', $$ RETURN cbrt(null) $$) as (result gtype);
 SELECT * from cypher('expr', $$ RETURN cbrt("1") $$) as (result gtype);
-
+-- factorial
+SELECT * FROM cypher('expr', $$ RETURN factorial(10) $$) AS (results gtype);
 --CASE
 SELECT create_graph('case_statement');
 SELECT * FROM cypher('case_statement', $$CREATE ({i: 1, j: null})$$) AS (result gtype);
