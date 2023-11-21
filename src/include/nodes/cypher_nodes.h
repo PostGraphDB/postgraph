@@ -135,6 +135,28 @@ typedef struct cypher_merge
     Node *path;
 } cypher_merge;
 
+typedef enum cypher_call_kind
+{
+        CCK_FUNCTION,
+        CCK_CYPHER_SUBQUERY,
+	CCK_SQL_SUBQUERY
+} cypher_call_kind;
+
+typedef struct cypher_call
+{
+    ExtensibleNode extensible;
+    cypher_call_kind cck;
+    // Function
+    Node *func;
+    List *yield_list;
+    Node *where;
+    char *alias;
+    // cypher Subquery
+    List *cypher;
+    // sql subquery
+    Node *query_tree;
+} cypher_call;
+
 /*
  * pattern
  */

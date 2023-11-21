@@ -35,6 +35,7 @@ typedef enum ag_node_tag
     cypher_group_by_t,
     cypher_return_t,
     cypher_with_t,
+    cypher_call_t,
     // reading clause
     cypher_match_t,
     // updating clause

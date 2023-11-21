@@ -148,6 +148,8 @@ static void transform_cypher_merge_mark_tuple_position(cypher_parsestate *cpstat
 static TargetEntry *placeholder_vertex(cypher_parsestate *cpstate, char *name);
 static TargetEntry *placeholder_edge(cypher_parsestate *cpstate, char *name);
 static TargetEntry *placeholder_traversal(cypher_parsestate *cpstate, char *name);
+// call
+static Query *transform_cypher_call(cypher_parsestate *cpstate, cypher_clause *clause);
 // transform
 #define PREV_CYPHER_CLAUSE_ALIAS    "_"
 #define CYPHER_OPT_RIGHT_ALIAS      "_R"
@@ -197,6 +199,8 @@ Query *transform_cypher_clause(cypher_parsestate *cpstate, cypher_clause *clause
             ereport(ERROR, (errmsg_internal("unexpected Node for cypher_return")));
     } else if (is_ag_node(self, cypher_with)) {
         result = transform_cypher_with(cpstate, clause);
+    } else if (is_ag_node(self, cypher_call)) {
+        result = transform_cypher_call(cpstate, clause);
     } else if (is_ag_node(self, cypher_match)) {
         result = transform_cypher_match(cpstate, clause);
     } else if (is_ag_node(self, cypher_create)) {
@@ -248,6 +252,113 @@ static cypher_clause *make_cypher_clause(List *stmt) {
         clause = next;
     }
     return clause;
+}
+
+static Node *transform_srf_function(cypher_parsestate *cpstate, Node *n, RangeTblEntry **top_rte, int *top_rti, List **namespace);
+
+static ParseNamespaceItem *add_srf_to_query(cypher_parsestate *cpstate, Node *n, char *var_name) {
+    RangeTblEntry *rte = NULL;
+    RangeTblRef *rtr;
+    List *namespace = NULL;
+    int rtindex;
+    ParseState *pstate = (ParseState *)cpstate;
+
+    Alias *alias = make_alias(var_name, NIL);
+    RangeFunction *rf = make_range_function(n, alias, true, false, false);
+
+
+    rtr = transform_srf_function(cpstate, rf, &rte, &rtindex, &namespace);
+    Assert(rtr != NULL);
+
+    checkNameSpaceConflicts(pstate, pstate->p_namespace, namespace);
+
+    setNamespaceLateralState(namespace, true, true);
+
+    pstate->p_joinlist = lappend(pstate->p_joinlist, rtr);
+    pstate->p_namespace = list_concat(pstate->p_namespace, namespace);
+
+    setNamespaceLateralState(pstate->p_namespace, true, true);
+
+    return lfirst(list_head(namespace));
+}
+
+static Node *transform_srf_function(cypher_parsestate *cpstate, Node *n, RangeTblEntry **top_rte, int *top_rti, List **namespace) {
+    ParseState *pstate = (ParseState *)cpstate;
+    
+    Assert(IsA(n, RangeFunction));
+    
+    if (IsA(n, RangeFunction)) {
+        RangeTblRef *rtr;
+        RangeTblEntry *rte;
+        ParseNamespaceItem *nsitem;
+        int rtindex;
+    
+        nsitem = transform_RangeFunction(cpstate, (RangeFunction *) n);
+        rte = nsitem->p_rte;
+        rtindex = list_length(pstate->p_rtable);
+        Assert(rte == rt_fetch(rtindex, pstate->p_rtable));
+        *top_rte = rte;
+        *top_rti = rtindex;
+        *namespace = list_make1(nsitem);
+        rtr = makeNode(RangeTblRef);
+        rtr->rtindex = rtindex;
+        return (Node *) rtr;
+    }
+    
+    return NULL;
+}
+
+static Query *transform_cypher_call(cypher_parsestate *cpstate, cypher_clause *clause) {
+    cypher_parsestate *child_cpstate = make_cypher_parsestate(cpstate);
+    ParseState *pstate = (ParseState *) child_cpstate;
+    cypher_call *call = clause->self;
+    TargetEntry *te;
+    ParseNamespaceItem *pnsi;
+
+
+    Query *query = makeNode(Query);
+    query->commandType = CMD_SELECT;
+
+    if (call->cck != CCK_FUNCTION)
+        ereport(ERROR, (errmsg_internal("Call only supports set-returning functions at this time")));
+
+    if (clause->prev) {
+        int rtindex;
+
+        pnsi = transform_prev_cypher_clause(child_cpstate, clause->prev, true);
+        rtindex = list_length(pstate->p_rtable);
+        Assert(rtindex == 1); // rte is the first RangeTblEntry in pstate
+        query->targetList = expandNSItemAttrs(pstate, pnsi, 0, -1);
+    }
+
+    Expr *expr = NULL;
+    if (!call->where) {
+        expr = transform_cypher_expr(child_cpstate, call->func, EXPR_KIND_SELECT_TARGET);
+        te = makeTargetEntry((Expr *) expr, (AttrNumber) pstate->p_next_resno++, call->alias, false);
+
+        expr = NULL;
+        query->targetList = lappend(query->targetList, te);
+    } else {
+       pnsi = add_srf_to_query(child_cpstate, call->func, call->alias);
+       Node *var = scanNSItemForColumn(pstate, pnsi, 0, call->alias, -1);
+       te = makeTargetEntry((Expr *) var, (AttrNumber) pstate->p_next_resno++, call->alias, false);
+       query->targetList = lappend(query->targetList, te);
+
+       transform_entity *entity = make_transform_entity(child_cpstate, ENT_FUNC_CALL, NULL, (Node *)var, call->alias);
+       child_cpstate->entities = lappend(child_cpstate->entities, entity);
+
+
+       expr = transform_cypher_expr(child_cpstate, call->where, EXPR_KIND_WHERE);
+    }
+
+    query->rtable = pstate->p_rtable;
+    query->jointree = makeFromExpr(pstate->p_joinlist, expr);
+    query->hasTargetSRFs = pstate->p_hasTargetSRFs;
+
+    assign_query_collations(pstate, query);
+
+    free_cypher_parsestate(child_cpstate);
+    return query;
 }
 
 /*
@@ -2139,7 +2250,7 @@ static transform_entity *handle_vertex(cypher_parsestate *cpstate, Query *query,
     // transform vertex
     expr = transform_cypher_node(cpstate, node, &query->targetList, list_length(path->path) == 1 ? true :INCLUDE_NODE_IN_JOIN_TREE(path, node));
 
-    entity = make_transform_entity(cpstate, ENT_VERTEX, (Node *)node, expr);
+    entity = make_transform_entity(cpstate, ENT_VERTEX, (Node *)node, expr, node->name);
 
     // transform properties if they exist 
     if (node->props)
@@ -2183,7 +2294,7 @@ static transform_entity *handle_edge(cypher_parsestate *cpstate, Query *query,
                                                                                  
     expr = transform_cypher_edge(cpstate, rel, &query->targetList);  
                                                                                  
-    entity = make_transform_entity(cpstate, ENT_EDGE, (Node *)rel, expr);                            
+    entity = make_transform_entity(cpstate, ENT_EDGE, (Node *)rel, expr, rel->name);                            
     if (rel->props) {                                                                
         Node *n = create_property_constraints(cpstate, entity, rel->props);
 
@@ -2778,7 +2889,7 @@ static transform_entity *transform_VLE_edge_entity(cypher_parsestate *cpstate, c
     TargetEntry *te = makeTargetEntry((Expr*)var, pstate->p_next_resno++, rel->name, false);
     query->targetList = lappend(query->targetList, te);
 
-    transform_entity *entity = make_transform_entity(cpstate, ENT_VLE_EDGE, (Node *)rel, (Expr *)var);
+    transform_entity *entity = make_transform_entity(cpstate, ENT_VLE_EDGE, (Node *)rel, (Expr *)var, rel->name);
 
     return entity;
 }
@@ -3476,7 +3587,7 @@ static cypher_create_path *transform_cypher_create_path(cypher_parsestate *cpsta
 
             transformed_path = lappend(transformed_path, rel);
 
-            entity = make_transform_entity(cpstate, ENT_VERTEX, (Node *)node, NULL);
+            entity = make_transform_entity(cpstate, ENT_VERTEX, (Node *)node, NULL, NULL);
 
             cpstate->entities = lappend(cpstate->entities, entity);
         } else if (is_ag_node(lfirst(lc), cypher_relationship)) {
@@ -3490,7 +3601,7 @@ static cypher_create_path *transform_cypher_create_path(cypher_parsestate *cpsta
 
             transformed_path = lappend(transformed_path, rel);
 
-            entity = make_transform_entity(cpstate, ENT_EDGE, (Node *)edge, NULL);
+            entity = make_transform_entity(cpstate, ENT_EDGE, (Node *)edge, NULL, NULL);
 
             cpstate->entities = lappend(cpstate->entities, entity);
         } else {

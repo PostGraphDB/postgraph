@@ -30,6 +30,7 @@
 void out_cypher_group_by(StringInfo str, const ExtensibleNode *node);
 void out_cypher_return(StringInfo str, const ExtensibleNode *node);
 void out_cypher_with(StringInfo str, const ExtensibleNode *node);
+void out_cypher_call(StringInfo str, const ExtensibleNode *node);
 void out_cypher_match(StringInfo str, const ExtensibleNode *node);
 void out_cypher_create(StringInfo str, const ExtensibleNode *node);
 void out_cypher_set(StringInfo str, const ExtensibleNode *node);

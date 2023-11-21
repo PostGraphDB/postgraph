@@ -30,7 +30,8 @@ enum transform_entity_type
 {
     ENT_VERTEX = 0x0,
     ENT_EDGE,
-    ENT_VLE_EDGE
+    ENT_VLE_EDGE,
+    ENT_FUNC_CALL
 };
 
 enum transform_entity_join_side
@@ -72,6 +73,7 @@ typedef struct
      */
     Expr *expr;
 
+    char *alias;
     /*
      * tells each clause whether this variable was
      * declared by itself or a previous clause.
@@ -91,7 +93,7 @@ transform_entity *find_transform_entity(cypher_parsestate *cpstate,
                                         enum transform_entity_type type);
 transform_entity *make_transform_entity(cypher_parsestate *cpstate,
                                         enum transform_entity_type type,
-                                        Node *node, Expr *expr);
+                                        Node *node, Expr *expr, char *alias);
 char *get_entity_name(transform_entity *entity);
 enum transform_entity_type find_transform_entity_type(cypher_parsestate *cpstate, char *name);
 

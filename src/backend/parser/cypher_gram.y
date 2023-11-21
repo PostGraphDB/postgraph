@@ -221,9 +221,6 @@ static Node *make_set_op(SetOperation op, bool all_or_distinct, List *larg, List
 
 // comparison
 static bool is_A_Expr_a_comparison_operation(A_Expr *a);
-static Node *build_comparison_expression(Node *left_node,
-                                         Node *right_node,
-                                         char *opr_name, int location);
 %}
 %%
 
@@ -278,15 +275,30 @@ cypher_stmt:
     ;
 
 call_stmt:
-    CALL expr_func_norm
+    CALL expr_func_norm AS var_name where_opt
         {
-            ereport(ERROR,
-                    (errcode(ERRCODE_SYNTAX_ERROR),
-                     errmsg("CALL not supported yet"),
-                     ag_scanner_errposition(@1, scanner)));
-        }
+            cypher_call *call = make_ag_node(cypher_call);
+            call->cck = CCK_FUNCTION;
+            call->func = $2;
+            call->yield_list = NIL;
+            call->alias = $4;
+            call->where = $5;
+            call->cypher = NIL;
+            call->query_tree = NULL;
+            $$ = call;
+       }
     | CALL expr_func_norm YIELD yield_item_list where_opt
         {
+            cypher_call *call = make_ag_node(cypher_call);
+            call->cck = CCK_FUNCTION;
+            call->func = $2;
+            call->yield_list = NIL;
+            call->alias = $4;
+            call->where = $5;
+            call->cypher = NIL;
+            call->query_tree = NULL;
+            $$ = call;
+
             ereport(ERROR,
                     (errcode(ERRCODE_SYNTAX_ERROR),
                      errmsg("CALL... [YIELD] not supported yet"),

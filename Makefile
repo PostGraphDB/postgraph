@@ -112,7 +112,8 @@ REGRESS = scan \
           cypher_vle \
           cypher_union \
           cypher_merge \
-	  order_by \
+          cypher_call \
+          order_by \
 	  regex \
           tsearch \
           aggregation \
