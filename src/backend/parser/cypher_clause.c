@@ -242,7 +242,7 @@ static cypher_clause *make_cypher_clause(List *stmt) {
     foreach (lc, stmt) {
         cypher_clause *next;
 
-        next = palloc(sizeof(*next));
+        next = palloc0(sizeof(*next));
         next->next = NULL;
         next->self = lfirst(lc);
         next->prev = clause;
@@ -321,9 +321,14 @@ static Query *transform_cypher_call(cypher_parsestate *cpstate, cypher_clause *c
 
 
     if (call->cck == CCK_CYPHER_SUBQUERY) {
-       cypher_clause *clause = make_cypher_clause(call->cypher);
+        cypher_clause *call_clause = make_cypher_clause(call->cypher);
 
-       //ereport(ERROR, (errmsg_internal("Call only supports set-returning functions at this time")));
+        //ereport(ERROR, (errmsg_internal("Call only supports set-returning functions at this time")));
+        Node *self = call_clause->self;
+
+        // examine the type of clause and call the transform logic for it
+        if (!is_ag_node(self, cypher_return)) 
+            ereport(ERROR, (errmsg_internal("Call Cypher Subquery must end with a RETURN")));
 
         if (clause->prev) {
 ereport(ERROR, (errmsg_internal("Call only supports set-returning functions at this time")));
@@ -347,7 +352,7 @@ ereport(ERROR, (errmsg_internal("Call only supports set-returning functions at t
         query->jointree = makeFromExpr(pstate->p_joinlist, NULL);
  */
 	} else {
-            return transform_cypher_clause(child_cpstate, clause);
+            return transform_cypher_clause(child_cpstate, call_clause);
         }
 
     markTargetListOrigins(pstate, query->targetList);

@@ -79,6 +79,20 @@ FROM cypher('cypher_call', $$
     RETURN a
 $$) AS (a gtype); 
 
+SELECT *
+FROM cypher('cypher_call', $$
+    CALL { CREATE (n) }
+    RETURN n
+$$) AS (a gtype);
+
+
+SELECT *
+FROM cypher('cypher_call', $$
+    CALL { CREATE (n) RETURN n as n }
+    RETURN n
+$$) AS (a vertex);
+
+
 --
 -- Clean up
 --

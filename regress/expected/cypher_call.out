@@ -133,6 +133,24 @@ $$) AS (a gtype);
  1
 (1 row)
 
+SELECT *
+FROM cypher('cypher_call', $$
+    CALL { CREATE (n) }
+    RETURN n
+$$) AS (a gtype);
+ERROR:  Call Cypher Subquery must end with a RETURN
+LINE 2: FROM cypher('cypher_call', $$
+                                    ^
+SELECT *
+FROM cypher('cypher_call', $$
+    CALL { CREATE (n) RETURN n as n }
+    RETURN n
+$$) AS (a vertex);
+                           a                            
+--------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {}}
+(1 row)
+
 --
 -- Clean up
 --
