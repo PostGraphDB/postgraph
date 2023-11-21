@@ -73,6 +73,11 @@ FROM cypher('cypher_call', $$
     RETURN 2
 $$) AS (a gtype);
 
+SELECT *
+FROM cypher('cypher_call', $$
+    CALL { RETURN 1 as a }
+    RETURN a
+$$) AS (a gtype); 
 
 --
 -- Clean up

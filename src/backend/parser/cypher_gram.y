@@ -315,8 +315,6 @@ call_stmt:
             call->cypher = $3;
             call->query_tree = NULL;
             $$ = call;
-
-
         }
     ;
 
