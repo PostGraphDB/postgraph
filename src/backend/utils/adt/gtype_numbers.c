@@ -464,3 +464,17 @@ gtype_cbrt(PG_FUNCTION_ARGS) {
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
 }
+
+PG_FUNCTION_INFO_V1(gtype_factorial);
+Datum
+gtype_factorial(PG_FUNCTION_ARGS) {
+    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+
+    gtype_value gtv_result;
+    gtv_result.type = AGTV_NUMERIC;
+    gtv_result.val.numeric =
+        DatumGetNumeric(DirectFunctionCall1(numeric_fac, convert_to_scalar(gtype_to_int8_internal, gt, "int")));
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv_result));
+}
+

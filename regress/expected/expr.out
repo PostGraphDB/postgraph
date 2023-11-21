@@ -2433,6 +2433,13 @@ SELECT * from cypher('expr', $$ RETURN cbrt("1") $$) as (result gtype);
  1.0
 (1 row)
 
+-- factorial
+SELECT * FROM cypher('expr', $$ RETURN factorial(10) $$) AS (results gtype);
+     results      
+------------------
+ 3628800::numeric
+(1 row)
+
 --CASE
 SELECT create_graph('case_statement');
 NOTICE:  graph "case_statement" has been created

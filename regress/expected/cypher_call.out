@@ -105,14 +105,6 @@ $$) AS (a gtype);
 ERROR:  syntax error at or near "."
 LINE 3:     CALL pg_catalog.generate_series(1, 2, 3)
                            ^
--- Create a graph to test
-SELECT *
-FROM cypher('cypher_call', $$
-    CALL this_isnt_a_real_function(1, 2, 3)
-$$) AS (a gtype);
-ERROR:  syntax error at end of input
-LINE 4: $$) AS (a gtype);
-        ^
 SELECT *
 FROM cypher('cypher_call', $$
     MATCH (n)
@@ -121,6 +113,44 @@ $$) AS (a gtype);
 ERROR:  syntax error at end of input
 LINE 5: $$) AS (a gtype);
         ^
+SELECT *
+FROM cypher('cypher_call', $$
+    CALL { RETURN 1 }
+    RETURN 2
+$$) AS (a gtype);
+ a 
+---
+ 2
+(1 row)
+
+SELECT *
+FROM cypher('cypher_call', $$
+    CALL { RETURN 1 as a }
+    RETURN a
+$$) AS (a gtype); 
+ a 
+---
+ 1
+(1 row)
+
+SELECT *
+FROM cypher('cypher_call', $$
+    CALL { CREATE (n) }
+    RETURN n
+$$) AS (a gtype);
+ERROR:  Call Cypher Subquery must end with a RETURN
+LINE 2: FROM cypher('cypher_call', $$
+                                    ^
+SELECT *
+FROM cypher('cypher_call', $$
+    CALL { CREATE (n) RETURN n as n }
+    RETURN n
+$$) AS (a vertex);
+                           a                            
+--------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {}}
+(1 row)
+
 --
 -- Clean up
 --

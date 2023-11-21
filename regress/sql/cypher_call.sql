@@ -59,18 +59,38 @@ FROM cypher('cypher_call', $$
     CALL pg_catalog.generate_series(1, 2, 3)
 $$) AS (a gtype);
 
--- Create a graph to test
-SELECT *
-FROM cypher('cypher_call', $$
-    CALL this_isnt_a_real_function(1, 2, 3)
-$$) AS (a gtype);
-
 SELECT *
 FROM cypher('cypher_call', $$
     MATCH (n)
     CALL this_isnt_a_real_function(1, 2, 3)
 $$) AS (a gtype);
 
+
+
+SELECT *
+FROM cypher('cypher_call', $$
+    CALL { RETURN 1 }
+    RETURN 2
+$$) AS (a gtype);
+
+SELECT *
+FROM cypher('cypher_call', $$
+    CALL { RETURN 1 as a }
+    RETURN a
+$$) AS (a gtype); 
+
+SELECT *
+FROM cypher('cypher_call', $$
+    CALL { CREATE (n) }
+    RETURN n
+$$) AS (a gtype);
+
+
+SELECT *
+FROM cypher('cypher_call', $$
+    CALL { CREATE (n) RETURN n as n }
+    RETURN n
+$$) AS (a vertex);
 
 
 --
