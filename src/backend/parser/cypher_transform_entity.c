@@ -24,21 +24,24 @@
 // creates a transform entity
 transform_entity *make_transform_entity(cypher_parsestate *cpstate,
                                         enum transform_entity_type type,
-                                        Node *node, Expr *expr)
+                                        Node *node, Expr *expr, char *alias)
 {
     transform_entity *entity;
 
-    entity = palloc(sizeof(transform_entity));
+    entity = palloc0(sizeof(transform_entity));
 
     entity->type = type;
     if (type == ENT_VERTEX)
         entity->entity.node = (cypher_node *)node;
     else if (entity->type == ENT_EDGE || entity->type == ENT_VLE_EDGE)
         entity->entity.rel = (cypher_relationship *)node;
+    else if (type == ENT_FUNC_CALL)
+	entity->entity.rel = NULL;
     else
         ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
                         errmsg("unknown entity type")));
 
+    entity->alias = alias;
     entity->declared_in_current_clause = true;
     entity->expr = expr;
     entity->in_join_tree = expr != NULL;
@@ -110,16 +113,13 @@ transform_entity *find_variable(cypher_parsestate *cpstate, char *name)
         transform_entity *entity = lfirst(lc);
         char *entity_name;
 
-        if (entity->type == ENT_VERTEX)
-        {
+        if (entity->type == ENT_VERTEX) {
             entity_name = entity->entity.node->name;
-        }
-        else if (entity->type == ENT_EDGE || entity->type == ENT_VLE_EDGE)
-        {
+        } else if (entity->type == ENT_EDGE || entity->type == ENT_VLE_EDGE) {
             entity_name = entity->entity.rel->name;
-        }
-        else
-        {
+        } else if (entity->type == ENT_FUNC_CALL) {
+	    entity_name = entity->alias;
+	}else {
             ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
                             errmsg("unknown entity type")));
         }

@@ -221,9 +221,6 @@ static Node *make_set_op(SetOperation op, bool all_or_distinct, List *larg, List
 
 // comparison
 static bool is_A_Expr_a_comparison_operation(A_Expr *a);
-static Node *build_comparison_expression(Node *left_node,
-                                         Node *right_node,
-                                         char *opr_name, int location);
 %}
 %%
 
@@ -278,20 +275,30 @@ cypher_stmt:
     ;
 
 call_stmt:
-    CALL expr_func_norm AS var_name
+    CALL expr_func_norm AS var_name where_opt
         {
             cypher_call *call = make_ag_node(cypher_call);
             call->cck = CCK_FUNCTION;
             call->func = $2;
             call->yield_list = NIL;
             call->alias = $4;
-            call->where = NULL;
+            call->where = $5;
             call->cypher = NIL;
             call->query_tree = NULL;
             $$ = call;
        }
     | CALL expr_func_norm YIELD yield_item_list where_opt
         {
+            cypher_call *call = make_ag_node(cypher_call);
+            call->cck = CCK_FUNCTION;
+            call->func = $2;
+            call->yield_list = NIL;
+            call->alias = $4;
+            call->where = $5;
+            call->cypher = NIL;
+            call->query_tree = NULL;
+            $$ = call;
+
             ereport(ERROR,
                     (errcode(ERRCODE_SYNTAX_ERROR),
                      errmsg("CALL... [YIELD] not supported yet"),
@@ -1176,27 +1183,27 @@ expr:
         }
     | expr '=' expr
         {
-            $$ = build_comparison_expression($1, $3, "=", @2);
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "=", $1, $3, @2);
         }
     | expr NOT_EQ expr
         {
-            $$ = build_comparison_expression($1, $3, "<>", @2);
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<>", $1, $3, @2);
         }
     | expr '<' expr
         {
-            $$ = build_comparison_expression($1, $3, "<", @2);
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<", $1, $3, @2);
         }
     | expr LT_EQ expr
         {
-            $$ = build_comparison_expression($1, $3, "<=", @2);
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<=", $1, $3, @2);
         }
     | expr '>' expr
         {
-            $$ = build_comparison_expression($1, $3, ">", @2);
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, ">", $1, $3, @2);
         }
     | expr GT_EQ expr
         {
-            $$ = build_comparison_expression($1, $3, ">=", @2);
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, ">=", $1, $3, @2);
         }
     | expr '+' expr
         {
@@ -2068,80 +2075,3 @@ static Node *make_set_op(SetOperation op, bool all_or_distinct, List *larg, List
     return (Node *) n;
 }
 
-/* check if A_Expr is a comparison expression */
-static bool is_A_Expr_a_comparison_operation(A_Expr *a)
-{
-    Value *v = NULL;
-    char *opr_name = NULL;
-
-    /* we don't support qualified comparison operators */
-    if (list_length(a->name) != 1)
-        return false;
-
-    /* get the value and verify that it is a string */
-    v = linitial(a->name);
-    Assert(v->type == T_String);
-
-    /* get the string value */
-    opr_name = v->val.str;
-
-    /* verify it is a comparison operation */
-    if (strcmp(opr_name, "<") == 0)
-        return true;
-    else if (strcmp(opr_name, ">") == 0)
-        return true;
-    else if (strcmp(opr_name, "<=") == 0)
-        return true;
-    else if (strcmp(opr_name, "=>") == 0)
-        return true;
-    else if (strcmp(opr_name, "=") == 0)
-        return true;
-    else if (strcmp(opr_name, "<>") == 0)
-        return true;
-
-
-    return false;
-}
-
-/*
- * Helper function to build the comparison operator expression. It will also
- * build a chained comparison operator expression if it detects a chained
- * comparison.
- */
-static Node *build_comparison_expression(Node *left_node, Node *right_node, char *opr_name, int location) {
-    Node *result_expr;
-
-    Assert(left_node != NULL);
-    Assert(right_node != NULL);
-    Assert(opr_name != NULL);
-
-    if (IsA(left_node, A_Expr) && is_A_Expr_a_comparison_operation((A_Expr *)left_node)) {
-        Node *n = (Node *)makeSimpleA_Expr(AEXPR_OP, opr_name,  ((A_Expr *) left_node)->rexpr, right_node, location);
-
-        result_expr = make_and_expr(left_node, n, location);
-    } else if (IsA(left_node, BoolExpr) && ((BoolExpr*)left_node)->boolop == AND_EXPR) {
-        BoolExpr *bexpr = NULL;
-        Node *last = NULL;
-
-        bexpr = (BoolExpr *)left_node;
-        last = llast(bexpr->args);
-
-        if (IsA(last, A_Expr) && is_A_Expr_a_comparison_operation((A_Expr *)last))
-        {
-            A_Expr *aexpr = NULL;
-            Node *lexpr = NULL;
-            Node *n = NULL;
-
-            aexpr = (A_Expr *) last;
-            lexpr = aexpr->rexpr;
-            n = (Node *)makeSimpleA_Expr(AEXPR_OP, opr_name, lexpr, right_node, location);
-
-            result_expr = make_and_expr(left_node, n, location);
-        }
-    }
-    else {
-        result_expr = (Node *)makeSimpleA_Expr(AEXPR_OP, opr_name, left_node, right_node, location);
-    }
-
-    return result_expr;
-}
