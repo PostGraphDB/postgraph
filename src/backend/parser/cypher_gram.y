@@ -292,7 +292,7 @@ call_stmt:
             cypher_call *call = make_ag_node(cypher_call);
             call->cck = CCK_FUNCTION;
             call->func = $2;
-            call->yield_list = NIL;
+            call->yield_list = $3;
             call->alias = $4;
             call->where = $5;
             call->cypher = NIL;
@@ -303,6 +303,20 @@ call_stmt:
                     (errcode(ERRCODE_SYNTAX_ERROR),
                      errmsg("CALL... [YIELD] not supported yet"),
                      ag_scanner_errposition(@1, scanner)));
+        }
+    | CALL '{' cypher_stmt '}'
+        {
+            cypher_call *call = make_ag_node(cypher_call);
+            call->cck = CCK_CYPHER_SUBQUERY;
+            call->func = NULL;
+            call->yield_list = NIL;
+            call->alias = NULL;
+            call->where = NULL;
+            call->cypher = $3;
+            call->query_tree = NULL;
+            $$ = call;
+
+
         }
     ;
 
@@ -320,13 +334,47 @@ yield_item_list:
 yield_item:
     expr AS var_name
         {
+            ResTarget *n;
 
+            n = makeNode(ResTarget);
+            n->name = $3;
+            n->indirection = NIL;
+            n->val = $1;
+            n->location = @1;
+
+            $$ = (Node *)n;
         }
     | expr
         {
+            ResTarget *n;
 
+            n = makeNode(ResTarget);
+            n->name = NULL;
+            n->indirection = NIL;
+            n->val = $1;
+            n->location = @1;
+
+            $$ = (Node *)n;
+        }
+    | '*'
+        {
+            ColumnRef *cr;
+            ResTarget *rt;
+
+            cr = makeNode(ColumnRef);
+            cr->fields = list_make1(makeNode(A_Star));
+            cr->location = @1;
+
+            rt = makeNode(ResTarget);
+            rt->name = NULL;
+            rt->indirection = NIL;
+            rt->val = (Node *)cr;
+            rt->location = @1;
+
+            $$ = (Node *)rt;
         }
     ;
+
 
 semicolon_opt:
     /* empty */

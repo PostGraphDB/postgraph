@@ -319,8 +319,6 @@ static Query *transform_cypher_call(cypher_parsestate *cpstate, cypher_clause *c
     Query *query = makeNode(Query);
     query->commandType = CMD_SELECT;
 
-    if (call->cck != CCK_FUNCTION)
-        ereport(ERROR, (errmsg_internal("Call only supports set-returning functions at this time")));
 
     if (clause->prev) {
         int rtindex;
@@ -330,6 +328,16 @@ static Query *transform_cypher_call(cypher_parsestate *cpstate, cypher_clause *c
         Assert(rtindex == 1); // rte is the first RangeTblEntry in pstate
         query->targetList = expandNSItemAttrs(pstate, pnsi, 0, -1);
     }
+
+
+    if (call->cck == CCK_CYPHER_SUBQUERY) {
+        if (call->cck != CCK_FUNCTION)
+            ereport(ERROR, (errmsg_internal("Call only supports set-returning functions at this time")));
+
+
+    } else {
+    if (call->cck != CCK_FUNCTION)
+        ereport(ERROR, (errmsg_internal("Call only supports set-returning functions at this time")));
 
     Expr *expr = NULL;
     if (!call->where) {
@@ -359,6 +367,7 @@ static Query *transform_cypher_call(cypher_parsestate *cpstate, cypher_clause *c
 
     free_cypher_parsestate(child_cpstate);
     return query;
+    }
 }
 
 /*
