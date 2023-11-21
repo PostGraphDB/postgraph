@@ -2074,4 +2074,3 @@ static Node *make_set_op(SetOperation op, bool all_or_distinct, List *larg, List
     n->rarg = (List *) rarg;
     return (Node *) n;
 }
-
