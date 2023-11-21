@@ -102,6 +102,16 @@ Datum gtype_left(PG_FUNCTION_ARGS)
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(gtype_initcap);
+// initCap(gtype)
+Datum gtype_initcap(PG_FUNCTION_ARGS)
+{
+    Datum d = DirectFunctionCall1Coll(initcap, C_COLLATION_OID, GT_ARG_TO_TEXT_DATUM(0));
+
+    gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(d) }};
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
 
 PG_FUNCTION_INFO_V1(gtype_substring_w_len);
 // substring(gtype, gtype, gtype)
