@@ -1563,6 +1563,13 @@ SELECT * FROM cypher('expr', $$ RETURN replace("Hello", 1, "e") $$) AS (results 
  "Hello"
 (1 row)
 
+-- initCap
+SELECT * FROM cypher('expr', $$ RETURN initCap("hello world") $$) AS (results gtype);
+    results    
+---------------
+ "Hello World"
+(1 row)
+
 -- sin
 SELECT sin::gtype = results FROM cypher('expr', $$ RETURN sin(3.1415) $$) AS (results gtype), sin(3.1415);
  ?column? 

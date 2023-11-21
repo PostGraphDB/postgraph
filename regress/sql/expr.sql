@@ -400,6 +400,8 @@ SELECT * FROM cypher('expr', $$ RETURN replace("Hello") $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN replace("Hello", null) $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN replace("Hello", "e", 1) $$) AS (results gtype);
 SELECT * FROM cypher('expr', $$ RETURN replace("Hello", 1, "e") $$) AS (results gtype);
+-- initCap
+SELECT * FROM cypher('expr', $$ RETURN initCap("hello world") $$) AS (results gtype);
 -- sin
 SELECT sin::gtype = results FROM cypher('expr', $$ RETURN sin(3.1415) $$) AS (results gtype), sin(3.1415);
 SELECT * FROM cypher('expr', $$ RETURN sin(null) $$) AS (results gtype);
