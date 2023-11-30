@@ -64,7 +64,7 @@ CREATE TABLE ag_label (
     id label_id, 
     kind label_kind, 
     relation regclass NOT NULL, 
-    label_path public.ltree,
+    label_path public.ltree NOT NULL,
     CONSTRAINT fk_graph_oid FOREIGN KEY(graph) REFERENCES ag_graph(graphid)
 );
 
@@ -79,6 +79,11 @@ USING btree (graph, id);
 CREATE UNIQUE INDEX ag_label_relation_index 
 ON ag_label 
 USING btree (relation);
+
+CREATE UNIQUE INDEX ag_label_path_graph_index
+ON ag_label
+USING btree (label_path, graph);
+
 
 --
 -- catalog lookup functions
