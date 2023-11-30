@@ -24,7 +24,7 @@
  */
 
 -- complain if script is sourced in psql, rather than via CREATE EXTENSION
-\echo Use "CREATE EXTENSION age" to load this file. \quit
+\echo Use "CREATE EXTENSION PostGraph" to load this file. \quit
 
 --
 -- catalog tables
@@ -64,6 +64,7 @@ CREATE TABLE ag_label (
     id label_id, 
     kind label_kind, 
     relation regclass NOT NULL, 
+    label_path public.ltree,
     CONSTRAINT fk_graph_oid FOREIGN KEY(graph) REFERENCES ag_graph(graphid)
 );
 
