@@ -307,7 +307,7 @@ static Node *transform_srf_function(cypher_parsestate *cpstate, Node *n, RangeTb
     
     return NULL;
 }
-//BlackPink
+
 static Query *transform_cypher_call(cypher_parsestate *cpstate, cypher_clause *clause) {
     cypher_parsestate *child_cpstate = make_cypher_parsestate(cpstate);
     ParseState *pstate = (ParseState *) child_cpstate;
@@ -1704,6 +1704,9 @@ static Query *transform_cypher_return(cypher_parsestate *cpstate, cypher_clause 
     else 
         query->groupClause = NULL;
 
+    if (self->having) {
+        query->havingQual = transform_cypher_expr(cpstate, self->having, EXPR_KIND_HAVING); //BlackPink
+    }
     // DISTINCT
     if (self->distinct) {
         query->distinctClause = transformDistinctClause(pstate, &query->targetList, query->sortClause, false);
@@ -1807,6 +1810,7 @@ static Query *transform_cypher_with(cypher_parsestate *cpstate, cypher_clause *c
     return_clause->distinct = self->distinct;
     return_clause->items = self->items;
     return_clause->real_group_clause = self->real_group_clause;
+    return_clause->having = self->having;
     return_clause->order_by = self->order_by;
     return_clause->skip = self->skip;
     return_clause->limit = self->limit;

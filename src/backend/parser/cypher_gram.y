@@ -91,6 +91,7 @@
                  ELSE END_P ENDS EXCEPT EXISTS EXTRACT
                  GROUP GROUPING
                  FALSE_P FROM
+                 HAVING
                  IN INTERSECT INTERVAL IS
                  LIMIT LOCALTIME LOCALTIMESTAMP
                  MATCH MERGE 
@@ -112,7 +113,7 @@
 %type <node> reading_clause updating_clause
 
 /* RETURN and WITH clause */
-%type <node> empty_grouping_set cube_clause rollup_clause group_item return return_item sort_item skip_opt limit_opt with
+%type <node> empty_grouping_set cube_clause rollup_clause group_item having_opt return return_item sort_item skip_opt limit_opt with
 %type <list> group_item_list return_item_list order_by_opt sort_item_list group_by_opt
 %type <integer> order_opt 
 
@@ -536,10 +537,22 @@ cypher_range_idx_opt:
                 ;
 
 Iconst: INTEGER
-
+;
 /*
  * RETURN and WITH clause
  */
+having_opt:
+    /* empty */
+        {
+            $$ = NULL;
+        }
+    | HAVING expr
+        {
+            $$ = $2;
+        }
+;
+
+
 group_by_opt:
     /* empty */
         {
@@ -549,6 +562,7 @@ group_by_opt:
         {
             $$ = $3;
         }
+;
 
 group_item_list:
 	group_item { $$ = list_make1($1); }
@@ -757,7 +771,7 @@ limit_opt:
     ;
 
 with:
-    WITH DISTINCT return_item_list where_opt group_by_opt order_by_opt skip_opt limit_opt
+    WITH DISTINCT return_item_list where_opt group_by_opt having_opt order_by_opt skip_opt limit_opt
         {
             ListCell *li;
             cypher_with *n;
@@ -782,14 +796,15 @@ with:
             n->distinct = true;
             n->items = $3;
             n->real_group_clause = $5;
-            n->order_by = $6;
-            n->skip = $7;
-            n->limit = $8;
+            n->having = $6;
+            n->order_by = $7;
+            n->skip = $8;
+            n->limit = $9;
             n->where = $4;
 
             $$ = (Node *)n;
         }
-    | WITH return_item_list where_opt group_by_opt order_by_opt skip_opt limit_opt
+    | WITH return_item_list where_opt group_by_opt having_opt order_by_opt skip_opt limit_opt
         {
             ListCell *li;
             cypher_with *n;
@@ -814,9 +829,10 @@ with:
             n->distinct = false;
             n->items = $2;
             n->real_group_clause = $4;
-            n->order_by = $5;
-            n->skip = $6;
-            n->limit = $7;
+            n->having = $5;
+            n->order_by = $6;
+            n->skip = $7;
+            n->limit = $8;
             n->where = $3;
 
             $$ = (Node *)n;

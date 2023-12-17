@@ -325,6 +325,20 @@ SELECT * FROM cypher('group_by', $$
     GROUP BY CUBE (x.i, x.j, x.k)
 $$) AS (i int, j int, k int, cnt int);
 
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH count(x.i) AS cnt GROUP BY x.i
+    RETURN cnt
+$$) AS (i int);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH count(x.i) AS cnt GROUP BY x.i HAVING count(x.i) > 1
+    RETURN cnt
+$$) AS (i int);
+
+
 SELECT create_graph('edge_aggregates');
 
 SELECT * FROM cypher('edge_aggregates', $$CREATE ()-[:e]->() $$) AS (result gtype);

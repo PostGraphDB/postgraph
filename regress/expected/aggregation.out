@@ -687,6 +687,28 @@ $$) AS (i int, j int, k int, cnt int);
    |   | 6 |   1
 (31 rows)
 
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH count(x.i) AS cnt GROUP BY x.i
+    RETURN cnt
+$$) AS (i int);
+ i 
+---
+ 3
+ 0
+ 1
+(3 rows)
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH count(x.i) AS cnt GROUP BY x.i HAVING count(x.i) > 1
+    RETURN cnt
+$$) AS (i int);
+ i 
+---
+ 3
+(1 row)
+
 SELECT create_graph('edge_aggregates');
 NOTICE:  graph "edge_aggregates" has been created
  create_graph 
