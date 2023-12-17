@@ -551,6 +551,7 @@ SELECT * FROM cypher('expr', $$ RETURN lcm(10::numeric, '5') $$) AS (results gty
 SELECT 1 FROM cypher('expr', $$ RETURN rand() $$) AS (result int) WHERE result >= 1 or result < 0;
 -- log (ln) 
 SELECT * from cypher('expr', $$ RETURN log(2.718281828459045) $$) as (result gtype);
+SELECT * from cypher('expr', $$ RETURN log(10) $$) as (result gtype);
 SELECT * from cypher('expr', $$ RETURN log(null) $$) as (result gtype);
 SELECT * from cypher('expr', $$ RETURN log(0) $$) as (result gtype);
 SELECT * from cypher('expr', $$ RETURN log(-1) $$) as (result gtype);

@@ -1421,11 +1421,11 @@ $$) AS (n vertex);
    ->  Gather Merge  (cost=3882329.10..5219129.60 rows=11457490 width=208)
          Workers Planned: 2
          ->  Sort  (cost=3881329.08..3895650.94 rows=5728745 width=208)
-               Sort Key: (build_vertex(m.id, '20948'::oid, m.properties))
+               Sort Key: (build_vertex(m.id, '20944'::oid, m.properties))
                ->  Parallel Hash Join  (cost=1322.33..1534763.53 rows=5728745 width=208)
                      Hash Cond: (_age_default_alias_0.end_id = m.id)
                      ->  Merge Join  (cost=1113.28..18529.63 rows=117875 width=48)
-                           Merge Cond: (_age_default_alias_0.start_id = ((id(build_vertex(n.id, '20948'::oid, n.properties)))::graphid))
+                           Merge Cond: (_age_default_alias_0.start_id = ((id(build_vertex(n.id, '20944'::oid, n.properties)))::graphid))
                            ->  Sort  (cost=242.69..248.75 rows=2425 width=16)
                                  Sort Key: _age_default_alias_0.start_id
                                  ->  Parallel Append  (cost=0.00..106.36 rows=2425 width=16)
@@ -1437,7 +1437,7 @@ $$) AS (n vertex);
                                        ->  Parallel Seq Scan on opt_match_e _age_default_alias_0_7  (cost=0.00..15.71 rows=571 width=16)
                                        ->  Parallel Seq Scan on _ag_label_edge _age_default_alias_0_1  (cost=0.00..0.00 rows=1 width=16)
                            ->  Sort  (cost=870.59..894.89 rows=9720 width=40)
-                                 Sort Key: ((id(build_vertex(n.id, '20948'::oid, n.properties)))::graphid)
+                                 Sort Key: ((id(build_vertex(n.id, '20944'::oid, n.properties)))::graphid)
                                  ->  Result  (cost=0.00..226.80 rows=9720 width=40)
                                        ->  Append  (cost=0.00..226.80 rows=9720 width=40)
                                              ->  Seq Scan on _ag_label_vertex n_1  (cost=0.00..2.20 rows=120 width=40)

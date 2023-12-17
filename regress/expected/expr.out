@@ -2305,6 +2305,12 @@ SELECT * from cypher('expr', $$ RETURN log(2.718281828459045) $$) as (result gty
  1.0
 (1 row)
 
+SELECT * from cypher('expr', $$ RETURN log(10) $$) as (result gtype);
+      result      
+------------------
+ 2.30258509299405
+(1 row)
+
 SELECT * from cypher('expr', $$ RETURN log(null) $$) as (result gtype);
  result 
 --------
