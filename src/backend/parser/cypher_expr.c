@@ -26,6 +26,7 @@
 #include "postgraph.h"
 
 #include "catalog/pg_type.h"
+#include "catalog/pg_aggregate.h"
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
 #include "nodes/nodeFuncs.h"
@@ -42,6 +43,7 @@
 #include "parser/parse_node.h"
 #include "parser/parse_oper.h"
 #include "parser/parse_relation.h"
+#include "parser/parse_type.h"
 #include "utils/builtins.h"
 #include "utils/float.h"
 #include "utils/int8.h"
@@ -170,7 +172,7 @@ transform_cypher_expr_recurse(cypher_parsestate *cpstate, Node *expr) {
             return transform_cypher_bool_const(cpstate, (cypher_bool_const *)expr);
         if (is_ag_node(expr, cypher_inet_const))
             return transform_cypher_inet_const(cpstate, (cypher_inet_const *)expr);
-	if (is_ag_node(expr, cypher_integer_const))
+    if (is_ag_node(expr, cypher_integer_const))
             return transform_cypher_integer_const(cpstate, (cypher_integer_const *)expr);
         if (is_ag_node(expr, cypher_param))
             return transform_cypher_param(cpstate, (cypher_param *)expr);
@@ -341,7 +343,7 @@ transform_column_ref(cypher_parsestate *cpstate, ColumnRef *cref) {
 
                     if (nsitem) {
                         return transformWholeRowRef(pstate, nsitem, levels_up, cref->location);
-	            }
+                }
 
                     ereport(ERROR, (errcode(ERRCODE_UNDEFINED_COLUMN),
                                     errmsg("could not find rte for %s", colname),
@@ -864,7 +866,7 @@ make_qualified_function_name(cypher_parsestate *cpstate, List *lst, List *targs)
     List *fname;
     if (strcmp(ag_name, "now") == 0 || strcmp(ag_name, "transaction_timestamp") == 0 ||
         strcmp(ag_name, "statement_timestamp") == 0 ||  strcmp(ag_name, "clock_timestamp") == 0 ||
-	strcmp(ag_name, "timeofday") == 0)
+    strcmp(ag_name, "timeofday") == 0 || strcmp(ag_name, "row_number") == 0)
         fname = list_make2(makeString("pg_catalog"), makeString(ag_name));
     else
         fname = list_make2(makeString(CATALOG_SCHEMA), makeString(ag_name));
@@ -910,9 +912,9 @@ transform_func_call(cypher_parsestate *cpstate, FuncCall *fn) {
 
     if (list_length(fn->funcname) == 1) {
         char *name = strVal(linitial(fname));
-	if (strcmp(name, "now") == 0 || strcmp(name, "transaction_timestamp") == 0 ||
-	    strcmp(name, "statement_timestamp") == 0 || strcmp(name, "clock_timestamp") == 0 ||
-	    strcmp(name, "timeofday") == 0) {
+    if (strcmp(name, "now") == 0 || strcmp(name, "transaction_timestamp") == 0 ||
+        strcmp(name, "statement_timestamp") == 0 || strcmp(name, "clock_timestamp") == 0 ||
+        strcmp(name, "timeofday") == 0 || strcmp(name, "row_number") == 0) {
 
             Node *result;
             Oid inputType;
@@ -932,7 +934,7 @@ transform_func_call(cypher_parsestate *cpstate, FuncCall *fn) {
                         parser_coercion_errposition(cpstate, -1, retval)));
 
             retval = result;
-	}
+    }
     }
     // flag that an aggregate was found
     if (retval != NULL && retval->type == T_Aggref)
@@ -1520,7 +1522,7 @@ transformSQLValueFunction(cypher_parsestate *cpstate, SQLValueFunction *svf)
         result = coerce_to_target_type(cpstate, expr, inputType, targetType, targetTypmod,
                                        COERCION_EXPLICIT, COERCE_EXPLICIT_CAST, -1);
 
-	if (result == NULL)
+    if (result == NULL)
                 ereport(ERROR, (errcode(ERRCODE_CANNOT_COERCE),
                         errmsg("cannot cast type %s to %s", format_type_be(inputType), format_type_be(targetType)),
                         parser_coercion_errposition(cpstate, -1, expr)));

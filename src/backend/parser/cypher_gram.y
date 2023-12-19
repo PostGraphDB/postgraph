@@ -31,7 +31,6 @@
 #include "nodes/primnodes.h"
 #include "nodes/value.h"
 #include "parser/parser.h"
-#include "nodes/primnodes.h"
 
 #include "nodes/ag_nodes.h"
 #include "nodes/cypher_nodes.h"
@@ -70,6 +69,7 @@
     bool boolean;
     Node *node;
     List *list;
+    struct WindowDef *windef;
 }
 
 %token <integer> INTEGER
@@ -96,7 +96,8 @@
                  LIMIT LOCALTIME LOCALTIMESTAMP
                  MATCH MERGE 
                  NOT NULL_P
-                 OPTIONAL OR ORDER OVERLAPS
+                 OPTIONAL OR ORDER OVER OVERLAPS
+                 PARTITION
                  REMOVE RETURN ROLLUP
                  SET SETS SKIP STARTS
                  TIME THEN TIMESTAMP TRUE_P
@@ -162,6 +163,9 @@
 
 %type <node> expr_var expr_func expr_func_norm expr_func_subexpr
 %type <list> expr_list expr_list_opt map_keyval_list_opt map_keyval_list
+
+%type <list>    opt_partition_clause
+%type <windef>  over_clause window_specification opt_frame_clause
 
 /* names */
 %type <string> property_key_name var_name var_name_opt label_name
@@ -1443,9 +1447,93 @@ expr_list_opt:
     ;
 
 expr_func:
-    expr_func_norm
+    expr_func_norm over_clause 
+    {
+        FuncCall *fc = $1;
+        fc->over = $2;
+        $$ = fc;
+    }
     | expr_func_subexpr
     ;
+
+over_clause:
+    OVER window_specification { $$ = $2; }
+    /* TODO
+    | OVER ColId
+        {
+            WindowDef *n = makeNode(WindowDef);
+            n->name = $2;
+            n->refname = NULL;
+            n->partitionClause = NIL;
+            n->orderClause = NIL;
+            n->frameOptions = FRAMEOPTION_DEFAULTS;
+            n->startOffset = NULL;
+            n->endOffset = NULL;
+            n->location = @2;
+            $$ = n;
+       }*/
+     | /*EMPTY*/
+         { $$ = NULL; }
+     ;
+
+
+window_specification: //TODO opt_existing_window_name
+    '(' opt_partition_clause /*opt_sort_clause*/ order_by_opt opt_frame_clause ')'
+     {
+         WindowDef *n = makeNode(WindowDef);
+         n->name = NULL;
+         n->refname = NULL;//$2;
+         n->partitionClause = $2;
+         n->orderClause = $3;
+         /* copy relevant fields of opt_frame_clause */
+         n->frameOptions = $4->frameOptions;
+         n->startOffset = $4->startOffset;
+         n->endOffset = $4->endOffset;
+         n->location = @1;
+         $$ = n;
+      }
+      ;
+
+
+opt_partition_clause: PARTITION BY expr_list { $$ = $3; }
+                        | /*EMPTY*/ { $$ = NIL; }
+                ;
+
+/*
+ * For frame clauses, we return a WindowDef, but only some fields are used:
+ * frameOptions, startOffset, and endOffset.
+ */
+opt_frame_clause:
+ /*                       RANGE frame_extent opt_window_exclusion_clause
+                                {
+                                        WindowDef *n = $2;
+                                        n->frameOptions |= FRAMEOPTION_NONDEFAULT | FRAMEOPTION_RANGE;
+                                        n->frameOptions |= $3;
+                                        $$ = n;
+                                }
+                        | ROWS frame_extent opt_window_exclusion_clause
+                                {
+                                        WindowDef *n = $2;
+                                        n->frameOptions |= FRAMEOPTION_NONDEFAULT | FRAMEOPTION_ROWS;
+                                        n->frameOptions |= $3;
+                                        $$ = n;
+                                }
+                        | GROUPS frame_extent opt_window_exclusion_clause
+                                {
+                                        WindowDef *n = $2;
+                                        n->frameOptions |= FRAMEOPTION_NONDEFAULT | FRAMEOPTION_GROUPS;
+                                        n->frameOptions |= $3;
+                                        $$ = n;
+                                }
+                        | */
+    /*EMPTY*/
+    {
+        WindowDef *n = makeNode(WindowDef);
+        n->frameOptions = FRAMEOPTION_DEFAULTS;
+        n->startOffset = NULL;
+        n->endOffset = NULL;
+        $$ = n;
+    }
 
 expr_func_norm:
     func_name '(' ')'

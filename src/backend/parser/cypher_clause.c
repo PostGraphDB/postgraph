@@ -179,6 +179,8 @@ static char *make_property_alias(char *var_name);
 static char *make_id_alias(char *var_name);
 static char *make_startid_alias(char *var_name);
 static char *make_endid_alias(char *var_name);
+List *
+transform_window_definitions(ParseState *pstate, List *windowdefs, List **targetlist);
 
 /*
  * transform a cypher_clause
@@ -332,7 +334,7 @@ static Query *transform_cypher_call(cypher_parsestate *cpstate, cypher_clause *c
 
         if (clause->prev) {
 ereport(ERROR, (errmsg_internal("Call only supports set-returning functions at this time")));
-	     	/*         RangeTblEntry *rte;
+             /*         RangeTblEntry *rte;
             int rtindex;
             ParseNamespaceItem *pnsi;
 
@@ -351,7 +353,7 @@ ereport(ERROR, (errmsg_internal("Call only supports set-returning functions at t
         query->rtable = pstate->p_rtable;
         query->jointree = makeFromExpr(pstate->p_joinlist, NULL);
  */
-	} else {
+    } else {
             return transform_cypher_clause(child_cpstate, call_clause);
         }
 
@@ -848,7 +850,7 @@ transform_cypher_union_tree(cypher_parsestate *cpstate, cypher_clause *clause, b
                  * where UNION fails to exclude duplicate results.
                  *
                  */
-		setup_parser_errposition_callback(&pcbstate, pstate, bestlocation);
+        setup_parser_errposition_callback(&pcbstate, pstate, bestlocation);
                 get_sort_group_operators(rescoltype, false, true, false, &sortop, &eqop, NULL, NULL);
                 cancel_parser_errposition_callback(&pcbstate);
 
@@ -1230,7 +1232,7 @@ cypher_update_information *transform_cypher_set_item_list(cypher_parsestate *cps
         item->var_name = variable_name;
         item->entity_position = get_target_entry_resno(cpstate, query->targetList, variable_name);
 
-	if (item->entity_position == -1)
+    if (item->entity_position == -1)
             ereport(ERROR, (errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
                      errmsg("undefined reference to variable %s in SET clause", variable_name),
                             parser_errposition(pstate, set_item->location)));
@@ -1257,7 +1259,7 @@ cypher_update_information *transform_cypher_set_item_list(cypher_parsestate *cps
         cpstate->default_alias_num++;
         target_item = transform_cypher_item(cpstate, set_item->expr, NULL, EXPR_KIND_SELECT_TARGET,
                                             get_next_default_alias(cpstate), false);
-	target_item->expr = add_volatile_wrapper(target_item->expr);
+    target_item->expr = add_volatile_wrapper(target_item->expr);
 
         query->targetList = lappend(query->targetList, target_item);
         info->set_items = lappend(info->set_items, item);
@@ -1358,7 +1360,7 @@ static Node *flatten_grouping_sets(Node *expr, bool toplevel, bool *hasGroupingS
                 return (Node *) result_set;
 
             break;
-	}
+    }
         case T_List:
         {
             List *result = NIL;
@@ -1405,7 +1407,7 @@ static List *add_target_to_group_list(cypher_parsestate *cpstate, TargetEntry *t
 
         // determine the eqop and optional sortop 
         setup_parser_errposition_callback(&pcbstate, pstate, location);
-	get_sort_group_operators(restype, false, true, false, &sortop, &eqop, NULL, &hashable);
+    get_sort_group_operators(restype, false, true, false, &sortop, &eqop, NULL, &hashable);
         cancel_parser_errposition_callback(&pcbstate);
 
         grpcl->tleSortGroupRef = assignSortGroupRef(tle, targetlist);
@@ -1512,7 +1514,7 @@ static Index transform_group_clause_expr(List **flatresult, Bitmapset *seen_loca
  * toplevel             false if within any grouping set
  */
 static List * transformGroupClauseList(List **flatresult, ParseState *pstate, List *list, List **targetlist,
-		                       List *sortClause, ParseExprKind exprKind, bool useSQL99, bool toplevel) {
+                               List *sortClause, ParseExprKind exprKind, bool useSQL99, bool toplevel) {
     Bitmapset *seen_local = NULL;
     List *result = NIL;
     ListCell *gl;
@@ -1580,7 +1582,7 @@ transformGroupingSet(List **flatresult, ParseState *pstate, GroupingSet *gset, L
         else
         {
             Index ref = transform_group_clause_expr(flatresult, NULL, pstate, n, targetlist, sortClause,
-			                         exprKind, false);
+                                     exprKind, false);
 
             content = lappend(content, makeGroupingSet(GROUPING_SET_SIMPLE, list_make1_int(ref), exprLocation(n)));
         }
@@ -1646,7 +1648,7 @@ static List * transform_group_clause(cypher_parsestate *cpstate, List *grouplist
                 gsets = lappend(gsets,
                     transformGroupingSet(&result, pstate, gset, targetlist, sortClause, exprKind, true, true));
             break;
-	    }
+        }
 
         } else {
             Index ref = transform_group_clause_expr(&result, seen_local, cpstate, gexpr, targetlist,
@@ -1659,7 +1661,7 @@ static List * transform_group_clause(cypher_parsestate *cpstate, List *grouplist
                         gsets = lappend(gsets,
                             makeGroupingSet(GROUPING_SET_SIMPLE, list_make1_int(ref), exprLocation(gexpr)));
                 
-		}
+        }
             }
         }
     }
@@ -1696,7 +1698,7 @@ static Query *transform_cypher_return(cypher_parsestate *cpstate, cypher_clause 
 
     if (self->real_group_clause != NIL)
         query->groupClause = transform_group_clause(cpstate, self->real_group_clause, &query->groupingSets,
-			                            &query->targetList,
+                                        &query->targetList,
                                                     query->sortClause, EXPR_KIND_GROUP_BY);
     else if (groupClause != NIL) // auto GROUP BY
         query->groupClause = transform_group_clause(cpstate, groupClause, &query->groupingSets, &query->targetList,
@@ -1705,7 +1707,7 @@ static Query *transform_cypher_return(cypher_parsestate *cpstate, cypher_clause 
         query->groupClause = NULL;
 
     if (self->having) {
-        query->havingQual = transform_cypher_expr(cpstate, self->having, EXPR_KIND_HAVING); //BlackPink
+        query->havingQual = transform_cypher_expr(cpstate, self->having, EXPR_KIND_HAVING);
     }
     // DISTINCT
     if (self->distinct) {
@@ -1720,8 +1722,16 @@ static Query *transform_cypher_return(cypher_parsestate *cpstate, cypher_clause 
     query->limitOffset = transform_cypher_limit(cpstate, self->skip, EXPR_KIND_OFFSET, "SKIP");
     query->limitCount = transform_cypher_limit(cpstate, self->limit, EXPR_KIND_LIMIT, "LIMIT");
 
+    if (pstate->p_windowdefs != NIL) {
+        //ereport(ERROR, (errcode(ERRCODE_UNDEFINED_OBJECT), errmsg("window functions are not done")));
+        query->windowClause = transform_window_definitions(pstate, pstate->p_windowdefs, &query->targetList);
+    }
+
     query->rtable = pstate->p_rtable;
     query->jointree = makeFromExpr(pstate->p_joinlist, expr);
+    query->hasWindowFuncs = pstate->p_hasWindowFuncs;
+    query->hasTargetSRFs = pstate->p_hasTargetSRFs;
+
     query->hasAggs = pstate->p_hasAggs;
 
     assign_query_collations(pstate, query);
@@ -1732,6 +1742,217 @@ static Query *transform_cypher_return(cypher_parsestate *cpstate, cypher_clause 
 
     return query;
 }
+
+
+/*
+ * transformWindowDefinitions -
+ *        transform window definitions (WindowDef to WindowClause)
+ */
+List *
+transform_window_definitions(ParseState *pstate, List *windowdefs, List **targetlist)
+{
+    List       *result = NIL;
+    Index        winref = 0;
+    ListCell   *lc;
+
+    foreach(lc, windowdefs)
+    {
+        WindowDef  *windef = (WindowDef *) lfirst(lc);
+        WindowClause *refwc = NULL;
+        List       *partitionClause;
+        List       *orderClause;
+        Oid            rangeopfamily = InvalidOid;
+        Oid            rangeopcintype = InvalidOid;
+        WindowClause *wc;
+
+        winref++;
+
+        /*
+         * Check for duplicate window names.
+         */
+       /* if (windef->name &&
+            findWindowClause(result, windef->name) != NULL)
+            ereport(ERROR,
+                    (errcode(ERRCODE_WINDOWING_ERROR),
+                     errmsg("window \"%s\" is already defined", windef->name),
+                     parser_errposition(pstate, windef->location)));
+*/
+        /*
+         * If it references a previous window, look that up.
+         */
+  /*      if (windef->refname)
+        {
+            refwc = findWindowClause(result, windef->refname);
+            if (refwc == NULL)
+                ereport(ERROR,
+                        (errcode(ERRCODE_UNDEFINED_OBJECT),
+                         errmsg("window \"%s\" does not exist",
+                                windef->refname),
+                         parser_errposition(pstate, windef->location)));
+        }
+*/
+        /*
+         * Transform PARTITION and ORDER specs, if any.  These are treated
+         * almost exactly like top-level GROUP BY and ORDER BY clauses,
+         * including the special handling of nondefault operator semantics.
+         */
+        orderClause = transform_cypher_order_by(pstate, windef->orderClause, targetlist, EXPR_KIND_ORDER_BY);
+        partitionClause = transform_group_clause(pstate, windef->partitionClause, NULL, targetlist,
+                                                    orderClause, EXPR_KIND_GROUP_BY);
+        /*orderClause = transformSortClause(pstate,
+                                          windef->orderClause,
+                                          targetlist,
+                                          EXPR_KIND_WINDOW_ORDER,
+                                          true );*/
+/*
+        partitionClause = transformGroupClause(pstate,
+                                               windef->partitionClause,
+                                               NULL,
+                                               targetlist,
+                                               orderClause,
+                                               EXPR_KIND_WINDOW_PARTITION,
+                                               true);
+*/
+        /*
+         * And prepare the new WindowClause.
+         */
+        wc = makeNode(WindowClause);
+        wc->name = windef->name;
+        wc->refname = windef->refname;
+
+        /*
+         * Per spec, a windowdef that references a previous one copies the
+         * previous partition clause (and mustn't specify its own).  It can
+         * specify its own ordering clause, but only if the previous one had
+         * none.  It always specifies its own frame clause, and the previous
+         * one must not have a frame clause.  Yeah, it's bizarre that each of
+         * these cases works differently, but SQL:2008 says so; see 7.11
+         * <window clause> syntax rule 10 and general rule 1.  The frame
+         * clause rule is especially bizarre because it makes "OVER foo"
+         * different from "OVER (foo)", and requires the latter to throw an
+         * error if foo has a nondefault frame clause.  Well, ours not to
+         * reason why, but we do go out of our way to throw a useful error
+         * message for such cases.
+         */
+        if (refwc)
+        {
+            if (partitionClause)
+                ereport(ERROR,
+                        (errcode(ERRCODE_WINDOWING_ERROR),
+                         errmsg("cannot override PARTITION BY clause of window \"%s\"",
+                                windef->refname),
+                         parser_errposition(pstate, windef->location)));
+            wc->partitionClause = copyObject(refwc->partitionClause);
+        }
+        else
+            wc->partitionClause = partitionClause;
+        if (refwc)
+        {
+            if (orderClause && refwc->orderClause)
+                ereport(ERROR,
+                        (errcode(ERRCODE_WINDOWING_ERROR),
+                         errmsg("cannot override ORDER BY clause of window \"%s\"",
+                                windef->refname),
+                         parser_errposition(pstate, windef->location)));
+            if (orderClause)
+            {
+                wc->orderClause = orderClause;
+                wc->copiedOrder = false;
+            }
+            else
+            {
+                wc->orderClause = copyObject(refwc->orderClause);
+                wc->copiedOrder = true;
+            }
+        }
+        else
+        {
+            wc->orderClause = orderClause;
+            wc->copiedOrder = false;
+        }
+        if (refwc && refwc->frameOptions != FRAMEOPTION_DEFAULTS)
+        {
+            /*
+             * Use this message if this is a WINDOW clause, or if it's an OVER
+             * clause that includes ORDER BY or framing clauses.  (We already
+             * rejected PARTITION BY above, so no need to check that.)
+             */
+            if (windef->name ||
+                orderClause || windef->frameOptions != FRAMEOPTION_DEFAULTS)
+                ereport(ERROR,
+                        (errcode(ERRCODE_WINDOWING_ERROR),
+                         errmsg("cannot copy window \"%s\" because it has a frame clause",
+                                windef->refname),
+                         parser_errposition(pstate, windef->location)));
+            /* Else this clause is just OVER (foo), so say this: */
+            ereport(ERROR,
+                    (errcode(ERRCODE_WINDOWING_ERROR),
+                     errmsg("cannot copy window \"%s\" because it has a frame clause",
+                            windef->refname),
+                     errhint("Omit the parentheses in this OVER clause."),
+                     parser_errposition(pstate, windef->location)));
+        }
+        wc->frameOptions = windef->frameOptions;
+
+        /*
+         * RANGE offset PRECEDING/FOLLOWING requires exactly one ORDER BY
+         * column; check that and get its sort opfamily info.
+         */
+        if ((wc->frameOptions & FRAMEOPTION_RANGE) &&
+            (wc->frameOptions & (FRAMEOPTION_START_OFFSET |
+                                 FRAMEOPTION_END_OFFSET)))
+        {
+            SortGroupClause *sortcl;
+            Node       *sortkey;
+            int16        rangestrategy;
+
+            if (list_length(wc->orderClause) != 1)
+                ereport(ERROR,
+                        (errcode(ERRCODE_WINDOWING_ERROR),
+                         errmsg("RANGE with offset PRECEDING/FOLLOWING requires exactly one ORDER BY column"),
+                         parser_errposition(pstate, windef->location)));
+            sortcl = castNode(SortGroupClause, linitial(wc->orderClause));
+            sortkey = get_sortgroupclause_expr(sortcl, *targetlist);
+            /* Find the sort operator in pg_amop */
+            if (!get_ordering_op_properties(sortcl->sortop,
+                                            &rangeopfamily,
+                                            &rangeopcintype,
+                                            &rangestrategy))
+                elog(ERROR, "operator %u is not a valid ordering operator",
+                     sortcl->sortop);
+            /* Record properties of sort ordering */
+            wc->inRangeColl = exprCollation(sortkey);
+            wc->inRangeAsc = (rangestrategy == BTLessStrategyNumber);
+            wc->inRangeNullsFirst = sortcl->nulls_first;
+        }
+
+        /* Per spec, GROUPS mode requires an ORDER BY clause */
+        if (wc->frameOptions & FRAMEOPTION_GROUPS)
+        {
+            if (wc->orderClause == NIL)
+                ereport(ERROR,
+                        (errcode(ERRCODE_WINDOWING_ERROR),
+                         errmsg("GROUPS mode requires an ORDER BY clause"),
+                         parser_errposition(pstate, windef->location)));
+        }
+
+        /* Process frame offset expressions */
+        wc->startOffset = NULL; /*transformFrameOffset(pstate, wc->frameOptions,
+                                               rangeopfamily, rangeopcintype,
+                                               &wc->startInRangeFunc,
+                                               windef->startOffset);*/
+        wc->endOffset = NULL; /*transformFrameOffset(pstate, wc->frameOptions,
+                                             rangeopfamily, rangeopcintype,
+                                             &wc->endInRangeFunc,
+                                             windef->endOffset);*/
+        wc->winref = winref;
+
+        result = lappend(result, wc);
+    }
+
+    return result;
+}
+
 
 // see transformSortClause()
 static List *transform_cypher_order_by(cypher_parsestate *cpstate, List *sort_items, List **target_list,
@@ -2278,7 +2499,7 @@ static FuncCall *make_vle_func_call(cypher_parsestate *cpstate, cypher_node *pre
         args = lappend(args, make_null_const(-1));
     else 
         args = lappend(args, make_string_const(rel->label, -1));
-	
+    
     if (rel->props == NULL)
         args = lappend(args, make_null_const(-1));                          
     else                    
@@ -2981,7 +3202,7 @@ static List *transform_match_entities(cypher_parsestate *cpstate, Query *query, 
             rel = list_nth(path->path, i);
             
             if (!rel->varlen) {
-		entity = handle_edge(cpstate, query, path, rel, i, lc, prev_node_entity);
+        entity = handle_edge(cpstate, query, path, rel, i, lc, prev_node_entity);
 
                 cpstate->entities = lappend(cpstate->entities, entity);
                 entities = lappend(entities, entity);
@@ -3188,8 +3409,8 @@ static Node *make_qual(cypher_parsestate *cpstate, transform_entity *entity, cha
         args = list_make1(entity->expr);
         node = (Node *)makeFuncCall(qualified_name, args, COERCE_EXPLICIT_CALL, -1);
     } else {
-	int sublevels;
-	char *entity_name;
+    int sublevels;
+    char *entity_name;
         if (entity->type == ENT_EDGE)
             entity_name = entity->entity.node->name;
         else if (entity->type == ENT_VERTEX)
@@ -3197,16 +3418,16 @@ static Node *make_qual(cypher_parsestate *cpstate, transform_entity *entity, cha
         else
             ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED), errmsg("unknown entity type")));
 
-	ParseNamespaceItem *pnsi = refnameNamespaceItem(cpstate, NULL, entity_name, -1, &sublevels);
+    ParseNamespaceItem *pnsi = refnameNamespaceItem(cpstate, NULL, entity_name, -1, &sublevels);
 
         if (!pnsi) {
             Node *expr = colNameToVar(cpstate, get_alias_colref_name(col_name, entity_name), false, -1);
         
-	    if (expr)
-	        return expr;    
-	ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-		            errmsg("could not find ParseNamespaceItem %s here", get_alias_colref_name(col_name, entity_name))));
-	}
+        if (expr)
+            return expr;    
+    ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+                    errmsg("could not find ParseNamespaceItem %s here", get_alias_colref_name(col_name, entity_name))));
+    }
         return scanNSItemForColumn(cpstate, pnsi, sublevels, col_name, -1);
     }
 
@@ -3424,7 +3645,7 @@ static Expr *transform_cypher_node(cypher_parsestate *cpstate, cypher_node *node
                             errmsg("label %s does not exists", node->label),
                             parser_errposition(pstate, node->location)));
 
-	if (lcd->kind != LABEL_KIND_VERTEX)
+    if (lcd->kind != LABEL_KIND_VERTEX)
             ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
                             errmsg("label %s is for edges, not vertices", node->label),
                             parser_errposition(pstate, node->location)));
@@ -3442,7 +3663,7 @@ static Expr *transform_cypher_node(cypher_parsestate *cpstate, cypher_node *node
          * variables, we want to use the existing ones. So, error if otherwise.
          */
         if (pstate->p_expr_kind == EXPR_KIND_WHERE) {
-  	    transform_entity *entity = find_transform_entity(cpstate, node->name, ENT_VERTEX);
+          transform_entity *entity = find_transform_entity(cpstate, node->name, ENT_VERTEX);
             if (entity)
                 return entity->expr;
         }
@@ -3461,7 +3682,7 @@ static Expr *transform_cypher_node(cypher_parsestate *cpstate, cypher_node *node
                          parser_errposition(pstate, node->location)));
 
             return te->expr;
-	    }
+        }
         }
     } else {
         node->name = get_next_default_alias(cpstate);
@@ -3732,7 +3953,7 @@ static cypher_target_node * transform_create_cypher_edge(cypher_parsestate *cpst
     } else {
         rel->variable_name = NULL;
         rel->tuple_position = 0;
-	edge->name = get_next_default_alias(cpstate);
+    edge->name = get_next_default_alias(cpstate);
     }
 
     if (edge->dir == CYPHER_REL_DIR_NONE)
@@ -4519,7 +4740,7 @@ transform_merge_make_lateral_join(cypher_parsestate *cpstate, Query *query, cyph
 
     // make the RTE for the join
     jnsitem = addRangeTableEntryForJoin(pstate, res_colnames, NULL, j->jointype, 0, res_colvars, NIL,
-				        NIL, j->alias, NULL, true);
+                        NIL, j->alias, NULL, true);
 
     j->rtindex = jnsitem->p_rtindex;
 
@@ -4581,19 +4802,19 @@ static void transform_cypher_merge_mark_tuple_position(cypher_parsestate *cpstat
         cypher_target_node *node = lfirst(lc);
 
         TargetEntry *te = findTarget(target_list, node->variable_name);
-	enum transform_entity_type type = find_transform_entity_type(cpstate, node->variable_name);
+    enum transform_entity_type type = find_transform_entity_type(cpstate, node->variable_name);
         /*
          * Add the volatile wrapper function around the expression, this
          * ensures the optimizer will not remove the expression, if nothing
          * other than a private data structure needs it.
          */
-	if (type == ENT_VERTEX) 
+    if (type == ENT_VERTEX) 
             te->expr = add_volatile_vertex_wrapper(te->expr);
         else if (type == ENT_EDGE)
             te->expr = add_volatile_edge_wrapper(te->expr);
-	else if (type == ENT_VLE_EDGE)
+    else if (type == ENT_VLE_EDGE)
             te->expr = add_volatile_vle_edge_wrapper(te->expr);
-	else
+    else
             ereport(ERROR,
                     (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
                      errmsg("rte must be last entry in p_rtable")));

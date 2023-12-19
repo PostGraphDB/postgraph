@@ -338,6 +338,12 @@ SELECT * FROM cypher('group_by', $$
     RETURN cnt
 $$) AS (i int);
 
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, row_number() OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i int); 
+
 
 SELECT create_graph('edge_aggregates');
 
