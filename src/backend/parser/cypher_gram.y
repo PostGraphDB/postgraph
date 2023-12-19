@@ -102,7 +102,7 @@
                  SET SETS SKIP STARTS
                  TIME THEN TIMESTAMP TRUE_P
                  UNION UNWIND
-                 WHEN WHERE WITH WITHOUT
+                 WHEN WHERE WINDOW WITH WITHOUT
                  XOR
                  YIELD
                  ZONE
@@ -164,8 +164,8 @@
 %type <node> expr_var expr_func expr_func_norm expr_func_subexpr
 %type <list> expr_list expr_list_opt map_keyval_list_opt map_keyval_list
 
-%type <list>    opt_partition_clause
-%type <windef>  over_clause window_specification opt_frame_clause
+%type <list> window_clause window_definition_list opt_partition_clause
+%type <windef> window_definition over_clause window_specification opt_frame_clause
 
 /* names */
 %type <string> property_key_name var_name var_name_opt label_name
@@ -569,12 +569,12 @@ group_by_opt:
 ;
 
 group_item_list:
-	group_item { $$ = list_make1($1); }
+    group_item { $$ = list_make1($1); }
         | group_item_list ',' group_item { $$ = lappend($1, $3); }
 ;
 
 group_item:
-	expr { $$ = $1; }
+    expr { $$ = $1; }
         | cube_clause { $$ = $1; }
         | rollup_clause { $$ = $1; }
         | empty_grouping_set { $$ = $1; }
@@ -775,7 +775,7 @@ limit_opt:
     ;
 
 with:
-    WITH DISTINCT return_item_list where_opt group_by_opt having_opt order_by_opt skip_opt limit_opt
+    WITH DISTINCT return_item_list where_opt group_by_opt having_opt window_clause order_by_opt skip_opt limit_opt
         {
             ListCell *li;
             cypher_with *n;
@@ -801,14 +801,15 @@ with:
             n->items = $3;
             n->real_group_clause = $5;
             n->having = $6;
-            n->order_by = $7;
-            n->skip = $8;
-            n->limit = $9;
+            n->window_clause = $7;
+            n->order_by = $8;
+            n->skip = $9;
+            n->limit = $10;
             n->where = $4;
 
             $$ = (Node *)n;
         }
-    | WITH return_item_list where_opt group_by_opt having_opt order_by_opt skip_opt limit_opt
+    | WITH return_item_list where_opt group_by_opt having_opt window_clause order_by_opt skip_opt limit_opt
         {
             ListCell *li;
             cypher_with *n;
@@ -834,9 +835,10 @@ with:
             n->items = $2;
             n->real_group_clause = $4;
             n->having = $5;
-            n->order_by = $6;
-            n->skip = $7;
-            n->limit = $8;
+            n->window_clause = $6;
+            n->order_by = $7;
+            n->skip = $8;
+            n->limit = $9;
             n->where = $3;
 
             $$ = (Node *)n;
@@ -1456,10 +1458,30 @@ expr_func:
     | expr_func_subexpr
     ;
 
+/*
+ * Window Definitions
+ */                                     
+window_clause:
+   WINDOW window_definition_list { $$ = $2; }
+   | /*EMPTY*/ { $$ = NIL; }
+   ;
+
+window_definition_list:
+   window_definition  { $$ = list_make1($1); }
+   | window_definition_list ',' window_definition { $$ = lappend($1, $3); }
+   ;
+
+window_definition:
+   IDENTIFIER AS window_specification
+   {
+       WindowDef *n = $3;
+       n->name = $1;
+       $$ = n;
+   }
+   ;           
 over_clause:
     OVER window_specification { $$ = $2; }
-    /* TODO
-    | OVER ColId
+    | OVER symbolic_name
         {
             WindowDef *n = makeNode(WindowDef);
             n->name = $2;
@@ -1471,7 +1493,7 @@ over_clause:
             n->endOffset = NULL;
             n->location = @2;
             $$ = n;
-       }*/
+       }
      | /*EMPTY*/
          { $$ = NULL; }
      ;

@@ -1682,6 +1682,8 @@ static Query *transform_cypher_return(cypher_parsestate *cpstate, cypher_clause 
     query = makeNode(Query);
     query->commandType = CMD_SELECT;
 
+    pstate->p_windowdefs = self->window_clause;
+
     if (clause->prev)
         transform_prev_cypher_clause(cpstate, clause->prev, true);
 
@@ -1743,6 +1745,25 @@ static Query *transform_cypher_return(cypher_parsestate *cpstate, cypher_clause 
     return query;
 }
 
+/*                                                                
+ * findWindowClause
+ *              Find the named WindowClause in the list, or return NULL if not there
+ */
+static WindowClause *
+findWindowClause(List *wclist, const char *name)
+{
+        ListCell   *l;
+
+        foreach(l, wclist)                                        
+        {
+                WindowClause *wc = (WindowClause *) lfirst(l);
+
+                if (wc->name && strcmp(wc->name, name) == 0)
+                        return wc;
+        }
+
+        return NULL;
+}
 
 /*
  * transformWindowDefinitions -
@@ -1770,17 +1791,17 @@ transform_window_definitions(ParseState *pstate, List *windowdefs, List **target
         /*
          * Check for duplicate window names.
          */
-       /* if (windef->name &&
+        if (windef->name &&
             findWindowClause(result, windef->name) != NULL)
             ereport(ERROR,
                     (errcode(ERRCODE_WINDOWING_ERROR),
                      errmsg("window \"%s\" is already defined", windef->name),
                      parser_errposition(pstate, windef->location)));
-*/
+
         /*
          * If it references a previous window, look that up.
          */
-  /*      if (windef->refname)
+        if (windef->refname)
         {
             refwc = findWindowClause(result, windef->refname);
             if (refwc == NULL)
@@ -1790,7 +1811,7 @@ transform_window_definitions(ParseState *pstate, List *windowdefs, List **target
                                 windef->refname),
                          parser_errposition(pstate, windef->location)));
         }
-*/
+
         /*
          * Transform PARTITION and ORDER specs, if any.  These are treated
          * almost exactly like top-level GROUP BY and ORDER BY clauses,
@@ -2032,6 +2053,7 @@ static Query *transform_cypher_with(cypher_parsestate *cpstate, cypher_clause *c
     return_clause->items = self->items;
     return_clause->real_group_clause = self->real_group_clause;
     return_clause->having = self->having;
+    return_clause->window_clause = self->window_clause;
     return_clause->order_by = self->order_by;
     return_clause->skip = self->skip;
     return_clause->limit = self->limit;

@@ -62,6 +62,7 @@ typedef struct cypher_return
     cypher_group_by *group_by;
     Node *having;
     List *order_by;
+    List *window_clause;
     Node *skip;
     Node *limit;
     Node *where;
@@ -80,6 +81,7 @@ typedef struct cypher_with
     cypher_group_by *group_by;
     Node *having;
     List *order_by;
+    List *window_clause;
     Node *skip;
     Node *limit;
     Node *where;
