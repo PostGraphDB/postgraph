@@ -397,6 +397,29 @@ SELECT * FROM cypher('group_by', $$
     RETURN x, row_num
 $$) AS (x vertex, i gtype);
 
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, nth_value(x.k, 2) OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i gtype);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, ntile(1) OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i int);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, ntile(2) OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i int);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, ntile(3) OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i int);
 
 SELECT * FROM cypher('group_by', $$
     MATCH (x)

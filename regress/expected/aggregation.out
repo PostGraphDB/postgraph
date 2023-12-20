@@ -855,6 +855,70 @@ $$) AS (x vertex, i gtype);
 
 SELECT * FROM cypher('group_by', $$
     MATCH (x)
+    WITH x, nth_value(x.k, 2) OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i gtype);
+                                        x                                        | i 
+---------------------------------------------------------------------------------+---
+ {"id": 844424930131969, "label": "row", "properties": {"i": 1, "j": 2, "k": 3}} | 4
+ {"id": 844424930131970, "label": "row", "properties": {"i": 1, "j": 2, "k": 4}} | 4
+ {"id": 844424930131971, "label": "row", "properties": {"i": 1, "j": 3, "k": 5}} | 4
+ {"id": 844424930131972, "label": "row", "properties": {"i": 2, "j": 3, "k": 6}} | 
+ {"id": 1125899906842626, "label": "L", "properties": {"a": 2, "b": 3, "c": 1}}  | 
+ {"id": 1125899906842627, "label": "L", "properties": {"a": 3, "b": 1, "c": 2}}  | 
+ {"id": 1125899906842625, "label": "L", "properties": {"a": 1, "b": 2, "c": 3}}  | 
+(7 rows)
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, ntile(1) OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i int);
+                                        x                                        | i 
+---------------------------------------------------------------------------------+---
+ {"id": 844424930131969, "label": "row", "properties": {"i": 1, "j": 2, "k": 3}} | 1
+ {"id": 844424930131970, "label": "row", "properties": {"i": 1, "j": 2, "k": 4}} | 1
+ {"id": 844424930131971, "label": "row", "properties": {"i": 1, "j": 3, "k": 5}} | 1
+ {"id": 844424930131972, "label": "row", "properties": {"i": 2, "j": 3, "k": 6}} | 1
+ {"id": 1125899906842626, "label": "L", "properties": {"a": 2, "b": 3, "c": 1}}  | 1
+ {"id": 1125899906842627, "label": "L", "properties": {"a": 3, "b": 1, "c": 2}}  | 1
+ {"id": 1125899906842625, "label": "L", "properties": {"a": 1, "b": 2, "c": 3}}  | 1
+(7 rows)
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, ntile(2) OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i int);
+                                        x                                        | i 
+---------------------------------------------------------------------------------+---
+ {"id": 844424930131969, "label": "row", "properties": {"i": 1, "j": 2, "k": 3}} | 1
+ {"id": 844424930131970, "label": "row", "properties": {"i": 1, "j": 2, "k": 4}} | 1
+ {"id": 844424930131971, "label": "row", "properties": {"i": 1, "j": 3, "k": 5}} | 2
+ {"id": 844424930131972, "label": "row", "properties": {"i": 2, "j": 3, "k": 6}} | 1
+ {"id": 1125899906842626, "label": "L", "properties": {"a": 2, "b": 3, "c": 1}}  | 1
+ {"id": 1125899906842627, "label": "L", "properties": {"a": 3, "b": 1, "c": 2}}  | 1
+ {"id": 1125899906842625, "label": "L", "properties": {"a": 1, "b": 2, "c": 3}}  | 2
+(7 rows)
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, ntile(3) OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i int);
+                                        x                                        | i 
+---------------------------------------------------------------------------------+---
+ {"id": 844424930131969, "label": "row", "properties": {"i": 1, "j": 2, "k": 3}} | 1
+ {"id": 844424930131970, "label": "row", "properties": {"i": 1, "j": 2, "k": 4}} | 2
+ {"id": 844424930131971, "label": "row", "properties": {"i": 1, "j": 3, "k": 5}} | 3
+ {"id": 844424930131972, "label": "row", "properties": {"i": 2, "j": 3, "k": 6}} | 1
+ {"id": 1125899906842626, "label": "L", "properties": {"a": 2, "b": 3, "c": 1}}  | 1
+ {"id": 1125899906842627, "label": "L", "properties": {"a": 3, "b": 1, "c": 2}}  | 2
+ {"id": 1125899906842625, "label": "L", "properties": {"a": 1, "b": 2, "c": 3}}  | 3
+(7 rows)
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
     WITH x, last_value(x.k) OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
     RETURN x, row_num
 $$) AS (x vertex, i gtype);
