@@ -490,6 +490,13 @@ SELECT * FROM cypher('group_by', $$
     RETURN count(*) FILTER (WHERE x.i IS NOT NULL)
 $$) AS (cnt gtype);
 
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    RETURN x.i, rank(x.i, x.j) WITHIN GROUP (ORDER BY x.k) GROUP BY x.i
+$$) AS (i gtype, cnt gtype);
+
+
+
 SELECT create_graph('edge_aggregates');
 
 SELECT * FROM cypher('edge_aggregates', $$CREATE ()-[:e]->() $$) AS (result gtype);

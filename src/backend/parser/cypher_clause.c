@@ -40,6 +40,7 @@
 #include "parser/parse_clause.h"
 #include "parser/parse_coerce.h"
 #include "parser/parse_collate.h"
+#include "parser/cypher_analyze.h"
 #include "parser/parse_expr.h"
 #include "parser/parse_func.h"
 #include "parser/parse_node.h"
@@ -80,7 +81,6 @@ typedef Query *(*transform_method)(cypher_parsestate *cpstate, cypher_clause *cl
 
 // projection
 static Query *transform_cypher_return(cypher_parsestate *cpstate, cypher_clause *clause);
-static List *transform_cypher_order_by(cypher_parsestate *cpstate, List *sort_items, List **target_list, ParseExprKind expr_kind);
 static TargetEntry *find_target_list_entry(cypher_parsestate *cpstate, Node *node, List **target_list, ParseExprKind expr_kind);
 static Node *transform_cypher_limit(cypher_parsestate *cpstate, Node *node, ParseExprKind expr_kind, const char *construct_name);
 static Query *transform_cypher_with(cypher_parsestate *cpstate, cypher_clause *clause);
@@ -2123,7 +2123,7 @@ transform_window_definitions(ParseState *pstate, List *windowdefs, List **target
 
 
 // see transformSortClause()
-static List *transform_cypher_order_by(cypher_parsestate *cpstate, List *sort_items, List **target_list,
+List *transform_cypher_order_by(cypher_parsestate *cpstate, List *sort_items, List **target_list,
                                        ParseExprKind expr_kind) {
     ParseState *pstate = (ParseState *)cpstate;
     List *sort_list = NIL;

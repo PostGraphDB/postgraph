@@ -102,7 +102,7 @@
                  SET SETS SKIP STARTS
                  TIME TIES THEN TIMESTAMP TRUE_P
                  UNBOUNDED UNION UNWIND
-                 WHEN WHERE WINDOW WITH WITHOUT
+                 WHEN WHERE WINDOW WITH WITHIN WITHOUT
                  XOR
                  YIELD
                  ZONE
@@ -115,7 +115,7 @@
 
 /* RETURN and WITH clause */
 %type <node> empty_grouping_set cube_clause rollup_clause group_item having_opt return return_item sort_item skip_opt limit_opt with
-%type <list> group_item_list return_item_list order_by_opt sort_item_list group_by_opt
+%type <list> group_item_list return_item_list order_by_opt sort_item_list group_by_opt within_group_clause
 %type <integer> order_opt opt_nulls_order 
 
 /* MATCH clause */
@@ -1461,15 +1461,50 @@ expr_list_opt:
     ;
 
 expr_func:
-    expr_func_norm filter_clause over_clause 
+    expr_func_norm within_group_clause filter_clause over_clause 
     {
         FuncCall *fc = $1;
-        fc->over = $3;
-        fc->agg_filter = $2;
+        /*
+         * The order clause for WITHIN GROUP and the one for
+         * plain-aggregate ORDER BY share a field, so we have to
+         * check here that at most one is present.  We also check
+         * for DISTINCT and VARIADIC here to give a better error
+         * location.  Other consistency checks are deferred to
+         * parse analysis.
+         */
+        if ($2 != NIL)
+        {
+             if (fc->agg_order != NIL)
+                  ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                                  errmsg("cannot use multiple ORDER BY clauses with WITHIN GROUP"),
+                                  ag_scanner_errposition(@2, scanner)));
+             if (fc->agg_distinct)
+                  ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                                  errmsg("cannot use DISTINCT with WITHIN GROUP"),
+                                  ag_scanner_errposition(@2, scanner)));
+              if (fc->func_variadic)
+                   ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                                   errmsg("cannot use VARIADIC with WITHIN GROUP"),
+                                   ag_scanner_errposition(@2, scanner)));
+              fc->agg_order = $2;
+              fc->agg_within_group = true;
+        }
+
+
+        fc->over = $4;
+        fc->agg_filter = $3;
         $$ = fc;
     }
     | expr_func_subexpr
     ;
+
+/*
+ * Aggregate decoration clauses
+ */
+within_group_clause:
+    WITHIN GROUP '(' order_by_opt ')' { $$ = $4; }
+    | /*EMPTY*/                        { $$ = NIL; }
+; 
 
 filter_clause:
      FILTER '(' WHERE expr ')' { $$ = $4; }

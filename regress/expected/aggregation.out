@@ -1067,6 +1067,17 @@ $$) AS (cnt gtype);
  4
 (1 row)
 
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    RETURN x.i, rank(x.i, x.j) WITHIN GROUP (ORDER BY x.k) GROUP BY x.i
+$$) AS (i gtype, cnt gtype);
+ i | cnt 
+---+-----
+ 1 | 1
+ 2 | 1
+   | 1
+(3 rows)
+
 SELECT create_graph('edge_aggregates');
 NOTICE:  graph "edge_aggregates" has been created
  create_graph 
