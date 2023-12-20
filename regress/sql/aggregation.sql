@@ -351,6 +351,46 @@ SELECT * FROM cypher('group_by', $$
     RETURN x, row_num
 $$) AS (x vertex, i int);
 
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, row_number() OVER w AS row_num WINDOW w AS (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) 
+    RETURN x, row_num
+$$) AS (x vertex, i int);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, 
+         row_number() OVER (
+             PARTITION BY x.i
+             ORDER BY COALESCE(x.j, x.c)
+             ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+         ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i int);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, 
+         row_number() OVER (
+             PARTITION BY x.i  
+             ORDER BY COALESCE(x.j, x.c)
+             ROWS BETWEEN 1 PRECEDING AND UNBOUNDED FOLLOWING
+         ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i int);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, 
+         row_number() OVER (
+             PARTITION BY x.i  
+             ORDER BY COALESCE(x.j, x.c)
+             ROWS BETWEEN UNBOUNDED PRECEDING AND 1 FOLLOWING
+         ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i int);
+
+
 SELECT create_graph('edge_aggregates');
 
 SELECT * FROM cypher('edge_aggregates', $$CREATE ()-[:e]->() $$) AS (result gtype);

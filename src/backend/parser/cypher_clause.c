@@ -24,8 +24,10 @@
 
 #include "postgraph.h"
 
+#include "access/nbtree.h"
 #include "access/sysattr.h"
 #include "access/heapam.h"
+#include "catalog/pg_amproc.h"
 #include "catalog/pg_type_d.h"
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
@@ -46,6 +48,7 @@
 #include "parser/parse_target.h"
 #include "parser/parsetree.h"
 #include "rewrite/rewriteHandler.h"
+#include "utils/catcache.h"
 #include "utils/typcache.h"
 #include "utils/lsyscache.h"
 #include "utils/rel.h"
@@ -1765,6 +1768,181 @@ findWindowClause(List *wclist, const char *name)
         return NULL;
 }
 
+
+/*                            
+ * checkExprIsVarFree
+ *              Check that given expr has no Vars of the current query level
+ *              (aggregates and window functions should have been rejected already).
+ *
+ * This is used to check expressions that have to have a consistent value
+ * across all rows of the query, such as a LIMIT.  Arguably it should reject
+ * volatile functions, too, but we don't do that --- whatever value the
+ * function gives on first execution is what you get.
+ *
+ * constructName does not affect the semantics, but is used in error messages
+ */
+static void
+checkExprIsVarFree(ParseState *pstate, Node *n, const char *constructName)
+{
+    if (contain_vars_of_level(n, 0))
+    {
+        ereport(ERROR, (errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
+                                errmsg("argument of %s must not contain variables", constructName),
+                                 parser_errposition(pstate, locate_var_of_level(n, 0))));
+    }
+}
+
+
+/*
+ * transformFrameOffset
+ *        Process a window frame offset expression
+ *
+ * In RANGE mode, rangeopfamily is the sort opfamily for the input ORDER BY
+ * column, and rangeopcintype is the input data type the sort operator is
+ * registered with.  We expect the in_range function to be registered with
+ * that same type.  (In binary-compatible cases, it might be different from
+ * the input column's actual type, so we can't use that for the lookups.)
+ * We'll return the OID of the in_range function to *inRangeFunc.
+ */
+static Node *
+transform_frame_offset(ParseState *pstate, int frameOptions,
+                     Oid rangeopfamily, Oid rangeopcintype, Oid *inRangeFunc,
+                     Node *clause)
+{
+    const char *constructName = NULL;
+    Node       *node;
+
+    *inRangeFunc = InvalidOid;    /* default result */
+
+    /* Quick exit if no offset expression */
+    if (clause == NULL)
+        return NULL;
+
+    if (frameOptions & FRAMEOPTION_ROWS)
+    {
+        /* Transform the raw expression tree */
+        node = transformExpr(pstate, clause, EXPR_KIND_WINDOW_FRAME_ROWS);
+
+        /*
+         * Like LIMIT clause, simply coerce to int8
+         */
+        constructName = "ROWS";
+        node = coerce_to_specific_type(pstate, node, INT8OID, constructName);
+    }
+    else if (frameOptions & FRAMEOPTION_RANGE)
+    {
+        /*
+         * We must look up the in_range support function that's to be used,
+         * possibly choosing one of several, and coerce the "offset" value to
+         * the appropriate input type.
+         */
+        Oid            nodeType;
+        Oid            preferredType;
+        int            nfuncs = 0;
+        int            nmatches = 0;
+        Oid            selectedType = InvalidOid;
+        Oid            selectedFunc = InvalidOid;
+        CatCList   *proclist;
+        int            i;
+
+        /* Transform the raw expression tree */
+        node = transformExpr(pstate, clause, EXPR_KIND_WINDOW_FRAME_RANGE);
+        nodeType = exprType(node);
+
+        /*
+         * If there are multiple candidates, we'll prefer the one that exactly
+         * matches nodeType; or if nodeType is as yet unknown, prefer the one
+         * that exactly matches the sort column type.  (The second rule is
+         * like what we do for "known_type operator unknown".)
+         */
+        preferredType = (nodeType != UNKNOWNOID) ? nodeType : rangeopcintype;
+
+        /* Find the in_range support functions applicable to this case */
+        proclist = SearchSysCacheList2(AMPROCNUM,
+                                       ObjectIdGetDatum(rangeopfamily),
+                                       ObjectIdGetDatum(rangeopcintype));
+        for (i = 0; i < proclist->n_members; i++)
+        {
+            HeapTuple    proctup = &proclist->members[i]->tuple;
+            Form_pg_amproc procform = (Form_pg_amproc) GETSTRUCT(proctup);
+
+            /* The search will find all support proc types; ignore others */
+            if (procform->amprocnum != BTINRANGE_PROC)
+                continue;
+            nfuncs++;
+
+            /* Ignore function if given value can't be coerced to that type */
+            if (!can_coerce_type(1, &nodeType, &procform->amprocrighttype,
+                                 COERCION_IMPLICIT))
+                continue;
+            nmatches++;
+
+            /* Remember preferred match, or any match if didn't find that */
+            if (selectedType != preferredType)
+            {
+                selectedType = procform->amprocrighttype;
+                selectedFunc = procform->amproc;
+            }
+        }
+        ReleaseCatCacheList(proclist);
+
+        /*
+         * Throw error if needed.  It seems worth taking the trouble to
+         * distinguish "no support at all" from "you didn't match any
+         * available offset type".
+         */
+        if (nfuncs == 0)
+            ereport(ERROR,
+                    (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+                     errmsg("RANGE with offset PRECEDING/FOLLOWING is not supported for column type %s",
+                            format_type_be(rangeopcintype)),
+                     parser_errposition(pstate, exprLocation(node))));
+        if (nmatches == 0)
+            ereport(ERROR,
+                    (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+                     errmsg("RANGE with offset PRECEDING/FOLLOWING is not supported for column type %s and offset type %s",
+                            format_type_be(rangeopcintype),
+                            format_type_be(nodeType)),
+                     errhint("Cast the offset value to an appropriate type."),
+                     parser_errposition(pstate, exprLocation(node))));
+        if (nmatches != 1 && selectedType != preferredType)
+            ereport(ERROR,
+                    (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+                     errmsg("RANGE with offset PRECEDING/FOLLOWING has multiple interpretations for column type %s and offset type %s",
+                            format_type_be(rangeopcintype),
+                            format_type_be(nodeType)),
+                     errhint("Cast the offset value to the exact intended type."),
+                     parser_errposition(pstate, exprLocation(node))));
+
+        /* OK, coerce the offset to the right type */
+        constructName = "RANGE";
+        node = coerce_to_specific_type(pstate, node,
+                                       selectedType, constructName);
+        *inRangeFunc = selectedFunc;
+    }
+    else if (frameOptions & FRAMEOPTION_GROUPS)
+    {
+        /* Transform the raw expression tree */
+        node = transformExpr(pstate, clause, EXPR_KIND_WINDOW_FRAME_GROUPS);
+
+        /*
+         * Like LIMIT clause, simply coerce to int8
+         */
+        constructName = "GROUPS";
+        node = coerce_to_specific_type(pstate, node, INT8OID, constructName);
+    }
+    else
+    {
+        Assert(false);
+        node = NULL;
+    }
+
+    /* Disallow variables in frame offsets */
+    checkExprIsVarFree(pstate, node, constructName);
+
+    return node;
+}
+
 /*
  * transformWindowDefinitions -
  *        transform window definitions (WindowDef to WindowClause)
@@ -1772,18 +1950,18 @@ findWindowClause(List *wclist, const char *name)
 List *
 transform_window_definitions(ParseState *pstate, List *windowdefs, List **targetlist)
 {
-    List       *result = NIL;
-    Index        winref = 0;
-    ListCell   *lc;
+    List *result = NIL;
+    Index winref = 0;
+    ListCell *lc;
 
     foreach(lc, windowdefs)
     {
-        WindowDef  *windef = (WindowDef *) lfirst(lc);
+        WindowDef *windef = (WindowDef *) lfirst(lc);
         WindowClause *refwc = NULL;
-        List       *partitionClause;
-        List       *orderClause;
-        Oid            rangeopfamily = InvalidOid;
-        Oid            rangeopcintype = InvalidOid;
+        List *partitionClause;
+        List *orderClause;
+        Oid rangeopfamily = InvalidOid;
+        Oid rangeopcintype = InvalidOid;
         WindowClause *wc;
 
         winref++;
@@ -1791,10 +1969,8 @@ transform_window_definitions(ParseState *pstate, List *windowdefs, List **target
         /*
          * Check for duplicate window names.
          */
-        if (windef->name &&
-            findWindowClause(result, windef->name) != NULL)
-            ereport(ERROR,
-                    (errcode(ERRCODE_WINDOWING_ERROR),
+        if (windef->name && findWindowClause(result, windef->name) != NULL)
+            ereport(ERROR, (errcode(ERRCODE_WINDOWING_ERROR),
                      errmsg("window \"%s\" is already defined", windef->name),
                      parser_errposition(pstate, windef->location)));
 
@@ -1819,21 +1995,8 @@ transform_window_definitions(ParseState *pstate, List *windowdefs, List **target
          */
         orderClause = transform_cypher_order_by(pstate, windef->orderClause, targetlist, EXPR_KIND_ORDER_BY);
         partitionClause = transform_group_clause(pstate, windef->partitionClause, NULL, targetlist,
-                                                    orderClause, EXPR_KIND_GROUP_BY);
-        /*orderClause = transformSortClause(pstate,
-                                          windef->orderClause,
-                                          targetlist,
-                                          EXPR_KIND_WINDOW_ORDER,
-                                          true );*/
-/*
-        partitionClause = transformGroupClause(pstate,
-                                               windef->partitionClause,
-                                               NULL,
-                                               targetlist,
-                                               orderClause,
-                                               EXPR_KIND_WINDOW_PARTITION,
-                                               true);
-*/
+                                                 orderClause, EXPR_KIND_GROUP_BY);
+
         /*
          * And prepare the new WindowClause.
          */
@@ -1860,56 +2023,41 @@ transform_window_definitions(ParseState *pstate, List *windowdefs, List **target
             if (partitionClause)
                 ereport(ERROR,
                         (errcode(ERRCODE_WINDOWING_ERROR),
-                         errmsg("cannot override PARTITION BY clause of window \"%s\"",
-                                windef->refname),
+                         errmsg("cannot override PARTITION BY clause of window \"%s\"", windef->refname),
                          parser_errposition(pstate, windef->location)));
             wc->partitionClause = copyObject(refwc->partitionClause);
         }
         else
             wc->partitionClause = partitionClause;
-        if (refwc)
-        {
+        if (refwc) {
             if (orderClause && refwc->orderClause)
-                ereport(ERROR,
-                        (errcode(ERRCODE_WINDOWING_ERROR),
-                         errmsg("cannot override ORDER BY clause of window \"%s\"",
-                                windef->refname),
+                ereport(ERROR, (errcode(ERRCODE_WINDOWING_ERROR),
+                         errmsg("cannot override ORDER BY clause of window \"%s\"", windef->refname),
                          parser_errposition(pstate, windef->location)));
-            if (orderClause)
-            {
+            if (orderClause) {
                 wc->orderClause = orderClause;
                 wc->copiedOrder = false;
-            }
-            else
-            {
+            } else {
                 wc->orderClause = copyObject(refwc->orderClause);
                 wc->copiedOrder = true;
             }
-        }
-        else
-        {
+        } else {
             wc->orderClause = orderClause;
             wc->copiedOrder = false;
         }
-        if (refwc && refwc->frameOptions != FRAMEOPTION_DEFAULTS)
-        {
+        if (refwc && refwc->frameOptions != FRAMEOPTION_DEFAULTS) {
             /*
              * Use this message if this is a WINDOW clause, or if it's an OVER
              * clause that includes ORDER BY or framing clauses.  (We already
              * rejected PARTITION BY above, so no need to check that.)
              */
-            if (windef->name ||
-                orderClause || windef->frameOptions != FRAMEOPTION_DEFAULTS)
-                ereport(ERROR,
-                        (errcode(ERRCODE_WINDOWING_ERROR),
-                         errmsg("cannot copy window \"%s\" because it has a frame clause",
-                                windef->refname),
+            if (windef->name || orderClause || windef->frameOptions != FRAMEOPTION_DEFAULTS)
+                ereport(ERROR, (errcode(ERRCODE_WINDOWING_ERROR),
+                         errmsg("cannot copy window \"%s\" because it has a frame clause", windef->refname),
                          parser_errposition(pstate, windef->location)));
             /* Else this clause is just OVER (foo), so say this: */
-            ereport(ERROR,
-                    (errcode(ERRCODE_WINDOWING_ERROR),
-                     errmsg("cannot copy window \"%s\" because it has a frame clause",
-                            windef->refname),
+            ereport(ERROR, (errcode(ERRCODE_WINDOWING_ERROR),
+                     errmsg("cannot copy window \"%s\" because it has a frame clause", windef->refname),
                      errhint("Omit the parentheses in this OVER clause."),
                      parser_errposition(pstate, windef->location)));
         }
@@ -1920,12 +2068,11 @@ transform_window_definitions(ParseState *pstate, List *windowdefs, List **target
          * column; check that and get its sort opfamily info.
          */
         if ((wc->frameOptions & FRAMEOPTION_RANGE) &&
-            (wc->frameOptions & (FRAMEOPTION_START_OFFSET |
-                                 FRAMEOPTION_END_OFFSET)))
+            (wc->frameOptions & (FRAMEOPTION_START_OFFSET | FRAMEOPTION_END_OFFSET)))
         {
             SortGroupClause *sortcl;
-            Node       *sortkey;
-            int16        rangestrategy;
+            Node *sortkey;
+            int16 rangestrategy;
 
             if (list_length(wc->orderClause) != 1)
                 ereport(ERROR,
@@ -1958,14 +2105,14 @@ transform_window_definitions(ParseState *pstate, List *windowdefs, List **target
         }
 
         /* Process frame offset expressions */
-        wc->startOffset = NULL; /*transformFrameOffset(pstate, wc->frameOptions,
+        wc->startOffset = transform_frame_offset(pstate, wc->frameOptions,
                                                rangeopfamily, rangeopcintype,
                                                &wc->startInRangeFunc,
-                                               windef->startOffset);*/
-        wc->endOffset = NULL; /*transformFrameOffset(pstate, wc->frameOptions,
+                                               windef->startOffset);
+        wc->endOffset = transform_frame_offset(pstate, wc->frameOptions,
                                              rangeopfamily, rangeopcintype,
                                              &wc->endInRangeFunc,
-                                             windef->endOffset);*/
+                                             windef->endOffset);
         wc->winref = winref;
 
         result = lappend(result, wc);
