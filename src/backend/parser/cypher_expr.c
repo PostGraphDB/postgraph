@@ -868,7 +868,9 @@ make_qualified_function_name(cypher_parsestate *cpstate, List *lst, List *targs)
         strcmp(ag_name, "statement_timestamp") == 0 ||  strcmp(ag_name, "clock_timestamp") == 0 ||
         strcmp(ag_name, "timeofday") == 0 || strcmp(ag_name, "row_number") == 0 ||
         strcmp(name, "rank") == 0 || strcmp(name, "dense_rank") == 0 ||
-        strcmp(name, "percent_rank") == 0 || strcmp(name, "cume_dist") == 0) 
+        strcmp(name, "percent_rank") == 0 || strcmp(name, "cume_dist") == 0 || 
+        strcmp(name, "lag") == 0 || strcmp(name, "lead") == 0 || strcmp(name, "first_value") == 0 ||
+        strcmp(name, "last_value") == 0) 
         fname = list_make2(makeString("pg_catalog"), makeString(ag_name));
     else
         fname = list_make2(makeString(CATALOG_SCHEMA), makeString(ag_name));
