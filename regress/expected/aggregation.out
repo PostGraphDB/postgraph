@@ -1058,6 +1058,15 @@ $$) AS (x vertex, i int);
  {"id": 1125899906842625, "label": "L", "properties": {"a": 1, "b": 2, "c": 3}}  | 3
 (7 rows)
 
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    RETURN count(*) FILTER (WHERE x.i IS NOT NULL)
+$$) AS (cnt gtype);
+ cnt 
+-----
+ 4
+(1 row)
+
 SELECT create_graph('edge_aggregates');
 NOTICE:  graph "edge_aggregates" has been created
  create_graph 

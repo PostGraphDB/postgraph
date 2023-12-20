@@ -90,7 +90,7 @@
                  DATE DECADE DELETE DESC DESCENDING DETACH DISTINCT
                  ELSE END_P ENDS EXCEPT EXCLUDE EXISTS EXTRACT
                  GROUP GROUPS GROUPING
-                 FALSE_P FIRST_P FOLLOWING FROM
+                 FALSE_P FILTER FIRST_P FOLLOWING FROM
                  HAVING
                  IN INTERSECT INTERVAL IS
                  LAST_P LIMIT LOCALTIME LOCALTIMESTAMP
@@ -164,6 +164,7 @@
 %type <node> expr_var expr_func expr_func_norm expr_func_subexpr
 %type <list> expr_list expr_list_opt map_keyval_list_opt map_keyval_list
 
+%type <node> filter_clause
 %type <list> window_clause window_definition_list opt_partition_clause
 %type <windef> window_definition over_clause window_specification opt_frame_clause
                frame_extent frame_bound
@@ -1460,14 +1461,20 @@ expr_list_opt:
     ;
 
 expr_func:
-    expr_func_norm over_clause 
+    expr_func_norm filter_clause over_clause 
     {
         FuncCall *fc = $1;
-        fc->over = $2;
+        fc->over = $3;
+        fc->agg_filter = $2;
         $$ = fc;
     }
     | expr_func_subexpr
     ;
+
+filter_clause:
+     FILTER '(' WHERE expr ')' { $$ = $4; }
+     | /*EMPTY*/               { $$ = NULL; }
+     ;      
 
 /*
  * Window Definitions

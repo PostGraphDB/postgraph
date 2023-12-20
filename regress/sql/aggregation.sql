@@ -485,7 +485,10 @@ SELECT * FROM cypher('group_by', $$
     RETURN x, row_number() OVER w AS row_num WINDOW w AS (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) )
 $$) AS (x vertex, i int);
 
-
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    RETURN count(*) FILTER (WHERE x.i IS NOT NULL)
+$$) AS (cnt gtype);
 
 SELECT create_graph('edge_aggregates');
 
