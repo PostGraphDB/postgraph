@@ -30,7 +30,7 @@ SELECT * FROM cypher('order_by', $$CREATE ()$$) AS (result gtype);
 --------
 (0 rows)
 
-SELECT * FROM cypher('order_by', $$CREATE ({i: '1'})$$) AS (result gtype);
+SELECT * FROM cypher('order_by', $$CREATE ({i: '1', j: 1})$$) AS (result gtype);
  result 
 --------
 (0 rows)
@@ -104,6 +104,40 @@ $$) AS (i gtype);
  "1"
  [1]
  {"key": "value"}
+(9 rows)
+
+SELECT * FROM cypher('order_by', $$
+    MATCH (x)
+    RETURN x.j ORDER BY x.j NULLS FIRST  
+$$) AS (j gtype);
+ j 
+---
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 1
+(9 rows)
+
+SELECT * FROM cypher('order_by', $$
+    MATCH (x)
+    RETURN x.j ORDER BY x.j NULLS LAST
+$$) AS (j gtype);
+ j 
+---
+ 1
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 (9 rows)
 
 SELECT drop_graph('order_by', true);

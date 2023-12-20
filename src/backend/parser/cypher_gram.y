@@ -90,12 +90,12 @@
                  DATE DECADE DELETE DESC DESCENDING DETACH DISTINCT
                  ELSE END_P ENDS EXCEPT EXCLUDE EXISTS EXTRACT
                  GROUP GROUPS GROUPING
-                 FALSE_P FOLLOWING FROM
+                 FALSE_P FIRST_P FOLLOWING FROM
                  HAVING
                  IN INTERSECT INTERVAL IS
-                 LIMIT LOCALTIME LOCALTIMESTAMP
+                 LAST_P LIMIT LOCALTIME LOCALTIMESTAMP
                  MATCH MERGE 
-                 NO NOT NULL_P
+                 NO NOT NULL_P NULLS_LA
                  OPTIONAL OTHERS OR ORDER OVER OVERLAPS
                  PARTITION PRECEDING
                  RANGE REMOVE RETURN ROLLUP ROW ROWS
@@ -116,7 +116,7 @@
 /* RETURN and WITH clause */
 %type <node> empty_grouping_set cube_clause rollup_clause group_item having_opt return return_item sort_item skip_opt limit_opt with
 %type <list> group_item_list return_item_list order_by_opt sort_item_list group_by_opt
-%type <integer> order_opt 
+%type <integer> order_opt opt_nulls_order 
 
 /* MATCH clause */
 %type <node> match cypher_varlen_opt cypher_range_opt cypher_range_idx
@@ -695,6 +695,13 @@ return_item:
         }
     ;
 
+opt_nulls_order: NULLS_LA FIRST_P { $$ = SORTBY_NULLS_FIRST; }
+     | NULLS_LA LAST_P { $$ = SORTBY_NULLS_LAST; }
+     | /*EMPTY*/ { $$ = SORTBY_NULLS_DEFAULT; }
+;       
+                        
+
+
 order_by_opt:
     /* empty */
         {
@@ -718,14 +725,14 @@ sort_item_list:
     ;
 
 sort_item:
-    expr order_opt
+    expr order_opt opt_nulls_order
         {
             SortBy *n;
 
             n = makeNode(SortBy);
             n->node = $1;
             n->sortby_dir = $2;
-            n->sortby_nulls = SORTBY_NULLS_DEFAULT;
+            n->sortby_nulls = $3;
             n->useOp = NIL;
             n->location = -1; // no operator
 
@@ -2052,6 +2059,16 @@ symbolic_name:
             $$ = (char *) $1;
         }
     | ROW
+        {
+            /* we don't need to copy it, as it already has been */
+            $$ = (char *) $1;
+        }
+    | LAST_P
+        {
+            /* we don't need to copy it, as it already has been */
+            $$ = (char *) $1;
+        }
+    | FIRST_P
         {
             /* we don't need to copy it, as it already has been */
             $$ = (char *) $1;
