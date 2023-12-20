@@ -344,6 +344,33 @@ SELECT * FROM cypher('group_by', $$
     RETURN x, row_num
 $$) AS (x vertex, i int); 
 
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, rank() OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i gtype);
+
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, dense_rank() OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i gtype);
+
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, percent_rank() OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i gtype);
+
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, cume_dist() OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i gtype);
+
 
 SELECT * FROM cypher('group_by', $$
     MATCH (x)
