@@ -602,9 +602,8 @@ empty_grouping_set:
     }
 ;
 
-
 return:
-    RETURN DISTINCT return_item_list group_by_opt order_by_opt skip_opt limit_opt
+    RETURN DISTINCT return_item_list group_by_opt having_opt window_clause order_by_opt skip_opt limit_opt
         {
             cypher_return *n;
 
@@ -612,14 +611,16 @@ return:
             n->distinct = true;
             n->items = $3;
             n->real_group_clause = $4;
-            n->order_by = $5;
-            n->skip = $6;
-            n->limit = $7;
+            n->having = $5;
+            n->window_clause = $6;
+            n->order_by = $7;
+            n->skip = $8;
+            n->limit = $9;
             n->where = NULL;
 
             $$ = (Node *)n;
         }
-    | RETURN return_item_list group_by_opt order_by_opt skip_opt limit_opt
+    | RETURN return_item_list group_by_opt having_opt window_clause order_by_opt skip_opt limit_opt
         {
             cypher_return *n;
 
@@ -627,9 +628,11 @@ return:
             n->distinct = false;
             n->items = $2;
             n->real_group_clause = $3;
-            n->order_by = $4;
-            n->skip = $5;
-            n->limit = $6;
+            n->having = $4;
+            n->window_clause = $5;
+            n->order_by = $6;
+            n->skip = $7;
+            n->limit = $8;
             n->where = NULL;
 
             $$ = (Node *)n;
