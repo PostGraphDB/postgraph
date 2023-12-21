@@ -21,6 +21,9 @@
 
 #include "fmgr.h"
 
+#include "utils/gtype.h"
+#include "utils/gtype_typecasting.h"
+
 PG_FUNCTION_INFO_V1(cypher);
 
 Datum cypher(PG_FUNCTION_ARGS)
@@ -62,3 +65,15 @@ Datum _cypher_merge_clause(PG_FUNCTION_ARGS)
 {
     PG_RETURN_NULL();
 }
+
+PG_FUNCTION_INFO_V1(throw_error);
+
+Datum throw_error(PG_FUNCTION_ARGS)
+{
+    char *str = GT_ARG_TO_STRING_DATUM(0);
+
+    ereport(ERROR, (errmsg_internal("%s", str)));
+
+    PG_RETURN_NULL();
+}
+

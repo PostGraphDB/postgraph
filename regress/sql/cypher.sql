@@ -68,4 +68,6 @@ SELECT (SELECT * FROM cypher('cypher', $$RETURN 0$$) AS r(c gtype));
 SELECT * FROM cypher('cypher', $$RETURN true$$) AS (c bool);
 SELECT * FROM cypher('cypher', $$RETURN 0$$) AS (c oid);
 
+SELECT * FROM cypher('cypher', $$ RETURN throw_error('throw an error')$$) AS (c gtype);
+
 SELECT drop_graph('cypher', true);
