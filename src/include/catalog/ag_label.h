@@ -49,8 +49,9 @@
 #define Anum_ag_label_id 3
 #define Anum_ag_label_kind 4
 #define Anum_ag_label_relation 5
+#define Anum_ag_label_label_path 6
 
-#define Natts_ag_label 5
+#define Natts_ag_label 6
 
 #define ag_label_relation_id() ag_relation_id("ag_label", "table")
 #define ag_label_name_graph_index_id() \

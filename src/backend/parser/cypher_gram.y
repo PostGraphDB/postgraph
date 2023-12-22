@@ -92,7 +92,7 @@
                  GROUP GROUPING
                  FALSE_P FROM
                  IN INTERSECT INTERVAL IS
-                 LIMIT LOCALTIME LOCALTIMESTAMP
+                 LIKE LIMIT LOCALTIME LOCALTIMESTAMP
                  MATCH MERGE 
                  NOT NULL_P
                  OPTIONAL OR ORDER OVERLAPS
@@ -184,7 +184,7 @@
 %left '^' '&' '|'
 %nonassoc IN IS
 %right UNARY_MINUS
-%nonassoc CONTAINS ENDS EQ_TILDE STARTS
+%nonassoc CONTAINS ENDS EQ_TILDE STARTS LIKE
 %left '[' ']' '(' ')'
 %left '.'
 %left TYPECAST
@@ -1231,6 +1231,10 @@ expr:
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "=", $1, $3, @2);
         }
+    | expr LIKE expr
+        {   
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~~", $1, $3, @2);
+        }  
     | expr NOT_EQ expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<>", $1, $3, @2);
