@@ -594,6 +594,7 @@ SELECT * FROM cypher('case_statement', $$CREATE ({i: [], j: [0,1,2]})$$) AS (res
 SELECT * FROM cypher('case_statement', $$CREATE ({i: {}, j: {i:1}})$$) AS (result gtype);
 
 SELECT * from cypher('expr', $$ RETURN 'test' LIKE 'test' $$) as (result boolean);
+SELECT * from cypher('expr', $$ RETURN 'test' NOT LIKE 'test' $$) as (result boolean);
 
 --CASE WHEN condition THEN result END
 SELECT * FROM cypher('case_statement', $$

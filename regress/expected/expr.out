@@ -2491,6 +2491,18 @@ SELECT * FROM cypher('case_statement', $$CREATE ({i: {}, j: {i:1}})$$) AS (resul
 --------
 (0 rows)
 
+SELECT * from cypher('expr', $$ RETURN 'test' LIKE 'test' $$) as (result boolean);
+ result 
+--------
+ t
+(1 row)
+
+SELECT * from cypher('expr', $$ RETURN 'test' NOT LIKE 'test' $$) as (result boolean);
+ result 
+--------
+ f
+(1 row)
+
 --CASE WHEN condition THEN result END
 SELECT * FROM cypher('case_statement', $$
 	MATCH (n)

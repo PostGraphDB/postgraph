@@ -167,6 +167,13 @@ Datum gtype_like(PG_FUNCTION_ARGS)
     PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2Coll(textlike, C_COLLATION_OID, GT_ARG_TO_TEXT_DATUM(0), GT_ARG_TO_TEXT_DATUM(1))));
 }
 
+PG_FUNCTION_INFO_V1(gtype_not_like);
+// gtype !~~ gtype
+Datum gtype_not_like(PG_FUNCTION_ARGS)
+{
+    PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2Coll(textnlike, C_COLLATION_OID, GT_ARG_TO_TEXT_DATUM(0), GT_ARG_TO_TEXT_DATUM(1))));
+}
+
 PG_FUNCTION_INFO_V1(gtype_eq_tilde);
 // gtype ~ gtype
 Datum gtype_eq_tilde(PG_FUNCTION_ARGS)

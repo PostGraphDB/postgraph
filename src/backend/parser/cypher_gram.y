@@ -1283,7 +1283,11 @@ expr:
     | expr LIKE expr
         {   
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~~", $1, $3, @2);
-        }  
+        } 
+    | expr NOT LIKE expr
+        {   
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "!~~", $1, $4, @2);
+        }   
     | expr NOT_EQ expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<>", $1, $3, @2);
