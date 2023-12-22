@@ -325,6 +325,178 @@ SELECT * FROM cypher('group_by', $$
     GROUP BY CUBE (x.i, x.j, x.k)
 $$) AS (i int, j int, k int, cnt int);
 
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH count(x.i) AS cnt GROUP BY x.i
+    RETURN cnt
+$$) AS (i int);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH count(x.i) AS cnt GROUP BY x.i HAVING count(x.i) > 1
+    RETURN cnt
+$$) AS (i int);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, row_number() OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i int); 
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, rank() OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i gtype);
+
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, dense_rank() OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i gtype);
+
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, percent_rank() OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i gtype);
+
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, cume_dist() OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i gtype);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, lag(x.k) OVER (PARTITION BY COALESCE(x.i, x.a)  ORDER BY id(x) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i gtype);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, lag(x.k) OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i gtype);
+
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, lead(x.k) OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i gtype);
+
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, first_value(x.k) OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i gtype);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, nth_value(x.k, 2) OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i gtype);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, ntile(1) OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i int);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, ntile(2) OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i int);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, ntile(3) OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i int);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, last_value(x.k) OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i gtype);
+
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, row_number() OVER w AS row_num WINDOW w AS (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) )
+    RETURN x, row_num
+$$) AS (x vertex, i int);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, row_number() OVER w AS row_num WINDOW w AS (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) 
+    RETURN x, row_num
+$$) AS (x vertex, i int);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, 
+         row_number() OVER (
+             PARTITION BY x.i
+             ORDER BY COALESCE(x.j, x.c)
+             ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+         ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i int);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, 
+         row_number() OVER (
+             PARTITION BY x.i  
+             ORDER BY COALESCE(x.j, x.c)
+             ROWS BETWEEN 1 PRECEDING AND UNBOUNDED FOLLOWING
+         ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i int);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    WITH x, 
+         row_number() OVER (
+             PARTITION BY x.i  
+             ORDER BY COALESCE(x.j, x.c)
+             ROWS BETWEEN UNBOUNDED PRECEDING AND 1 FOLLOWING
+         ) AS row_num
+    RETURN x, row_num
+$$) AS (x vertex, i int);
+
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    RETURN x, last_value(x.k) OVER (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) ) AS row_num
+$$) AS (x vertex, i gtype);
+
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    RETURN x, row_number() OVER w AS row_num WINDOW w AS (PARTITION BY x.i ORDER BY COALESCE(x.j, x.c) )
+$$) AS (x vertex, i int);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    RETURN count(*) FILTER (WHERE x.i IS NOT NULL)
+$$) AS (cnt gtype);
+
+SELECT * FROM cypher('group_by', $$
+    MATCH (x)
+    RETURN x.i, rank(x.i, x.j) WITHIN GROUP (ORDER BY x.k) GROUP BY x.i
+$$) AS (i gtype, cnt gtype);
+
+
+
 SELECT create_graph('edge_aggregates');
 
 SELECT * FROM cypher('edge_aggregates', $$CREATE ()-[:e]->() $$) AS (result gtype);

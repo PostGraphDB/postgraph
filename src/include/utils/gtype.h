@@ -193,7 +193,7 @@ typedef uint32 gtentry;
 #define GTENTRY_IS_BOOL_TRUE  0x30000000
 #define GTENTRY_IS_NULL       0x40000000
 #define GTENTRY_IS_CONTAINER  0x50000000 /* array or object */
-#define GTENTRY_IS_GTYPE     0x70000000 /* extended type designator */
+#define GTENTRY_IS_GTYPE     0x60000000 /* extended type designator */
 
 /* Access macros.  Note possible multiple evaluations */
 #define GTE_OFFLENFLD(agte_) \
@@ -304,33 +304,33 @@ typedef struct
 #define GT_HEADER_INTERVAL         0x00000007
 #define GT_HEADER_VECTOR           0x00000008
 #define GT_HEADER_INET             0x00000009
-#define GT_HEADER_CIDR             0x00000010
-#define GT_HEADER_MAC              0x00000011
-#define GT_HEADER_MAC8             0x00000012
-#define GT_HEADER_POINT            0x00000013
-#define GT_HEADER_PATH             0x00000014
-#define GT_HEADER_LSEG             0x00000015
-#define GT_HEADER_LINE             0x00000016
-#define GT_HEADER_POLYGON          0x00000017
-#define GT_HEADER_CIRCLE           0x00000018
-#define GT_HEADER_BOX              0x00000019
-#define GT_HEADER_BOX2D            0x00000020
-#define GT_HEADER_BOX3D            0x00000021
-#define GT_HEADER_SPHEROID         0x00000022
-#define GT_HEADER_GSERIALIZED      0x00000023
-#define GT_HEADER_TSVECTOR         0x00000024
-#define GT_HEADER_TSQUERY          0x00000025
-#define GT_HEADER_RANGE_INT        0x00000026
-#define GT_HEADER_RANGE_NUM        0x00000027
-#define GT_HEADER_RANGE_TS         0x00000028
-#define GT_HEADER_RANGE_TSTZ       0x00000029
-#define GT_HEADER_RANGE_DATE       0x00000030
-#define GT_HEADER_RANGE_INT_MULTI  0x00000031
-#define GT_HEADER_RANGE_NUM_MULTI  0x00000032
-#define GT_HEADER_RANGE_TS_MULTI   0x00000033
-#define GT_HEADER_RANGE_TSTZ_MULTI 0x00000034
-#define GT_HEADER_RANGE_DATE_MULTI 0x00000035
-#define GT_HEADER_BYTEA            0x00000036
+#define GT_HEADER_CIDR             0x0000000A
+#define GT_HEADER_MAC              0x0000000B
+#define GT_HEADER_MAC8             0x0000000C
+#define GT_HEADER_POINT            0x0000000D
+#define GT_HEADER_PATH             0x0000000E
+#define GT_HEADER_LSEG             0x0000000F
+#define GT_HEADER_LINE             0x00000010
+#define GT_HEADER_POLYGON          0x00000011
+#define GT_HEADER_CIRCLE           0x00000012
+#define GT_HEADER_BOX              0x00000013
+#define GT_HEADER_BOX2D            0x00000014
+#define GT_HEADER_BOX3D            0x00000015
+#define GT_HEADER_SPHEROID         0x00000016
+#define GT_HEADER_GSERIALIZED      0x00000017
+#define GT_HEADER_TSVECTOR         0x00000018
+#define GT_HEADER_TSQUERY          0x00000019
+#define GT_HEADER_RANGE_INT        0x0000001A
+#define GT_HEADER_RANGE_NUM        0x0000001B
+#define GT_HEADER_RANGE_TS         0x0000001C
+#define GT_HEADER_RANGE_TSTZ       0x0000001D
+#define GT_HEADER_RANGE_DATE       0x0000001E
+#define GT_HEADER_RANGE_INT_MULTI  0x0000001F
+#define GT_HEADER_RANGE_NUM_MULTI  0x00000020
+#define GT_HEADER_RANGE_TS_MULTI   0x00000021
+#define GT_HEADER_RANGE_TSTZ_MULTI 0x00000022
+#define GT_HEADER_RANGE_DATE_MULTI 0x00000023
+#define GT_HEADER_BYTEA            0x00000024
 
 
 #define GT_IS_INTEGER(agte_) \
@@ -633,6 +633,7 @@ char *gtype_to_cstring(StringInfo out, gtype_container *in, int estimated_len);
 char *gtype_to_cstring_indent(StringInfo out, gtype_container *in, int estimated_len);
 
 Datum gtype_from_cstring(char *str, int len);
+bool is_gtype_numeric(gtype *agt);
 
 size_t check_string_length(size_t len);
 Datum integer_to_gtype(int64 i);

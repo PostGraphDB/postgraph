@@ -176,6 +176,15 @@ bool is_gtype_float(gtype *agt) {
 }
 
 bool is_gtype_numeric(gtype *agt) {
+    /*if (!AGT_ROOT_IS_SCALAR(agt))
+        return false;
+
+    gtype_value *gtv = get_ith_gtype_value_from_container(&agt->root, 0);
+
+    if (gtv->type == AGTV_NUMERIC)
+        return true;
+
+    return false;*/
     return AGT_ROOT_IS_SCALAR(agt) && GTE_IS_NUMERIC(agt->root.children[0]);
 }
 

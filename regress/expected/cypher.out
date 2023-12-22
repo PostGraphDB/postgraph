@@ -111,6 +111,8 @@ SELECT * FROM cypher('cypher', $$RETURN 0$$) AS (c oid);
 ERROR:  cannot cast type gtype to oid for column "c"
 LINE 1: SELECT * FROM cypher('cypher', $$RETURN 0$$) AS (c oid);
                       ^
+SELECT * FROM cypher('cypher', $$ RETURN throw_error('throw an error')$$) AS (c gtype);
+ERROR:  throw an error
 SELECT drop_graph('cypher', true);
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table cypher._ag_label_vertex

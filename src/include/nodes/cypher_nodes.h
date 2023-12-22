@@ -60,7 +60,9 @@ typedef struct cypher_return
     List *items; // a list of ResTargets
     List *real_group_clause;
     cypher_group_by *group_by;
+    Node *having;
     List *order_by;
+    List *window_clause;
     Node *skip;
     Node *limit;
     Node *where;
@@ -77,7 +79,9 @@ typedef struct cypher_with
     List *items; // a list of ResTargets
     List *real_group_clause;
     cypher_group_by *group_by;
+    Node *having;
     List *order_by;
+    List *window_clause;
     Node *skip;
     Node *limit;
     Node *where;

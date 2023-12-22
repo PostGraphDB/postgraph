@@ -538,7 +538,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE 
 AS 'MODULE_PATHNAME';
 
-CREATE CAST (gtype AS int) WITH FUNCTION gtype_to_int4(gtype);
+CREATE CAST (gtype AS int) WITH FUNCTION gtype_to_int4(gtype) AS IMPLICIT;
 
 -- gtype -> int2
 CREATE FUNCTION gtype_to_int2(gtype) 

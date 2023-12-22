@@ -31,7 +31,6 @@
 #include "nodes/primnodes.h"
 #include "nodes/value.h"
 #include "parser/parser.h"
-#include "nodes/primnodes.h"
 
 #include "nodes/ag_nodes.h"
 #include "nodes/cypher_nodes.h"
@@ -70,6 +69,7 @@
     bool boolean;
     Node *node;
     List *list;
+    struct WindowDef *windef;
 }
 
 %token <integer> INTEGER
@@ -85,22 +85,24 @@
 
 /* keywords in alphabetical order */
 %token <keyword> ALL AND AS ASC ASCENDING
-                 BY
-                 CALL CASE COALESCE CONTAINS CREATE CUBE CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
+                 BETWEEN BY
+                 CALL CASE COALESCE CONTAINS CREATE CUBE CURRENT CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
                  DATE DECADE DELETE DESC DESCENDING DETACH DISTINCT
-                 ELSE END_P ENDS EXCEPT EXISTS EXTRACT
-                 GROUP GROUPING
-                 FALSE_P FROM
+                 ELSE END_P ENDS EXCEPT EXCLUDE EXISTS EXTRACT
+                 GROUP GROUPS GROUPING
+                 FALSE_P FILTER FIRST_P FOLLOWING FROM
+                 HAVING
                  IN INTERSECT INTERVAL IS
-                 LIKE LIMIT LOCALTIME LOCALTIMESTAMP
+                 LAST_P LIKE LIMIT LOCALTIME LOCALTIMESTAMP
                  MATCH MERGE 
-                 NOT NULL_P
-                 OPTIONAL OR ORDER OVERLAPS
-                 REMOVE RETURN ROLLUP
+                 NO NOT NULL_P NULLS_LA
+                 OPTIONAL OTHERS OR ORDER OVER OVERLAPS
+                 PARTITION PRECEDING
+                 RANGE REMOVE RETURN ROLLUP ROW ROWS
                  SET SETS SKIP STARTS
-                 TIME THEN TIMESTAMP TRUE_P
-                 UNION UNWIND
-                 WHEN WHERE WITH WITHOUT
+                 TIME TIES THEN TIMESTAMP TRUE_P
+                 UNBOUNDED UNION UNWIND USING
+                 WHEN WHERE WINDOW WITH WITHIN WITHOUT
                  XOR
                  YIELD
                  ZONE
@@ -112,9 +114,9 @@
 %type <node> reading_clause updating_clause
 
 /* RETURN and WITH clause */
-%type <node> empty_grouping_set cube_clause rollup_clause group_item return return_item sort_item skip_opt limit_opt with
-%type <list> group_item_list return_item_list order_by_opt sort_item_list group_by_opt
-%type <integer> order_opt 
+%type <node> empty_grouping_set cube_clause rollup_clause group_item having_opt return return_item sort_item skip_opt limit_opt with
+%type <list> group_item_list return_item_list order_by_opt sort_item_list group_by_opt within_group_clause
+%type <integer> order_opt opt_nulls_order 
 
 /* MATCH clause */
 %type <node> match cypher_varlen_opt cypher_range_opt cypher_range_idx
@@ -162,6 +164,12 @@
 %type <node> expr_var expr_func expr_func_norm expr_func_subexpr
 %type <list> expr_list expr_list_opt map_keyval_list_opt map_keyval_list
 
+%type <node> filter_clause
+%type <list> window_clause window_definition_list opt_partition_clause
+%type <windef> window_definition over_clause window_specification opt_frame_clause
+               frame_extent frame_bound
+%type <integer>    opt_window_exclusion_clause
+%type <string> all_op
 /* names */
 %type <string> property_key_name var_name var_name_opt label_name
 %type <string> symbolic_name schema_name temporal_cast
@@ -536,10 +544,22 @@ cypher_range_idx_opt:
                 ;
 
 Iconst: INTEGER
-
+;
 /*
  * RETURN and WITH clause
  */
+having_opt:
+    /* empty */
+        {
+            $$ = NULL;
+        }
+    | HAVING expr
+        {
+            $$ = $2;
+        }
+;
+
+
 group_by_opt:
     /* empty */
         {
@@ -549,14 +569,15 @@ group_by_opt:
         {
             $$ = $3;
         }
+;
 
 group_item_list:
-	group_item { $$ = list_make1($1); }
+    group_item { $$ = list_make1($1); }
         | group_item_list ',' group_item { $$ = lappend($1, $3); }
 ;
 
 group_item:
-	expr { $$ = $1; }
+    expr { $$ = $1; }
         | cube_clause { $$ = $1; }
         | rollup_clause { $$ = $1; }
         | empty_grouping_set { $$ = $1; }
@@ -583,9 +604,8 @@ empty_grouping_set:
     }
 ;
 
-
 return:
-    RETURN DISTINCT return_item_list group_by_opt order_by_opt skip_opt limit_opt
+    RETURN DISTINCT return_item_list group_by_opt having_opt window_clause order_by_opt skip_opt limit_opt
         {
             cypher_return *n;
 
@@ -593,14 +613,16 @@ return:
             n->distinct = true;
             n->items = $3;
             n->real_group_clause = $4;
-            n->order_by = $5;
-            n->skip = $6;
-            n->limit = $7;
+            n->having = $5;
+            n->window_clause = $6;
+            n->order_by = $7;
+            n->skip = $8;
+            n->limit = $9;
             n->where = NULL;
 
             $$ = (Node *)n;
         }
-    | RETURN return_item_list group_by_opt order_by_opt skip_opt limit_opt
+    | RETURN return_item_list group_by_opt having_opt window_clause order_by_opt skip_opt limit_opt
         {
             cypher_return *n;
 
@@ -608,9 +630,11 @@ return:
             n->distinct = false;
             n->items = $2;
             n->real_group_clause = $3;
-            n->order_by = $4;
-            n->skip = $5;
-            n->limit = $6;
+            n->having = $4;
+            n->window_clause = $5;
+            n->order_by = $6;
+            n->skip = $7;
+            n->limit = $8;
             n->where = NULL;
 
             $$ = (Node *)n;
@@ -673,6 +697,13 @@ return_item:
         }
     ;
 
+opt_nulls_order: NULLS_LA FIRST_P { $$ = SORTBY_NULLS_FIRST; }
+     | NULLS_LA LAST_P { $$ = SORTBY_NULLS_LAST; }
+     | /*EMPTY*/ { $$ = SORTBY_NULLS_DEFAULT; }
+;       
+                        
+
+
 order_by_opt:
     /* empty */
         {
@@ -696,20 +727,34 @@ sort_item_list:
     ;
 
 sort_item:
-    expr order_opt
-        {
-            SortBy *n;
+    expr USING all_op opt_nulls_order
+    {
+        SortBy *n;
 
-            n = makeNode(SortBy);
-            n->node = $1;
-            n->sortby_dir = $2;
-            n->sortby_nulls = SORTBY_NULLS_DEFAULT;
-            n->useOp = NIL;
-            n->location = -1; // no operator
+        n = makeNode(SortBy);
+        n->node = $1;
+        n->sortby_dir = SORTBY_USING;
+        n->sortby_nulls = $4;
+        n->useOp = list_make2(makeString("postgraph"), makeString($3));
+        n->location = @3;
 
-            $$ = (Node *)n;
-        }
-    ;
+        $$ = (Node *)n;
+
+    }
+    | expr order_opt opt_nulls_order
+    {
+        SortBy *n;
+
+        n = makeNode(SortBy);
+        n->node = $1;
+        n->sortby_dir = $2;
+        n->sortby_nulls = $3;
+        n->useOp = NIL;
+        n->location = -1; // no operator
+
+        $$ = (Node *)n;
+    }
+;
 
 order_opt:
     /* empty */
@@ -757,7 +802,7 @@ limit_opt:
     ;
 
 with:
-    WITH DISTINCT return_item_list where_opt group_by_opt order_by_opt skip_opt limit_opt
+    WITH DISTINCT return_item_list where_opt group_by_opt having_opt window_clause order_by_opt skip_opt limit_opt
         {
             ListCell *li;
             cypher_with *n;
@@ -782,14 +827,16 @@ with:
             n->distinct = true;
             n->items = $3;
             n->real_group_clause = $5;
-            n->order_by = $6;
-            n->skip = $7;
-            n->limit = $8;
+            n->having = $6;
+            n->window_clause = $7;
+            n->order_by = $8;
+            n->skip = $9;
+            n->limit = $10;
             n->where = $4;
 
             $$ = (Node *)n;
         }
-    | WITH return_item_list where_opt group_by_opt order_by_opt skip_opt limit_opt
+    | WITH return_item_list where_opt group_by_opt having_opt window_clause order_by_opt skip_opt limit_opt
         {
             ListCell *li;
             cypher_with *n;
@@ -814,9 +861,11 @@ with:
             n->distinct = false;
             n->items = $2;
             n->real_group_clause = $4;
-            n->order_by = $5;
-            n->skip = $6;
-            n->limit = $7;
+            n->having = $5;
+            n->window_clause = $6;
+            n->order_by = $7;
+            n->skip = $8;
+            n->limit = $9;
             n->where = $3;
 
             $$ = (Node *)n;
@@ -1403,6 +1452,69 @@ expr:
     | expr_atom
     ;
 
+all_op:
+    OPERATOR
+    {
+        $$ = $1;
+    }
+    | '<'
+    {
+        $$ = "<";
+    }
+    | '>'
+    {
+        $$ = ">";
+    }
+    | '='
+        {
+            $$ = "=";
+        }
+    | NOT_EQ
+        {
+            $$ = "<>";
+        }
+    | LT_EQ
+        {
+            $$ = "<=";
+        }
+    | GT_EQ
+        {
+            $$ = ">=";
+        }
+    | '+'
+        {
+            $$ = "+";
+        }
+    | '-'
+        {
+            $$ = "-";
+        }
+    | '*'
+        {
+            $$ = "*";
+        }
+    | '/'
+        {
+            $$ = "/";
+        }
+    | '%'
+        {
+            $$ = "%";
+        }
+    | '^'
+        {
+            $$ = "^";
+        }
+    | '~'
+        {
+            $$ = "~";
+        }
+    | '<' '-' '>'
+        {
+            $$ = "<->";
+        }
+;
+
 expr_opt:
     /* empty */
         {
@@ -1431,9 +1543,259 @@ expr_list_opt:
     ;
 
 expr_func:
-    expr_func_norm
+    expr_func_norm within_group_clause filter_clause over_clause 
+    {
+        FuncCall *fc = $1;
+        /*
+         * The order clause for WITHIN GROUP and the one for
+         * plain-aggregate ORDER BY share a field, so we have to
+         * check here that at most one is present.  We also check
+         * for DISTINCT and VARIADIC here to give a better error
+         * location.  Other consistency checks are deferred to
+         * parse analysis.
+         */
+        if ($2 != NIL)
+        {
+             if (fc->agg_order != NIL)
+                  ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                                  errmsg("cannot use multiple ORDER BY clauses with WITHIN GROUP"),
+                                  ag_scanner_errposition(@2, scanner)));
+             if (fc->agg_distinct)
+                  ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                                  errmsg("cannot use DISTINCT with WITHIN GROUP"),
+                                  ag_scanner_errposition(@2, scanner)));
+              if (fc->func_variadic)
+                   ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                                   errmsg("cannot use VARIADIC with WITHIN GROUP"),
+                                   ag_scanner_errposition(@2, scanner)));
+              fc->agg_order = $2;
+              fc->agg_within_group = true;
+        }
+
+
+        fc->over = $4;
+        fc->agg_filter = $3;
+        $$ = fc;
+    }
     | expr_func_subexpr
     ;
+
+/*
+ * Aggregate decoration clauses
+ */
+within_group_clause:
+    WITHIN GROUP '(' order_by_opt ')' { $$ = $4; }
+    | /*EMPTY*/                        { $$ = NIL; }
+; 
+
+filter_clause:
+     FILTER '(' WHERE expr ')' { $$ = $4; }
+     | /*EMPTY*/               { $$ = NULL; }
+     ;      
+
+/*
+ * Window Definitions
+ */                                     
+window_clause:
+   WINDOW window_definition_list { $$ = $2; }
+   | /*EMPTY*/ { $$ = NIL; }
+   ;
+
+window_definition_list:
+   window_definition  { $$ = list_make1($1); }
+   | window_definition_list ',' window_definition { $$ = lappend($1, $3); }
+   ;
+
+window_definition:
+   IDENTIFIER AS window_specification
+   {
+       WindowDef *n = $3;
+       n->name = $1;
+       $$ = n;
+   }
+   ;           
+over_clause:
+    OVER window_specification { $$ = $2; }
+    | OVER symbolic_name
+        {
+            WindowDef *n = makeNode(WindowDef);
+            n->name = $2;
+            n->refname = NULL;
+            n->partitionClause = NIL;
+            n->orderClause = NIL;
+            n->frameOptions = FRAMEOPTION_DEFAULTS;
+            n->startOffset = NULL;
+            n->endOffset = NULL;
+            n->location = @2;
+            $$ = n;
+       }
+     | /*EMPTY*/
+         { $$ = NULL; }
+     ;
+
+
+window_specification: //TODO opt_existing_window_name
+    '(' opt_partition_clause /*opt_sort_clause*/ order_by_opt opt_frame_clause ')'
+     {
+         WindowDef *n = makeNode(WindowDef);
+         n->name = NULL;
+         n->refname = NULL;//$2;
+         n->partitionClause = $2;
+         n->orderClause = $3;
+         /* copy relevant fields of opt_frame_clause */
+         n->frameOptions = $4->frameOptions;
+         n->startOffset = $4->startOffset;
+         n->endOffset = $4->endOffset;
+         n->location = @1;
+         $$ = n;
+      }
+      ;
+
+
+opt_partition_clause: PARTITION BY expr_list { $$ = $3; }
+                        | /*EMPTY*/ { $$ = NIL; }
+                ;
+
+/*
+ * For frame clauses, we return a WindowDef, but only some fields are used:
+ * frameOptions, startOffset, and endOffset.
+ */
+opt_frame_clause:
+    RANGE frame_extent opt_window_exclusion_clause
+    {
+        WindowDef *n = $2;
+        n->frameOptions |= FRAMEOPTION_NONDEFAULT | FRAMEOPTION_RANGE;
+        n->frameOptions |= $3;
+        $$ = n;
+    }
+    | ROWS frame_extent opt_window_exclusion_clause
+    {
+        WindowDef *n = $2;
+        n->frameOptions |= FRAMEOPTION_NONDEFAULT | FRAMEOPTION_ROWS;
+        n->frameOptions |= $3;
+        $$ = n;
+    }
+    | GROUPS frame_extent opt_window_exclusion_clause
+    {
+        WindowDef *n = $2;
+        n->frameOptions |= FRAMEOPTION_NONDEFAULT | FRAMEOPTION_GROUPS;
+        n->frameOptions |= $3;
+        $$ = n;
+    }
+    |
+    /*EMPTY*/
+    {
+        WindowDef *n = makeNode(WindowDef);
+        n->frameOptions = FRAMEOPTION_DEFAULTS;
+        n->startOffset = NULL;
+        n->endOffset = NULL;
+        $$ = n;
+    }
+
+frame_extent: frame_bound
+    {
+        WindowDef *n = $1;
+        /* reject invalid cases */
+        if (n->frameOptions & FRAMEOPTION_START_UNBOUNDED_FOLLOWING)
+            ereport(ERROR, (errcode(ERRCODE_WINDOWING_ERROR),
+                            errmsg("frame start cannot be UNBOUNDED FOLLOWING"),
+                            ag_scanner_errposition(@1, scanner)));
+        if (n->frameOptions & FRAMEOPTION_START_OFFSET_FOLLOWING)
+            ereport(ERROR, (errcode(ERRCODE_WINDOWING_ERROR),
+                            errmsg("frame starting from following row cannot end with current row"),
+                            ag_scanner_errposition(@1, scanner)));
+        n->frameOptions |= FRAMEOPTION_END_CURRENT_ROW;
+        $$ = n;
+    }
+    | BETWEEN frame_bound AND frame_bound
+    {
+        WindowDef *n1 = $2;
+        WindowDef *n2 = $4;
+        /* form merged options */
+        int             frameOptions = n1->frameOptions;
+        /* shift converts START_ options to END_ options */
+        frameOptions |= n2->frameOptions << 1;
+        frameOptions |= FRAMEOPTION_BETWEEN;
+        /* reject invalid cases */
+        if (frameOptions & FRAMEOPTION_START_UNBOUNDED_FOLLOWING)
+            ereport(ERROR, (errcode(ERRCODE_WINDOWING_ERROR),
+                            errmsg("frame start cannot be UNBOUNDED FOLLOWING"),
+                            ag_scanner_errposition(@2, scanner)));
+        if (frameOptions & FRAMEOPTION_END_UNBOUNDED_PRECEDING)
+            ereport(ERROR, (errcode(ERRCODE_WINDOWING_ERROR),
+                            errmsg("frame end cannot be UNBOUNDED PRECEDING"),
+                            ag_scanner_errposition(@4, scanner)));
+        if ((frameOptions & FRAMEOPTION_START_CURRENT_ROW) && (frameOptions & FRAMEOPTION_END_OFFSET_PRECEDING))
+            ereport(ERROR, (errcode(ERRCODE_WINDOWING_ERROR),
+                            errmsg("frame starting from current row cannot have preceding rows"),
+                            ag_scanner_errposition(@4, scanner)));
+        if ((frameOptions & FRAMEOPTION_START_OFFSET_FOLLOWING) &&
+                (frameOptions & (FRAMEOPTION_END_OFFSET_PRECEDING | FRAMEOPTION_END_CURRENT_ROW)))
+            ereport(ERROR, (errcode(ERRCODE_WINDOWING_ERROR),
+                            errmsg("frame starting from following row cannot have preceding rows"),
+                            ag_scanner_errposition(@4, scanner)));
+        n1->frameOptions = frameOptions;
+        n1->endOffset = n2->startOffset;
+        $$ = n1;
+    }
+    ;
+
+/*
+ * This is used for both frame start and frame end, with output set up on
+ * the assumption it's frame start; the frame_extent productions must reject
+ * invalid cases.
+ */
+frame_bound:
+     UNBOUNDED PRECEDING
+        {
+              WindowDef *n = makeNode(WindowDef);
+              n->frameOptions = FRAMEOPTION_START_UNBOUNDED_PRECEDING;
+              n->startOffset = NULL;
+              n->endOffset = NULL;
+        $$ = n;
+        }
+     | UNBOUNDED FOLLOWING
+          {
+              WindowDef *n = makeNode(WindowDef);
+              n->frameOptions = FRAMEOPTION_START_UNBOUNDED_FOLLOWING;
+              n->startOffset = NULL;
+              n->endOffset = NULL;
+              $$ = n;
+          }
+     | CURRENT ROW
+          {
+              WindowDef *n = makeNode(WindowDef);
+              n->frameOptions = FRAMEOPTION_START_CURRENT_ROW;
+              n->startOffset = NULL;
+              n->endOffset = NULL;
+              $$ = n;
+          }
+     | expr PRECEDING
+          {
+              WindowDef *n = makeNode(WindowDef);
+              n->frameOptions = FRAMEOPTION_START_OFFSET_PRECEDING;
+              n->startOffset = $1;
+              n->endOffset = NULL;
+              $$ = n;
+          }
+     | expr FOLLOWING
+          {
+              WindowDef *n = makeNode(WindowDef);
+              n->frameOptions = FRAMEOPTION_START_OFFSET_FOLLOWING;
+              n->startOffset = $1;
+              n->endOffset = NULL;
+              $$ = n;
+          }
+;
+
+opt_window_exclusion_clause:
+    EXCLUDE CURRENT ROW   { $$ = FRAMEOPTION_EXCLUDE_CURRENT_ROW; }
+    | EXCLUDE GROUP         { $$ = FRAMEOPTION_EXCLUDE_GROUP; }
+    | EXCLUDE TIES          { $$ = FRAMEOPTION_EXCLUDE_TIES; }
+    | EXCLUDE NO OTHERS     { $$ = 0; }
+    | /*EMPTY*/             { $$ = 0; }
+;
+
 
 expr_func_norm:
     func_name '(' ')'
@@ -1815,6 +2177,27 @@ label_name:
 
 symbolic_name:
     IDENTIFIER
+    | RANGE 
+        {
+            /* we don't need to copy it, as it already has been */
+            $$ = (char *) $1;
+        }
+    | ROW
+        {
+            /* we don't need to copy it, as it already has been */
+            $$ = (char *) $1;
+        }
+    | LAST_P
+        {
+            /* we don't need to copy it, as it already has been */
+            $$ = (char *) $1;
+        }
+    | FIRST_P
+        {
+            /* we don't need to copy it, as it already has been */
+            $$ = (char *) $1;
+        }
+
     ;
 
 schema_name:
@@ -2124,4 +2507,3 @@ static Node *make_set_op(SetOperation op, bool all_or_distinct, List *larg, List
     n->rarg = (List *) rarg;
     return (Node *) n;
 }
-

@@ -23,7 +23,7 @@ SET search_path TO postgraph;
 SELECT create_graph('order_by');
 
 SELECT * FROM cypher('order_by', $$CREATE ()$$) AS (result gtype);
-SELECT * FROM cypher('order_by', $$CREATE ({i: '1'})$$) AS (result gtype);
+SELECT * FROM cypher('order_by', $$CREATE ({i: '1', j: 1})$$) AS (result gtype);
 SELECT * FROM cypher('order_by', $$CREATE ({i: 1})$$) AS (result gtype);
 SELECT * FROM cypher('order_by', $$CREATE ({i: 1.0})$$) AS (result gtype);
 SELECT * FROM cypher('order_by', $$CREATE ({i: 1::numeric})$$) AS (result gtype);
@@ -42,6 +42,22 @@ SELECT * FROM cypher('order_by', $$
         MATCH (u)
         RETURN u.i
         ORDER BY u.i DESC
+$$) AS (i gtype);
+
+SELECT * FROM cypher('order_by', $$
+    MATCH (x)
+    RETURN x.j ORDER BY x.j NULLS FIRST  
+$$) AS (j gtype);
+
+
+SELECT * FROM cypher('order_by', $$
+    MATCH (x)
+    RETURN x.j ORDER BY x.j NULLS LAST
+$$) AS (j gtype);
+
+SELECT * FROM cypher('order_by', $$
+    MATCH (x)
+    RETURN x.i ORDER BY x.i USING <
 $$) AS (i gtype);
 
 
