@@ -55,4 +55,10 @@ SELECT * FROM cypher('order_by', $$
     RETURN x.j ORDER BY x.j NULLS LAST
 $$) AS (j gtype);
 
+SELECT * FROM cypher('order_by', $$
+    MATCH (x)
+    RETURN x.i ORDER BY x.i USING <
+$$) AS (i gtype);
+
+
 SELECT drop_graph('order_by', true);

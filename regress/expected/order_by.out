@@ -140,6 +140,23 @@ $$) AS (j gtype);
  
 (9 rows)
 
+SELECT * FROM cypher('order_by', $$
+    MATCH (x)
+    RETURN x.i ORDER BY x.i USING <
+$$) AS (i gtype);
+        i         
+------------------
+ {"key": "value"}
+ [1]
+ "1"
+ false
+ true
+ 1::numeric
+ 1
+ 1.0
+ 
+(9 rows)
+
 SELECT drop_graph('order_by', true);
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table order_by._ag_label_vertex

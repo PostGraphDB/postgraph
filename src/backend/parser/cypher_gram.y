@@ -101,7 +101,7 @@
                  RANGE REMOVE RETURN ROLLUP ROW ROWS
                  SET SETS SKIP STARTS
                  TIME TIES THEN TIMESTAMP TRUE_P
-                 UNBOUNDED UNION UNWIND
+                 UNBOUNDED UNION UNWIND USING
                  WHEN WHERE WINDOW WITH WITHIN WITHOUT
                  XOR
                  YIELD
@@ -169,6 +169,7 @@
 %type <windef> window_definition over_clause window_specification opt_frame_clause
                frame_extent frame_bound
 %type <integer>    opt_window_exclusion_clause
+%type <string> all_op
 /* names */
 %type <string> property_key_name var_name var_name_opt label_name
 %type <string> symbolic_name schema_name temporal_cast
@@ -726,20 +727,34 @@ sort_item_list:
     ;
 
 sort_item:
-    expr order_opt opt_nulls_order
-        {
-            SortBy *n;
+    expr USING all_op opt_nulls_order
+    {
+        SortBy *n;
 
-            n = makeNode(SortBy);
-            n->node = $1;
-            n->sortby_dir = $2;
-            n->sortby_nulls = $3;
-            n->useOp = NIL;
-            n->location = -1; // no operator
+        n = makeNode(SortBy);
+        n->node = $1;
+        n->sortby_dir = SORTBY_USING;
+        n->sortby_nulls = $4;
+        n->useOp = list_make2(makeString("postgraph"), makeString($3));
+        n->location = @3;
 
-            $$ = (Node *)n;
-        }
-    ;
+        $$ = (Node *)n;
+
+    }
+    | expr order_opt opt_nulls_order
+    {
+        SortBy *n;
+
+        n = makeNode(SortBy);
+        n->node = $1;
+        n->sortby_dir = $2;
+        n->sortby_nulls = $3;
+        n->useOp = NIL;
+        n->location = -1; // no operator
+
+        $$ = (Node *)n;
+    }
+;
 
 order_opt:
     /* empty */
@@ -1432,6 +1447,69 @@ expr:
         }
     | expr_atom
     ;
+
+all_op:
+    OPERATOR
+    {
+        $$ = $1;
+    }
+    | '<'
+    {
+        $$ = "<";
+    }
+    | '>'
+    {
+        $$ = ">";
+    }
+    | '='
+        {
+            $$ = "=";
+        }
+    | NOT_EQ
+        {
+            $$ = "<>";
+        }
+    | LT_EQ
+        {
+            $$ = "<=";
+        }
+    | GT_EQ
+        {
+            $$ = ">=";
+        }
+    | '+'
+        {
+            $$ = "+";
+        }
+    | '-'
+        {
+            $$ = "-";
+        }
+    | '*'
+        {
+            $$ = "*";
+        }
+    | '/'
+        {
+            $$ = "/";
+        }
+    | '%'
+        {
+            $$ = "%";
+        }
+    | '^'
+        {
+            $$ = "^";
+        }
+    | '~'
+        {
+            $$ = "~";
+        }
+    | '<' '-' '>'
+        {
+            $$ = "<->";
+        }
+;
 
 expr_opt:
     /* empty */
