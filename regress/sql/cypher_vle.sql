@@ -170,6 +170,8 @@ SELECT * FROM cypher('cypher_vle', $$MATCH p=(:begin)<-[ve1*]-(:end), (:end)-[ve
 
 SELECT * FROM cypher('cypher_vle', $$MATCH p=()<-[ve1:edge*]-(), ()-[ve2:alternate_edge*]->() RETURN ve1 && ve2 $$) AS (overlap boolean);
 
+SELECT * FROM ag_label;
+
 --
 -- Clean up
 --

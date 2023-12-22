@@ -45,6 +45,27 @@ PARALLEL SAFE
 AS 'MODULE_PATHNAME';
 
 --
+-- LIKE
+--
+CREATE FUNCTION gtype_like(gtype, gtype)
+RETURNS BOOLEAN
+LANGUAGE C
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+AS 'MODULE_PATHNAME';
+
+CREATE OPERATOR ~~ (
+    FUNCTION = gtype_like,
+    LEFTARG = gtype,
+    RIGHTARG = gtype,
+    RESTRICT = LIKESEL,
+    JOIN = LIKEJOINSEL
+);
+
+
+
+--
 -- Regex
 --
 CREATE FUNCTION regex_match_case_sensitive(gtype, gtype) 

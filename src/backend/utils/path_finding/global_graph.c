@@ -163,8 +163,6 @@ static List *get_labels(Snapshot snapshot, Oid graph_oid, char label_type) {
 
     // get the tupdesc - we don't need to release this one 
     tupdesc = RelationGetDescr(ag_label);
-    // bail if the number of columns differs - this table has 5 
-    Assert(tupdesc->natts == Natts_ag_label);
 
     // get all of the label names 
     while((tuple = heap_getnext(scan_desc, ForwardScanDirection)) != NULL) {

@@ -35,7 +35,9 @@ Once PostGraph is installed, it needs to be enabled in each database you want to
 ```bash
 createdb postgraph
 psql postgraph -c "CREATE EXTENSION PostGIS"
+psql postgraph -c "CREATE EXTENSION LTree"
 psql postgraph -c "CREATE EXTENSION PostGraph"
+
 ```
 
 You can find the location of the `postgresql.conf` file as given next:

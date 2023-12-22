@@ -249,6 +249,7 @@ CREATE DATABASE contrib_regression_age_euc_kr
 
 \c contrib_regression_age_euc_kr
 CREATE EXTENSION postgis;
+CREATE EXTENSION ltree;
 CREATE EXTENSION postgraph;
 LOAD 'postgraph';
 SET search_path TO postgraph;
