@@ -962,8 +962,8 @@ static void fill_label_cache_data(label_cache_data *cache_data,
     Assert(!is_null);
     cache_data->relation = DatumGetObjectId(value);
     // ag_label.label_path
-    value = heap_getattr(tuple, 6, tuple_desc, &is_null);
-    Assert(!is_null);
-    cache_data->label_tree = DatumGetPointer(value);
+    //value = heap_getattr(tuple, 6, tuple_desc, &is_null);
+    //Assert(!is_null);
+    //cache_data->label_tree = DatumGetPointer(value);
 
 }

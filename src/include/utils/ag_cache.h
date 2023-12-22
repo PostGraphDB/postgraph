@@ -22,7 +22,7 @@
 
 #include "postgres.h"
 
-#include "ltree.h"
+//#include "ltree.h"
 
 // graph_cache_data contains the same fields that ag_graph catalog table has
 typedef struct graph_cache_data
@@ -40,7 +40,7 @@ typedef struct label_cache_data
     int32 id;
     char kind;
     Oid relation;
-    ltree *label_tree;
+//    ltree *label_tree;
 } label_cache_data;
 
 // callers of these functions must not modify the returned struct

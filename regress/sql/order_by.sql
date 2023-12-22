@@ -60,5 +60,4 @@ SELECT * FROM cypher('order_by', $$
     RETURN x.i ORDER BY x.i USING <
 $$) AS (i gtype);
 
-
 SELECT drop_graph('order_by', true);
