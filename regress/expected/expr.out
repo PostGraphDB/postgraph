@@ -2503,6 +2503,18 @@ SELECT * from cypher('expr', $$ RETURN 'test' NOT LIKE 'test' $$) as (result boo
  f
 (1 row)
 
+SELECT * from cypher('expr', $$ RETURN 'TEST' ILIKE 'test' $$) as (result boolean);
+ result 
+--------
+ t
+(1 row)
+
+SELECT * from cypher('expr', $$ RETURN 'TEST' NOT ILIKE 'test' $$) as (result boolean);
+ result 
+--------
+ f
+(1 row)
+
 --CASE WHEN condition THEN result END
 SELECT * FROM cypher('case_statement', $$
 	MATCH (n)

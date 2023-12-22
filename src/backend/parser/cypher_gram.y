@@ -92,7 +92,7 @@
                  GROUP GROUPS GROUPING
                  FALSE_P FILTER FIRST_P FOLLOWING FROM
                  HAVING
-                 IN INTERSECT INTERVAL IS
+                 ILIKE IN INTERSECT INTERVAL IS
                  LAST_P LIKE LIMIT LOCALTIME LOCALTIMESTAMP
                  MATCH MERGE 
                  NO NOT NULL_P NULLS_LA
@@ -192,7 +192,7 @@
 %left '^' '&' '|'
 %nonassoc IN IS
 %right UNARY_MINUS
-%nonassoc CONTAINS ENDS EQ_TILDE STARTS LIKE
+%nonassoc CONTAINS ENDS EQ_TILDE STARTS LIKE ILIKE
 %left '[' ']' '(' ')'
 %left '.'
 %left TYPECAST
@@ -1287,7 +1287,15 @@ expr:
     | expr NOT LIKE expr
         {   
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "!~~", $1, $4, @2);
-        }   
+        }  
+    | expr ILIKE expr
+        {   
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~~*", $1, $3, @2);
+        } 
+    | expr NOT ILIKE expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "!~~*", $1, $4, @2);
+        }  
     | expr NOT_EQ expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<>", $1, $3, @2);
