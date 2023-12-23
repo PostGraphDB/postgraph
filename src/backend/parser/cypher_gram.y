@@ -156,7 +156,7 @@
 %type <string> label_opt
 
 /* expression */
-%type <node> expr expr_opt expr_atom expr_literal map list
+%type <node> a_expr expr_opt expr_atom expr_literal map list
 
 %type <node> expr_case expr_case_when expr_case_default
 %type <list> expr_case_when_list
@@ -338,7 +338,7 @@ yield_item_list:
     ;
 
 yield_item:
-    expr AS var_name
+    a_expr AS var_name
         {
             ResTarget *n;
 
@@ -350,7 +350,7 @@ yield_item:
 
             $$ = (Node *)n;
         }
-    | expr
+    | a_expr
         {
             ResTarget *n;
 
@@ -553,7 +553,7 @@ having_opt:
         {
             $$ = NULL;
         }
-    | HAVING expr
+    | HAVING a_expr
         {
             $$ = $2;
         }
@@ -577,7 +577,7 @@ group_item_list:
 ;
 
 group_item:
-    expr { $$ = $1; }
+    a_expr { $$ = $1; }
         | cube_clause { $$ = $1; }
         | rollup_clause { $$ = $1; }
         | empty_grouping_set { $$ = $1; }
@@ -654,7 +654,7 @@ return_item_list:
     ;
 
 return_item:
-    expr AS var_name
+    a_expr AS var_name
         {
             ResTarget *n;
 
@@ -666,7 +666,7 @@ return_item:
 
             $$ = (Node *)n;
         }
-    | expr
+    | a_expr
         {
             ResTarget *n;
 
@@ -727,7 +727,7 @@ sort_item_list:
     ;
 
 sort_item:
-    expr USING all_op opt_nulls_order
+    a_expr USING all_op opt_nulls_order
     {
         SortBy *n;
 
@@ -741,7 +741,7 @@ sort_item:
         $$ = (Node *)n;
 
     }
-    | expr order_opt opt_nulls_order
+    | a_expr order_opt opt_nulls_order
     {
         SortBy *n;
 
@@ -784,7 +784,7 @@ skip_opt:
         {
             $$ = NULL;
         }
-    | SKIP expr
+    | SKIP a_expr
         {
             $$ = $2;
         }
@@ -795,7 +795,7 @@ limit_opt:
         {
             $$ = NULL;
         }
-    | LIMIT expr
+    | LIMIT a_expr
         {
             $$ = $2;
         }
@@ -904,7 +904,7 @@ optional_opt:
 
 
 unwind:
-    UNWIND expr AS var_name
+    UNWIND a_expr AS var_name
         {
             ResTarget  *res;
             cypher_unwind *n;
@@ -965,7 +965,7 @@ set_item_list:
     ;
 
 set_item:
-    expr '=' expr
+    a_expr '=' a_expr
         {
             cypher_set_item *n;
 
@@ -977,7 +977,7 @@ set_item:
 
             $$ = (Node *)n;
         }
-   | expr PLUS_EQ expr
+   | a_expr PLUS_EQ a_expr
         {
             cypher_set_item *n;
 
@@ -1017,7 +1017,7 @@ remove_item_list:
     ;
 
 remove_item:
-    expr
+    a_expr
         {
             cypher_set_item *n;
 
@@ -1083,7 +1083,7 @@ where_opt:
         {
             $$ = NULL;
         }
-    | WHERE expr
+    | WHERE a_expr
         {
             $$ = $2;
         }
@@ -1259,104 +1259,104 @@ properties_opt:
 /*
  * expression
  */
-expr:
-    expr OR expr
+a_expr:
+    a_expr OR a_expr
         {
             $$ = make_or_expr($1, $3, @2);
         }
-    | expr AND expr
+    | a_expr AND a_expr
         {
             $$ = make_and_expr($1, $3, @2);
         }
-    | expr XOR expr
+    | a_expr XOR a_expr
         {
             $$ = make_xor_expr($1, $3, @2);
         }
-    | NOT expr
+    | NOT a_expr
         {
             $$ = make_not_expr($2, @1);
         }
-    | expr '=' expr
+    | a_expr '=' a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "=", $1, $3, @2);
         }
-    | expr LIKE expr
+    | a_expr LIKE a_expr
         {   
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~~", $1, $3, @2);
         } 
-    | expr NOT LIKE expr
+    | a_expr NOT LIKE a_expr
         {   
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "!~~", $1, $4, @2);
         }  
-    | expr ILIKE expr
+    | a_expr ILIKE a_expr
         {   
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~~*", $1, $3, @2);
         } 
-    | expr NOT ILIKE expr
+    | a_expr NOT ILIKE a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "!~~*", $1, $4, @2);
         }  
-    | expr NOT_EQ expr
+    | a_expr NOT_EQ a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<>", $1, $3, @2);
         }
-    | expr '<' expr
+    | a_expr '<' a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<", $1, $3, @2);
         }
-    | expr LT_EQ expr
+    | a_expr LT_EQ a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<=", $1, $3, @2);
         }
-    | expr '>' expr
+    | a_expr '>' a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, ">", $1, $3, @2);
         }
-    | expr GT_EQ expr
+    | a_expr GT_EQ a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, ">=", $1, $3, @2);
         }
-    | expr '+' expr
+    | a_expr '+' a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "+", $1, $3, @2);
         }
-    | expr '-' expr
+    | a_expr '-' a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "-", $1, $3, @2);
         }
-    | expr '*' expr
+    | a_expr '*' a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "*", $1, $3, @2);
         }
-    | expr '/' expr
+    | a_expr '/' a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "/", $1, $3, @2);
         }
-    | expr '%' expr
+    | a_expr '%' a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "%", $1, $3, @2);
         }
-    | expr '^' expr
+    | a_expr '^' a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "^", $1, $3, @2);
         }
-    | expr OPERATOR expr
+    | a_expr OPERATOR a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, $2, $1, $3, @2);
         }
-    | OPERATOR expr
+    | OPERATOR a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, $1, NULL, $2, @1);
         }
-    | expr '<' '-' '>' expr
+    | a_expr '<' '-' '>' a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<->", $1, $5, @3);
         }
-    | expr IN expr
+    | a_expr IN a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "@=", $1, $3, @2);
         }
-    | expr IS NULL_P %prec IS
+    | a_expr IS NULL_P %prec IS
         {
             NullTest *n;
 
@@ -1367,7 +1367,7 @@ expr:
 
             $$ = (Node *)n;
         }
-    | expr IS NOT NULL_P %prec IS
+    | a_expr IS NOT NULL_P %prec IS
         {
             NullTest *n;
 
@@ -1378,16 +1378,16 @@ expr:
 
             $$ = (Node *)n;
         }
-    | '-' expr %prec UNARY_MINUS
+    | '-' a_expr %prec UNARY_MINUS
         {
             $$ = do_negate($2, @1);
         
         }
-    | '~' expr %prec UNARY_MINUS
+    | '~' a_expr %prec UNARY_MINUS
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~", NULL, $2, @1);
         }
-    | expr STARTS WITH expr %prec STARTS
+    | a_expr STARTS WITH a_expr %prec STARTS
         {
             cypher_string_match *n;
 
@@ -1399,7 +1399,7 @@ expr:
 
             $$ = (Node *)n;
         }
-    | expr ENDS WITH expr %prec ENDS
+    | a_expr ENDS WITH a_expr %prec ENDS
         {
             cypher_string_match *n;
 
@@ -1411,7 +1411,7 @@ expr:
 
             $$ = (Node *)n;
         }
-    | expr CONTAINS expr
+    | a_expr CONTAINS a_expr
         {
             cypher_string_match *n;
 
@@ -1423,11 +1423,11 @@ expr:
 
             $$ = (Node *)n;
         }
-    | expr '~' expr
+    | a_expr '~' a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~", $1, $3, @2);
         }
-    | expr '[' expr ']'  %prec '.'
+    | a_expr '[' a_expr ']'  %prec '.'
         {
             A_Indices *i;
 
@@ -1438,7 +1438,7 @@ expr:
 
             $$ = append_indirection($1, (Node *)i);
         }
-    | expr '[' expr_opt DOT_DOT expr_opt ']'
+    | a_expr '[' expr_opt DOT_DOT expr_opt ']'
         {
             A_Indices *i;
 
@@ -1449,15 +1449,15 @@ expr:
 
             $$ = append_indirection($1, (Node *)i);
         }
-    | expr '.' expr
+    | a_expr '.' a_expr
         {
             $$ = append_indirection($1, $3);
         }
-    | expr TYPECAST schema_name
+    | a_expr TYPECAST schema_name
         {
             $$ = make_typecast_expr($1, $3, @2);
         }
-    | temporal_cast expr %prec TYPECAST
+    | temporal_cast a_expr %prec TYPECAST
         {
             $$ = make_typecast_expr($2, $1, @1);
         }
@@ -1532,15 +1532,15 @@ expr_opt:
         {
             $$ = NULL;
         }
-    | expr
+    | a_expr
     ;
 
 expr_list:
-    expr
+    a_expr
         {
             $$ = list_make1($1);
         }
-    | expr_list ',' expr
+    | expr_list ',' a_expr
         {
             $$ = lappend($1, $3);
         }
@@ -1601,7 +1601,7 @@ within_group_clause:
 ; 
 
 filter_clause:
-     FILTER '(' WHERE expr ')' { $$ = $4; }
+     FILTER '(' WHERE a_expr ')' { $$ = $4; }
      | /*EMPTY*/               { $$ = NULL; }
      ;      
 
@@ -1782,7 +1782,7 @@ frame_bound:
               n->endOffset = NULL;
               $$ = n;
           }
-     | expr PRECEDING
+     | a_expr PRECEDING
           {
               WindowDef *n = makeNode(WindowDef);
               n->frameOptions = FRAMEOPTION_START_OFFSET_PRECEDING;
@@ -1790,7 +1790,7 @@ frame_bound:
               n->endOffset = NULL;
               $$ = n;
           }
-     | expr FOLLOWING
+     | a_expr FOLLOWING
           {
               WindowDef *n = makeNode(WindowDef);
               n->frameOptions = FRAMEOPTION_START_OFFSET_FOLLOWING;
@@ -1929,13 +1929,13 @@ expr_func_subexpr:
             n->location = @1;
             $$ = (Node *) n;
         }
-    | EXTRACT '(' IDENTIFIER FROM expr ')'
+    | EXTRACT '(' IDENTIFIER FROM a_expr ')'
         {
             $$ = (Node *)makeFuncCall(list_make1(makeString($1)),
                                       list_make2(make_string_const($3, @3), $5),
                                       COERCE_SQL_SYNTAX, @1);
         }
-    | '(' expr ',' expr ')' OVERLAPS '(' expr ',' expr ')'
+    | '(' a_expr ',' a_expr ')' OVERLAPS '(' a_expr ',' a_expr ')'
         {
             $$ = makeFuncCall(list_make1(makeString("overlaps")), list_make4($2, $4, $8, $10), COERCE_SQL_SYNTAX, @6);
         }
@@ -1988,7 +1988,7 @@ expr_atom:
 
             $$ = (Node *)n;
         }
-    | '(' expr ')'
+    | '(' a_expr ')'
         {
             $$ = $2;
         }
@@ -2051,11 +2051,11 @@ map_keyval_list_opt:
     ;
 
 map_keyval_list:
-    property_key_name ':' expr
+    property_key_name ':' a_expr
         {
             $$ = list_make2(makeString($1), $3);
         }
-    | map_keyval_list ',' property_key_name ':' expr
+    | map_keyval_list ',' property_key_name ':' a_expr
         {
             $$ = lappend(lappend($1, makeString($3)), $5);
         }
@@ -2074,7 +2074,7 @@ list:
     ;
 
 expr_case:
-    CASE expr expr_case_when_list expr_case_default END_P
+    CASE a_expr expr_case_when_list expr_case_default END_P
         {
             CaseExpr *n;
 
@@ -2111,7 +2111,7 @@ expr_case_when_list:
     ;
 
 expr_case_when:
-    WHEN expr THEN expr
+    WHEN a_expr THEN a_expr
         {
             CaseWhen   *n;
 
@@ -2124,7 +2124,7 @@ expr_case_when:
     ;
 
 expr_case_default:
-    ELSE expr
+    ELSE a_expr
         {
             $$ = $2;
         }
