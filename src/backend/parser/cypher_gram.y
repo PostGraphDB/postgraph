@@ -84,7 +84,7 @@
 %token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ
 
 /* keywords in alphabetical order */
-%token <keyword> ALL AND AS ASC ASCENDING
+%token <keyword> ALL AND ANY AS ASC ASCENDING
                  BETWEEN BY
                  CALL CASE COALESCE CONTAINS CREATE CUBE CURRENT CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
                  DATE DECADE DELETE DESC DESCENDING DETACH DISTINCT
@@ -99,7 +99,7 @@
                  OPTIONAL OTHERS OR ORDER OVER OVERLAPS
                  PARTITION PRECEDING
                  RANGE REMOVE RETURN ROLLUP ROW ROWS
-                 SET SETS SKIP STARTS
+                 SET SETS SKIP SOME STARTS
                  TIME TIES THEN TIMESTAMP TRUE_P
                  UNBOUNDED UNION UNWIND USING
                  WHEN WHERE WINDOW WITH WITHIN WITHOUT
@@ -156,12 +156,12 @@
 %type <string> label_opt
 
 /* expression */
-%type <node> a_expr expr_opt expr_atom expr_literal map list
+%type <node> a_expr expr_opt expr_atom expr_literal map list in_expr
 
 %type <node> expr_case expr_case_when expr_case_default
 %type <list> expr_case_when_list
 
-%type <node> expr_var expr_func expr_func_norm expr_func_subexpr
+%type <node> expr_func expr_func_norm expr_func_subexpr
 %type <list> expr_list expr_list_opt map_keyval_list_opt map_keyval_list
 
 %type <node> filter_clause
@@ -1461,6 +1461,49 @@ a_expr:
         {
             $$ = make_typecast_expr($2, $1, @1);
         }
+    | a_expr all_op ALL in_expr //%prec OPERATOR
+        {
+            cypher_sub_pattern *sub = $4;
+            sub->kind = CSP_ALL;
+
+            SubLink *n = makeNode(SubLink);
+            n->subLinkType = ALL_SUBLINK;
+            n->subLinkId = 0;
+            n->testexpr = $1;
+            n->operName = list_make2(makeString("postgraph"), makeString($2));
+            n->subselect = (Node *) sub;
+            n->location = @1;
+            $$ = (Node *) n;
+
+        }
+    | a_expr all_op ANY in_expr //%prec OPERATOR
+        {
+            cypher_sub_pattern *sub = $4;
+
+            SubLink *n = makeNode(SubLink);
+            n->subLinkType = ANY_SUBLINK;
+            n->subLinkId = 0;
+            n->testexpr = $1;
+            n->operName = list_make2(makeString("postgraph"), makeString($2));
+            n->subselect = (Node *) sub;
+            n->location = @1;
+            $$ = (Node *) n;
+
+        }
+    | a_expr all_op SOME in_expr //%prec OPERATOR
+        {
+            cypher_sub_pattern *sub = $4;
+
+            SubLink *n = makeNode(SubLink);
+            n->subLinkType = ANY_SUBLINK;
+            n->subLinkId = 0;
+            n->testexpr = $1;
+            n->operName = list_make2(makeString("postgraph"), makeString($2));
+            n->subselect = (Node *) sub;
+            n->location = @1;
+            $$ = (Node *) n;
+
+        }
     | expr_atom
     ;
 
@@ -1890,45 +1933,6 @@ expr_func_subexpr:
         {
             $$ = makeSQLValueFunction(SVFOP_LOCALTIMESTAMP, $3, @1);
         }
-    | EXISTS '(' anonymous_path ')'
-        {
-            cypher_sub_pattern *sub;
-            SubLink    *n;
-
-            sub = make_ag_node(cypher_sub_pattern);
-            sub->kind = CSP_EXISTS;
-            sub->pattern = list_make1($3);
-            cypher_match *match = make_ag_node(cypher_match);
-            match->pattern = list_make1($3);//subpat->pattern;
-            match->where = NULL;
-            sub->pattern = list_make1(match);
-            n = makeNode(SubLink);
-            n->subLinkType = EXISTS_SUBLINK;
-            n->subLinkId = 0;
-            n->testexpr = NULL;
-            n->operName = NIL;
-            n->subselect = (Node *) sub;
-            n->location = @1;
-            $$ = (Node *) n;
-        }
-    | EXISTS '(' cypher_stmt ')'
-        {        
-            cypher_sub_pattern *sub;
-            SubLink    *n;
-                 
-            sub = make_ag_node(cypher_sub_pattern);
-            sub->kind = CSP_EXISTS;
-            sub->pattern = $3;
-            
-            n = makeNode(SubLink);
-            n->subLinkType = EXISTS_SUBLINK;
-            n->subLinkId = 0;
-            n->testexpr = NULL;
-            n->operName = NIL;
-            n->subselect = (Node *) sub;
-            n->location = @1;
-            $$ = (Node *) n;
-        }
     | EXTRACT '(' IDENTIFIER FROM a_expr ')'
         {
             $$ = (Node *)makeFuncCall(list_make1(makeString($1)),
@@ -1976,6 +1980,20 @@ temporal_cast:
         }
     ;
 
+                                        
+in_expr:
+    '(' cypher_stmt ')'
+        {               
+            cypher_sub_pattern *sub;
+
+            sub = make_ag_node(cypher_sub_pattern);
+            sub->pattern = $2;
+
+            $$ = (Node *) sub;
+       }               
+       //| '(' expr_list ')' { $$ = (Node *)$2; }
+   ;    
+
 expr_atom:
     expr_literal
     | PARAMETER
@@ -1993,8 +2011,56 @@ expr_atom:
             $$ = $2;
         }
     | expr_case
-    | expr_var
+    | var_name
+        {
+            ColumnRef *n;
+            
+            n = makeNode(ColumnRef);
+            n->fields = list_make1(makeString($1));
+            n->location = @1;
+            
+            $$ = (Node *)n;
+        }   
     | expr_func
+    | EXISTS '(' anonymous_path ')'
+        {
+            cypher_sub_pattern *sub;
+            SubLink    *n;
+
+            sub = make_ag_node(cypher_sub_pattern);
+            sub->kind = CSP_EXISTS;
+            sub->pattern = list_make1($3);
+            cypher_match *match = make_ag_node(cypher_match);
+            match->pattern = list_make1($3);//subpat->pattern;
+            match->where = NULL;
+            sub->pattern = list_make1(match);
+            n = makeNode(SubLink);
+            n->subLinkType = EXISTS_SUBLINK;
+            n->subLinkId = 0;
+            n->testexpr = NULL;
+            n->operName = NIL;
+            n->subselect = (Node *) sub;
+            n->location = @1;
+            $$ = (Node *) n;
+        }
+    | EXISTS '(' cypher_stmt ')'
+        {
+            cypher_sub_pattern *sub;
+            SubLink    *n;
+
+            sub = make_ag_node(cypher_sub_pattern);
+            sub->kind = CSP_EXISTS;
+            sub->pattern = $3;
+
+            n = makeNode(SubLink);
+            n->subLinkType = EXISTS_SUBLINK;
+            n->subLinkId = 0;
+            n->testexpr = NULL;
+            n->operName = NIL;
+            n->subselect = (Node *) sub;
+            n->location = @1;
+            $$ = (Node *) n;
+        }
     ;
 
 expr_literal:
@@ -2133,7 +2199,7 @@ expr_case_default:
             $$ = NULL;
         }
     ;
-
+/*
 expr_var:
     var_name
         {
@@ -2146,6 +2212,7 @@ expr_var:
             $$ = (Node *)n;
         }
     ;
+*/
 
 /*
  * names
@@ -2232,8 +2299,9 @@ reserved_keyword:
  */
 
 safe_keywords:
-    ALL          { $$ = pnstrdup($1, 3); }
-    | AND        { $$ = pnstrdup($1, 3); }
+    //ALL          { $$ = pnstrdup($1, 3); }
+    //|
+    AND        { $$ = pnstrdup($1, 3); }
     | AS         { $$ = pnstrdup($1, 2); }
     | ASC        { $$ = pnstrdup($1, 3); }
     | ASCENDING  { $$ = pnstrdup($1, 9); }

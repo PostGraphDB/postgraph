@@ -716,14 +716,52 @@ AS (u vertex);
 (3 rows)
 
 SELECT * FROM cypher('cypher_match',
- $$MATCH (u) WHERE EXISTS(MATCH (u)-[]->(v {id: "middle"}) RETURN v) RETURN u $$)
+ $$MATCH (u) WHERE u.id = ANY (MATCH (v) RETURN v.id) RETURN u $$)
 AS (u vertex);
-                                    u                                     
---------------------------------------------------------------------------
+                                     u                                      
+----------------------------------------------------------------------------
  {"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}
+ {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}
+ {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}
+ {"id": 1688849860263937, "label": "v2", "properties": {"id": "initial"}}
+ {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}
+ {"id": 1688849860263939, "label": "v2", "properties": {"id": "end"}}
  {"id": 2251799813685249, "label": "v3", "properties": {"id": "initial"}}
+ {"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}
  {"id": 2251799813685251, "label": "v3", "properties": {"id": "end"}}
-(3 rows)
+ {"id": 2814749767106561, "label": "loop", "properties": {"id": "initial"}}
+(10 rows)
+
+SELECT * FROM cypher('cypher_match',
+ $$MATCH (u) WHERE u.id = ANY (MATCH (v) RETURN NULL) RETURN u $$)
+AS (u vertex);
+ u 
+---
+(0 rows)
+
+SELECT * FROM cypher('cypher_match',
+ $$MATCH (u) WHERE u.id = SOME (MATCH (v) RETURN v.id) RETURN u $$)
+AS (u vertex);
+                                     u                                      
+----------------------------------------------------------------------------
+ {"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}
+ {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}
+ {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}
+ {"id": 1688849860263937, "label": "v2", "properties": {"id": "initial"}}
+ {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}
+ {"id": 1688849860263939, "label": "v2", "properties": {"id": "end"}}
+ {"id": 2251799813685249, "label": "v3", "properties": {"id": "initial"}}
+ {"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}
+ {"id": 2251799813685251, "label": "v3", "properties": {"id": "end"}}
+ {"id": 2814749767106561, "label": "loop", "properties": {"id": "initial"}}
+(10 rows)
+
+SELECT * FROM cypher('cypher_match',
+ $$MATCH (u) WHERE u.id = ALL (MATCH (v) RETURN v.id) RETURN u $$)
+AS (u vertex);
+ u 
+---
+(0 rows)
 
 SELECT * FROM cypher('cypher_match', $$
     MATCH (u)

@@ -372,9 +372,20 @@ SELECT * FROM cypher('cypher_match',
 AS (u vertex);
 
 SELECT * FROM cypher('cypher_match',
- $$MATCH (u) WHERE EXISTS(MATCH (u)-[]->(v {id: "middle"}) RETURN v) RETURN u $$)
+ $$MATCH (u) WHERE u.id = ANY (MATCH (v) RETURN v.id) RETURN u $$)
 AS (u vertex);
 
+SELECT * FROM cypher('cypher_match',
+ $$MATCH (u) WHERE u.id = ANY (MATCH (v) RETURN NULL) RETURN u $$)
+AS (u vertex);
+
+SELECT * FROM cypher('cypher_match',
+ $$MATCH (u) WHERE u.id = SOME (MATCH (v) RETURN v.id) RETURN u $$)
+AS (u vertex);
+
+SELECT * FROM cypher('cypher_match',
+ $$MATCH (u) WHERE u.id = ALL (MATCH (v) RETURN v.id) RETURN u $$)
+AS (u vertex);
 
 SELECT * FROM cypher('cypher_match', $$
     MATCH (u)
