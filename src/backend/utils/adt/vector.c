@@ -282,12 +282,23 @@ vector_out(Vector *vector)
     return buf;
 }
 
+PG_FUNCTION_INFO_V1(ST_Distance);
+
 PG_FUNCTION_INFO_V1(l2_distance);
 Datum l2_distance(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
 
-    if (GT_IS_TSQUERY(lhs) || GT_IS_TSQUERY(rhs)) {
+    if (GT_IS_GEOMETRY(lhs) || GT_IS_GEOMETRY(rhs)) {
+        float8 f = DatumGetFloat8(DirectFunctionCall2(ST_Distance,
+                                                                GT_TO_GEOMETRY_DATUM(lhs),
+                                                                GT_TO_GEOMETRY_DATUM(rhs)));
+
+        gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = f };
+
+        AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+
+    } else if (GT_IS_TSQUERY(lhs) || GT_IS_TSQUERY(rhs)) {
         TSQuery tsquery = DatumGetPointer(DirectFunctionCall3(tsquery_phrase_distance,
                                                                 GT_TO_TSQUERY_DATUM(lhs),
                                                                 GT_TO_TSQUERY_DATUM(rhs),
@@ -384,11 +395,24 @@ Datum gtype_l2_squared_distance(PG_FUNCTION_ARGS) {
     PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(gserialized_distance_box_2d);
 
 PG_FUNCTION_INFO_V1(gtype_inner_product);
 Datum gtype_inner_product(PG_FUNCTION_ARGS) {
     gtype *lhs = AG_GET_ARG_GTYPE_P(0);
     gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+
+
+    if (GT_IS_GEOMETRY(lhs) || GT_IS_GEOMETRY(rhs)) {
+        float8 f = DatumGetFloat8(DirectFunctionCall2(gserialized_distance_box_2d,
+                                                                GT_TO_GEOMETRY_DATUM(lhs),
+                                                                GT_TO_GEOMETRY_DATUM(rhs)));
+
+        gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = f };
+
+        AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+
+    } 
 
     if (!GT_IS_VECTOR(lhs) || !GT_IS_VECTOR(rhs))
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
