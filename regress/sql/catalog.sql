@@ -136,6 +136,8 @@ SELECT create_graph('g');
 SELECT create_vlabel('g', 'n');
 SELECT create_elabel('g', 'r');
 
+SELECT * FROM ag_graph;
+
 -- check if labels have been created or not
 SELECT name, id, kind, relation FROM ag_label;
 

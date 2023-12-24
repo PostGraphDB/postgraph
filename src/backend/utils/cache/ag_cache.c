@@ -458,6 +458,11 @@ static void fill_graph_cache_data(graph_cache_data *cache_data,
     value = heap_getattr(tuple, Anum_ag_graph_namespace, tuple_desc, &is_null);
     Assert(!is_null);
     cache_data->namespace = DatumGetObjectId(value);
+    // ag_graph.directed
+    value = heap_getattr(tuple, 3, tuple_desc, &is_null);
+    Assert(!is_null);
+    cache_data->directed = DatumGetBool(value);
+
 }
 
 static void initialize_label_caches(void)

@@ -333,6 +333,12 @@ NOTICE:  ELabel "r" has been created
  
 (1 row)
 
+SELECT * FROM ag_graph;
+ graphid | name | namespace | directed 
+---------+------+-----------+----------
+   21017 | g    | g         | t
+(1 row)
+
 -- check if labels have been created or not
 SELECT name, id, kind, relation FROM ag_label;
        name       | id | kind |      relation      

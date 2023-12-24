@@ -43,8 +43,8 @@ static Oid get_graph_namespace(const char *graph_name);
 // INSERT INTO postgraph.ag_graph VALUES (graph_name, nsp_id)
 void insert_graph(const Name graph_name, const Oid nsp_id)
 {
-    Datum values[Natts_ag_graph];
-    bool nulls[Natts_ag_graph];
+    Datum values[Natts_ag_graph + 1];
+    bool nulls[Natts_ag_graph + 1];
     Relation ag_graph;
     HeapTuple tuple;
 
@@ -61,6 +61,9 @@ void insert_graph(const Name graph_name, const Oid nsp_id)
 
     values[Anum_ag_graph_namespace - 1] = ObjectIdGetDatum(nsp_id);
     nulls[Anum_ag_graph_namespace - 1] = false;
+
+    values[Anum_ag_graph_namespace] = BoolGetDatum(true);
+    nulls[Anum_ag_graph_namespace] = false;
 
     tuple = heap_form_tuple(RelationGetDescr(ag_graph), values, nulls);
 

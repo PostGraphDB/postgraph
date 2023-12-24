@@ -32,7 +32,8 @@
 CREATE TABLE ag_graph (
     graphid oid NOT NULL, 
     name name NOT NULL, 
-    namespace regnamespace NOT NULL
+    namespace regnamespace NOT NULL,
+    directed boolean NOT NULL
 );
 
 CREATE UNIQUE INDEX ag_graph_graphid_index 

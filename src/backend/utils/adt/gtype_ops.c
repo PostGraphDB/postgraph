@@ -750,6 +750,8 @@ gtype_bitwise_or(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(gserialized_left_2d);
+
 PG_FUNCTION_INFO_V1(gtype_inet_subnet_strict_contains);
 Datum
 gtype_inet_subnet_strict_contains(PG_FUNCTION_ARGS) {
@@ -762,6 +764,8 @@ gtype_inet_subnet_strict_contains(PG_FUNCTION_ARGS) {
        PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(poly_left, GT_TO_POLYGON_DATUM(lhs), GT_TO_POLYGON_DATUM(rhs))));
     else if (GT_IS_CIRCLE(lhs) && GT_IS_CIRCLE(rhs))
        PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(circle_left, GT_TO_CIRCLE_DATUM(lhs), GT_TO_CIRCLE_DATUM(rhs))));
+    else if (GT_IS_GEOMETRY(lhs) || GT_IS_GEOMETRY(rhs))
+        PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(gserialized_left_2d, GT_TO_GEOMETRY_DATUM(lhs), GT_TO_GEOMETRY_DATUM(rhs))));
 
     PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(network_sub, GT_ARG_TO_INET_DATUM(0), GT_ARG_TO_INET_DATUM(1))));
 }
