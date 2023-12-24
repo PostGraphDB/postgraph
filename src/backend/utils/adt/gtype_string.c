@@ -188,11 +188,18 @@ Datum gtype_not_ilike(PG_FUNCTION_ARGS)
     PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2Coll(texticnlike, C_COLLATION_OID, GT_ARG_TO_TEXT_DATUM(0), GT_ARG_TO_TEXT_DATUM(1))));
 }
 
+PG_FUNCTION_INFO_V1(gserialized_contains_2d);
 
 PG_FUNCTION_INFO_V1(gtype_eq_tilde);
 // gtype ~ gtype
 Datum gtype_eq_tilde(PG_FUNCTION_ARGS)
 {
+    gtype *lhs = AG_GET_ARG_GTYPE_P(0);
+    gtype *rhs = AG_GET_ARG_GTYPE_P(1);
+
+    if (GT_IS_GEOMETRY(lhs) || GT_IS_GEOMETRY(rhs))
+        PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(gserialized_contains_2d, GT_TO_GEOMETRY_DATUM(lhs), GT_TO_GEOMETRY_DATUM(rhs))));
+
     PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2Coll(textregexeq, C_COLLATION_OID, GT_ARG_TO_TEXT_DATUM(0), GT_ARG_TO_TEXT_DATUM(1))));
 }
 
