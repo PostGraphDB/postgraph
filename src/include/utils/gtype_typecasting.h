@@ -87,6 +87,8 @@ Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
     convert_to_scalar(gtype_to_tsvector_internal, (arg), "tsvector")
 #define GT_TO_TSQUERY_DATUM(arg) \
     convert_to_scalar(gtype_to_tsquery_internal, (arg), "tsquery")
+#define GT_TO_GEOMETRY_DATUM(arg) \
+    convert_to_scalar(gtype_to_geometry_internal, (arg), "geometry")
 
 
 #define GT_ARG_TO_INT4_DATUM(arg) \
@@ -123,6 +125,8 @@ Datum convert_to_scalar(coearce_function func, gtype *agt, char *type);
     convert_to_scalar(gtype_to_tsvector_internal, AG_GET_ARG_GTYPE_P(arg), "tsvector")
 #define GT_ARG_TO_TSQUERY_DATUM(arg) \
     convert_to_scalar(gtype_to_tsquery_internal, AG_GET_ARG_GTYPE_P(arg), "tsquery")
+#define GT_ARG_TO_GEOMETRY_DATUM(arg) \
+    convert_to_scalar(gtype_to_geometry_internal, AG_GET_ARG_GTYPE_P(arg), "geometry")
 
 
 Datum gtype_to_int8_internal(gtype_value *gtv);

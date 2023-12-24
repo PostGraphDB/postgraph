@@ -414,6 +414,9 @@ typedef struct
 #define GT_IS_GSERIALIZED(agt) \
     (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_GSERIALIZED)
 
+#define GT_IS_GEOMETRY(agt) \
+    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_GSERIALIZED)
+
 #define GT_IS_TSVECTOR(agt) \
     (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_TSVECTOR)
 
