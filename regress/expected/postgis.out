@@ -3307,6 +3307,57 @@ $$) AS r(c gtype);
 (1 row)
 
 --
+-- 2D Gist Indices
+--
+SELECT * FROM cypher('postgis', $$CREATE (:i {i: 'POLYGON( (0 0, 10 0, 10 10, 0 10, 0 0) )'::geometry })$$) AS r(c gtype);
+ c 
+---
+(0 rows)
+
+SELECT * FROM cypher('postgis', $$CREATE (:i {i: 'POLYGON( (0 0, 10 0, 10 10, 0 10, 0 0) )'::geometry }) $$) AS r(c gtype);
+ c 
+---
+(0 rows)
+
+SELECT * FROM cypher('postgis', $$CREATE (:i {i:'POLYGON( (0 0, 10 0, 10 10, 0 10, 0 0) )'::geometry })  $$) AS r(c gtype);
+ c 
+---
+(0 rows)
+
+SELECT create_vlabel('postgis', 'i');
+ERROR:  label "i" already exists
+CREATE INDEX ON postgis.i USING gist ((properties->'"i"') gist_geometry_ops_2d);
+SELECT * FROM cypher('postgis', $$CREATE (:i {i: 'POLYGON( (0 0, 10 0, 10 10, 0 10, 0 0) )'::geometry })$$) AS r(c gtype);
+ c 
+---
+(0 rows)
+
+SET enable_mergejoin = ON;
+SET enable_hashjoin = ON;
+SET enable_nestloop = ON;
+SET enable_seqscan = false;
+SELECT * FROM cypher('postgis', $$
+    MATCH (i:i) 
+    WHERE i.i << 'POLYGON( (0 0, 10 0, 10 10, 0 10, 0 0) )'::geometry
+    RETURN i
+$$) AS r(c vertex);
+ c 
+---
+(0 rows)
+
+EXPLAIN
+SELECT * FROM cypher('postgis', $$
+    MATCH (i:i) 
+    WHERE i.i << 'POLYGON( (0 0, 10 0, 10 10, 0 10, 0 0) )'::geometry
+    RETURN i
+$$) AS r(c vertex);
+                                                                                                                     QUERY PLAN                                                                                                                      
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using i_expr_idx on i  (cost=0.13..8.27 rows=1 width=32)
+   Index Cond: ((properties -> '"i"'::gtype) << '010300000001000000050000000000000000000000000000000000000000000000000024400000000000000000000000000000244000000000000024400000000000000000000000000000244000000000000000000000000000000000'::gtype)
+(2 rows)
+
+--
 -- Typecasting
 --
 --
@@ -3422,9 +3473,10 @@ SELECT ST_AsEWKT(c) FROM cypher('postgis', $$RETURN toBox3D('BOX3D(1 2 3, 4 5 6)
 (1 row)
 
 SELECT * FROM drop_graph('postgis', true);
-NOTICE:  drop cascades to 2 other objects
+NOTICE:  drop cascades to 3 other objects
 DETAIL:  drop cascades to table postgis._ag_label_vertex
 drop cascades to table postgis._ag_label_edge
+drop cascades to table postgis.i
 NOTICE:  graph "postgis" has been dropped
  drop_graph 
 ------------

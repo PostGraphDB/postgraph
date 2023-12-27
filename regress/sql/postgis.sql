@@ -1152,6 +1152,56 @@ SELECT * FROM cypher('postgis', $$
      RETURN ST_AsEWKT(ST_Simplify('POLYGON((0 0,1 1,1 3,2 3,2 0,0 0))'::geometry, 1))
 $$) AS r(c gtype);
 
+
+
+
+
+
+
+
+
+--
+-- 2D Gist Indices
+--
+SELECT * FROM cypher('postgis', $$CREATE (:i {i: 'POLYGON( (0 0, 10 0, 10 10, 0 10, 0 0) )'::geometry })$$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$CREATE (:i {i: 'POLYGON( (0 0, 10 0, 10 10, 0 10, 0 0) )'::geometry }) $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$CREATE (:i {i:'POLYGON( (0 0, 10 0, 10 10, 0 10, 0 0) )'::geometry })  $$) AS r(c gtype);
+
+SELECT create_vlabel('postgis', 'i');
+
+CREATE INDEX ON postgis.i USING gist ((properties->'"i"') gist_geometry_ops_2d);
+
+SELECT * FROM cypher('postgis', $$CREATE (:i {i: 'POLYGON( (0 0, 10 0, 10 10, 0 10, 0 0) )'::geometry })$$) AS r(c gtype);
+
+SET enable_mergejoin = ON;
+SET enable_hashjoin = ON;
+SET enable_nestloop = ON;
+SET enable_seqscan = false;
+
+
+
+
+SELECT * FROM cypher('postgis', $$
+    MATCH (i:i) 
+    WHERE i.i << 'POLYGON( (0 0, 10 0, 10 10, 0 10, 0 0) )'::geometry
+    RETURN i
+$$) AS r(c vertex);
+
+EXPLAIN
+SELECT * FROM cypher('postgis', $$
+    MATCH (i:i) 
+    WHERE i.i << 'POLYGON( (0 0, 10 0, 10 10, 0 10, 0 0) )'::geometry
+    RETURN i
+$$) AS r(c vertex);
+
+
+
+
+
+
+
+
+
 --
 -- Typecasting
 --

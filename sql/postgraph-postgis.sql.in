@@ -107,9 +107,9 @@ LEFTARG = gtype,
 RIGHTARG = gtype,
 PROCEDURE = gtype_geometry_within--,
 -- Updated: 3.4.0 to use selectivity estimator
---RESTRICT = gserialized_gist_sel_2d,
+--RESTRICT = gtype_gserialized_gist_sel_2d,
 -- Updated: 3.4.0 to use join selectivity estimator
---JOIN = gserialized_gist_joinsel_2d
+--JOIN = gtype_gserialized_gist_joinsel_2d
 );
 
 CREATE OR REPLACE FUNCTION gtype_geometry_overleft(geom1 gtype, geom2 gtype)
@@ -184,6 +184,23 @@ RESTRICT = positionsel,
 JOIN = positionjoinsel
 );
 
+CREATE OR REPLACE FUNCTION gtype_geometry_overabove(geom1 gtype, geom2 gtype)
+RETURNS bool
+LANGUAGE c
+IMMUTABLE 
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 1
+AS 'MODULE_PATHNAME', 'gtype_overabove_2d';
+
+CREATE OPERATOR |&> (
+LEFTARG = gtype,
+RIGHTARG = gtype,
+PROCEDURE = gtype_geometry_overabove,
+RESTRICT = positionsel,
+JOIN = positionjoinsel
+);
+
 CREATE OR REPLACE FUNCTION gtype_geometry_above(geom1 gtype, geom2 gtype)
 RETURNS bool
 LANGUAGE c
@@ -202,22 +219,98 @@ RESTRICT = positionsel,
 JOIN = positionjoinsel
 );
 
-CREATE OR REPLACE FUNCTION gtype_geometry_overabove(geom1 gtype, geom2 gtype)
-RETURNS bool
-LANGUAGE c
-IMMUTABLE 
-RETURNS NULL ON NULL INPUT
-PARALLEL SAFE
-COST 1
-AS 'MODULE_PATHNAME', 'gtype_overabove_2d';
+--
+-- 2D Gist Index
+--
+CREATE OR REPLACE FUNCTION geometry_gist_distance_2d(internal, gtype, integer)
+RETURNS float8
+AS 'MODULE_PATHNAME' ,'gtype_gserialized_gist_distance_2d'
+LANGUAGE 'c' PARALLEL SAFE;
 
-CREATE OPERATOR |&> (
-LEFTARG = gtype,
-RIGHTARG = gtype,
-PROCEDURE = gtype_geometry_overabove,
-RESTRICT = positionsel,
-JOIN = positionjoinsel
-);
+CREATE OR REPLACE FUNCTION geometry_gist_consistent_2d(internal,gtype,integer)
+RETURNS bool
+AS 'MODULE_PATHNAME' ,'gtype_gserialized_gist_consistent_2d'
+LANGUAGE 'c' PARALLEL SAFE;
+
+CREATE OR REPLACE FUNCTION geometry_gist_compress_2d(internal)
+RETURNS internal
+AS 'MODULE_PATHNAME','gtype_gserialized_gist_compress_2d'
+LANGUAGE 'c' PARALLEL SAFE;
+
+CREATE OR REPLACE FUNCTION geometry_gist_penalty_2d(internal,internal,internal)
+RETURNS internal
+AS 'MODULE_PATHNAME' ,'gtype_gserialized_gist_penalty_2d'
+LANGUAGE 'c' PARALLEL SAFE;
+
+CREATE OR REPLACE FUNCTION geometry_gist_picksplit_2d(internal, internal)
+RETURNS internal
+AS 'MODULE_PATHNAME' ,'gtype_gserialized_gist_picksplit_2d'
+LANGUAGE 'c' PARALLEL SAFE;
+
+CREATE OR REPLACE FUNCTION geometry_gist_union_2d(bytea, internal)
+RETURNS internal
+AS 'MODULE_PATHNAME' ,'gtype_gserialized_gist_union_2d'
+LANGUAGE 'c' PARALLEL SAFE;
+
+CREATE OR REPLACE FUNCTION geometry_gist_same_2d(geom1 gtype, geom2 gtype, internal)
+RETURNS internal
+AS 'MODULE_PATHNAME' ,'gtype_gserialized_gist_same_2d'
+LANGUAGE 'c' PARALLEL SAFE;
+
+CREATE OR REPLACE FUNCTION geometry_gist_decompress_2d(internal)
+RETURNS internal
+AS 'MODULE_PATHNAME' ,'gtype_gserialized_gist_decompress_2d'
+LANGUAGE 'c' PARALLEL SAFE;
+
+CREATE OR REPLACE FUNCTION geometry_gist_sortsupport_2d(internal)
+RETURNS void
+AS 'MODULE_PATHNAME', 'gtype_gserialized_gist_sortsupport_2d'
+LANGUAGE 'c' STRICT;
+
+CREATE OPERATOR CLASS gist_geometry_ops_2d
+        DEFAULT FOR TYPE gtype USING GIST AS
+        STORAGE public.box2df,
+        OPERATOR        1        <<  ,
+        OPERATOR        2        &<      ,
+        OPERATOR        3        &&  ,
+        OPERATOR        4        &>      ,
+        OPERATOR        5        >>      ,
+        OPERATOR        6        ~=      ,
+        OPERATOR        7        ~       ,
+        OPERATOR        8        @       ,
+        OPERATOR        9        &<| ,
+        OPERATOR        10       <<| ,
+        OPERATOR        11       |>> ,
+        OPERATOR        12       |&> ,
+        OPERATOR        13       <-> FOR ORDER BY gtype_ops_btree,
+        OPERATOR        14       <#> FOR ORDER BY gtype_ops_btree,
+--
+-- Sort support in bulk indexing not included in the default
+-- opclass for PostgreSQL versions <15 due to query performance
+-- degradation caused by GiST index page overlap.
+-- Since PostgreSQL 15 sorting build uses picksplit function to
+-- find better partitioning for index records. This allows to
+-- build indices performing similarly to those produced by default
+-- method while still reducing index build time significantly.
+--
+-- To enable sortsupport:
+--   alter operator family gist_geometry_ops_2d using gist
+--     add function 11 (geometry)
+--     geometry_gist_sortsupport_2d (internal);
+--
+-- To remove sortsupport:
+--   alter operator family gist_geometry_ops_2d using gist
+--     drop function 11 (geometry);
+--
+        FUNCTION        8        geometry_gist_distance_2d (internal, gtype, integer),
+        FUNCTION        1        geometry_gist_consistent_2d (internal, gtype, integer),
+        FUNCTION        2        geometry_gist_union_2d (bytea, internal),
+        FUNCTION        3        geometry_gist_compress_2d (internal),
+        FUNCTION        4        geometry_gist_decompress_2d (internal),
+        FUNCTION        5        geometry_gist_penalty_2d (internal, internal, internal),
+        FUNCTION        6        geometry_gist_picksplit_2d (internal, internal),
+        FUNCTION        7        geometry_gist_same_2d (geom1 gtype, geom2 gtype, internal)/*,
+        FUNCTION        11       geometry_gist_sortsupport_2d(gtype)*/;
 
 --
 -- PostGIS Functions

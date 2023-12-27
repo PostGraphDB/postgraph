@@ -19,6 +19,7 @@
 #include "postgres.h"
 
 //Postgres
+#include "access/gist.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_collation.h"
 #include "catalog/pg_operator.h"
@@ -39,6 +40,31 @@
 #include "catalog/ag_graph.h"
 #include "catalog/ag_label.h"
 #include "utils/graphid.h"
+
+Datum
+PostGraphDirectFunctionCall1(PGFunction func, Oid collation, bool *is_null, Datum arg1)
+{
+        LOCAL_FCINFO(fcinfo, 3);
+        fcinfo->flinfo = palloc0(sizeof(FmgrInfo));
+
+        InitFunctionCallInfoData(*fcinfo, NULL, 3, collation, NULL, NULL);
+
+        fcinfo->args[0].value = arg1;
+        fcinfo->args[0].isnull = false;
+
+        Datum result = (*func) (fcinfo);
+
+        /* Check for null result, since caller is clearly not expecting one */
+        if (fcinfo->isnull) {
+            *is_null = true;
+            return NULL;
+        }
+
+        *is_null = false;
+
+        return result;
+}
+
 
 Datum
 PostGraphDirectFunctionCall3(PGFunction func, Oid collation, bool *is_null, Datum arg1, Datum arg2, Datum arg3)
@@ -67,6 +93,69 @@ PostGraphDirectFunctionCall3(PGFunction func, Oid collation, bool *is_null, Datu
 
         return result;
 }
+
+Datum
+PostGraphDirectFunctionCall4(PGFunction func, Oid collation, bool *is_null, Datum arg1, Datum arg2, Datum arg3, Datum arg4)
+{
+        LOCAL_FCINFO(fcinfo, 4);
+        fcinfo->flinfo = palloc0(sizeof(FmgrInfo));
+
+        InitFunctionCallInfoData(*fcinfo, NULL, 4, collation, NULL, NULL);
+
+        fcinfo->args[0].value = arg1;
+        fcinfo->args[0].isnull = false;
+        fcinfo->args[1].value = arg2;
+        fcinfo->args[1].isnull = false;
+        fcinfo->args[2].value = arg3;
+        fcinfo->args[2].isnull = false;
+        fcinfo->args[3].value = arg4;
+        fcinfo->args[3].isnull = false;
+
+        Datum result = (*func) (fcinfo);
+
+        /* Check for null result, since caller is clearly not expecting one */
+        if (fcinfo->isnull) {
+            *is_null = true;
+            return NULL;
+        }
+
+        *is_null = false;
+
+        return result;
+}
+
+Datum
+PostGraphDirectFunctionCall5(PGFunction func, Oid collation, bool *is_null, Datum arg1, Datum arg2, Datum arg3, Datum arg4, Datum arg5)
+{
+        LOCAL_FCINFO(fcinfo, 4);
+        fcinfo->flinfo = palloc0(sizeof(FmgrInfo));
+
+        InitFunctionCallInfoData(*fcinfo, NULL, 4, collation, NULL, NULL);
+
+        fcinfo->args[0].value = arg1;
+        fcinfo->args[0].isnull = false;
+        fcinfo->args[1].value = arg2;
+        fcinfo->args[1].isnull = false;
+        fcinfo->args[2].value = arg3;
+        fcinfo->args[2].isnull = false;
+        fcinfo->args[3].value = arg4;
+        fcinfo->args[3].isnull = false;
+        fcinfo->args[4].value = arg5;
+        fcinfo->args[4].isnull = false;
+
+        Datum result = (*func) (fcinfo);
+
+        /* Check for null result, since caller is clearly not expecting one */
+        if (fcinfo->isnull) {
+            *is_null = true;
+            return NULL;
+        }
+
+        *is_null = false;
+
+        return result;
+}
+
 
 PG_FUNCTION_INFO_V1(LWGEOM_asEWKT);
 
@@ -341,6 +430,159 @@ GEOMETRIC2DOPERATOR(overabove, overabove_2d);
 // |>>
 PG_FUNCTION_INFO_V1(gserialized_above_2d);
 GEOMETRIC2DOPERATOR(above, above_2d);
+
+
+/*
+ * 2D GIST Index Support Functions
+ */
+PG_FUNCTION_INFO_V1(gserialized_gist_consistent_2d);
+PG_FUNCTION_INFO_V1(gtype_gserialized_gist_consistent_2d);
+Datum
+gtype_gserialized_gist_consistent_2d(PG_FUNCTION_ARGS) {
+    Datum d1 = PG_GETARG_DATUM(0);
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, AG_GET_ARG_GTYPE_P(1), "geometry");
+    Datum d3 = PG_GETARG_DATUM(2);
+    Datum d4 = PG_GETARG_DATUM(3);
+    Datum d5 = PG_GETARG_DATUM(4);
+    bool is_null;
+
+    Datum d = PostGraphDirectFunctionCall5(gserialized_gist_consistent_2d, 100, &is_null, d1, d2, d3, d4, d5);
+
+    if (is_null)
+        PG_RETURN_NULL();
+
+    PG_RETURN_DATUM(d);
+}
+   
+PG_FUNCTION_INFO_V1(gserialized_gist_distance_2d);
+PG_FUNCTION_INFO_V1(gtype_gserialized_gist_distance_2d);
+Datum
+gtype_gserialized_gist_distance_2d(PG_FUNCTION_ARGS) {
+    Datum d1 = PG_GETARG_DATUM(0);
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, AG_GET_ARG_GTYPE_P(1), "geometry");
+    Datum d3 = PG_GETARG_DATUM(2);
+    Datum d4 = PG_GETARG_DATUM(3);
+
+    bool is_null;
+
+    Datum d = PostGraphDirectFunctionCall4(gserialized_gist_distance_2d, 100, &is_null, d1, d2, d3, d4);
+
+    if (is_null)
+        PG_RETURN_NULL();
+
+    PG_RETURN_DATUM(d);
+}
+
+PG_FUNCTION_INFO_V1(gserialized_gist_compress_2d);
+PG_FUNCTION_INFO_V1(gtype_gserialized_gist_compress_2d);
+Datum
+gtype_gserialized_gist_compress_2d(PG_FUNCTION_ARGS) {
+    //Datum d1 = PG_GETARG_DATUM(0);
+    GISTENTRY *entry_in = (GISTENTRY*)PG_GETARG_POINTER(0);
+    entry_in->key = convert_to_scalar(gtype_to_geometry_internal, entry_in->key, "geometry");
+    //Datum d1 = convert_to_scalar(gtype_to_geometry_internal, AG_GET_ARG_GTYPE_P(0), "geometry");
+
+    bool is_null;
+
+    Datum d = PostGraphDirectFunctionCall1(gserialized_gist_compress_2d, 100, &is_null, PointerGetDatum(entry_in));
+
+    if (is_null)
+        PG_RETURN_NULL();
+
+    PG_RETURN_DATUM(d);
+}
+
+PG_FUNCTION_INFO_V1(gserialized_gist_penalty_2d);
+PG_FUNCTION_INFO_V1(gtype_gserialized_gist_penalty_2d);
+Datum
+gtype_gserialized_gist_penalty_2d(PG_FUNCTION_ARGS) {
+    Datum d1 = PG_GETARG_DATUM(0);
+    Datum d2 = PG_GETARG_DATUM(1);
+    Datum d3 = PG_GETARG_DATUM(2);
+
+    bool is_null;
+
+    Datum d = PostGraphDirectFunctionCall3(gserialized_gist_penalty_2d, 100, &is_null, d1, d2, d3);
+
+    if (is_null)
+        PG_RETURN_NULL();
+
+    PG_RETURN_DATUM(d);
+}
+
+PG_FUNCTION_INFO_V1(gserialized_gist_union_2d);
+PG_FUNCTION_INFO_V1(gtype_gserialized_gist_union_2d);
+Datum
+gtype_gserialized_gist_union_2d(PG_FUNCTION_ARGS) {
+    Datum d1 = PG_GETARG_DATUM(0);
+    Datum d2 = PG_GETARG_DATUM(1);
+
+    bool is_null;
+
+    Datum d = PostGraphDirectFunctionCall2(gserialized_gist_union_2d, 100, &is_null, d1, d2);
+
+    if (is_null)
+        PG_RETURN_NULL();
+
+    PG_RETURN_DATUM(d);
+}
+
+PG_FUNCTION_INFO_V1(gserialized_gist_same_2d);
+PG_FUNCTION_INFO_V1(gtype_gserialized_gist_same_2d);
+Datum
+gtype_gserialized_gist_same_2d(PG_FUNCTION_ARGS) {
+    Datum d1 = PG_GETARG_DATUM(0);
+    Datum d2 = PG_GETARG_DATUM(1);
+    Datum d3 = PG_GETARG_DATUM(2);
+
+    bool is_null;
+
+    Datum d = PostGraphDirectFunctionCall3(gserialized_gist_same_2d, 100, &is_null, d1, d2, d3);
+
+    if (is_null)
+        PG_RETURN_NULL();
+
+    PG_RETURN_DATUM(d);
+}
+
+PG_FUNCTION_INFO_V1(gtype_gserialized_gist_decompress_2d);
+Datum gtype_gserialized_gist_decompress_2d(PG_FUNCTION_ARGS)
+{
+        POSTGIS_DEBUG(5, "[GIST] 'decompress' function called");
+        /* We don't decompress. Just return the input. */
+        PG_RETURN_POINTER(PG_GETARG_POINTER(0));
+}
+
+PG_FUNCTION_INFO_V1(gserialized_gist_sortsupport_2d);
+PG_FUNCTION_INFO_V1(gtype_gserialized_gist_sortsupport_2d);
+Datum
+gtype_gserialized_gist_sortsupport_2d(PG_FUNCTION_ARGS) {
+    Datum d1 = PG_GETARG_DATUM(0);
+
+    bool is_null;
+
+    PostGraphDirectFunctionCall1(gserialized_gist_sortsupport_2d, 100, &is_null, d1);
+
+    PG_RETURN_VOID();
+}
+
+PG_FUNCTION_INFO_V1(gserialized_gist_picksplit_2d);
+PG_FUNCTION_INFO_V1(gtype_gserialized_gist_picksplit_2d);
+Datum
+gtype_gserialized_gist_picksplit_2d(PG_FUNCTION_ARGS) {
+    Datum d1 = PG_GETARG_DATUM(0);
+    Datum d2 = PG_GETARG_DATUM(1);
+
+    bool is_null;
+
+    Datum d = PostGraphDirectFunctionCall2(gserialized_gist_picksplit_2d, 100, &is_null, d1, d2);
+
+    if (is_null)
+        PG_RETURN_NULL();
+
+    PG_RETURN_DATUM(d);
+}
+
 
 PG_FUNCTION_INFO_V1(ST_Intersection);
 

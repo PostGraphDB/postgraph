@@ -708,15 +708,15 @@ SELECT * FROM cypher('cypher_vle', $$MATCH p=()<-[ve1:edge*]-(), ()-[ve2:alterna
 SELECT * FROM ag_label;
        name       | graph | id | kind |          relation           |          label_path           
 ------------------+-------+----+------+-----------------------------+-------------------------------
- _ag_label_vertex | 21878 |  1 | v    | cypher_vle._ag_label_vertex | _ag_label_vertex
- _ag_label_edge   | 21878 |  2 | e    | cypher_vle._ag_label_edge   | _ag_label_edge
- begin            | 21878 |  3 | v    | cypher_vle.begin            | _ag_label_vertex.begin
- edge             | 21878 |  4 | e    | cypher_vle.edge             | _ag_label_edge.edge
- middle           | 21878 |  5 | v    | cypher_vle.middle           | _ag_label_vertex.middle
- end              | 21878 |  6 | v    | cypher_vle."end"            | _ag_label_vertex.end
- self_loop        | 21878 |  7 | e    | cypher_vle.self_loop        | _ag_label_edge.self_loop
- alternate_edge   | 21878 |  8 | e    | cypher_vle.alternate_edge   | _ag_label_edge.alternate_edge
- bypass_edge      | 21878 |  9 | e    | cypher_vle.bypass_edge      | _ag_label_edge.bypass_edge
+ _ag_label_vertex | 21944 |  1 | v    | cypher_vle._ag_label_vertex | _ag_label_vertex
+ _ag_label_edge   | 21944 |  2 | e    | cypher_vle._ag_label_edge   | _ag_label_edge
+ begin            | 21944 |  3 | v    | cypher_vle.begin            | _ag_label_vertex.begin
+ edge             | 21944 |  4 | e    | cypher_vle.edge             | _ag_label_edge.edge
+ middle           | 21944 |  5 | v    | cypher_vle.middle           | _ag_label_vertex.middle
+ end              | 21944 |  6 | v    | cypher_vle."end"            | _ag_label_vertex.end
+ self_loop        | 21944 |  7 | e    | cypher_vle.self_loop        | _ag_label_edge.self_loop
+ alternate_edge   | 21944 |  8 | e    | cypher_vle.alternate_edge   | _ag_label_edge.alternate_edge
+ bypass_edge      | 21944 |  9 | e    | cypher_vle.bypass_edge      | _ag_label_edge.bypass_edge
 (9 rows)
 
 --

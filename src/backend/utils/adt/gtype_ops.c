@@ -776,6 +776,8 @@ gtype_inet_subnet_contains(PG_FUNCTION_ARGS) {
     PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(network_subeq, GT_ARG_TO_INET_DATUM(0), GT_ARG_TO_INET_DATUM(1))));
 }
 
+PG_FUNCTION_INFO_V1(gserialized_right_2d);
+
 PG_FUNCTION_INFO_V1(gtype_inet_subnet_strict_contained_by);
 Datum
 gtype_inet_subnet_strict_contained_by(PG_FUNCTION_ARGS) {
@@ -788,6 +790,8 @@ gtype_inet_subnet_strict_contained_by(PG_FUNCTION_ARGS) {
        PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(poly_right, GT_TO_POLYGON_DATUM(lhs), GT_TO_POLYGON_DATUM(rhs))));
     else if (GT_IS_CIRCLE(lhs) && GT_IS_CIRCLE(rhs))
        PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(circle_right, GT_TO_CIRCLE_DATUM(lhs), GT_TO_CIRCLE_DATUM(rhs))));
+    else if (GT_IS_GEOMETRY(lhs) || GT_IS_GEOMETRY(rhs))
+        PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(gserialized_right_2d, GT_TO_GEOMETRY_DATUM(lhs), GT_TO_GEOMETRY_DATUM(rhs))));
 
     PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2(network_sup, GT_ARG_TO_INET_DATUM(0), GT_ARG_TO_INET_DATUM(1))));
 }
