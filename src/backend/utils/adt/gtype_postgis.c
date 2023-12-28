@@ -599,7 +599,6 @@ gtype_gserialized_overlaps(PG_FUNCTION_ARGS) {
     PG_RETURN_DATUM(d);
 }
 
-
 PG_FUNCTION_INFO_V1(gserialized_contains);
 PG_FUNCTION_INFO_V1(gtype_gserialized_contains);
 Datum
@@ -616,7 +615,21 @@ gtype_gserialized_contains(PG_FUNCTION_ARGS) {
     PG_RETURN_DATUM(d);
 }
 
+PG_FUNCTION_INFO_V1(gserialized_within);
+PG_FUNCTION_INFO_V1(gtype_gserialized_within);
+Datum
+gtype_gserialized_within(PG_FUNCTION_ARGS) {
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, AG_GET_ARG_GTYPE_P(0), "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, AG_GET_ARG_GTYPE_P(1), "geometry");
+    bool is_null;
 
+    Datum d = PostGraphDirectFunctionCall2(gserialized_within, 100, &is_null, d1, d2);
+
+    if (is_null)
+        PG_RETURN_NULL();
+
+    PG_RETURN_DATUM(d);
+}
 
 
 
