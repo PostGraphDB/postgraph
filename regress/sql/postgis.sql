@@ -619,7 +619,6 @@ select * FROM cypher('postgis', $$
 $$) as (c gtype); -- t
 
 -- nd within @@
-
 select * FROM cypher('postgis', $$
     RETURN 'POINT(3 3 3 5)'::geometry @@ 'LINESTRING(2 2 2 2, 4 4 4 4)'::geometry
 $$) as (c gtype); -- f
@@ -642,6 +641,28 @@ select * FROM cypher('postgis', $$
     RETURN 'POINT(4 2 4 2)'::geometry @@ 'LINESTRING(2 2 2 2, 4 4 4 4)'::geometry
 $$) as (c gtype); -- t
 
+-- nd same ~~=
+select * FROM cypher('postgis', $$ 
+    RETURN 'LINESTRING(2 2 2 2, 4 4 4 4)'::geometry ~~= 'POINT(3 3 3 3)'::geometry
+$$) as (c gtype); -- f
+select * FROM cypher('postgis', $$ 
+    RETURN 'LINESTRING(2 2 2 2, 4 4 4 4)'::geometry ~~= 'LINESTRING(2 2 2 2, 4 4 4 5)'::geometry
+$$) as (c gtype); -- f
+select * FROM cypher('postgis', $$ 
+    RETURN 'LINESTRING(2 2 2 2, 4 4 4 4)'::geometry ~~= 'LINESTRING(2 2 2 2, 4 4 5 4)'::geometry
+$$) as (c gtype); -- f
+select * FROM cypher('postgis', $$ 
+    RETURN 'LINESTRING(2 2 2 2, 4 4 4 4)'::geometry ~~= 'LINESTRING(2 2 2 2, 4 5 4 4)'::geometry
+$$) as (c gtype); -- f
+select * FROM cypher('postgis', $$ 
+    RETURN 'LINESTRING(2 2 2 2, 4 4 4 4)'::geometry ~~= 'LINESTRING(2 2 2 2, 5 4 4 4)'::geometry
+$$) as (c gtype); -- f
+select * FROM cypher('postgis', $$ 
+    RETURN 'LINESTRING(2 2 2 2, 4 4 4 4)'::geometry ~~= 'LINESTRING(4 4 4 4, 2 2 2 2)'::geometry
+$$) as (c gtype); -- t
+select * FROM cypher('postgis', $$ 
+    RETURN 'LINESTRING(2 2 2 2, 4 4 4 4)'::geometry ~~= 'LINESTRING(2 2 2 4, 2 2 4 2, 2 4 2 2, 4 2 2 2)'::geometry
+$$) as (c gtype); -- t
 
 --
 -- Point Cordinates

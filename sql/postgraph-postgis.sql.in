@@ -341,19 +341,30 @@ CREATE OPERATOR ~~ (
         --JOIN = gserialized_gist_joinsel_nd
 );
 
--- Availability: 3.0.0
 CREATE OR REPLACE FUNCTION geometry_within_nd(gtype, gtype)
 RETURNS boolean
 AS 'MODULE_PATHNAME' ,'gtype_gserialized_within'
 LANGUAGE 'c' IMMUTABLE STRICT PARALLEL SAFE
 COST 1;
 
--- Availability: 3.0.0
 CREATE OPERATOR @@ (
     LEFTARG = gtype, RIGHTARG = gtype, PROCEDURE = geometry_within_nd,
     COMMUTATOR = '~~'/*,
     RESTRICT = gserialized_gist_sel_nd,
     JOIN = gserialized_gist_joinsel_nd*/
+);
+
+CREATE OR REPLACE FUNCTION geometry_same_nd(gtype, gtype)
+RETURNS boolean
+AS 'MODULE_PATHNAME' ,'gtype_gserialized_same'
+LANGUAGE 'c' IMMUTABLE STRICT PARALLEL SAFE
+COST 1;
+
+CREATE OPERATOR ~~= (
+        LEFTARG = gtype, RIGHTARG = gtype, PROCEDURE = geometry_same_nd,
+        COMMUTATOR = '~~='/*,
+        RESTRICT = gserialized_gist_sel_nd,
+        JOIN = gserialized_gist_joinsel_nd*/
 );
 
 
