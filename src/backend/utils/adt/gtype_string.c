@@ -161,7 +161,7 @@ Datum gtype_replace(PG_FUNCTION_ARGS)
 }
 
 PG_FUNCTION_INFO_V1(gtype_like);
-// gtype ~~ gtype
+// gtype ~~~ gtype
 Datum gtype_like(PG_FUNCTION_ARGS)
 {
     PG_RETURN_BOOL(DatumGetBool(DirectFunctionCall2Coll(textlike, C_COLLATION_OID, GT_ARG_TO_TEXT_DATUM(0), GT_ARG_TO_TEXT_DATUM(1))));

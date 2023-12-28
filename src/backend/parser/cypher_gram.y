@@ -1282,7 +1282,7 @@ a_expr:
         }
     | a_expr LIKE a_expr
         {   
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~~", $1, $3, @2);
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~~~", $1, $3, @2);
         } 
     | a_expr NOT LIKE a_expr
         {   

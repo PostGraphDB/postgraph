@@ -328,6 +328,19 @@ CREATE OPERATOR &&& (
     --JOIN = gserialized_gist_joinsel_nd
 );
 
+CREATE OR REPLACE FUNCTION geometry_contains_nd(gtype, gtype)
+RETURNS boolean
+AS 'MODULE_PATHNAME' ,'gtype_gserialized_contains'
+LANGUAGE 'c' IMMUTABLE STRICT PARALLEL SAFE
+COST 1;
+
+CREATE OPERATOR ~~ (
+        LEFTARG = gtype, RIGHTARG = gtype, PROCEDURE = geometry_contains_nd--,
+        --COMMUTATOR = '@@',
+        --RESTRICT = gserialized_gist_sel_nd,
+        --JOIN = gserialized_gist_joinsel_nd
+);
+
 
 --
 -- PostGIS Functions

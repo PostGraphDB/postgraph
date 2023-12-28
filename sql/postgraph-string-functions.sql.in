@@ -55,7 +55,7 @@ RETURNS NULL ON NULL INPUT
 PARALLEL SAFE
 AS 'MODULE_PATHNAME';
 
-CREATE OPERATOR ~~ (
+CREATE OPERATOR ~~~ (
     FUNCTION = gtype_like,
     LEFTARG = gtype,
     RIGHTARG = gtype,
@@ -78,7 +78,7 @@ CREATE OPERATOR !~~ (
     RIGHTARG = gtype,
     RESTRICT = NLIKESEL,
     JOIN = NLIKEJOINSEL,
-    NEGATOR = ~~
+    NEGATOR = ~~~
 );
 
 
