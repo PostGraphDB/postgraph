@@ -313,6 +313,23 @@ CREATE OPERATOR CLASS gist_geometry_ops_2d
         FUNCTION        11       geometry_gist_sortsupport_2d(gtype)*/;
 
 --
+-- PostGIS N-D Geometry Operators
+--
+CREATE OR REPLACE FUNCTION geometry_overlaps_nd(gtype, gtype)
+RETURNS boolean
+AS 'MODULE_PATHNAME' ,'gtype_gserialized_overlaps'
+LANGUAGE 'c' IMMUTABLE STRICT PARALLEL SAFE
+COST 1;
+
+CREATE OPERATOR &&& (
+    LEFTARG = gtype, RIGHTARG = gtype, PROCEDURE = geometry_overlaps_nd,
+    COMMUTATOR = '&&&'--,
+    --RESTRICT = gserialized_gist_sel_nd,
+    --JOIN = gserialized_gist_joinsel_nd
+);
+
+
+--
 -- PostGIS Functions
 --
 
