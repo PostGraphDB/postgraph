@@ -722,6 +722,24 @@ gtype_ST_DistanceCPA(PG_FUNCTION_ARGS) {
 }
 
 
+PG_FUNCTION_INFO_V1(LWGEOM_length_linestring);
+PG_FUNCTION_INFO_V1(gtype_length_linestring);
+Datum
+gtype_length_linestring(PG_FUNCTION_ARGS) {
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, AG_GET_ARG_GTYPE_P(0), "geometry");
+    bool is_null;
+
+    Datum d = PostGraphDirectFunctionCall1(LWGEOM_length_linestring, 100, &is_null, d1);
+
+    if (is_null)
+        PG_RETURN_NULL();
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.boolean = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+
 PG_FUNCTION_INFO_V1(ST_IsValidTrajectory);
 PG_FUNCTION_INFO_V1(gtype_st_isvalidtrajectory);
 Datum
