@@ -775,6 +775,23 @@ gtype_length_ellipsoid_linestring(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+PG_FUNCTION_INFO_V1(LWGEOM_length2d_ellipsoid);
+PG_FUNCTION_INFO_V1(gtype_length2d_ellipsoid);
+Datum
+gtype_length2d_ellipsoid(PG_FUNCTION_ARGS) {
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, AG_GET_ARG_GTYPE_P(0), "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_spheroid_internal, AG_GET_ARG_GTYPE_P(1), "sphereoid");
+    bool is_null;
+
+    Datum d = PostGraphDirectFunctionCall2(LWGEOM_length2d_ellipsoid, 100, &is_null, d1, d2);
+
+    if (is_null)
+        PG_RETURN_NULL();
+
+    gtype_value gtv = { .type = AGTV_FLOAT, .val.boolean = DatumGetFloat8(d) };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
 
 PG_FUNCTION_INFO_V1(ST_IsValidTrajectory);
 PG_FUNCTION_INFO_V1(gtype_st_isvalidtrajectory);
