@@ -26,28 +26,26 @@
 
 #define VECTOR_MAX_DIM 16000
 
-#define VECTOR_SIZE(_dim)       (sizeof(uint32) + sizeof(uint32) + (_dim * sizeof(float8)) + sizeof(uint32))
-#define DatumGetVector(x)       ((Vector *) PG_DETOAST_DATUM(x))
+#define VECTOR_SIZE(_dim)                                                      \
+  (sizeof(uint32) + sizeof(uint32) + (_dim * sizeof(float8)) + sizeof(uint32))
+#define DatumGetVector(x) ((Vector *)PG_DETOAST_DATUM(x))
 
-typedef struct Vector
-{
-    uint16 dim;    /* number of dimensions */
-    float8 *x;
+typedef struct Vector {
+  uint16 dim; /* number of dimensions */
+  float8 *x;
 } Vector;
 
-//gtype_value *gtype_vector_in(char *str, int32 typmod);
-//void *InitVectorGType(int dim);
+// gtype_value *gtype_vector_in(char *str, int32 typmod);
+// void *InitVectorGType(int dim);
 
-static inline Vector *
-InitVector(int dim)
-{
-    int size = VECTOR_SIZE(dim);
+static inline Vector *InitVector(int dim) {
+  int size = VECTOR_SIZE(dim);
 
-    Vector *result = (Vector *) palloc0(size);
+  Vector *result = (Vector *)palloc0(size);
 
-    result->dim = dim;
+  result->dim = dim;
 
-    return result;
+  return result;
 }
 
 #endif

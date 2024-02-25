@@ -22,8 +22,8 @@
 
 #include "postgres.h"
 
-#include "utils/gtype.h"
 #include "utils/graphid.h"
+#include "utils/gtype.h"
 
 void object_access_hook_init(void);
 void object_access_hook_fini(void);

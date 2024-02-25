@@ -39,9 +39,8 @@
  * Extra data that is passed to the generated parser.
  * The resulting abstract syntax tree is stored in result field.
  */
-typedef struct cypher_yy_extra
-{
-    List *result;
+typedef struct cypher_yy_extra {
+  List *result;
 } cypher_yy_extra;
 
 /*

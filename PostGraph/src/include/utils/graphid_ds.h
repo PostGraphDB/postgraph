@@ -1,11 +1,11 @@
 /*
  * Copyright (C) 2023 PostGraphDB
- *  
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- *  
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -20,10 +20,8 @@
 
 #include "utils/graphid.h"
 
-#define IS_GRAPHID_STACK_EMPTY(queue) \
-            get_queue_size(queue) == 0
-#define PEEK_GRAPHID_STACK(queue) \
-            (graphid) get_graphid(peek_queue_head(queue))
+#define IS_GRAPHID_STACK_EMPTY(queue) get_queue_size(queue) == 0
+#define PEEK_GRAPHID_STACK(queue) (graphid) get_graphid(peek_queue_head(queue))
 
 /*
  * We declare the GRAPHID data structures here, and in this way, so that they

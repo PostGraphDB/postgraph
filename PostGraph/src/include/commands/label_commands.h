@@ -46,13 +46,13 @@
 #define AG_EDGE_ACCESS_FUNCTION_END_ID "end_id"
 #define AG_EDGE_ACCESS_FUNCTION_PROPERTIES "properties"
 
-#define IS_DEFAULT_LABEL_EDGE(str) \
-    (str != NULL && strcmp(AG_DEFAULT_LABEL_EDGE, str) == 0)
-#define IS_DEFAULT_LABEL_VERTEX(str) \
-    (str != NULL && strcmp(AG_DEFAULT_LABEL_VERTEX, str) == 0)
+#define IS_DEFAULT_LABEL_EDGE(str)                                             \
+  (str != NULL && strcmp(AG_DEFAULT_LABEL_EDGE, str) == 0)
+#define IS_DEFAULT_LABEL_VERTEX(str)                                           \
+  (str != NULL && strcmp(AG_DEFAULT_LABEL_VERTEX, str) == 0)
 
-#define IS_AG_DEFAULT_LABEL(x) \
-    (IS_DEFAULT_LABEL_EDGE(x) || IS_DEFAULT_LABEL_VERTEX(x))
+#define IS_AG_DEFAULT_LABEL(x)                                                 \
+  (IS_DEFAULT_LABEL_EDGE(x) || IS_DEFAULT_LABEL_VERTEX(x))
 
 void create_label(char *graph_name, char *label_name, char label_type,
                   List *parents);

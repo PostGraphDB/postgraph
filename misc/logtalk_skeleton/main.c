@@ -2,8 +2,8 @@
 
 #include <SWI-Prolog.h>
 
-#define PL_require(x)                                                                              \
-  if (!x)                                                                                          \
+#define PL_require(x)                                                          \
+  if (!x)                                                                      \
   return FALSE
 
 term_t Logtalk(term_t receiver, char *predicate_name, int arity, term_t arg) {
@@ -20,7 +20,8 @@ term_t Logtalk(term_t receiver, char *predicate_name, int arity, term_t arg) {
   return goal;
 }
 
-term_t Logtalk_named(char *object_name, char *predicate_name, int arity, term_t arg) {
+term_t Logtalk_named(char *object_name, char *predicate_name, int arity,
+                     term_t arg) {
   // create term for the receiver of the message
   term_t receiver = PL_new_term_ref();
   PL_put_atom_chars(receiver, object_name);

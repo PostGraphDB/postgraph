@@ -39,175 +39,163 @@
 #include "utils/gtype_typecasting.h"
 
 PG_FUNCTION_INFO_V1(gtype_abbrev);
-Datum
-gtype_abbrev(PG_FUNCTION_ARGS) {
-    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+Datum gtype_abbrev(PG_FUNCTION_ARGS) {
+  gtype *gt = AG_GET_ARG_GTYPE_P(0);
 
-    Datum d;
-    if (GT_IS_CIDR(gt))
-        d = DirectFunctionCall1(cidr_abbrev, GT_TO_CIDR_DATUM(gt));
-    else 
-        d = DirectFunctionCall1(inet_abbrev, GT_TO_INET_DATUM(gt));
+  Datum d;
+  if (GT_IS_CIDR(gt))
+    d = DirectFunctionCall1(cidr_abbrev, GT_TO_CIDR_DATUM(gt));
+  else
+    d = DirectFunctionCall1(inet_abbrev, GT_TO_INET_DATUM(gt));
 
-    gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(DatumGetTextP(d)) }};
+  gtype_value gtv = {
+      .type = AGTV_STRING,
+      .val.string = {VARSIZE(d), text_to_cstring(DatumGetTextP(d))}};
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+  AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_broadcast);
-Datum
-gtype_broadcast(PG_FUNCTION_ARGS) {
-    Datum d = DirectFunctionCall1(network_broadcast, GT_ARG_TO_INET_DATUM(0));
+Datum gtype_broadcast(PG_FUNCTION_ARGS) {
+  Datum d = DirectFunctionCall1(network_broadcast, GT_ARG_TO_INET_DATUM(0));
 
-    gtype_value gtv;
-    gtv.type = AGTV_INET;
-    memcpy(&gtv.val.inet, DatumGetInetPP(d), sizeof(char) * 22);
+  gtype_value gtv;
+  gtv.type = AGTV_INET;
+  memcpy(&gtv.val.inet, DatumGetInetPP(d), sizeof(char) * 22);
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+  AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_family);
-Datum
-gtype_family(PG_FUNCTION_ARGS) {
-    Datum d = DirectFunctionCall1(network_family, GT_ARG_TO_INET_DATUM(0));
+Datum gtype_family(PG_FUNCTION_ARGS) {
+  Datum d = DirectFunctionCall1(network_family, GT_ARG_TO_INET_DATUM(0));
 
-    gtype_value gtv = { .type = AGTV_INTEGER, .val.int_value = DatumGetInt32(d) };
+  gtype_value gtv = {.type = AGTV_INTEGER, .val.int_value = DatumGetInt32(d)};
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
-  
+  AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_host);
-Datum
-gtype_host(PG_FUNCTION_ARGS) {
-    Datum d = DirectFunctionCall1(network_host, GT_ARG_TO_INET_DATUM(0));
+Datum gtype_host(PG_FUNCTION_ARGS) {
+  Datum d = DirectFunctionCall1(network_host, GT_ARG_TO_INET_DATUM(0));
 
-    gtype_value gtv = { .type = AGTV_STRING, .val.string = { VARSIZE(d), text_to_cstring(DatumGetTextP(d)) }};
+  gtype_value gtv = {
+      .type = AGTV_STRING,
+      .val.string = {VARSIZE(d), text_to_cstring(DatumGetTextP(d))}};
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+  AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
-
 PG_FUNCTION_INFO_V1(gtype_hostmask);
-Datum
-gtype_hostmask(PG_FUNCTION_ARGS) {
-    Datum d = DirectFunctionCall1(network_hostmask, GT_ARG_TO_INET_DATUM(0));
+Datum gtype_hostmask(PG_FUNCTION_ARGS) {
+  Datum d = DirectFunctionCall1(network_hostmask, GT_ARG_TO_INET_DATUM(0));
 
-    gtype_value gtv;
-    gtv.type = AGTV_INET;
-    memcpy(&gtv.val.inet, DatumGetInetPP(d), sizeof(char) * 22);
+  gtype_value gtv;
+  gtv.type = AGTV_INET;
+  memcpy(&gtv.val.inet, DatumGetInetPP(d), sizeof(char) * 22);
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+  AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_inet_merge);
-Datum
-gtype_inet_merge(PG_FUNCTION_ARGS) {
-    Datum d = DirectFunctionCall2(inet_merge, GT_ARG_TO_INET_DATUM(0), GT_ARG_TO_INET_DATUM(1));
+Datum gtype_inet_merge(PG_FUNCTION_ARGS) {
+  Datum d = DirectFunctionCall2(inet_merge, GT_ARG_TO_INET_DATUM(0),
+                                GT_ARG_TO_INET_DATUM(1));
 
-    gtype_value gtv;
-    gtv.type = AGTV_CIDR;
-    memcpy(&gtv.val.inet, DatumGetInetPP(d), sizeof(char) * 22);
+  gtype_value gtv;
+  gtv.type = AGTV_CIDR;
+  memcpy(&gtv.val.inet, DatumGetInetPP(d), sizeof(char) * 22);
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+  AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
-
 PG_FUNCTION_INFO_V1(gtype_inet_same_family);
-Datum
-gtype_inet_same_family(PG_FUNCTION_ARGS) {
-    Datum d = DirectFunctionCall2(inet_same_family, GT_ARG_TO_INET_DATUM(0), GT_ARG_TO_INET_DATUM(1));
+Datum gtype_inet_same_family(PG_FUNCTION_ARGS) {
+  Datum d = DirectFunctionCall2(inet_same_family, GT_ARG_TO_INET_DATUM(0),
+                                GT_ARG_TO_INET_DATUM(1));
 
-    gtype_value gtv = { .type = AGTV_BOOL, .val.int_value = DatumGetBool(d) };
-    
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+  gtype_value gtv = {.type = AGTV_BOOL, .val.int_value = DatumGetBool(d)};
+
+  AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_masklen);
-Datum
-gtype_masklen(PG_FUNCTION_ARGS) {
-    Datum d = DirectFunctionCall1(network_masklen, GT_ARG_TO_INET_DATUM(0));
+Datum gtype_masklen(PG_FUNCTION_ARGS) {
+  Datum d = DirectFunctionCall1(network_masklen, GT_ARG_TO_INET_DATUM(0));
 
-    gtype_value gtv = { .type = AGTV_INTEGER, .val.int_value = DatumGetInt32(d) };
+  gtype_value gtv = {.type = AGTV_INTEGER, .val.int_value = DatumGetInt32(d)};
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+  AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_netmask);
-Datum
-gtype_netmask(PG_FUNCTION_ARGS) {
-    Datum d = DirectFunctionCall1(network_netmask, GT_ARG_TO_INET_DATUM(0));
+Datum gtype_netmask(PG_FUNCTION_ARGS) {
+  Datum d = DirectFunctionCall1(network_netmask, GT_ARG_TO_INET_DATUM(0));
 
-    gtype_value gtv;
-    gtv.type = AGTV_INET;
-    memcpy(&gtv.val.inet, DatumGetInetPP(d), sizeof(char) * 22);
+  gtype_value gtv;
+  gtv.type = AGTV_INET;
+  memcpy(&gtv.val.inet, DatumGetInetPP(d), sizeof(char) * 22);
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+  AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_network);
-Datum
-gtype_network(PG_FUNCTION_ARGS) {
-    Datum d = DirectFunctionCall1(network_network, GT_ARG_TO_INET_DATUM(0));
+Datum gtype_network(PG_FUNCTION_ARGS) {
+  Datum d = DirectFunctionCall1(network_network, GT_ARG_TO_INET_DATUM(0));
 
-    gtype_value gtv;
-    gtv.type = AGTV_CIDR;
-    memcpy(&gtv.val.inet, DatumGetInetPP(d), sizeof(char) * 22);
+  gtype_value gtv;
+  gtv.type = AGTV_CIDR;
+  memcpy(&gtv.val.inet, DatumGetInetPP(d), sizeof(char) * 22);
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+  AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
 PG_FUNCTION_INFO_V1(gtype_set_masklen);
-Datum
-gtype_set_masklen(PG_FUNCTION_ARGS) {
-    gtype *gt = AG_GET_ARG_GTYPE_P(0);
-    gtype_value gtv;
-    Datum d;
-    if (GT_IS_CIDR(gt)) {
-        d = DirectFunctionCall2(cidr_set_masklen, GT_TO_CIDR_DATUM(gt), GT_ARG_TO_INT4_DATUM(1));
-        gtv.type = AGTV_CIDR;
-    } else {
-        d = DirectFunctionCall2(inet_set_masklen, GT_TO_INET_DATUM(gt), GT_ARG_TO_INT4_DATUM(1));
-       gtv.type = AGTV_INET;
-    }
-    
-    memcpy(&gtv.val.inet, DatumGetInetPP(d), sizeof(char) * 22);
+Datum gtype_set_masklen(PG_FUNCTION_ARGS) {
+  gtype *gt = AG_GET_ARG_GTYPE_P(0);
+  gtype_value gtv;
+  Datum d;
+  if (GT_IS_CIDR(gt)) {
+    d = DirectFunctionCall2(cidr_set_masklen, GT_TO_CIDR_DATUM(gt),
+                            GT_ARG_TO_INT4_DATUM(1));
+    gtv.type = AGTV_CIDR;
+  } else {
+    d = DirectFunctionCall2(inet_set_masklen, GT_TO_INET_DATUM(gt),
+                            GT_ARG_TO_INT4_DATUM(1));
+    gtv.type = AGTV_INET;
+  }
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+  memcpy(&gtv.val.inet, DatumGetInetPP(d), sizeof(char) * 22);
+
+  AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
-
 
 PG_FUNCTION_INFO_V1(gtype_trunc);
-Datum
-gtype_trunc(PG_FUNCTION_ARGS) {
-    gtype *gt = AG_GET_ARG_GTYPE_P(0);
+Datum gtype_trunc(PG_FUNCTION_ARGS) {
+  gtype *gt = AG_GET_ARG_GTYPE_P(0);
 
-    gtype_value gtv;
-    Datum d;
-    if (GT_IS_MACADDR(gt)) {
-        d = DirectFunctionCall1(macaddr_trunc, GT_TO_MAC_DATUM(gt));
-        gtv.type = AGTV_MAC;
-    } else {
-        d = DirectFunctionCall1(macaddr8_trunc, GT_TO_MAC8_DATUM(gt));
-       gtv.type = AGTV_MAC8;
-    }
-    
-    memcpy(&gtv.val.inet, DatumGetMacaddrP(d), sizeof(char) * 6);
+  gtype_value gtv;
+  Datum d;
+  if (GT_IS_MACADDR(gt)) {
+    d = DirectFunctionCall1(macaddr_trunc, GT_TO_MAC_DATUM(gt));
+    gtv.type = AGTV_MAC;
+  } else {
+    d = DirectFunctionCall1(macaddr8_trunc, GT_TO_MAC8_DATUM(gt));
+    gtv.type = AGTV_MAC8;
+  }
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+  memcpy(&gtv.val.inet, DatumGetMacaddrP(d), sizeof(char) * 6);
+
+  AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
-
 
 PG_FUNCTION_INFO_V1(gtype_macaddr8_set7bit);
-Datum
-gtype_macaddr8_set7bit(PG_FUNCTION_ARGS) {
-    Datum d = DirectFunctionCall1(macaddr8_set7bit, GT_ARG_TO_MAC8_DATUM(0));
+Datum gtype_macaddr8_set7bit(PG_FUNCTION_ARGS) {
+  Datum d = DirectFunctionCall1(macaddr8_set7bit, GT_ARG_TO_MAC8_DATUM(0));
 
-    gtype_value gtv;
-    gtv.type = AGTV_MAC8;
-    memcpy(&gtv.val.inet, DatumGetMacaddr8P(d), sizeof(char) * 8);
+  gtype_value gtv;
+  gtv.type = AGTV_MAC8;
+  memcpy(&gtv.val.inet, DatumGetMacaddr8P(d), sizeof(char) * 8);
 
-    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+  AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
-
-

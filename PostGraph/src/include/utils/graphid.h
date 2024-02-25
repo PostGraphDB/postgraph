@@ -1,11 +1,11 @@
 /*
  * Copyright (C) 2023 PostGraphDB
- *  
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- *  
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -51,15 +51,15 @@ typedef int64 graphid;
 #define AG_GETARG_GRAPHID(a) DATUM_GET_GRAPHID(PG_GETARG_DATUM(a))
 #define AG_RETURN_GRAPHID(x) return GRAPHID_GET_DATUM(x)
 
-// Oid accessors for GRAPHID 
-#define GRAPHIDOID \
-    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("graphid"), ObjectIdGetDatum(postgraph_namespace_id())))
-#define GRAPHIDARRAYOID \
-    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("_graphid"), ObjectIdGetDatum(postgraph_namespace_id())))
+// Oid accessors for GRAPHID
+#define GRAPHIDOID                                                             \
+  (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("graphid"),  \
+                   ObjectIdGetDatum(postgraph_namespace_id())))
+#define GRAPHIDARRAYOID                                                        \
+  (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("_graphid"), \
+                   ObjectIdGetDatum(postgraph_namespace_id())))
 
-
-#define GET_LABEL_ID(id) \
-       (((uint64)id) >> ENTRY_ID_BITS)
+#define GET_LABEL_ID(id) (((uint64)id) >> ENTRY_ID_BITS)
 
 graphid make_graphid(const int32 label_id, const int64 entry_id);
 int32 get_graphid_label_id(const graphid gid);

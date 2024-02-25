@@ -41,8 +41,7 @@
 #define AG_GET_ARG_TRAVERSAL(x) DATUM_GET_TRAVERSAL(PG_GETARG_DATUM(x))
 #define AG_RETURN_TRAVERSAL(x) PG_RETURN_POINTER(x)
 
-#define TRAVERSAL_GET_FIRST_ENTITY(ptr) \
-	(&((traversal *)lhs)->children[1])
+#define TRAVERSAL_GET_FIRST_ENTITY(ptr) (&((traversal *)lhs)->children[1])
 
 typedef uint32 pentry;
 
@@ -51,17 +50,19 @@ typedef uint32 pentry;
  *
  * An array has one child for each element, stored in array order.
  */
-typedef struct
-{
-    int32 vl_len_; // varlena header (do not touch directly!)
-    pentry children[FLEXIBLE_ARRAY_MEMBER];
+typedef struct {
+  int32 vl_len_; // varlena header (do not touch directly!)
+  pentry children[FLEXIBLE_ARRAY_MEMBER];
 } traversal;
 
-#define TRAVERSALOID \
-    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("traversal"), ObjectIdGetDatum(postgraph_namespace_id())))
+#define TRAVERSALOID                                                           \
+  (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid,                              \
+                   CStringGetDatum("traversal"),                               \
+                   ObjectIdGetDatum(postgraph_namespace_id())))
 
-#define TRAVERSALARRAYOID \
-    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("_traversal"), ObjectIdGetDatum(postgraph_namespace_id())))
-
+#define TRAVERSALARRAYOID                                                      \
+  (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid,                              \
+                   CStringGetDatum("_traversal"),                              \
+                   ObjectIdGetDatum(postgraph_namespace_id())))
 
 #endif

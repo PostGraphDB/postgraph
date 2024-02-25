@@ -28,33 +28,31 @@
 #define AGE_DEFAULT_ALIAS_PREFIX "_age_default_alias_"
 #define AGE_DEFAULT_VARNAME_PREFIX "_age_varname_"
 
-typedef struct cypher_parsestate
-{
-    ParseState pstate;
-    char *graph_name;
-    uint32 graph_oid;
-    Param *params;
-    int default_alias_num;
-    List *entities;
-    List *property_constraint_quals;
-    /*
-     * To flag when an aggregate has been found in an expression during an
-     * expression transform. This is used during the return_item list transform
-     * to know which expressions are group by keys (not an aggregate or a
-     * composite expression with an aggregate), and which aren't (everything
-     * else). It is only used by transform_cypher_item_list.
-     */
-    bool exprHasAgg;
-    bool p_opt_match;
-    Node *prop_node;
-    Node *prop_name;
+typedef struct cypher_parsestate {
+  ParseState pstate;
+  char *graph_name;
+  uint32 graph_oid;
+  Param *params;
+  int default_alias_num;
+  List *entities;
+  List *property_constraint_quals;
+  /*
+   * To flag when an aggregate has been found in an expression during an
+   * expression transform. This is used during the return_item list transform
+   * to know which expressions are group by keys (not an aggregate or a
+   * composite expression with an aggregate), and which aren't (everything
+   * else). It is only used by transform_cypher_item_list.
+   */
+  bool exprHasAgg;
+  bool p_opt_match;
+  Node *prop_node;
+  Node *prop_name;
 } cypher_parsestate;
 
-typedef struct errpos_ecb_state
-{
-    ErrorContextCallback ecb;
-    ParseState *pstate; // ParseState of query that has subquery being parsed
-    int query_loc; // location of subquery starting from p_sourcetext
+typedef struct errpos_ecb_state {
+  ErrorContextCallback ecb;
+  ParseState *pstate; // ParseState of query that has subquery being parsed
+  int query_loc;      // location of subquery starting from p_sourcetext
 } errpos_ecb_state;
 
 cypher_parsestate *make_cypher_parsestate(cypher_parsestate *parent_cpstate);

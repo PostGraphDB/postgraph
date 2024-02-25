@@ -1,11 +1,11 @@
 /*
  * Copyright (C) 2023 PostGraphDB
- *  
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- *  
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -37,15 +37,15 @@
 #include "tsearch/ts_type.h"
 #include "utils/array.h"
 #include "utils/date.h"
-#include "utils/inet.h"
 #include "utils/geo_decls.h"
+#include "utils/inet.h"
 #include "utils/multirangetypes.h"
 #include "utils/numeric.h"
 #include "utils/rangetypes.h"
 #include "utils/syscache.h"
 
 // PostGIS
-//#include "liblwgeom/liblwgeom.h"
+// #include "liblwgeom/liblwgeom.h"
 
 // PostGraph
 #include "catalog/ag_namespace.h"
@@ -54,27 +54,26 @@
 #include "utils/vector.h"
 
 /* Tokens used when sequentially processing an gtype value */
-typedef enum
-{
-    WGT_DONE,
-    WGT_KEY,
-    WGT_VALUE,
-    WGT_VECTOR_VALUE,
-    WGT_ELEM,
-    WGT_BEGIN_ARRAY,
-    WGT_END_ARRAY,
-    WGT_BEGIN_OBJECT,
-    WGT_END_OBJECT,
-    WGT_BEGIN_VECTOR,
-    WGT_END_VECTOR
+typedef enum {
+  WGT_DONE,
+  WGT_KEY,
+  WGT_VALUE,
+  WGT_VECTOR_VALUE,
+  WGT_ELEM,
+  WGT_BEGIN_ARRAY,
+  WGT_END_ARRAY,
+  WGT_BEGIN_OBJECT,
+  WGT_END_OBJECT,
+  WGT_BEGIN_VECTOR,
+  WGT_END_VECTOR
 } gtype_iterator_token;
 
-#define GTYPE_ITERATOR_TOKEN_IS_HASHABLE(x) \
-    (x > WGT_DONE && x < WGT_BEGIN_ARRAY)
+#define GTYPE_ITERATOR_TOKEN_IS_HASHABLE(x)                                    \
+  (x > WGT_DONE && x < WGT_BEGIN_ARRAY)
 
 /* Strategy numbers for GIN index opclasses */
-#define GTYPE_CONTAINS_STRATEGY_NUMBER    7
-#define GTYPE_EXISTS_STRATEGY_NUMBER      9
+#define GTYPE_CONTAINS_STRATEGY_NUMBER 7
+#define GTYPE_EXISTS_STRATEGY_NUMBER 9
 #define GTYPE_EXISTS_ANY_STRATEGY_NUMBER 10
 #define GTYPE_EXISTS_ALL_STRATEGY_NUMBER 11
 
@@ -99,13 +98,13 @@ typedef enum
  * index matches against the heap tuple; currently, this costs nothing because
  * we must always recheck for other reasons.
  */
-#define GT_GIN_FLAG_KEY    0x01 // key (or string array element)
-#define GT_GIN_FLAG_NULL   0x02 // null value
-#define GT_GIN_FLAG_BOOL   0x03 // boolean value
-#define GT_GIN_FLAG_NUM    0x04 // numeric value
-#define GT_GIN_FLAG_STR    0x05 // string value (if not an array element)
+#define GT_GIN_FLAG_KEY 0x01    // key (or string array element)
+#define GT_GIN_FLAG_NULL 0x02   // null value
+#define GT_GIN_FLAG_BOOL 0x03   // boolean value
+#define GT_GIN_FLAG_NUM 0x04    // numeric value
+#define GT_GIN_FLAG_STR 0x05    // string value (if not an array element)
 #define GT_GIN_FLAG_HASHED 0x10 // OR'd into flag if value was hashed
-#define GT_GIN_MAX_LENGTH   125 // max length of text part before hashing
+#define GT_GIN_MAX_LENGTH 125   // max length of text part before hashing
 
 /* Convenience macros */
 #define DATUM_GET_GTYPE_P(d) ((gtype *)PG_DETOAST_DATUM(d))
@@ -183,50 +182,43 @@ typedef struct gtype_value gtype_value;
 typedef uint32 gtentry;
 
 #define GTENTRY_OFFLENMASK 0x0FFFFFFF
-#define GTENTRY_TYPEMASK   0x70000000
-#define GTENTRY_HAS_OFF    0x80000000
+#define GTENTRY_TYPEMASK 0x70000000
+#define GTENTRY_HAS_OFF 0x80000000
 
 /* values stored in the type bits */
-#define GTENTRY_IS_STRING     0x00000000
-#define GTENTRY_IS_NUMERIC    0x10000000
+#define GTENTRY_IS_STRING 0x00000000
+#define GTENTRY_IS_NUMERIC 0x10000000
 #define GTENTRY_IS_BOOL_FALSE 0x20000000
-#define GTENTRY_IS_BOOL_TRUE  0x30000000
-#define GTENTRY_IS_NULL       0x40000000
-#define GTENTRY_IS_CONTAINER  0x50000000 /* array or object */
-#define GTENTRY_IS_GTYPE     0x60000000 /* extended type designator */
+#define GTENTRY_IS_BOOL_TRUE 0x30000000
+#define GTENTRY_IS_NULL 0x40000000
+#define GTENTRY_IS_CONTAINER 0x50000000 /* array or object */
+#define GTENTRY_IS_GTYPE 0x60000000     /* extended type designator */
 
 /* Access macros.  Note possible multiple evaluations */
-#define GTE_OFFLENFLD(agte_) \
-    ((agte_)&GTENTRY_OFFLENMASK)
-#define GTE_HAS_OFF(agte_) \
-    (((agte_)&GTENTRY_HAS_OFF) != 0)
-#define GTE_IS_STRING(agte_) \
-    (((agte_)&GTENTRY_TYPEMASK) == GTENTRY_IS_STRING)
-#define GTE_IS_NUMERIC(agte_) \
-    (((agte_)&GTENTRY_TYPEMASK) == GTENTRY_IS_NUMERIC)
-#define GTE_IS_CONTAINER(agte_) \
-    (((agte_)&GTENTRY_TYPEMASK) == GTENTRY_IS_CONTAINER)
-#define GTE_IS_NULL(agte_) \
-    (((agte_)&GTENTRY_TYPEMASK) == GTENTRY_IS_NULL)
-#define GTE_IS_BOOL_TRUE(agte_) \
-    (((agte_)&GTENTRY_TYPEMASK) == GTENTRY_IS_BOOL_TRUE)
-#define GTE_IS_BOOL_FALSE(agte_) \
-    (((agte_)&GTENTRY_TYPEMASK) == GTENTRY_IS_BOOL_FALSE)
-#define GTE_IS_BOOL(agte_) \
-    (GTE_IS_BOOL_TRUE(agte_) || GTE_IS_BOOL_FALSE(agte_))
-#define GTE_IS_GTYPE(agte_) \
-    (((agte_)&GTENTRY_TYPEMASK) == GTENTRY_IS_GTYPE)
+#define GTE_OFFLENFLD(agte_) ((agte_) & GTENTRY_OFFLENMASK)
+#define GTE_HAS_OFF(agte_) (((agte_) & GTENTRY_HAS_OFF) != 0)
+#define GTE_IS_STRING(agte_) (((agte_) & GTENTRY_TYPEMASK) == GTENTRY_IS_STRING)
+#define GTE_IS_NUMERIC(agte_)                                                  \
+  (((agte_) & GTENTRY_TYPEMASK) == GTENTRY_IS_NUMERIC)
+#define GTE_IS_CONTAINER(agte_)                                                \
+  (((agte_) & GTENTRY_TYPEMASK) == GTENTRY_IS_CONTAINER)
+#define GTE_IS_NULL(agte_) (((agte_) & GTENTRY_TYPEMASK) == GTENTRY_IS_NULL)
+#define GTE_IS_BOOL_TRUE(agte_)                                                \
+  (((agte_) & GTENTRY_TYPEMASK) == GTENTRY_IS_BOOL_TRUE)
+#define GTE_IS_BOOL_FALSE(agte_)                                               \
+  (((agte_) & GTENTRY_TYPEMASK) == GTENTRY_IS_BOOL_FALSE)
+#define GTE_IS_BOOL(agte_) (GTE_IS_BOOL_TRUE(agte_) || GTE_IS_BOOL_FALSE(agte_))
+#define GTE_IS_GTYPE(agte_) (((agte_) & GTENTRY_TYPEMASK) == GTENTRY_IS_GTYPE)
 
 /* Macro for advancing an offset variable to the next gtentry */
-#define GTE_ADVANCE_OFFSET(offset, agte) \
-    do \
-    { \
-        gtentry agte_ = (agte); \
-        if (GTE_HAS_OFF(agte_)) \
-            (offset) = GTE_OFFLENFLD(agte_); \
-        else \
-            (offset) += GTE_OFFLENFLD(agte_); \
-    } while (0)
+#define GTE_ADVANCE_OFFSET(offset, agte)                                       \
+  do {                                                                         \
+    gtentry agte_ = (agte);                                                    \
+    if (GTE_HAS_OFF(agte_))                                                    \
+      (offset) = GTE_OFFLENFLD(agte_);                                         \
+    else                                                                       \
+      (offset) += GTE_OFFLENFLD(agte_);                                        \
+  } while (0)
 
 /*
  * We store an offset, not a length, every GT_OFFSET_STRIDE children.
@@ -247,252 +239,281 @@ typedef uint32 gtentry;
  * key order.  This arrangement keeps the keys compact in memory, making a
  * search for a particular key more cache-friendly.
  */
-typedef struct gtype_container
-{
-    uint32 header; /* number of elements or key/value pairs, and flags */
-    gtentry children[FLEXIBLE_ARRAY_MEMBER];
+typedef struct gtype_container {
+  uint32 header; /* number of elements or key/value pairs, and flags */
+  gtentry children[FLEXIBLE_ARRAY_MEMBER];
 
-    /* the data for each child node follows. */
+  /* the data for each child node follows. */
 } gtype_container;
 
 /* flags for the header-field in gtype_container*/
-#define GT_CMASK   0x07FFFFFF /* mask for count field */
+#define GT_CMASK 0x07FFFFFF   /* mask for count field */
 #define GT_FSCALAR 0x10000000 /* flag bits */
 #define GT_FOBJECT 0x20000000
-#define GT_FARRAY  0x40000000
+#define GT_FARRAY 0x40000000
 #define GT_FBINARY 0x80000000
 #define GT_FEXTENDED_COMPOSITE 0x08000000
 
 /* convenience macros for accessing an gtype_container struct */
-#define GTYPE_CONTAINER_SIZE(agtc)       ((agtc)->header & GT_CMASK)
+#define GTYPE_CONTAINER_SIZE(agtc) ((agtc)->header & GT_CMASK)
 #define GTYPE_CONTAINER_IS_SCALAR(agtc) (((agtc)->header & GT_FSCALAR) != 0)
 #define GTYPE_CONTAINER_IS_OBJECT(agtc) (((agtc)->header & GT_FOBJECT) != 0)
-#define GTYPE_CONTAINER_IS_ARRAY(agtc)  (((agtc)->header & GT_FARRAY)  != 0)
+#define GTYPE_CONTAINER_IS_ARRAY(agtc) (((agtc)->header & GT_FARRAY) != 0)
 #define GTYPE_CONTAINER_IS_BINARY(agtc) (((agtc)->header & GT_FBINARY) != 0)
-#define GTYPE_CONTAINER_IS_EXTENDED_COMPOSITE(agtc) (((agtc)->header & GT_FEXTENDED_COMPOSITE) != 0)
+#define GTYPE_CONTAINER_IS_EXTENDED_COMPOSITE(agtc)                            \
+  (((agtc)->header & GT_FEXTENDED_COMPOSITE) != 0)
 
 // The top-level on-disk format for an gtype datum.
-typedef struct
-{
-    int32 vl_len_; // varlena header (do not touch directly!)
-    gtype_container root;
+typedef struct {
+  int32 vl_len_; // varlena header (do not touch directly!)
+  gtype_container root;
 } gtype;
 
 // convenience macros for accessing the root container in an gtype datum
 #define AGT_ROOT_COUNT(agtp_) (*(uint32 *)VARDATA(agtp_) & GT_CMASK)
-#define AGT_ROOT_IS_SCALAR(agtp_) \
-    ((*(uint32 *)VARDATA(agtp_) & GT_FSCALAR) != 0)
-#define AGT_ROOT_IS_OBJECT(agtp_) \
-    ((*(uint32 *)VARDATA(agtp_) & GT_FOBJECT) != 0)
-#define AGT_ROOT_IS_ARRAY(agtp_) \
-    ((*(uint32 *)VARDATA(agtp_) & GT_FARRAY) != 0)
-#define AGT_ROOT_IS_BINARY(agtp_) \
-    ((*(uint32 *)VARDATA(agtp_) & GT_FBINARY) != 0)
-#define AGT_ROOT_IS_EXTENDED_COMPOSITE(agtp_) \
-    ((*(uint32 *)VARDATA(agtp_) & GT_FEXTENDED_COMPOSITE) != 0)
-#define AGT_ROOT_BINARY_FLAGS(agtp_) \
-    (*(uint32 *)VARDATA(agtp_) & GT_FBINARY_MASK)
+#define AGT_ROOT_IS_SCALAR(agtp_)                                              \
+  ((*(uint32 *)VARDATA(agtp_) & GT_FSCALAR) != 0)
+#define AGT_ROOT_IS_OBJECT(agtp_)                                              \
+  ((*(uint32 *)VARDATA(agtp_) & GT_FOBJECT) != 0)
+#define AGT_ROOT_IS_ARRAY(agtp_) ((*(uint32 *)VARDATA(agtp_) & GT_FARRAY) != 0)
+#define AGT_ROOT_IS_BINARY(agtp_)                                              \
+  ((*(uint32 *)VARDATA(agtp_) & GT_FBINARY) != 0)
+#define AGT_ROOT_IS_EXTENDED_COMPOSITE(agtp_)                                  \
+  ((*(uint32 *)VARDATA(agtp_) & GT_FEXTENDED_COMPOSITE) != 0)
+#define AGT_ROOT_BINARY_FLAGS(agtp_)                                           \
+  (*(uint32 *)VARDATA(agtp_) & GT_FBINARY_MASK)
 
 // values for the GTYPE header field to denote the stored data type
-#define GT_HEADER_INTEGER          0x00000000
-#define GT_HEADER_FLOAT            0x00000001
-#define GT_HEADER_TIMESTAMP        0x00000002
-#define GT_HEADER_TIMESTAMPTZ      0x00000003
-#define GT_HEADER_DATE             0x00000004
-#define GT_HEADER_TIME             0x00000005
-#define GT_HEADER_TIMETZ           0x00000006
-#define GT_HEADER_INTERVAL         0x00000007
-#define GT_HEADER_VECTOR           0x00000008
-#define GT_HEADER_INET             0x00000009
-#define GT_HEADER_CIDR             0x0000000A
-#define GT_HEADER_MAC              0x0000000B
-#define GT_HEADER_MAC8             0x0000000C
-#define GT_HEADER_POINT            0x0000000D
-#define GT_HEADER_PATH             0x0000000E
-#define GT_HEADER_LSEG             0x0000000F
-#define GT_HEADER_LINE             0x00000010
-#define GT_HEADER_POLYGON          0x00000011
-#define GT_HEADER_CIRCLE           0x00000012
-#define GT_HEADER_BOX              0x00000013
-#define GT_HEADER_BOX2D            0x00000014
-#define GT_HEADER_BOX3D            0x00000015
-#define GT_HEADER_SPHEROID         0x00000016
-#define GT_HEADER_GSERIALIZED      0x00000017
-#define GT_HEADER_TSVECTOR         0x00000018
-#define GT_HEADER_TSQUERY          0x00000019
-#define GT_HEADER_RANGE_INT        0x0000001A
-#define GT_HEADER_RANGE_NUM        0x0000001B
-#define GT_HEADER_RANGE_TS         0x0000001C
-#define GT_HEADER_RANGE_TSTZ       0x0000001D
-#define GT_HEADER_RANGE_DATE       0x0000001E
-#define GT_HEADER_RANGE_INT_MULTI  0x0000001F
-#define GT_HEADER_RANGE_NUM_MULTI  0x00000020
-#define GT_HEADER_RANGE_TS_MULTI   0x00000021
+#define GT_HEADER_INTEGER 0x00000000
+#define GT_HEADER_FLOAT 0x00000001
+#define GT_HEADER_TIMESTAMP 0x00000002
+#define GT_HEADER_TIMESTAMPTZ 0x00000003
+#define GT_HEADER_DATE 0x00000004
+#define GT_HEADER_TIME 0x00000005
+#define GT_HEADER_TIMETZ 0x00000006
+#define GT_HEADER_INTERVAL 0x00000007
+#define GT_HEADER_VECTOR 0x00000008
+#define GT_HEADER_INET 0x00000009
+#define GT_HEADER_CIDR 0x0000000A
+#define GT_HEADER_MAC 0x0000000B
+#define GT_HEADER_MAC8 0x0000000C
+#define GT_HEADER_POINT 0x0000000D
+#define GT_HEADER_PATH 0x0000000E
+#define GT_HEADER_LSEG 0x0000000F
+#define GT_HEADER_LINE 0x00000010
+#define GT_HEADER_POLYGON 0x00000011
+#define GT_HEADER_CIRCLE 0x00000012
+#define GT_HEADER_BOX 0x00000013
+#define GT_HEADER_BOX2D 0x00000014
+#define GT_HEADER_BOX3D 0x00000015
+#define GT_HEADER_SPHEROID 0x00000016
+#define GT_HEADER_GSERIALIZED 0x00000017
+#define GT_HEADER_TSVECTOR 0x00000018
+#define GT_HEADER_TSQUERY 0x00000019
+#define GT_HEADER_RANGE_INT 0x0000001A
+#define GT_HEADER_RANGE_NUM 0x0000001B
+#define GT_HEADER_RANGE_TS 0x0000001C
+#define GT_HEADER_RANGE_TSTZ 0x0000001D
+#define GT_HEADER_RANGE_DATE 0x0000001E
+#define GT_HEADER_RANGE_INT_MULTI 0x0000001F
+#define GT_HEADER_RANGE_NUM_MULTI 0x00000020
+#define GT_HEADER_RANGE_TS_MULTI 0x00000021
 #define GT_HEADER_RANGE_TSTZ_MULTI 0x00000022
 #define GT_HEADER_RANGE_DATE_MULTI 0x00000023
-#define GT_HEADER_BYTEA            0x00000024
+#define GT_HEADER_BYTEA 0x00000024
 
+#define GT_IS_INTEGER(agte_) (((agte_) == GT_HEADER_INTEGER))
 
-#define GT_IS_INTEGER(agte_) \
-    (((agte_) == GT_HEADER_INTEGER))
+#define GT_IS_FLOAT(agte_) (((agte_) == GT_HEADER_FLOAT))
 
-#define GT_IS_FLOAT(agte_) \
-    (((agte_) == GT_HEADER_FLOAT))
+#define GTYPE_IS_INTEGER(agt)                                                  \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_INTEGER)
 
-#define GTYPE_IS_INTEGER(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_INTEGER)
+#define GTYPE_IS_FLOAT(agt)                                                    \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_FLOAT)
 
-#define GTYPE_IS_FLOAT(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_FLOAT)
+#define GT_IS_TIMESTAMP(agt)                                                   \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_TIMESTAMP)
 
-#define GT_IS_TIMESTAMP(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_TIMESTAMP)
+#define GT_IS_TIMESTAMPTZ(agt)                                                 \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_TIMESTAMPTZ)
 
-#define GT_IS_TIMESTAMPTZ(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_TIMESTAMPTZ)
+#define GT_IS_DATE(agt)                                                        \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_DATE)
 
-#define GT_IS_DATE(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_DATE)
+#define GT_IS_INTERVAL(agt)                                                    \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_INTERVAL)
 
-#define GT_IS_INTERVAL(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_INTERVAL)
+#define GT_IS_TIME(agt)                                                        \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_TIME)
 
-#define GT_IS_TIME(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_TIME)
+#define GT_IS_TIMETZ(agt)                                                      \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_TIMETZ)
 
-#define GT_IS_TIMETZ(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_TIMETZ)
+#define GT_IS_INET(agt)                                                        \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_INET)
 
-#define GT_IS_INET(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_INET)
+#define GT_IS_CIDR(agt)                                                        \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_CIDR)
 
-#define GT_IS_CIDR(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_CIDR)
+#define GT_IS_MACADDR(agt)                                                     \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_MAC)
 
-#define GT_IS_MACADDR(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_MAC)
+#define GT_IS_MACADDR8(agt)                                                    \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_MAC8)
 
-#define GT_IS_MACADDR8(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_MAC8)
+#define GT_IS_VECTOR(agt)                                                      \
+  ((((agt)->root.header & GT_FEXTENDED_COMPOSITE) != 0) &&                     \
+   (((agt)->root.children[0] & GT_HEADER_VECTOR) != 0))
 
-#define GT_IS_VECTOR(agt) \
-    ((((agt)->root.header & GT_FEXTENDED_COMPOSITE) != 0 ) && (((agt)->root.children[0] & GT_HEADER_VECTOR) != 0))
+#define GTE_IS_VECTOR(agt)                                                     \
+  ((((agt)->header & GT_FEXTENDED_COMPOSITE) != 0) &&                          \
+   (((agt)->children[0] & GT_HEADER_VECTOR) != 0))
 
-#define GTE_IS_VECTOR(agt) \
-    ((((agt)->header & GT_FEXTENDED_COMPOSITE) != 0 ) && (((agt)->children[0] & GT_HEADER_VECTOR) != 0))
+#define GT_IS_POINT(agt)                                                       \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_POINT)
 
-#define GT_IS_POINT(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_POINT)
+#define GT_IS_PATH(agt)                                                        \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_PATH)
 
-#define GT_IS_PATH(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_PATH)
+#define GT_IS_LSEG(agt)                                                        \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_LSEG)
 
-#define GT_IS_LSEG(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_LSEG)
+#define GT_IS_LINE(agt)                                                        \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_LINE)
 
-#define GT_IS_LINE(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_LINE)
+#define GT_IS_POLYGON(agt)                                                     \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_POLYGON)
 
-#define GT_IS_POLYGON(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_POLYGON)
+#define GT_IS_CIRCLE(agt)                                                      \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_CIRCLE)
 
-#define GT_IS_CIRCLE(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_CIRCLE)
+#define GT_IS_BOX(agt)                                                         \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_BOX)
 
-#define GT_IS_BOX(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_BOX)
+#define GT_IS_BOX2D(agt)                                                       \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_BOX2D)
 
-#define GT_IS_BOX2D(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_BOX2D)
+#define GT_IS_BOX3D(agt)                                                       \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_BOX3D)
 
-#define GT_IS_BOX3D(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_BOX3D)
+#define GT_IS_SPHEROID(agt)                                                    \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_SPHEREOID)
 
-#define GT_IS_SPHEROID(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_SPHEREOID)
+#define GT_IS_GSERIALIZED(agt)                                                 \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_GSERIALIZED)
 
-#define GT_IS_GSERIALIZED(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_GSERIALIZED)
+#define GT_IS_GEOMETRY(agt)                                                    \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_GSERIALIZED)
 
-#define GT_IS_GEOMETRY(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_GSERIALIZED)
+#define GT_IS_TSVECTOR(agt)                                                    \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_TSVECTOR)
 
-#define GT_IS_TSVECTOR(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_TSVECTOR)
+#define GT_IS_TSQUERY(agt)                                                     \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_TSQUERY)
 
-#define GT_IS_TSQUERY(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_TSQUERY)
+#define GT_IS_RANGE_INT(agt)                                                   \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_RANGE_INT)
 
-#define GT_IS_RANGE_INT(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_RANGE_INT)
+#define GT_IS_RANGE_NUM(agt)                                                   \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_RANGE_NUM)
 
-#define GT_IS_RANGE_NUM(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_RANGE_NUM)
+#define GT_IS_RANGE_TS(agt)                                                    \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_RANGE_TS)
 
-#define GT_IS_RANGE_TS(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_RANGE_TS)
+#define GT_IS_RANGE_TSTZ(agt)                                                  \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_RANGE_TSTZ)
 
-#define GT_IS_RANGE_TSTZ(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_RANGE_TSTZ)
+#define GT_IS_RANGE_DATE(agt)                                                  \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_RANGE_DATE)
 
-#define GT_IS_RANGE_DATE(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_RANGE_DATE)
+#define GT_IS_RANGE_INT_MULTI(agt)                                             \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_RANGE_INT_MULTI)
 
-#define GT_IS_RANGE_INT_MULTI(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_RANGE_INT_MULTI)
+#define GT_IS_RANGE_TS_MULTI(agt)                                              \
+  (GTE_IS_GTYPE(agt->root.children[0]) &&                                      \
+   agt->root.children[1] == GT_HEADER_RANGE_TS_MULTI)
 
-#define GT_IS_RANGE_TS_MULTI(agt) \
-    (GTE_IS_GTYPE(agt->root.children[0]) && agt->root.children[1] == GT_HEADER_RANGE_TS_MULTI)
-
-enum gtype_value_type
-{
-    /* Scalar types */
-    AGTV_NULL = 0x0,
-    AGTV_STRING,
-    AGTV_NUMERIC,
-    AGTV_INTEGER,
-    AGTV_FLOAT,
-    AGTV_BOOL,
-    AGTV_TIMESTAMP,
-    AGTV_TIMESTAMPTZ,
-    AGTV_DATE,
-    AGTV_TIME,
-    AGTV_TIMETZ,
-    AGTV_INTERVAL,
-    AGTV_INET,
-    AGTV_CIDR,
-    AGTV_MAC,
-    AGTV_MAC8,
-    AGTV_POINT,
-    AGTV_LSEG,
-    AGTV_LINE,
-    AGTV_PATH,
-    AGTV_POLYGON,
-    AGTV_CIRCLE,
-    AGTV_BOX,
-    AGTV_BOX2D,
-    AGTV_BOX3D,
-    AGTV_SPHEROID,
-    AGTV_GSERIALIZED,
-    AGTV_BYTEA,
-    AGTV_TSVECTOR,
-    AGTV_TSQUERY,
-    AGTV_RANGE_INT,
-    AGTV_RANGE_NUM,
-    AGTV_RANGE_TS,
-    AGTV_RANGE_TSTZ,
-    AGTV_RANGE_DATE,
-    AGTV_RANGE_INT_MULTI,
-    AGTV_RANGE_NUM_MULTI,
-    AGTV_RANGE_TS_MULTI,
-    AGTV_RANGE_TSTZ_MULTI,
-    AGTV_RANGE_DATE_MULTI,
-    /* Composite types */
-    AGTV_ARRAY = 0x100,
-    AGTV_OBJECT,
-    AGTV_VECTOR,
-    /* Binary (i.e. struct gtype) AGTV_ARRAY/AGTV_OBJECT */
-    AGTV_BINARY
+enum gtype_value_type {
+  /* Scalar types */
+  AGTV_NULL = 0x0,
+  AGTV_STRING,
+  AGTV_NUMERIC,
+  AGTV_INTEGER,
+  AGTV_FLOAT,
+  AGTV_BOOL,
+  AGTV_TIMESTAMP,
+  AGTV_TIMESTAMPTZ,
+  AGTV_DATE,
+  AGTV_TIME,
+  AGTV_TIMETZ,
+  AGTV_INTERVAL,
+  AGTV_INET,
+  AGTV_CIDR,
+  AGTV_MAC,
+  AGTV_MAC8,
+  AGTV_POINT,
+  AGTV_LSEG,
+  AGTV_LINE,
+  AGTV_PATH,
+  AGTV_POLYGON,
+  AGTV_CIRCLE,
+  AGTV_BOX,
+  AGTV_BOX2D,
+  AGTV_BOX3D,
+  AGTV_SPHEROID,
+  AGTV_GSERIALIZED,
+  AGTV_BYTEA,
+  AGTV_TSVECTOR,
+  AGTV_TSQUERY,
+  AGTV_RANGE_INT,
+  AGTV_RANGE_NUM,
+  AGTV_RANGE_TS,
+  AGTV_RANGE_TSTZ,
+  AGTV_RANGE_DATE,
+  AGTV_RANGE_INT_MULTI,
+  AGTV_RANGE_NUM_MULTI,
+  AGTV_RANGE_TS_MULTI,
+  AGTV_RANGE_TSTZ_MULTI,
+  AGTV_RANGE_DATE_MULTI,
+  /* Composite types */
+  AGTV_ARRAY = 0x100,
+  AGTV_OBJECT,
+  AGTV_VECTOR,
+  /* Binary (i.e. struct gtype) AGTV_ARRAY/AGTV_OBJECT */
+  AGTV_BINARY
 };
 
 /*
@@ -501,46 +522,58 @@ enum gtype_value_type
  * union across underlying types during manipulation.  The gtype on-disk
  * representation has various alignment considerations.
  */
-struct gtype_value
-{
-    enum gtype_value_type type;
-    union {
-        int64 int_value; // 8-byte Integer
-        float8 float_value; // 8-byte Float
-        Numeric numeric;
-        bool boolean;
-	    Interval interval;
-	    DateADT date;
-	    TimeTzADT timetz;
-        struct { int len; char *val; /* Not necessarily null-terminated */ } string; // String primitive type
-        struct { int num_elems; gtype_value *elems; bool raw_scalar; } array;       // Array container type
-	    struct { int num_pairs; gtype_pair *pairs; } object;                        // Associative container type
-        Vector vector;
-        bytea *bytea;
-	    inet inet;
-	    macaddr mac;
-        macaddr8 mac8;
-        Point *point;
-        LSEG *lseg;
-        LINE *line;
-        PATH *path;
-        POLYGON *polygon;
-        CIRCLE *circle;
-        BOX *box;
-        /*GBOX gbox;
-        BOX3D box3d;
-        SPHEROID spheroid;
-        GSERIALIZED *gserialized;*/
-	TSVector tsvector;
-	TSQuery tsquery;
-	RangeType *range;
-	MultirangeType *multirange;
-	struct { int len; gtype_container *data; } binary; // Array or object, in on-disk format
-    } val;
+struct gtype_value {
+  enum gtype_value_type type;
+  union {
+    int64 int_value;    // 8-byte Integer
+    float8 float_value; // 8-byte Float
+    Numeric numeric;
+    bool boolean;
+    Interval interval;
+    DateADT date;
+    TimeTzADT timetz;
+    struct {
+      int len;
+      char *val; /* Not necessarily null-terminated */
+    } string;    // String primitive type
+    struct {
+      int num_elems;
+      gtype_value *elems;
+      bool raw_scalar;
+    } array; // Array container type
+    struct {
+      int num_pairs;
+      gtype_pair *pairs;
+    } object; // Associative container type
+    Vector vector;
+    bytea *bytea;
+    inet inet;
+    macaddr mac;
+    macaddr8 mac8;
+    Point *point;
+    LSEG *lseg;
+    LINE *line;
+    PATH *path;
+    POLYGON *polygon;
+    CIRCLE *circle;
+    BOX *box;
+    /*GBOX gbox;
+    BOX3D box3d;
+    SPHEROID spheroid;
+    GSERIALIZED *gserialized;*/
+    TSVector tsvector;
+    TSQuery tsquery;
+    RangeType *range;
+    MultirangeType *multirange;
+    struct {
+      int len;
+      gtype_container *data;
+    } binary; // Array or object, in on-disk format
+  } val;
 };
 
-#define IS_A_GTYPE_SCALAR(gtype_val) \
-    ((gtype_val)->type >= AGTV_NULL && (gtype_val)->type < AGTV_ARRAY)
+#define IS_A_GTYPE_SCALAR(gtype_val)                                           \
+  ((gtype_val)->type >= AGTV_NULL && (gtype_val)->type < AGTV_ARRAY)
 
 /*
  * Key/value pair within an Object.
@@ -549,68 +582,66 @@ struct gtype_value
  * observed pair ordering for the purpose of removing duplicates in a
  * well-defined way (which is "last observed wins").
  */
-struct gtype_pair
-{
-    gtype_value key; /* Must be a AGTV_STRING */
-    gtype_value value; /* May be of any type */
-    uint32 order; /* Pair's index in original sequence */
+struct gtype_pair {
+  gtype_value key;   /* Must be a AGTV_STRING */
+  gtype_value value; /* May be of any type */
+  uint32 order;      /* Pair's index in original sequence */
 };
 
 /* Conversion state used when parsing gtype from text, or for type coercion */
-typedef struct gtype_parse_state
-{
-    Size size;
-    struct gtype_parse_state *next;
-    /*
-     * This holds the last append_value scalar copy or the last append_element
-     * scalar copy - it can only be one of the two. It is needed because when
-     * an object or list is built, the upper level object or list will get a
-     * copy of the result value on close. Our routines modify the value after
-     * close and need this to update that value if necessary. Which is the
-     * case for some casts.
-     */
-    gtype_value *last_updated_value;
-    gtype_value cont_val;
+typedef struct gtype_parse_state {
+  Size size;
+  struct gtype_parse_state *next;
+  /*
+   * This holds the last append_value scalar copy or the last append_element
+   * scalar copy - it can only be one of the two. It is needed because when
+   * an object or list is built, the upper level object or list will get a
+   * copy of the result value on close. Our routines modify the value after
+   * close and need this to update that value if necessary. Which is the
+   * case for some casts.
+   */
+  gtype_value *last_updated_value;
+  gtype_value cont_val;
 } gtype_parse_state;
 
 /*
  * gtype_iterator holds details of the type for each iteration. It also stores
  * an gtype varlena buffer, which can be directly accessed in some contexts.
  */
-typedef enum
-{
-    GTI_ARRAY_START,
-    GTI_ARRAY_ELEM,
-    GTI_OBJECT_START,
-    GTI_OBJECT_KEY,
-    GTI_OBJECT_VALUE,
-    GTI_VECTOR_START,
-    GTI_VECTOR_VALUE
+typedef enum {
+  GTI_ARRAY_START,
+  GTI_ARRAY_ELEM,
+  GTI_OBJECT_START,
+  GTI_OBJECT_KEY,
+  GTI_OBJECT_VALUE,
+  GTI_VECTOR_START,
+  GTI_VECTOR_VALUE
 } gt_iterator_state;
 
-typedef struct gtype_iterator
-{
-    gtype_container *container; // Container being iterated
-    uint32 num_elems;            // Number of elements in children array (will be num_pairs for objects)
-    bool is_scalar;              // Pseudo-array scalar value?
-    gtentry *children;          // gtentrys for child nodes
-    char *data_proper;           // Data proper. This points to the beginning of the variable-length data
-    int curr_index;              // Current item in buffer (up to num_elems)
-    uint32 curr_data_offset;     // Data offset corresponding to current item
-    /*
-     * If the container is an object, we want to return keys and values
-     * alternately; so curr_data_offset points to the current key, and
-     * curr_value_offset points to the current value.
-     */
-    uint32 curr_value_offset;
-    gt_iterator_state state;    // Private state
-    struct gtype_iterator *parent;
+typedef struct gtype_iterator {
+  gtype_container *container; // Container being iterated
+  uint32 num_elems;  // Number of elements in children array (will be num_pairs
+                     // for objects)
+  bool is_scalar;    // Pseudo-array scalar value?
+  gtentry *children; // gtentrys for child nodes
+  char *data_proper; // Data proper. This points to the beginning of the
+                     // variable-length data
+  int curr_index;    // Current item in buffer (up to num_elems)
+  uint32 curr_data_offset; // Data offset corresponding to current item
+  /*
+   * If the container is an object, we want to return keys and values
+   * alternately; so curr_data_offset points to the current key, and
+   * curr_value_offset points to the current value.
+   */
+  uint32 curr_value_offset;
+  gt_iterator_state state; // Private state
+  struct gtype_iterator *parent;
 } gtype_iterator;
 
 /* gtype parse state */
 typedef struct gtype_in_state {
-    gtype_parse_state *parse_state;
-    gtype_value *res;
+  gtype_parse_state *parse_state;
+  gtype_value *res;
 } gtype_in_state;
 
 /* Support functions */
@@ -618,19 +649,27 @@ int reserve_from_buffer(StringInfo buffer, int len);
 short pad_buffer_to_int(StringInfo buffer);
 uint32 get_gtype_offset(const gtype_container *agtc, int index);
 uint32 get_gtype_length(const gtype_container *agtc, int index);
-int compare_gtype_containers_orderability(gtype_container *a, gtype_container *b);
-gtype_value *find_gtype_value_from_container(gtype_container *container, uint32 flags, const gtype_value *key);
-gtype_value *get_ith_gtype_value_from_container(gtype_container *container, uint32 i);
-gtype_value *push_gtype_value(gtype_parse_state **pstate, gtype_iterator_token seq, gtype_value *agtval);
+int compare_gtype_containers_orderability(gtype_container *a,
+                                          gtype_container *b);
+gtype_value *find_gtype_value_from_container(gtype_container *container,
+                                             uint32 flags,
+                                             const gtype_value *key);
+gtype_value *get_ith_gtype_value_from_container(gtype_container *container,
+                                                uint32 i);
+gtype_value *push_gtype_value(gtype_parse_state **pstate,
+                              gtype_iterator_token seq, gtype_value *agtval);
 gtype_iterator *gtype_iterator_init(gtype_container *container);
-gtype_iterator_token gtype_iterator_next(gtype_iterator **it, gtype_value *val, bool skip_nested);
+gtype_iterator_token gtype_iterator_next(gtype_iterator **it, gtype_value *val,
+                                         bool skip_nested);
 gtype *gtype_value_to_gtype(gtype_value *val);
 bool gtype_deep_contains(gtype_iterator **val, gtype_iterator **m_contained);
 void gtype_hash_scalar_value(const gtype_value *scalar_val, uint32 *hash);
-void gtype_hash_scalar_value_extended(const gtype_value *scalar_val, uint64 *hash, uint64 seed);
+void gtype_hash_scalar_value_extended(const gtype_value *scalar_val,
+                                      uint64 *hash, uint64 seed);
 Datum get_numeric_datum_from_gtype_value(gtype_value *agtv);
 bool is_numeric_result(gtype_value *lhs, gtype_value *rhs);
-Datum gtype_array_element_impl(FunctionCallInfo fcinfo, gtype *gtype_in, int element, bool as_text);
+Datum gtype_array_element_impl(FunctionCallInfo fcinfo, gtype *gtype_in,
+                               int element, bool as_text);
 bool is_gtype_float(gtype *agt);
 gtype_value *gtype_vector_add(gtype *lhs, gtype *rhs);
 gtype_value *gtype_vector_sub(gtype *lhs, gtype *rhs);
@@ -640,7 +679,8 @@ gtype_value *InitVectorGType(int dim);
 gtype_value *gtype_vector_in(char *str, int32 typmod);
 
 char *gtype_to_cstring(StringInfo out, gtype_container *in, int estimated_len);
-char *gtype_to_cstring_indent(StringInfo out, gtype_container *in, int estimated_len);
+char *gtype_to_cstring_indent(StringInfo out, gtype_container *in,
+                              int estimated_len);
 
 Datum gtype_from_cstring(char *str, int len);
 bool is_gtype_numeric(gtype *agt);
@@ -654,23 +694,32 @@ void uniqueify_gtype_object(gtype_value *object);
 char *gtype_value_type_to_string(enum gtype_value_type type);
 bool is_decimal_needed(char *numstr);
 int compare_gtype_scalar_values(gtype_value *a, gtype_value *b);
-gtype_value *alter_property_value(gtype *properties, char *var_name, gtype *new_v, bool remove_property);
-gtype *get_one_gtype_from_variadic_args(FunctionCallInfo fcinfo, int variadic_offset, int expected_nargs);
-Datum column_get_datum(TupleDesc tupdesc, HeapTuple tuple, int column, const char *attname, Oid typid, bool isnull);
-gtype_value *get_gtype_value(char *funcname, gtype *agt_arg, enum gtype_value_type type, bool error);
+gtype_value *alter_property_value(gtype *properties, char *var_name,
+                                  gtype *new_v, bool remove_property);
+gtype *get_one_gtype_from_variadic_args(FunctionCallInfo fcinfo,
+                                        int variadic_offset,
+                                        int expected_nargs);
+Datum column_get_datum(TupleDesc tupdesc, HeapTuple tuple, int column,
+                       const char *attname, Oid typid, bool isnull);
+gtype_value *get_gtype_value(char *funcname, gtype *agt_arg,
+                             enum gtype_value_type type, bool error);
 bool is_gtype_null(gtype *agt_arg);
 gtype_value *string_to_gtype_value(char *s);
-void add_gtype(Datum val, bool is_null, gtype_in_state *result, Oid val_type, bool key_scalar);
+void add_gtype(Datum val, bool is_null, gtype_in_state *result, Oid val_type,
+               bool key_scalar);
 void array_to_gtype_internal(Datum array, gtype_in_state *result);
 Datum gtype_to_float8(PG_FUNCTION_ARGS);
 
-#define GTYPEOID \
-    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("gtype"), ObjectIdGetDatum(postgraph_namespace_id())))
+#define GTYPEOID                                                               \
+  (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("gtype"),    \
+                   ObjectIdGetDatum(postgraph_namespace_id())))
 
-#define GTYPEARRAYOID \
-    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("_gtype"), ObjectIdGetDatum(postgraph_namespace_id())))
+#define GTYPEARRAYOID                                                          \
+  (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("_gtype"),   \
+                   ObjectIdGetDatum(postgraph_namespace_id())))
 
-Datum gtype_object_field_impl(FunctionCallInfo fcinfo, gtype *gtype_in, char *key, int key_len, bool as_text);
+Datum gtype_object_field_impl(FunctionCallInfo fcinfo, gtype *gtype_in,
+                              char *key, int key_len, bool as_text);
 
 void gtype_put_escaped_value(StringInfo out, gtype_value *scalar_val);
 

@@ -23,12 +23,10 @@
 
 #include "catalog/ag_namespace.h"
 
-Oid postgraph_namespace_id(void)
-{
-    return get_namespace_oid(CATALOG_SCHEMA, false);
+Oid postgraph_namespace_id(void) {
+  return get_namespace_oid(CATALOG_SCHEMA, false);
 }
 
-Oid pg_catalog_namespace_id(void)
-{
-    return get_namespace_oid("pg_catalog", false);
+Oid pg_catalog_namespace_id(void) {
+  return get_namespace_oid("pg_catalog", false);
 }

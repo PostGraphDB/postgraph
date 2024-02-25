@@ -39,41 +39,35 @@ static bool prev_object_hook_is_set;
 
 static void object_access(ObjectAccessType access, Oid class_id, Oid object_id,
                           int sub_id, void *arg);
-void ag_ProcessUtility_hook(PlannedStmt *pstmt, const char *queryString, bool readOnlyTree,
-                            ProcessUtilityContext context, ParamListInfo params,
-                            QueryEnvironment *queryEnv, DestReceiver *dest,
-                            QueryCompletion *qc);
+void ag_ProcessUtility_hook(PlannedStmt *pstmt, const char *queryString,
+                            bool readOnlyTree, ProcessUtilityContext context,
+                            ParamListInfo params, QueryEnvironment *queryEnv,
+                            DestReceiver *dest, QueryCompletion *qc);
 
 static bool is_age_drop(PlannedStmt *pstmt);
 static void drop_age_extension(DropStmt *stmt);
 
-void object_access_hook_init(void)
-{
-    prev_object_access_hook = object_access_hook;
-    object_access_hook = object_access;
-    prev_object_hook_is_set = true;
+void object_access_hook_init(void) {
+  prev_object_access_hook = object_access_hook;
+  object_access_hook = object_access;
+  prev_object_hook_is_set = true;
 }
 
-void object_access_hook_fini(void)
-{
-    if (prev_object_hook_is_set)
-    {
-        object_access_hook = prev_object_access_hook;
-        prev_object_access_hook = NULL;
-        prev_object_hook_is_set = false;
-    }
-
+void object_access_hook_fini(void) {
+  if (prev_object_hook_is_set) {
+    object_access_hook = prev_object_access_hook;
+    prev_object_access_hook = NULL;
+    prev_object_hook_is_set = false;
+  }
 }
 
-void process_utility_hook_init(void)
-{
-    prev_process_utility_hook = ProcessUtility_hook;
-    ProcessUtility_hook = ag_ProcessUtility_hook;
+void process_utility_hook_init(void) {
+  prev_process_utility_hook = ProcessUtility_hook;
+  ProcessUtility_hook = ag_ProcessUtility_hook;
 }
 
-void process_utility_hook_fini(void)
-{
-    ProcessUtility_hook = prev_process_utility_hook;
+void process_utility_hook_fini(void) {
+  ProcessUtility_hook = prev_process_utility_hook;
 }
 
 /*
@@ -86,62 +80,57 @@ void process_utility_hook_fini(void)
  * from being thrown, we need to disable the object_access_hook before dropping
  * the extension.
  */
-void ag_ProcessUtility_hook(PlannedStmt *pstmt, const char *queryString, bool readOnlyTree,
-                             ProcessUtilityContext context, ParamListInfo params,
-                             QueryEnvironment *queryEnv, DestReceiver *dest,
-                             QueryCompletion *qc)
-{
-    if (is_age_drop(pstmt))
-        drop_age_extension((DropStmt *)pstmt->utilityStmt);
-    else if (prev_process_utility_hook)
-        (*prev_process_utility_hook) (pstmt, queryString, readOnlyTree, context, params,
-                                      queryEnv, dest, qc);
-    else
-        standard_ProcessUtility(pstmt, queryString, readOnlyTree, context, params, queryEnv,
-                                dest, qc);
+void ag_ProcessUtility_hook(PlannedStmt *pstmt, const char *queryString,
+                            bool readOnlyTree, ProcessUtilityContext context,
+                            ParamListInfo params, QueryEnvironment *queryEnv,
+                            DestReceiver *dest, QueryCompletion *qc) {
+  if (is_age_drop(pstmt))
+    drop_age_extension((DropStmt *)pstmt->utilityStmt);
+  else if (prev_process_utility_hook)
+    (*prev_process_utility_hook)(pstmt, queryString, readOnlyTree, context,
+                                 params, queryEnv, dest, qc);
+  else
+    standard_ProcessUtility(pstmt, queryString, readOnlyTree, context, params,
+                            queryEnv, dest, qc);
 }
 
-static void drop_age_extension(DropStmt *stmt)
-{
-    // Remove all graphs
-    drop_graphs(get_graphnames());
+static void drop_age_extension(DropStmt *stmt) {
+  // Remove all graphs
+  drop_graphs(get_graphnames());
 
-    // Remove the object access hook
-    object_access_hook_fini();
+  // Remove the object access hook
+  object_access_hook_fini();
 
-    /*
-     * Run Postgres' logic to perform the remaining work to drop the
-     * extension.
-     */
-    RemoveObjects(stmt);
+  /*
+   * Run Postgres' logic to perform the remaining work to drop the
+   * extension.
+   */
+  RemoveObjects(stmt);
 }
 
 // Check to see if the Utility Command is to drop the AGE Extension.
-static bool is_age_drop(PlannedStmt *pstmt)
-{
-    ListCell *lc;
-    DropStmt *drop_stmt;
+static bool is_age_drop(PlannedStmt *pstmt) {
+  ListCell *lc;
+  DropStmt *drop_stmt;
 
-    if (!IsA(pstmt->utilityStmt, DropStmt))
-        return false;
-
-    drop_stmt = (DropStmt *)pstmt->utilityStmt;
-
-    foreach(lc, drop_stmt->objects)
-    {
-        Node *obj = lfirst(lc);
-
-        if (IsA(obj, String))
-        {
-            Value *val = (Value *)obj;
-            char *str = val->val.str;
-
-            if (!pg_strcasecmp(str, "postgraph"))
-                return true;
-        }
-    }
-
+  if (!IsA(pstmt->utilityStmt, DropStmt))
     return false;
+
+  drop_stmt = (DropStmt *)pstmt->utilityStmt;
+
+  foreach (lc, drop_stmt->objects) {
+    Node *obj = lfirst(lc);
+
+    if (IsA(obj, String)) {
+      Value *val = (Value *)obj;
+      char *str = val->val.str;
+
+      if (!pg_strcasecmp(str, "postgraph"))
+        return true;
+    }
+  }
+
+  return false;
 }
 
 /*
@@ -151,89 +140,80 @@ static bool is_age_drop(PlannedStmt *pstmt)
  * invalidation.
  */
 static void object_access(ObjectAccessType access, Oid class_id, Oid object_id,
-                          int sub_id, void *arg)
-{
-    ObjectAccessDrop *drop_arg;
+                          int sub_id, void *arg) {
+  ObjectAccessDrop *drop_arg;
 
-    if (prev_object_access_hook)
-        prev_object_access_hook(access, class_id, object_id, sub_id, arg);
+  if (prev_object_access_hook)
+    prev_object_access_hook(access, class_id, object_id, sub_id, arg);
 
-    // We are interested in DROP SCHEMA and DROP TABLE commands.
-    if (access != OAT_DROP)
-        return;
+  // We are interested in DROP SCHEMA and DROP TABLE commands.
+  if (access != OAT_DROP)
+    return;
 
-    drop_arg = arg;
+  drop_arg = arg;
 
-    /*
-     * PERFORM_DELETION_INTERNAL flag will be set when remove_schema() calls
-     * performDeletion(). However, if PostgreSQL does performDeletion() with
-     * PERFORM_DELETION_INTERNAL flag over backed schemas of graphs due to
-     * side effects of other commands run by user, it is impossible to
-     * distinguish between this and drop_graph().
-     *
-     * The above applies to DROP TABLE command too.
-     */
+  /*
+   * PERFORM_DELETION_INTERNAL flag will be set when remove_schema() calls
+   * performDeletion(). However, if PostgreSQL does performDeletion() with
+   * PERFORM_DELETION_INTERNAL flag over backed schemas of graphs due to
+   * side effects of other commands run by user, it is impossible to
+   * distinguish between this and drop_graph().
+   *
+   * The above applies to DROP TABLE command too.
+   */
 
-    if (class_id == NamespaceRelationId)
-    {
-        graph_cache_data *cache_data;
+  if (class_id == NamespaceRelationId) {
+    graph_cache_data *cache_data;
 
-        if (drop_arg->dropflags & PERFORM_DELETION_INTERNAL)
-            return;
+    if (drop_arg->dropflags & PERFORM_DELETION_INTERNAL)
+      return;
 
-        cache_data = search_graph_namespace_cache(object_id);
-        if (cache_data)
-        {
-            char *nspname = get_namespace_name(object_id);
+    cache_data = search_graph_namespace_cache(object_id);
+    if (cache_data) {
+      char *nspname = get_namespace_name(object_id);
 
-            ereport(ERROR, (errcode(ERRCODE_DEPENDENT_OBJECTS_STILL_EXIST),
-                            errmsg("schema \"%s\" is for graph \"%s\"",
-                                   nspname, NameStr(cache_data->name))));
-        }
-
-        return;
+      ereport(ERROR, (errcode(ERRCODE_DEPENDENT_OBJECTS_STILL_EXIST),
+                      errmsg("schema \"%s\" is for graph \"%s\"", nspname,
+                             NameStr(cache_data->name))));
     }
 
-    if (class_id == RelationRelationId)
-    {
-        label_cache_data *cache_data;
+    return;
+  }
 
-        cache_data = search_label_relation_cache(object_id);
+  if (class_id == RelationRelationId) {
+    label_cache_data *cache_data;
 
-        // We are interested in only tables that are labels.
-        if (!cache_data)
-            return;
+    cache_data = search_label_relation_cache(object_id);
 
-        if (drop_arg->dropflags & PERFORM_DELETION_INTERNAL)
-        {
-            /*
-             * Remove the corresponding ag_label entry here first. We don't
-             * know whether this operation is drop_label() or a part of
-             * drop_graph().
-             */
-            delete_label(object_id);
-        }
-        else
-        {
-            char *relname = get_rel_name(object_id);
+    // We are interested in only tables that are labels.
+    if (!cache_data)
+      return;
 
-            ereport(ERROR, (errcode(ERRCODE_DEPENDENT_OBJECTS_STILL_EXIST),
-                            errmsg("table \"%s\" is for label \"%s\"",
-                                   relname, NameStr(cache_data->name))));
-        }
+    if (drop_arg->dropflags & PERFORM_DELETION_INTERNAL) {
+      /*
+       * Remove the corresponding ag_label entry here first. We don't
+       * know whether this operation is drop_label() or a part of
+       * drop_graph().
+       */
+      delete_label(object_id);
+    } else {
+      char *relname = get_rel_name(object_id);
+
+      ereport(ERROR, (errcode(ERRCODE_DEPENDENT_OBJECTS_STILL_EXIST),
+                      errmsg("table \"%s\" is for label \"%s\"", relname,
+                             NameStr(cache_data->name))));
     }
+  }
 }
 
-Oid ag_relation_id(const char *name, const char *kind)
-{
-    Oid id;
+Oid ag_relation_id(const char *name, const char *kind) {
+  Oid id;
 
-    id = get_relname_relid(name, postgraph_namespace_id());
-    if (!OidIsValid(id))
-    {
-        ereport(ERROR, (errcode(ERRCODE_UNDEFINED_TABLE),
-                        errmsg("%s \"%s\" does not exist", kind, name)));
-    }
+  id = get_relname_relid(name, postgraph_namespace_id());
+  if (!OidIsValid(id)) {
+    ereport(ERROR, (errcode(ERRCODE_UNDEFINED_TABLE),
+                    errmsg("%s \"%s\" does not exist", kind, name)));
+  }
 
-    return id;
+  return id;
 }

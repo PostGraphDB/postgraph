@@ -42,8 +42,6 @@
 #define edge_tuple_end_id Anum_ag_label_edge_table_end_id - 1
 #define edge_tuple_properties Anum_ag_label_edge_table_properties - 1
 
-
-
 #define Anum_ag_label_name 1
 #define Anum_ag_label_graph 2
 #define Anum_ag_label_id 3
@@ -54,12 +52,12 @@
 #define Natts_ag_label 6
 
 #define ag_label_relation_id() ag_relation_id("ag_label", "table")
-#define ag_label_name_graph_index_id() \
-    ag_relation_id("ag_label_name_graph_index", "index")
-#define ag_label_graph_oid_index_id() \
-    ag_relation_id("ag_label_graph_oid_index", "index")
-#define ag_label_relation_index_id() \
-    ag_relation_id("ag_label_relation_index", "index")
+#define ag_label_name_graph_index_id()                                         \
+  ag_relation_id("ag_label_name_graph_index", "index")
+#define ag_label_graph_oid_index_id()                                          \
+  ag_relation_id("ag_label_graph_oid_index", "index")
+#define ag_label_relation_index_id()                                           \
+  ag_relation_id("ag_label_relation_index", "index")
 
 #define LABEL_ID_SEQ_NAME "_label_id_seq"
 
@@ -80,7 +78,7 @@ RangeVar *get_label_range_var(char *graph_name, Oid graph_oid,
 
 List *get_all_edge_labels_per_graph(EState *estate, Oid graph_oid);
 
-#define label_exists(label_name, label_graph) \
-    OidIsValid(get_label_id(label_name, label_graph))
+#define label_exists(label_name, label_graph)                                  \
+  OidIsValid(get_label_id(label_name, label_graph))
 
 #endif

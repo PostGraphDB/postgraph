@@ -22,26 +22,24 @@
 
 #include "postgres.h"
 
-//#include "ltree.h"
+// #include "ltree.h"
 
 // graph_cache_data contains the same fields that ag_graph catalog table has
-typedef struct graph_cache_data
-{
-    Oid oid;
-    NameData name;
-    Oid namespace;
-    bool directed;
+typedef struct graph_cache_data {
+  Oid oid;
+  NameData name;
+  Oid namespace;
+  bool directed;
 } graph_cache_data;
 
 // label_cache_data contains the same fields that ag_label catalog table has
-typedef struct label_cache_data
-{
-    NameData name;
-    Oid graph;
-    int32 id;
-    char kind;
-    Oid relation;
-//    ltree *label_tree;
+typedef struct label_cache_data {
+  NameData name;
+  Oid graph;
+  int32 id;
+  char kind;
+  Oid relation;
+  //    ltree *label_tree;
 } label_cache_data;
 
 // callers of these functions must not modify the returned struct

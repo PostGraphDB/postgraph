@@ -28,19 +28,16 @@
 
 typedef struct cypher_clause cypher_clause;
 
-struct cypher_clause
-{
-    cypher_clause *next; //next clause
-    Node *self;
-    cypher_clause *prev; // previous clause
+struct cypher_clause {
+  cypher_clause *next; // next clause
+  Node *self;
+  cypher_clause *prev; // previous clause
 };
 
 Query *transform_cypher_clause(cypher_parsestate *cpstate,
                                cypher_clause *clause);
 
-Query *cypher_parse_sub_analyze(Node *parseTree,
-                                cypher_parsestate *cpstate,
+Query *cypher_parse_sub_analyze(Node *parseTree, cypher_parsestate *cpstate,
                                 CommonTableExpr *parentCTE,
-                                bool locked_from_parent,
-                                bool resolve_unknowns);
+                                bool locked_from_parent, bool resolve_unknowns);
 #endif

@@ -20,8 +20,8 @@
 #include "postgres.h"
 
 #include "fmgr.h"
-#include "utils/builtins.h"
 #include "libpq/pqformat.h"
+#include "utils/builtins.h"
 #include "utils/sortsupport.h"
 
 #include "utils/graphid.h"
@@ -31,195 +31,187 @@ static int graphid_btree_fast_cmp(Datum x, Datum y, SortSupport ssup);
 PG_FUNCTION_INFO_V1(graphid_in);
 
 // graphid type input function
-Datum graphid_in(PG_FUNCTION_ARGS)
-{
-    char *str = PG_GETARG_CSTRING(0);
-    char *endptr;
-    int64 i;
+Datum graphid_in(PG_FUNCTION_ARGS) {
+  char *str = PG_GETARG_CSTRING(0);
+  char *endptr;
+  int64 i;
 
-    errno = 0;
-    i = strtol(str, &endptr, 10);
-    if (errno != 0 || endptr == str || *endptr != '\0')
-    {
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
-                 errmsg("invalid value for type graphid: \"%s\"", str)));
-    }
+  errno = 0;
+  i = strtol(str, &endptr, 10);
+  if (errno != 0 || endptr == str || *endptr != '\0') {
+    ereport(ERROR, (errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
+                    errmsg("invalid value for type graphid: \"%s\"", str)));
+  }
 
-    AG_RETURN_GRAPHID(i);
+  AG_RETURN_GRAPHID(i);
 }
 
 PG_FUNCTION_INFO_V1(graphid_out);
 // graphid type output function
 Datum graphid_out(PG_FUNCTION_ARGS) {
-    graphid gid = AG_GETARG_GRAPHID(0);
-    char buf[32]; // greater than MAXINT8LEN+1
-    char *out;
+  graphid gid = AG_GETARG_GRAPHID(0);
+  char buf[32]; // greater than MAXINT8LEN+1
+  char *out;
 
-    pg_lltoa(gid, buf);
-    out = pstrdup(buf);
+  pg_lltoa(gid, buf);
+  out = pstrdup(buf);
 
-    PG_RETURN_CSTRING(out);
+  PG_RETURN_CSTRING(out);
 }
 
 // graphid_recv - converts external binary format to a graphid.
 PG_FUNCTION_INFO_V1(graphid_recv);
 Datum graphid_recv(PG_FUNCTION_ARGS) {
-    StringInfo buf = (StringInfo) PG_GETARG_POINTER(0);
+  StringInfo buf = (StringInfo)PG_GETARG_POINTER(0);
 
-    PG_RETURN_INT64(pq_getmsgint64(buf));
+  PG_RETURN_INT64(pq_getmsgint64(buf));
 }
 
 // graphid_send - converts a graphid to binary format.
 PG_FUNCTION_INFO_V1(graphid_send);
 Datum graphid_send(PG_FUNCTION_ARGS) {
-    int64 arg1 = PG_GETARG_INT64(0);
-    StringInfoData buf;
+  int64 arg1 = PG_GETARG_INT64(0);
+  StringInfoData buf;
 
-    pq_begintypsend(&buf);
-    pq_sendint64(&buf, arg1);
-    PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
+  pq_begintypsend(&buf);
+  pq_sendint64(&buf, arg1);
+  PG_RETURN_BYTEA_P(pq_endtypsend(&buf));
 }
 
 PG_FUNCTION_INFO_V1(graphid_eq);
 Datum graphid_eq(PG_FUNCTION_ARGS) {
-    graphid lgid = AG_GETARG_GRAPHID(0);
-    graphid rgid = AG_GETARG_GRAPHID(1);
+  graphid lgid = AG_GETARG_GRAPHID(0);
+  graphid rgid = AG_GETARG_GRAPHID(1);
 
-    PG_RETURN_BOOL(lgid == rgid);
+  PG_RETURN_BOOL(lgid == rgid);
 }
 
 PG_FUNCTION_INFO_V1(graphid_ne);
 Datum graphid_ne(PG_FUNCTION_ARGS) {
-    graphid lgid = AG_GETARG_GRAPHID(0);
-    graphid rgid = AG_GETARG_GRAPHID(1);
+  graphid lgid = AG_GETARG_GRAPHID(0);
+  graphid rgid = AG_GETARG_GRAPHID(1);
 
-    PG_RETURN_BOOL(lgid != rgid);
+  PG_RETURN_BOOL(lgid != rgid);
 }
 
 PG_FUNCTION_INFO_V1(graphid_lt);
 Datum graphid_lt(PG_FUNCTION_ARGS) {
-    graphid lgid = AG_GETARG_GRAPHID(0);
-    graphid rgid = AG_GETARG_GRAPHID(1);
+  graphid lgid = AG_GETARG_GRAPHID(0);
+  graphid rgid = AG_GETARG_GRAPHID(1);
 
-    PG_RETURN_BOOL(lgid < rgid);
+  PG_RETURN_BOOL(lgid < rgid);
 }
 
 PG_FUNCTION_INFO_V1(graphid_gt);
 Datum graphid_gt(PG_FUNCTION_ARGS) {
-    graphid lgid = AG_GETARG_GRAPHID(0);
-    graphid rgid = AG_GETARG_GRAPHID(1);
+  graphid lgid = AG_GETARG_GRAPHID(0);
+  graphid rgid = AG_GETARG_GRAPHID(1);
 
-    PG_RETURN_BOOL(lgid > rgid);
+  PG_RETURN_BOOL(lgid > rgid);
 }
 
 PG_FUNCTION_INFO_V1(graphid_le);
 Datum graphid_le(PG_FUNCTION_ARGS) {
-    graphid lgid = AG_GETARG_GRAPHID(0);
-    graphid rgid = AG_GETARG_GRAPHID(1);
+  graphid lgid = AG_GETARG_GRAPHID(0);
+  graphid rgid = AG_GETARG_GRAPHID(1);
 
-    PG_RETURN_BOOL(lgid <= rgid);
+  PG_RETURN_BOOL(lgid <= rgid);
 }
 
 PG_FUNCTION_INFO_V1(graphid_ge);
 Datum graphid_ge(PG_FUNCTION_ARGS) {
-    graphid lgid = AG_GETARG_GRAPHID(0);
-    graphid rgid = AG_GETARG_GRAPHID(1);
+  graphid lgid = AG_GETARG_GRAPHID(0);
+  graphid rgid = AG_GETARG_GRAPHID(1);
 
-    PG_RETURN_BOOL(lgid >= rgid);
+  PG_RETURN_BOOL(lgid >= rgid);
 }
 
 PG_FUNCTION_INFO_V1(graphid_btree_cmp);
 Datum graphid_btree_cmp(PG_FUNCTION_ARGS) {
-    graphid lgid = AG_GETARG_GRAPHID(0);
-    graphid rgid = AG_GETARG_GRAPHID(1);
+  graphid lgid = AG_GETARG_GRAPHID(0);
+  graphid rgid = AG_GETARG_GRAPHID(1);
 
-    if (lgid > rgid)
-        PG_RETURN_INT32(1);
-    else if (lgid == rgid)
-        PG_RETURN_INT32(0);
-    else
-        PG_RETURN_INT32(-1);
+  if (lgid > rgid)
+    PG_RETURN_INT32(1);
+  else if (lgid == rgid)
+    PG_RETURN_INT32(0);
+  else
+    PG_RETURN_INT32(-1);
 }
 
 PG_FUNCTION_INFO_V1(graphid_btree_sort);
 Datum graphid_btree_sort(PG_FUNCTION_ARGS) {
-    SortSupport ssup = (SortSupport)PG_GETARG_POINTER(0);
+  SortSupport ssup = (SortSupport)PG_GETARG_POINTER(0);
 
-    ssup->comparator = graphid_btree_fast_cmp;
-    PG_RETURN_VOID();
+  ssup->comparator = graphid_btree_fast_cmp;
+  PG_RETURN_VOID();
 }
 
 static int graphid_btree_fast_cmp(Datum x, Datum y, SortSupport ssup) {
-    graphid lgid = DATUM_GET_GRAPHID(x);
-    graphid rgid = DATUM_GET_GRAPHID(y);
+  graphid lgid = DATUM_GET_GRAPHID(x);
+  graphid rgid = DATUM_GET_GRAPHID(y);
 
-    if (lgid > rgid)
-        return 1;
-    else if (lgid == rgid)
-        return 0;
-    else
-        return -1;
+  if (lgid > rgid)
+    return 1;
+  else if (lgid == rgid)
+    return 0;
+  else
+    return -1;
 }
 
 graphid make_graphid(const int32 label_id, const int64 entry_id) {
-    uint64 tmp;
+  uint64 tmp;
 
-    if (!label_id_is_valid(label_id)) {
-        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                        errmsg("label_id must be %d .. %d",
-                               LABEL_ID_MIN, LABEL_ID_MAX)));
-    }
-    if (!entry_id_is_valid(entry_id)) {
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("entry_id must be " INT64_FORMAT " .. " INT64_FORMAT,
-                        ENTRY_ID_MIN, ENTRY_ID_MAX)));
-    }
+  if (!label_id_is_valid(label_id)) {
+    ereport(ERROR,
+            (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+             errmsg("label_id must be %d .. %d", LABEL_ID_MIN, LABEL_ID_MAX)));
+  }
+  if (!entry_id_is_valid(entry_id)) {
+    ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                    errmsg("entry_id must be " INT64_FORMAT " .. " INT64_FORMAT,
+                           ENTRY_ID_MIN, ENTRY_ID_MAX)));
+  }
 
-    tmp = (((uint64)label_id) << ENTRY_ID_BITS) | (((uint64)entry_id) & ENTRY_ID_MASK);
+  tmp = (((uint64)label_id) << ENTRY_ID_BITS) |
+        (((uint64)entry_id) & ENTRY_ID_MASK);
 
-    return (graphid)tmp;
+  return (graphid)tmp;
 }
 
-int32 get_graphid_label_id(const graphid gid)
-{
-    return (int32)(((uint64)gid) >> ENTRY_ID_BITS);
+int32 get_graphid_label_id(const graphid gid) {
+  return (int32)(((uint64)gid) >> ENTRY_ID_BITS);
 }
 
-int64 get_graphid_entry_id(const graphid gid)
-{
-    return (int64)(((uint64)gid) & ENTRY_ID_MASK);
+int64 get_graphid_entry_id(const graphid gid) {
+  return (int64)(((uint64)gid) & ENTRY_ID_MASK);
 }
 
 PG_FUNCTION_INFO_V1(_graphid);
 
-Datum _graphid(PG_FUNCTION_ARGS)
-{
-    int32 label_id;
-    int64 entry_id;
-    graphid gid;
+Datum _graphid(PG_FUNCTION_ARGS) {
+  int32 label_id;
+  int64 entry_id;
+  graphid gid;
 
-    if (PG_ARGISNULL(0) || PG_ARGISNULL(1))
-    {
-        ereport(ERROR, (errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
-                        errmsg("label_id and entry_id must not be null")));
-    }
-    label_id = PG_GETARG_INT32(0);
-    entry_id = PG_GETARG_INT64(1);
+  if (PG_ARGISNULL(0) || PG_ARGISNULL(1)) {
+    ereport(ERROR, (errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
+                    errmsg("label_id and entry_id must not be null")));
+  }
+  label_id = PG_GETARG_INT32(0);
+  entry_id = PG_GETARG_INT64(1);
 
-    gid = make_graphid(label_id, entry_id);
+  gid = make_graphid(label_id, entry_id);
 
-    AG_RETURN_GRAPHID(gid);
+  AG_RETURN_GRAPHID(gid);
 }
 
-//Hashing Function for Hash Indexes
+// Hashing Function for Hash Indexes
 PG_FUNCTION_INFO_V1(graphid_hash_cmp);
 
-Datum graphid_hash_cmp(PG_FUNCTION_ARGS)
-{
-    graphid l = AG_GETARG_GRAPHID(0);
-    int hash = (int) ((l >> 32) ^ l);// ^ seed;
+Datum graphid_hash_cmp(PG_FUNCTION_ARGS) {
+  graphid l = AG_GETARG_GRAPHID(0);
+  int hash = (int)((l >> 32) ^ l); // ^ seed;
 
-    PG_RETURN_INT32(hash);
+  PG_RETURN_INT32(hash);
 }

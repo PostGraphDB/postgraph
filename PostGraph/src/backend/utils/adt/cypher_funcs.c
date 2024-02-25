@@ -26,54 +26,39 @@
 
 PG_FUNCTION_INFO_V1(cypher);
 
-Datum cypher(PG_FUNCTION_ARGS)
-{
-    const char *s;
+Datum cypher(PG_FUNCTION_ARGS) {
+  const char *s;
 
-    s = PG_ARGISNULL(0) ? "NULL" : PG_GETARG_CSTRING(0);
+  s = PG_ARGISNULL(0) ? "NULL" : PG_GETARG_CSTRING(0);
 
-    ereport(ERROR, (errmsg_internal("unhandled cypher(cstring) function call"),
-                    errdetail_internal("%s", s)));
+  ereport(ERROR, (errmsg_internal("unhandled cypher(cstring) function call"),
+                  errdetail_internal("%s", s)));
 
-    PG_RETURN_NULL();
+  PG_RETURN_NULL();
 }
 
 PG_FUNCTION_INFO_V1(_cypher_create_clause);
 
-Datum _cypher_create_clause(PG_FUNCTION_ARGS)
-{
-    PG_RETURN_NULL();
-}
+Datum _cypher_create_clause(PG_FUNCTION_ARGS) { PG_RETURN_NULL(); }
 
 PG_FUNCTION_INFO_V1(_cypher_set_clause);
 
-Datum _cypher_set_clause(PG_FUNCTION_ARGS)
-{
-    PG_RETURN_NULL();
-}
+Datum _cypher_set_clause(PG_FUNCTION_ARGS) { PG_RETURN_NULL(); }
 
 PG_FUNCTION_INFO_V1(_cypher_delete_clause);
 
-Datum _cypher_delete_clause(PG_FUNCTION_ARGS)
-{
-    PG_RETURN_NULL();
-}
+Datum _cypher_delete_clause(PG_FUNCTION_ARGS) { PG_RETURN_NULL(); }
 
 PG_FUNCTION_INFO_V1(_cypher_merge_clause);
 
-Datum _cypher_merge_clause(PG_FUNCTION_ARGS)
-{
-    PG_RETURN_NULL();
-}
+Datum _cypher_merge_clause(PG_FUNCTION_ARGS) { PG_RETURN_NULL(); }
 
 PG_FUNCTION_INFO_V1(throw_error);
 
-Datum throw_error(PG_FUNCTION_ARGS)
-{
-    char *str = GT_ARG_TO_STRING_DATUM(0);
+Datum throw_error(PG_FUNCTION_ARGS) {
+  char *str = GT_ARG_TO_STRING_DATUM(0);
 
-    ereport(ERROR, (errmsg_internal("%s", str)));
+  ereport(ERROR, (errmsg_internal("%s", str)));
 
-    PG_RETURN_NULL();
+  PG_RETURN_NULL();
 }
-

@@ -27,14 +27,17 @@ PostGraph is a multi-model, graph centric query engine build on Postgres. PostGr
 ```bash
 git clone https://github.com/PostGraphDB/postgraph
 cd postgraph
-make POSTGIS_DIR=/path/to/postgis/source/files
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPGVER=14
+cmake --build build --parallel
+cd build
 sudo make install
 ```
 
 Once PostGraph is installed, it needs to be enabled in each database you want to use it in. In the example below we use a database named `postgraph`.
 ```bash
+cd ../.pg/Darwin-Release/14.10/build/bin/
 createdb postgraph
-psql postgraph -c "CREATE EXTENSION PostGIS"
+--psql postgraph -c "CREATE EXTENSION PostGIS"
 psql postgraph -c "CREATE EXTENSION LTree"
 psql postgraph -c "CREATE EXTENSION PostGraph"
 

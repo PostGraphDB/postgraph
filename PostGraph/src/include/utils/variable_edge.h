@@ -41,7 +41,6 @@
 #define AG_GET_ARG_VARIABLE_EDGE(x) DATUM_GET_VARIABLE_EDGE(PG_GETARG_DATUM(x))
 #define AG_RETURN_VARIABLE_EDGE(x) PG_RETURN_POINTER(x)
 
-
 typedef uint32 prentry;
 
 /*
@@ -49,16 +48,19 @@ typedef uint32 prentry;
  *
  * An array has one child for each element, stored in array order.
  */
-typedef struct
-{
-    int32 vl_len_; // varlena header (do not touch directly!)
-    prentry children[FLEXIBLE_ARRAY_MEMBER];
+typedef struct {
+  int32 vl_len_; // varlena header (do not touch directly!)
+  prentry children[FLEXIBLE_ARRAY_MEMBER];
 } VariableEdge;
 
-#define VARIABLEEDGEOID \
-    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("variable_edge"), ObjectIdGetDatum(postgraph_namespace_id())))
+#define VARIABLEEDGEOID                                                        \
+  (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid,                              \
+                   CStringGetDatum("variable_edge"),                           \
+                   ObjectIdGetDatum(postgraph_namespace_id())))
 
-#define VARIABLEEDGEARRAYOID \
-    (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid, CStringGetDatum("_variable_edge"), ObjectIdGetDatum(postgraph_namespace_id())))
+#define VARIABLEEDGEARRAYOID                                                   \
+  (GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid,                              \
+                   CStringGetDatum("_variable_edge"),                          \
+                   ObjectIdGetDatum(postgraph_namespace_id())))
 
 #endif

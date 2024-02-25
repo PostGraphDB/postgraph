@@ -33,16 +33,15 @@
 #include "access/stratnum.h"
 #include "catalog/pg_collation.h"
 #include "catalog/pg_type.h"
-#include "utils/float.h"
 #include "utils/builtins.h"
+#include "utils/float.h"
 #include "utils/varlena.h"
 
 #include "utils/gtype.h"
 
-typedef struct PathHashQueue
-{
-    uint32 hash;
-    struct PathHashQueue *parent;
+typedef struct PathHashQueue {
+  uint32 hash;
+  struct PathHashQueue *parent;
 } PathHashQueue;
 
 static Datum make_text_key(char flag, const char *str, int len);
@@ -60,34 +59,32 @@ static Datum make_scalar_key(const gtype_value *scalar_val, bool is_key);
  * function.
  */
 PG_FUNCTION_INFO_V1(gin_compare_gtype);
-Datum gin_compare_gtype(PG_FUNCTION_ARGS)
-{
-    text *arg1, *arg2;
-    int32 result;
-    char *a1p, *a2p;
-    int len1, len2;
+Datum gin_compare_gtype(PG_FUNCTION_ARGS) {
+  text *arg1, *arg2;
+  int32 result;
+  char *a1p, *a2p;
+  int len1, len2;
 
-    if (PG_ARGISNULL(0) || PG_ARGISNULL(1))
-    {
-        PG_RETURN_NULL();
-    }
+  if (PG_ARGISNULL(0) || PG_ARGISNULL(1)) {
+    PG_RETURN_NULL();
+  }
 
-    arg1 = PG_GETARG_TEXT_PP(0);
-    arg2 = PG_GETARG_TEXT_PP(1);
+  arg1 = PG_GETARG_TEXT_PP(0);
+  arg2 = PG_GETARG_TEXT_PP(1);
 
-    a1p = VARDATA_ANY(arg1);
-    a2p = VARDATA_ANY(arg2);
+  a1p = VARDATA_ANY(arg1);
+  a2p = VARDATA_ANY(arg2);
 
-    len1 = VARSIZE_ANY_EXHDR(arg1);
-    len2 = VARSIZE_ANY_EXHDR(arg2);
+  len1 = VARSIZE_ANY_EXHDR(arg1);
+  len2 = VARSIZE_ANY_EXHDR(arg2);
 
-    // Compare text as bttextcmp does, but always using C collation 
-    result = varstr_cmp(a1p, len1, a2p, len2, C_COLLATION_OID);
+  // Compare text as bttextcmp does, but always using C collation
+  result = varstr_cmp(a1p, len1, a2p, len2, C_COLLATION_OID);
 
-    PG_FREE_IF_COPY(arg1, 0);
-    PG_FREE_IF_COPY(arg2, 1);
+  PG_FREE_IF_COPY(arg1, 0);
+  PG_FREE_IF_COPY(arg2, 1);
 
-    PG_RETURN_INT32(result);
+  PG_RETURN_INT32(result);
 }
 
 /*
@@ -96,68 +93,62 @@ Datum gin_compare_gtype(PG_FUNCTION_ARGS)
  * item contains no keys.
  */
 PG_FUNCTION_INFO_V1(gin_extract_gtype);
-Datum gin_extract_gtype(PG_FUNCTION_ARGS)
-{
-    gtype *agt;
-    int32 *nentries;
-    int total;
-    gtype_iterator *it;
-    gtype_value v;
-    gtype_iterator_token r;
-    int i = 0;
-    Datum *entries;
+Datum gin_extract_gtype(PG_FUNCTION_ARGS) {
+  gtype *agt;
+  int32 *nentries;
+  int total;
+  gtype_iterator *it;
+  gtype_value v;
+  gtype_iterator_token r;
+  int i = 0;
+  Datum *entries;
 
-    if (PG_ARGISNULL(0) || PG_ARGISNULL(1))
-    {
-        PG_RETURN_POINTER(NULL);
+  if (PG_ARGISNULL(0) || PG_ARGISNULL(1)) {
+    PG_RETURN_POINTER(NULL);
+  }
+
+  agt = (gtype *)AG_GET_ARG_GTYPE_P(0);
+  nentries = (int32 *)PG_GETARG_POINTER(1);
+  total = 2 * AGT_ROOT_COUNT(agt);
+
+  // If the root level is empty, we certainly have no keys
+  if (total == 0) {
+    *nentries = 0;
+    PG_RETURN_POINTER(NULL);
+  }
+
+  // Otherwise, use 2 * root count as initial estimate of result size
+  entries = (Datum *)palloc(sizeof(Datum) * total);
+
+  it = gtype_iterator_init(&agt->root);
+
+  while ((r = gtype_iterator_next(&it, &v, false)) != WGT_DONE) {
+    // Since we recurse into the object, we might need more space
+    if (i >= total) {
+      total *= 2;
+      entries = (Datum *)repalloc(entries, sizeof(Datum) * total);
     }
 
-    agt = (gtype *) AG_GET_ARG_GTYPE_P(0);
-    nentries = (int32 *) PG_GETARG_POINTER(1);
-    total = 2 * AGT_ROOT_COUNT(agt);
-
-    // If the root level is empty, we certainly have no keys 
-    if (total == 0)
-    {
-        *nentries = 0;
-        PG_RETURN_POINTER(NULL);
+    switch (r) {
+    case WGT_KEY:
+      entries[i++] = make_scalar_key(&v, true);
+      break;
+    case WGT_ELEM:
+      // Pretend string array elements are keys
+      entries[i++] = make_scalar_key(&v, (v.type == AGTV_STRING));
+      break;
+    case WGT_VALUE:
+      entries[i++] = make_scalar_key(&v, false);
+      break;
+    default:
+      // we can ignore structural items
+      break;
     }
+  }
 
-    // Otherwise, use 2 * root count as initial estimate of result size 
-    entries = (Datum *) palloc(sizeof(Datum) * total);
+  *nentries = i;
 
-    it = gtype_iterator_init(&agt->root);
-
-    while ((r = gtype_iterator_next(&it, &v, false)) != WGT_DONE)
-    {
-        // Since we recurse into the object, we might need more space 
-        if (i >= total)
-        {
-            total *= 2;
-            entries = (Datum *) repalloc(entries, sizeof(Datum) * total);
-        }
-
-        switch (r)
-        {
-            case WGT_KEY:
-                entries[i++] = make_scalar_key(&v, true);
-                break;
-            case WGT_ELEM:
-                // Pretend string array elements are keys 
-                entries[i++] = make_scalar_key(&v, (v.type == AGTV_STRING));
-                break;
-            case WGT_VALUE:
-                entries[i++] = make_scalar_key(&v, false);
-                break;
-            default:
-                // we can ignore structural items 
-                break;
-        }
-    }
-
-    *nentries = i;
-
-    PG_RETURN_POINTER(entries);
+  PG_RETURN_POINTER(entries);
 }
 
 /*
@@ -179,87 +170,72 @@ Datum gin_extract_gtype(PG_FUNCTION_ARGS)
  * or exists all strategy are used and the passed map is empty.
  */
 PG_FUNCTION_INFO_V1(gin_extract_gtype_query);
-Datum gin_extract_gtype_query(PG_FUNCTION_ARGS)
-{
-    int32 *nentries;
-    StrategyNumber strategy;
-    int32 *searchMode;
-    Datum *entries;
+Datum gin_extract_gtype_query(PG_FUNCTION_ARGS) {
+  int32 *nentries;
+  StrategyNumber strategy;
+  int32 *searchMode;
+  Datum *entries;
 
-    if (PG_ARGISNULL(0) || PG_ARGISNULL(1) ||
-        PG_ARGISNULL(2) || PG_ARGISNULL(6))
-    {
-        PG_RETURN_NULL();
+  if (PG_ARGISNULL(0) || PG_ARGISNULL(1) || PG_ARGISNULL(2) ||
+      PG_ARGISNULL(6)) {
+    PG_RETURN_NULL();
+  }
+
+  nentries = (int32 *)PG_GETARG_POINTER(1);
+  strategy = PG_GETARG_UINT16(2);
+  searchMode = (int32 *)PG_GETARG_POINTER(6);
+
+  if (strategy == GTYPE_CONTAINS_STRATEGY_NUMBER) {
+    // Query is a gtype, so just apply gin_extract_gtype...
+    entries = (Datum *)DatumGetPointer(DirectFunctionCall2(
+        gin_extract_gtype, PG_GETARG_DATUM(0), PointerGetDatum(nentries)));
+    // ...although "contains {}" requires a full index scan
+    if (*nentries == 0) {
+      *searchMode = GIN_SEARCH_MODE_ALL;
+    }
+  } else if (strategy == GTYPE_EXISTS_STRATEGY_NUMBER) {
+    // Query is a text string, which we treat as a key
+    text *query = PG_GETARG_TEXT_PP(0);
+
+    *nentries = 1;
+    entries = (Datum *)palloc(sizeof(Datum));
+    entries[0] = make_text_key(GT_GIN_FLAG_KEY, VARDATA_ANY(query),
+                               VARSIZE_ANY_EXHDR(query));
+  } else if (strategy == GTYPE_EXISTS_ANY_STRATEGY_NUMBER ||
+             strategy == GTYPE_EXISTS_ALL_STRATEGY_NUMBER) {
+    // Query is a text array; each element is treated as a key
+    ArrayType *query = PG_GETARG_ARRAYTYPE_P(0);
+    Datum *key_datums;
+    bool *key_nulls;
+    int key_count;
+    int i, j;
+
+    deconstruct_array(query, TEXTOID, -1, false, 'i', &key_datums, &key_nulls,
+                      &key_count);
+
+    entries = (Datum *)palloc(sizeof(Datum) * key_count);
+
+    for (i = 0, j = 0; i < key_count; i++) {
+      // Nulls in the array are ignored
+      if (key_nulls[i]) {
+        continue;
+      }
+
+      entries[j++] = make_text_key(GT_GIN_FLAG_KEY, VARDATA(key_datums[i]),
+                                   VARSIZE(key_datums[i]) - VARHDRSZ);
     }
 
-    nentries = (int32 *) PG_GETARG_POINTER(1);
-    strategy = PG_GETARG_UINT16(2);
-    searchMode = (int32 *) PG_GETARG_POINTER(6);
-
-    if (strategy == GTYPE_CONTAINS_STRATEGY_NUMBER)
-    {
-        // Query is a gtype, so just apply gin_extract_gtype... 
-        entries = (Datum *)
-            DatumGetPointer(DirectFunctionCall2(gin_extract_gtype,
-                                                PG_GETARG_DATUM(0),
-                                                PointerGetDatum(nentries)));
-        // ...although "contains {}" requires a full index scan 
-        if (*nentries == 0)
-        {
-            *searchMode = GIN_SEARCH_MODE_ALL;
-        }
+    *nentries = j;
+    // ExistsAll with no keys should match everything
+    if (j == 0 && strategy == GTYPE_EXISTS_ALL_STRATEGY_NUMBER) {
+      *searchMode = GIN_SEARCH_MODE_ALL;
     }
-    else if (strategy == GTYPE_EXISTS_STRATEGY_NUMBER)
-    {
-        // Query is a text string, which we treat as a key 
-        text *query = PG_GETARG_TEXT_PP(0);
+  } else {
+    elog(ERROR, "unrecognized strategy number: %d", strategy);
+    entries = NULL; // keep compiler quiet
+  }
 
-        *nentries = 1;
-        entries = (Datum *)palloc(sizeof(Datum));
-        entries[0] = make_text_key(GT_GIN_FLAG_KEY, VARDATA_ANY(query), VARSIZE_ANY_EXHDR(query));
-    }
-    else if (strategy == GTYPE_EXISTS_ANY_STRATEGY_NUMBER ||
-             strategy == GTYPE_EXISTS_ALL_STRATEGY_NUMBER)
-    {
-        // Query is a text array; each element is treated as a key 
-        ArrayType *query = PG_GETARG_ARRAYTYPE_P(0);
-        Datum *key_datums;
-        bool *key_nulls;
-        int key_count;
-        int i, j;
-
-        deconstruct_array(query, TEXTOID, -1, false, 'i',
-                          &key_datums, &key_nulls, &key_count);
-
-        entries = (Datum *) palloc(sizeof(Datum) * key_count);
-
-        for (i = 0, j = 0; i < key_count; i++)
-        {
-            // Nulls in the array are ignored 
-            if (key_nulls[i])
-            {
-                continue;
-            }
-
-            entries[j++] = make_text_key(GT_GIN_FLAG_KEY,
-                                         VARDATA(key_datums[i]),
-                                         VARSIZE(key_datums[i]) - VARHDRSZ);
-        }
-
-        *nentries = j;
-        // ExistsAll with no keys should match everything 
-        if (j == 0 && strategy == GTYPE_EXISTS_ALL_STRATEGY_NUMBER)
-        {
-            *searchMode = GIN_SEARCH_MODE_ALL;
-        }
-    }
-    else
-    {
-        elog(ERROR, "unrecognized strategy number: %d", strategy);
-        entries = NULL;            // keep compiler quiet 
-    }
-
-    PG_RETURN_POINTER(entries);
+  PG_RETURN_POINTER(entries);
 }
 
 /*
@@ -293,84 +269,69 @@ Datum gin_extract_gtype_query(PG_FUNCTION_ARGS)
  * originally indexed item.
  */
 PG_FUNCTION_INFO_V1(gin_consistent_gtype);
-Datum gin_consistent_gtype(PG_FUNCTION_ARGS)
-{
-    bool *check;
-    StrategyNumber strategy;
-    int32 nkeys;
-    bool *recheck;
-    bool res = true;
-    int32 i;
+Datum gin_consistent_gtype(PG_FUNCTION_ARGS) {
+  bool *check;
+  StrategyNumber strategy;
+  int32 nkeys;
+  bool *recheck;
+  bool res = true;
+  int32 i;
 
-    if (PG_ARGISNULL(0) || PG_ARGISNULL(1) ||
-        PG_ARGISNULL(3) || PG_ARGISNULL(5))
-    {
-        PG_RETURN_NULL();
-    }
+  if (PG_ARGISNULL(0) || PG_ARGISNULL(1) || PG_ARGISNULL(3) ||
+      PG_ARGISNULL(5)) {
+    PG_RETURN_NULL();
+  }
 
-    check = (bool *) PG_GETARG_POINTER(0);
-    strategy = PG_GETARG_UINT16(1);
-    nkeys = PG_GETARG_INT32(3);
-    recheck = (bool *) PG_GETARG_POINTER(5);
+  check = (bool *)PG_GETARG_POINTER(0);
+  strategy = PG_GETARG_UINT16(1);
+  nkeys = PG_GETARG_INT32(3);
+  recheck = (bool *)PG_GETARG_POINTER(5);
 
-    if (strategy == GTYPE_CONTAINS_STRATEGY_NUMBER)
-    {
-        /*
-         * We must always recheck, since we can't tell from the index whether
-         * the positions of the matched items match the structure of the query
-         * object.  (Even if we could, we'd also have to worry about hashed
-         * keys and the index's failure to distinguish keys from string array
-         * elements.)  However, the tuple certainly doesn't match unless it
-         * contains all the query keys.
-         */
-        *recheck = true;
-        for (i = 0; i < nkeys; i++)
-        {
-            if (!check[i])
-            {
-                res = false;
-                break;
-            }
-        }
+  if (strategy == GTYPE_CONTAINS_STRATEGY_NUMBER) {
+    /*
+     * We must always recheck, since we can't tell from the index whether
+     * the positions of the matched items match the structure of the query
+     * object.  (Even if we could, we'd also have to worry about hashed
+     * keys and the index's failure to distinguish keys from string array
+     * elements.)  However, the tuple certainly doesn't match unless it
+     * contains all the query keys.
+     */
+    *recheck = true;
+    for (i = 0; i < nkeys; i++) {
+      if (!check[i]) {
+        res = false;
+        break;
+      }
     }
-    else if (strategy == GTYPE_EXISTS_STRATEGY_NUMBER)
-    {
-        /*
-         * Although the key is certainly present in the index, we must recheck
-         * because (1) the key might be hashed, and (2) the index match might
-         * be for a key that's not at top level of the JSON object.  For (1),
-         * we could look at the query key to see if it's hashed and not
-         * recheck if not, but the index lacks enough info to tell about (2).
-         */
-        *recheck = true;
-        res = true;
+  } else if (strategy == GTYPE_EXISTS_STRATEGY_NUMBER) {
+    /*
+     * Although the key is certainly present in the index, we must recheck
+     * because (1) the key might be hashed, and (2) the index match might
+     * be for a key that's not at top level of the JSON object.  For (1),
+     * we could look at the query key to see if it's hashed and not
+     * recheck if not, but the index lacks enough info to tell about (2).
+     */
+    *recheck = true;
+    res = true;
+  } else if (strategy == GTYPE_EXISTS_ANY_STRATEGY_NUMBER) {
+    // As for plain exists, we must recheck
+    *recheck = true;
+    res = true;
+  } else if (strategy == GTYPE_EXISTS_ALL_STRATEGY_NUMBER) {
+    // As for plain exists, we must recheck
+    *recheck = true;
+    // ... but unless all the keys are present, we can say "false"
+    for (i = 0; i < nkeys; i++) {
+      if (!check[i]) {
+        res = false;
+        break;
+      }
     }
-    else if (strategy == GTYPE_EXISTS_ANY_STRATEGY_NUMBER)
-    {
-        // As for plain exists, we must recheck 
-        *recheck = true;
-        res = true;
-    }
-    else if (strategy == GTYPE_EXISTS_ALL_STRATEGY_NUMBER)
-    {
-        // As for plain exists, we must recheck 
-        *recheck = true;
-        // ... but unless all the keys are present, we can say "false" 
-        for (i = 0; i < nkeys; i++)
-        {
-            if (!check[i])
-            {
-                res = false;
-                break;
-            }
-        }
-    }
-    else
-    {
-        elog(ERROR, "unrecognized strategy number: %d", strategy);
-    }
+  } else {
+    elog(ERROR, "unrecognized strategy number: %d", strategy);
+  }
 
-    PG_RETURN_BOOL(res);
+  PG_RETURN_BOOL(res);
 }
 
 /*
@@ -391,61 +352,50 @@ Datum gin_consistent_gtype(PG_FUNCTION_ARGS)
  * function.
  */
 PG_FUNCTION_INFO_V1(gin_triconsistent_gtype);
-Datum gin_triconsistent_gtype(PG_FUNCTION_ARGS)
-{
-    GinTernaryValue *check;
-    StrategyNumber strategy;
-    int32 nkeys;
-    GinTernaryValue res = GIN_MAYBE;
-    int32 i;
+Datum gin_triconsistent_gtype(PG_FUNCTION_ARGS) {
+  GinTernaryValue *check;
+  StrategyNumber strategy;
+  int32 nkeys;
+  GinTernaryValue res = GIN_MAYBE;
+  int32 i;
 
-    if (PG_ARGISNULL(0) || PG_ARGISNULL(1) || PG_ARGISNULL(3))
-    {
-        PG_RETURN_NULL();
-    }
+  if (PG_ARGISNULL(0) || PG_ARGISNULL(1) || PG_ARGISNULL(3)) {
+    PG_RETURN_NULL();
+  }
 
-    check = (GinTernaryValue *)PG_GETARG_POINTER(0);
-    strategy = PG_GETARG_UINT16(1);
-    nkeys = PG_GETARG_INT32(3);
+  check = (GinTernaryValue *)PG_GETARG_POINTER(0);
+  strategy = PG_GETARG_UINT16(1);
+  nkeys = PG_GETARG_INT32(3);
 
-    /*
-     * Note that we never return GIN_TRUE, only GIN_MAYBE or GIN_FALSE; this
-     * corresponds to always forcing recheck in the regular consistent
-     * function, for the reasons listed there.
-     */
-    if (strategy == GTYPE_CONTAINS_STRATEGY_NUMBER ||
-        strategy == GTYPE_EXISTS_ALL_STRATEGY_NUMBER)
-    {
-        // All extracted keys must be present 
-        for (i = 0; i < nkeys; i++)
-        {
-            if (check[i] == GIN_FALSE)
-            {
-                res = GIN_FALSE;
-                break;
-            }
-        }
-    }
-    else if (strategy == GTYPE_EXISTS_STRATEGY_NUMBER ||
-             strategy == GTYPE_EXISTS_ANY_STRATEGY_NUMBER)
-    {
-        // At least one extracted key must be present 
+  /*
+   * Note that we never return GIN_TRUE, only GIN_MAYBE or GIN_FALSE; this
+   * corresponds to always forcing recheck in the regular consistent
+   * function, for the reasons listed there.
+   */
+  if (strategy == GTYPE_CONTAINS_STRATEGY_NUMBER ||
+      strategy == GTYPE_EXISTS_ALL_STRATEGY_NUMBER) {
+    // All extracted keys must be present
+    for (i = 0; i < nkeys; i++) {
+      if (check[i] == GIN_FALSE) {
         res = GIN_FALSE;
-        for (i = 0; i < nkeys; i++)
-        {
-            if (check[i] == GIN_TRUE || check[i] == GIN_MAYBE)
-            {
-                res = GIN_MAYBE;
-                break;
-            }
-        }
+        break;
+      }
     }
-    else
-    {
-        elog(ERROR, "unrecognized strategy number: %d", strategy);
+  } else if (strategy == GTYPE_EXISTS_STRATEGY_NUMBER ||
+             strategy == GTYPE_EXISTS_ANY_STRATEGY_NUMBER) {
+    // At least one extracted key must be present
+    res = GIN_FALSE;
+    for (i = 0; i < nkeys; i++) {
+      if (check[i] == GIN_TRUE || check[i] == GIN_MAYBE) {
+        res = GIN_MAYBE;
+        break;
+      }
     }
+  } else {
+    elog(ERROR, "unrecognized strategy number: %d", strategy);
+  }
 
-    PG_RETURN_GIN_TERNARY_VALUE(res);
+  PG_RETURN_GIN_TERNARY_VALUE(res);
 }
 
 /*
@@ -454,35 +404,33 @@ Datum gin_triconsistent_gtype(PG_FUNCTION_ARGS)
  * for hashing overlength text representations; it will add the
  * GT_GIN_FLAG_HASHED bit to the flag value if it does that.
  */
-static Datum make_text_key(char flag, const char *str, int len)
-{
-    text *item;
-    char hashbuf[10];
+static Datum make_text_key(char flag, const char *str, int len) {
+  text *item;
+  char hashbuf[10];
 
-    if (len > GT_GIN_MAX_LENGTH)
-    {
-        uint32 hashval;
+  if (len > GT_GIN_MAX_LENGTH) {
+    uint32 hashval;
 
-        hashval = DatumGetUInt32(hash_any((const unsigned char *) str, len));
-        snprintf(hashbuf, sizeof(hashbuf), "%08x", hashval);
-        str = hashbuf;
-        len = 8;
-        flag |= GT_GIN_FLAG_HASHED;
-    }
+    hashval = DatumGetUInt32(hash_any((const unsigned char *)str, len));
+    snprintf(hashbuf, sizeof(hashbuf), "%08x", hashval);
+    str = hashbuf;
+    len = 8;
+    flag |= GT_GIN_FLAG_HASHED;
+  }
 
-    /*
-     * Now build the text Datum.  For simplicity we build a 4-byte-header
-     * varlena text Datum here, but we expect it will get converted to short
-     * header format when stored in the index.
-     */
-    item = (text *)palloc(VARHDRSZ + len + 1);
-    SET_VARSIZE(item, VARHDRSZ + len + 1);
+  /*
+   * Now build the text Datum.  For simplicity we build a 4-byte-header
+   * varlena text Datum here, but we expect it will get converted to short
+   * header format when stored in the index.
+   */
+  item = (text *)palloc(VARHDRSZ + len + 1);
+  SET_VARSIZE(item, VARHDRSZ + len + 1);
 
-    *VARDATA(item) = flag;
+  *VARDATA(item) = flag;
 
-    memcpy(VARDATA(item) + 1, str, len);
+  memcpy(VARDATA(item) + 1, str, len);
 
-    return PointerGetDatum(item);
+  return PointerGetDatum(item);
 }
 
 /*
@@ -491,64 +439,60 @@ static Datum make_text_key(char flag, const char *str, int len)
  * or if it is a string array element (since we pretend those are keys,
  * see jsonb.h).
  */
-static Datum make_scalar_key(const gtype_value *scalarVal, bool is_key)
-{
-    Datum item = 0;
-    char *cstr = NULL;
-    char buf[MAXINT8LEN + 1];
-    switch (scalarVal->type)
-    {
-    case AGTV_NULL:
-        Assert(!is_key);
-        item = make_text_key(GT_GIN_FLAG_NULL, "", 0);
-        break;
-    case AGTV_INTEGER:
-    {
-        char *result;
+static Datum make_scalar_key(const gtype_value *scalarVal, bool is_key) {
+  Datum item = 0;
+  char *cstr = NULL;
+  char buf[MAXINT8LEN + 1];
+  switch (scalarVal->type) {
+  case AGTV_NULL:
+    Assert(!is_key);
+    item = make_text_key(GT_GIN_FLAG_NULL, "", 0);
+    break;
+  case AGTV_INTEGER: {
+    char *result;
 
-        Assert(!is_key);
+    Assert(!is_key);
 
-        pg_lltoa(scalarVal->val.int_value, buf);
+    pg_lltoa(scalarVal->val.int_value, buf);
 
-        result = pstrdup(buf);
-        item = make_text_key(GT_GIN_FLAG_NUM, result, strlen(result));
-        break;
-    }
-    case AGTV_FLOAT:
-        Assert(!is_key);
-        cstr = float8out_internal(scalarVal->val.float_value);
-        item = make_text_key(GT_GIN_FLAG_NUM, cstr, strlen(cstr));
-        break;
-    case AGTV_BOOL:
-        Assert(!is_key);
-        item = make_text_key(GT_GIN_FLAG_BOOL,
-                             scalarVal->val.boolean ? "t" : "f", 1);
-        break;
-    case AGTV_NUMERIC:
-        Assert(!is_key);
-        /*
-         * A normalized textual representation, free of trailing zeroes,
-         * is required so that numerically equal values will produce equal
-         * strings.
-         *
-         * It isn't ideal that numerics are stored in a relatively bulky
-         * textual format.  However, it's a notationally convenient way of
-         * storing a "union" type in the GIN B-Tree, and indexing Jsonb
-         * strings takes precedence.
-         */
-        cstr = numeric_normalize(scalarVal->val.numeric);
-        item = make_text_key(GT_GIN_FLAG_NUM, cstr, strlen(cstr));
-        pfree(cstr);
-        break;
-    case AGTV_STRING:
-        item = make_text_key(is_key ? GT_GIN_FLAG_KEY : GT_GIN_FLAG_STR,
-                             scalarVal->val.string.val,
-                             scalarVal->val.string.len);
-        break;
-    default:
-        elog(ERROR, "unrecognized gtype type: %d", scalarVal->type);
-        break;
-    }
+    result = pstrdup(buf);
+    item = make_text_key(GT_GIN_FLAG_NUM, result, strlen(result));
+    break;
+  }
+  case AGTV_FLOAT:
+    Assert(!is_key);
+    cstr = float8out_internal(scalarVal->val.float_value);
+    item = make_text_key(GT_GIN_FLAG_NUM, cstr, strlen(cstr));
+    break;
+  case AGTV_BOOL:
+    Assert(!is_key);
+    item =
+        make_text_key(GT_GIN_FLAG_BOOL, scalarVal->val.boolean ? "t" : "f", 1);
+    break;
+  case AGTV_NUMERIC:
+    Assert(!is_key);
+    /*
+     * A normalized textual representation, free of trailing zeroes,
+     * is required so that numerically equal values will produce equal
+     * strings.
+     *
+     * It isn't ideal that numerics are stored in a relatively bulky
+     * textual format.  However, it's a notationally convenient way of
+     * storing a "union" type in the GIN B-Tree, and indexing Jsonb
+     * strings takes precedence.
+     */
+    cstr = numeric_normalize(scalarVal->val.numeric);
+    item = make_text_key(GT_GIN_FLAG_NUM, cstr, strlen(cstr));
+    pfree(cstr);
+    break;
+  case AGTV_STRING:
+    item = make_text_key(is_key ? GT_GIN_FLAG_KEY : GT_GIN_FLAG_STR,
+                         scalarVal->val.string.val, scalarVal->val.string.len);
+    break;
+  default:
+    elog(ERROR, "unrecognized gtype type: %d", scalarVal->type);
+    break;
+  }
 
-    return item;
+  return item;
 }
