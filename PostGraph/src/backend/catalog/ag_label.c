@@ -83,6 +83,9 @@ void insert_label(const char *label_name, Oid graph_oid, int32 label_id,
 
   values[Anum_ag_label_relation - 1] = ObjectIdGetDatum(label_relation);
   nulls[Anum_ag_label_relation - 1] = false;
+
+    values[Anum_ag_label_relation] = NULL;
+    nulls[Anum_ag_label_relation] = true;
   /*
       if (strcmp(label_name, "_ag_label_vertex") == 0 || strcmp(label_name,
      "_ag_label_edge") == 0) { values[5] = DirectFunctionCall1(ltree_in,

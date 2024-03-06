@@ -232,7 +232,7 @@ $<$<NOT:$<BOOL:${_ext_REQUIRES}>>:#>requires = '$<JOIN:${_ext_REQUIRES},$<COMMA>
                     COMMAND
                     ${PG_REGRESS} --temp-instance=${CMAKE_BINARY_DIR}/tmp_check
                     --inputdir=${CMAKE_CURRENT_SOURCE_DIR}
-                    --outputdir=${CMAKE_CURRENT_BINARY_DIR} --load-extension=${NAME}
+                    --outputdir=${CMAKE_CURRENT_BINARY_DIR} --load-extension=ltree --load-extension=${NAME}
                     ${_ext_REGRESS})
         endif()
 

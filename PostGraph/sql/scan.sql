@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+CREATE EXTENSION ltree;
 SET extra_float_digits = 0;
 LOAD 'postgraph';
 SET search_path TO postgraph;
@@ -41,7 +41,7 @@ SELECT * FROM cypher('scan', $$
 /* unterminated /* comment
 RETURN 0
 $$) AS t(a int);
--- recover syntax highlighting */
+-- recover syntax highlighting */ */
 
 --
 -- single-line comment
@@ -246,9 +246,7 @@ CREATE DATABASE contrib_regression_age_euc_kr
   TEMPLATE template0
   ENCODING EUC_KR
   LC_COLLATE 'C' LC_CTYPE 'C';
-
 \c contrib_regression_age_euc_kr
-CREATE EXTENSION postgis;
 CREATE EXTENSION ltree;
 CREATE EXTENSION postgraph;
 LOAD 'postgraph';
@@ -261,7 +259,7 @@ $$) AS t(a text);
 
 SELECT drop_graph('scan', true);
 
-\c contrib_regression
+\c regression
 
 DROP DATABASE contrib_regression_age_euc_kr;
 

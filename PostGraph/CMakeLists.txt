@@ -11,7 +11,6 @@ enable_testing()
 find_package(PostgreSQL REQUIRED)
 find_package(PostGIS REQUIRED)
 
-
 execute_process(COMMAND perl -I ${CMAKE_BINARY_DIR}/../PostGraph/tools ${CMAKE_BINARY_DIR}/../PostGraph/tools/gen_keywordlist.pl --extern --varname CypherKeyword --output ${CMAKE_BINARY_DIR}/../PostGraph/src/include/parser/ ${CMAKE_BINARY_DIR}/../PostGraph/src/include/parser/cypher_kwlist.h)
 
 find_package(BISON)
@@ -35,6 +34,33 @@ add_postgresql_extension(
         SCRIPTS postgraph--0.1.0.sql
         VERSION 0.1.0
         SHARED_PRELOAD ON
+        REGRESS scan
+          graphid
+          gtype
+	      network
+          temporal
+          range
+          vertex
+          edge
+          variable_edge
+          traversal
+          catalog
+          cypher
+          lists
+          expr
+	      vector
+          cypher_create
+          cypher_match
+          cypher_unwind
+          cypher_set
+          cypher_remove
+          cypher_delete
+          cypher_with
+          cypher_vle
+          cypher_union
+          cypher_merge
+          cypher_call
+          order_by
         SOURCES src/backend/postgraph.c
             src/backend/access/ivfbuild.c
             src/backend/access/ivfflat.c

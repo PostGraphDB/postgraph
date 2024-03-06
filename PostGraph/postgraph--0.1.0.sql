@@ -69,7 +69,7 @@ CREATE TABLE ag_label (
     id label_id, 
     kind label_kind, 
     relation regclass NOT NULL, 
-    label_path public.ltree NOT NULL,
+    label_path public.ltree NULL,
     CONSTRAINT fk_graph_oid FOREIGN KEY(graph) REFERENCES ag_graph(graphid)
 );
 

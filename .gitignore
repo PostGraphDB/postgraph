@@ -5,3 +5,7 @@ build.sh
 .deps
 .DS_Store
 .vscode
+/instance/
+/log/
+/results/
+regression.*

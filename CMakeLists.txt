@@ -10,9 +10,7 @@ include(Common)
 add_subdirectory_once(misc/inja)
 add_subdirectory_once(PostGraph)
 
-include_directories(${PostgreSQL_INCLUDE_DIRS}
-        ${PostgreSQL_SERVER_INCLUDE_DIRS})
-
+include_directories(${PostgreSQL_INCLUDE_DIRS} ${PostgreSQL_SERVER_INCLUDE_DIRS})
 
 include(CPM)
 CPMAddPackage(
