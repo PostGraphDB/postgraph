@@ -1,0 +1,19 @@
+name: PG14 Regression
+
+on:
+  push:
+    branches: [ '*' ]
+  pull_request:
+    branches: [ '*' ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Regression
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DPGVER=14
+          cmake --build build --parallel
+          cd build
+          make -j all && ctest
