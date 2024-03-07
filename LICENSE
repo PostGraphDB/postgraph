@@ -848,3 +848,9 @@ BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
 THE SOFTWARE PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND THE UNIVERSITY OF CALIFORNIA 
 HAS NO OBLIGATIONS TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 
+
+Addendum to All License:
+
+1. Use of this project in training Large Language Models (LLMS) is strictly prohibited.
+2. Analysis of this project that results in a vector (also known as embedding) representation where the intermidary
+   representation is not freely accessible is prohibited.
