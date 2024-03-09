@@ -242,11 +242,11 @@ $$) AS t(a text);
 
 -- unsupported Unicode escape value (the server encoding is not UTF8)
 
-CREATE DATABASE contrib_regression_age_euc_kr
+CREATE DATABASE regression_euc_kr
   TEMPLATE template0
   ENCODING EUC_KR
   LC_COLLATE 'C' LC_CTYPE 'C';
-\c contrib_regression_age_euc_kr
+\c regression_euc_kr
 CREATE EXTENSION ltree;
 CREATE EXTENSION postgraph;
 LOAD 'postgraph';
@@ -261,7 +261,7 @@ SELECT drop_graph('scan', true);
 
 \c regression
 
-DROP DATABASE contrib_regression_age_euc_kr;
+DROP DATABASE regression_euc_kr;
 
 LOAD 'postgraph';
 SET search_path TO postgraph;

@@ -45,7 +45,7 @@
 #include "utils/syscache.h"
 
 // PostGIS
-// #include "liblwgeom/liblwgeom.h"
+#include "liblwgeom/liblwgeom.h"
 
 // PostGraph
 #include "catalog/ag_namespace.h"
@@ -557,10 +557,10 @@ struct gtype_value {
     POLYGON *polygon;
     CIRCLE *circle;
     BOX *box;
-    /*GBOX gbox;
+    GBOX gbox;
     BOX3D box3d;
     SPHEROID spheroid;
-    GSERIALIZED *gserialized;*/
+    GSERIALIZED *gserialized;
     TSVector tsvector;
     TSQuery tsquery;
     RangeType *range;
@@ -681,7 +681,8 @@ gtype_value *gtype_vector_in(char *str, int32 typmod);
 char *gtype_to_cstring(StringInfo out, gtype_container *in, int estimated_len);
 char *gtype_to_cstring_indent(StringInfo out, gtype_container *in,
                               int estimated_len);
-
+Datum PostGraphDirectFunctionCall2(PGFunction func, Oid collation,
+                                   bool *is_null, Datum arg1, Datum arg2);
 Datum gtype_from_cstring(char *str, int len);
 bool is_gtype_numeric(gtype *agt);
 

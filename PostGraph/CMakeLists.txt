@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.25.1)
-project(PostGraph)
+project(postgraph)
 
 include(CTest)
 include(CheckIncludeFile)
 
 list(PREPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/../cmake)
-
+option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 enable_testing()
 
 find_package(PostgreSQL REQUIRED)
@@ -26,6 +26,13 @@ ADD_FLEX_BISON_DEPENDENCY(CypherScanner CypherParser)
 include_directories(${CMAKE_BINARY_DIR}/../PostGraph/src/include)
 include_directories(${PostgreSQL_INCLUDE_DIRS}
         ${PostgreSQL_SERVER_INCLUDE_DIRS})
+
+include_directories(${POSTGIS_DIR_VERSION}/proj/proj-9.3.1/src)
+include_directories(${POSTGIS_DIR_VERSION}/postgis-${POSTGIS_VER})
+include_directories(${POSTGIS_DIR_VERSION}/postgis-${POSTGIS_VER}/postgis)
+include_directories(${POSTGIS_DIR_VERSION}/postgis-${POSTGIS_VER}/liblwgeom)
+
+
 
 add_postgresql_extension(
         postgraph
@@ -112,6 +119,7 @@ add_postgresql_extension(
             src/backend/utils/adt/gtype_tsearch.c
             src/backend/utils/adt/gtype_typecasting.c
             src/backend/utils/adt/gtype_geometric.c
+		    src/backend/utils/adt/gtype_postgis.c
             src/backend/utils/adt/gtype_util.c
             src/backend/utils/path_finding/global_graph.c
             src/backend/utils/path_finding/dfs.c
@@ -124,4 +132,11 @@ add_postgresql_extension(
             src/backend/utils/adt/vertex.c
             src/backend/utils/ag_func.c
             src/backend/utils/cache/ag_cache.c )
+
+
+
+add_library(pgis SHARED ${PostgreSQL_LIBRARY_DIRS}/postgresql/postgis-3.so)
+
+set_target_properties(pgis PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(postgraph PUBLIC "-Wl,-l'${PostgreSQL_LIBRARY_DIRS}/postgresql/postgis-3.so'")
 

@@ -641,7 +641,6 @@ Datum gtype_tobox(PG_FUNCTION_ARGS) {
 
   PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
-/*
 
 PG_FUNCTION_INFO_V1(gtype_tobox2d);
 Datum gtype_tobox2d(PG_FUNCTION_ARGS)
@@ -713,7 +712,7 @@ DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, agt, "geometry"));
 
     PG_RETURN_POINTER(gtype_value_to_gtype(&gtv));
 }
-*/
+
 
 PG_FUNCTION_INFO_V1(gtype_totsvector);
 /*
@@ -1309,7 +1308,6 @@ Datum gtype_to_box(PG_FUNCTION_ARGS) {
   PG_RETURN_DATUM(d);
 }
 
-/*
 PG_FUNCTION_INFO_V1(gtype_to_geometry);
 // gtype -> geometry
 Datum
@@ -1357,7 +1355,7 @@ gtype_to_box2d(PG_FUNCTION_ARGS) {
 
     PG_RETURN_DATUM(d);
 }
-*/
+
 PG_FUNCTION_INFO_V1(gtype_to_tsvector);
 // gtype -> tsvector
 Datum gtype_to_tsvector(PG_FUNCTION_ARGS) {
@@ -1543,7 +1541,7 @@ Datum polygon_to_gtype(PG_FUNCTION_ARGS) {
 
   AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
-/*
+
 PG_FUNCTION_INFO_V1(box_to_gtype);
 //box -> gtype
 Datum
@@ -1566,7 +1564,7 @@ geometry_to_gtype(PG_FUNCTION_ARGS) {
     gtv.val.gserialized = PG_GETARG_POINTER(0);
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
-}*/
+}
 
 PG_FUNCTION_INFO_V1(tsvector_to_gtype);
 // tsvector -> gtype
@@ -2086,8 +2084,8 @@ Datum gtype_to_macaddr8_internal(gtype_value *gtv) {
   return CStringGetDatum("");
 }
 
-// PG_FUNCTION_INFO_V1(BOX3D_to_BOX);
-// PG_FUNCTION_INFO_V1(LWGEOM_to_BOX);
+PG_FUNCTION_INFO_V1(BOX3D_to_BOX);
+PG_FUNCTION_INFO_V1(LWGEOM_to_BOX);
 
 Datum gtype_to_box_internal(gtype_value *gtv) {
   if (gtv->type == AGTV_BOX) {
@@ -2107,7 +2105,6 @@ Datum gtype_to_box_internal(gtype_value *gtv) {
   return CStringGetDatum("");
 }
 
-/*
 PG_FUNCTION_INFO_V1(BOX3D_to_BOX2D);
 PG_FUNCTION_INFO_V1(LWGEOM_to_BOX2D);
 
@@ -2188,8 +2185,8 @@ PointerGetDatum(gtv->val.polygon)); }  else cannot_cast_gtype_value(gtv->type,
     // unreachable
     return CStringGetDatum("");
 }
-*/
-// PG_FUNCTION_INFO_V1(geometry_to_point);
+
+PG_FUNCTION_INFO_V1(geometry_to_point);
 
 Datum gtype_to_point_internal(gtype_value *gtv) {
   if (gtv->type == AGTV_POINT) {
@@ -2231,15 +2228,15 @@ Datum gtype_to_line_internal(gtype_value *gtv) {
   return CStringGetDatum("");
 }
 
-// PG_FUNCTION_INFO_V1(geometry_to_path);
+PG_FUNCTION_INFO_V1(geometry_to_path);
 
 Datum gtype_to_path_internal(gtype_value *gtv) {
   if (gtv->type == AGTV_PATH) {
     return PointerGetDatum(gtv->val.path);
-  } /*else if (gtv->type == AGTV_GSERIALIZED){
+  } else if (gtv->type == AGTV_GSERIALIZED){
       return DirectFunctionCall1(geometry_to_path,
   CStringGetDatum(gtv->val.gserialized));
-  } */
+  }
   else if (gtv->type == AGTV_STRING) {
     return DirectFunctionCall1(path_in, CStringGetDatum(gtv->val.string.val));
   } else
@@ -2249,15 +2246,15 @@ Datum gtype_to_path_internal(gtype_value *gtv) {
   return CStringGetDatum("");
 }
 
-// PG_FUNCTION_INFO_V1(geometry_to_polygon);
+PG_FUNCTION_INFO_V1(geometry_to_polygon);
 
 Datum gtype_to_polygon_internal(gtype_value *gtv) {
   if (gtv->type == AGTV_POLYGON) {
     return PointerGetDatum(gtv->val.polygon);
-  } /*else if (gtv->type == AGTV_GSERIALIZED){
+  } else if (gtv->type == AGTV_GSERIALIZED){
       return DirectFunctionCall1(geometry_to_polygon,
   CStringGetDatum(gtv->val.gserialized));
-  } */
+  }
   else if (gtv->type == AGTV_STRING) {
     return DirectFunctionCall1(poly_in, CStringGetDatum(gtv->val.string.val));
   } else
