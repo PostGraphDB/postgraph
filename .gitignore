@@ -1,3 +1,5 @@
 /results/
 *.o
 *.so
+.pg/
+build/
