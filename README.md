@@ -5,9 +5,6 @@
  <img src="/logo.png">
 </p>
 
-# NOTE: The primary contributor to this repo is putting it on hold, temporary, to focus on [Omnigres](https://github.com/omnigres/omnigres) 
-Check that project out and give it a star! Updates on this repo are going to be sporadic for a while. 
-
 ## Introduction
 PostGraph is a multi-model, graph centric query engine build on Postgres. PostGraph is designed to work fast with your OLTP, OLAP and AI Applications.
 
