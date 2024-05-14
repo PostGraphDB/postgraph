@@ -137,6 +137,14 @@ if(NOT DEFINED PG_CONFIG)
             string(APPEND extra_configure_args " --enable-debug --enable-cassert")
         endif()
 
+        if(BUILD_TYPE STREQUAL "RelWithDebInfo")
+            set(ENV{CFLAGS} "$ENV{CFLAGS} ${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+        elseif(BUILD_TYPE STREQUAL "Release")
+            set(ENV{CFLAGS} "$ENV{CFLAGS} ${CMAKE_C_FLAGS_RELEASE}")
+	else()
+  	    set(ENV{CFLAGS} "-ggdb -O0")
+        endif()
+
         execute_process(
                 COMMAND bash -c "./configure ${extra_configure_args} --prefix \"${PGDIR_VERSION}/build\" --without-icu --with-ssl=openssl"
                 WORKING_DIRECTORY "${PGDIR_VERSION}/postgresql-${PGVER_ALIAS}"

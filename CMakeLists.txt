@@ -11,6 +11,8 @@ enable_testing()
 
 include_directories(${PostgreSQL_INCLUDE_DIRS} ${PostgreSQL_SERVER_INCLUDE_DIRS})
 
+include_directories(".")
+
 find_package(PostgreSQL REQUIRED)
 
 add_postgresql_extension(
@@ -21,4 +23,10 @@ add_postgresql_extension(
         VERSION 0.0.1
         SHARED_PRELOAD ON
         SOURCES postgraph.c
+        graphmaster.c
+	pgraphcomm.c
+	pgraph_bootstrap.c
+	pgraph_miscinit.c
+        postgraph_tcop.c
+	postgraph_postinit.c
 )

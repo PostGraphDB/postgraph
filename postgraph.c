@@ -20,11 +20,29 @@
 
 #include "fmgr.h"
 
+#include "postmaster/bgworker.h"
+#include "miscadmin.h"
 PG_MODULE_MAGIC;
 
 void _PG_init(void);
 
 void _PG_init(void) {
+        if (!process_shared_preload_libraries_in_progress)
+                return;
+
+
+	BackgroundWorkerHandle *bgw_handle;
+	BackgroundWorker bgw = {.bgw_name = "graphmaster",
+		.bgw_type = "graphmaster",
+		.bgw_library_name = "postgraph",
+		.bgw_function_name = "graphmaster_start_new",
+		.bgw_flags = BGWORKER_SHMEM_ACCESS | BGWORKER_BACKEND_DATABASE_CONNECTION,
+		.bgw_start_time = BgWorkerStart_RecoveryFinished};
+        bgw.bgw_restart_time = BGW_NEVER_RESTART;
+        bgw.bgw_notify_pid = 0;
+	bgw.bgw_main_arg = ObjectIdGetDatum(1);
+	RegisterBackgroundWorker(&bgw);
+	//RegisterDynamicBackgroundWorker(&bgw, NULL);
 }
 
 void _PG_fini(void);
