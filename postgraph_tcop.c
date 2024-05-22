@@ -3956,12 +3956,17 @@ PostGraphMain(int argc, char *argv[],
 {
 	sigjmp_buf	local_sigjmp_buf;
 
+	ereport(LOG, errmsg("PostGraphMain"));
 	/* these must be volatile to ensure state is preserved across longjmp: */
 	volatile bool send_ready_for_query = true;
 	volatile bool idle_in_transaction_timeout_enabled = false;
 	volatile bool idle_session_timeout_enabled = false;
-
-	/* Initialize startup process environment if necessary. */
+//MemoryContextCheck(TopMemoryContext);
+	//MemoryContextReset(TopMemoryContext);
+//MemoryContextResetChildren(TopMemoryContext);
+//TopMemoryContext = NULL;
+//MemoryContextInit();
+/* Initialize startup process environment if necessary. */
 	if (!IsUnderPostmaster)
 		InitStandaloneProcess(argv[0]);
 
@@ -4084,18 +4089,17 @@ PostGraphMain(int argc, char *argv[],
 	 * this before we can use LWLocks (and in the EXEC_BACKEND case we already
 	 * had to do some stuff with LWLocks).
 	 */
-	/*
+	IsUnderPostmaster = false;
 #ifdef EXEC_BACKEND
 	if (!IsUnderPostmaster) {
 		MyProc = NULL;
-		InitProcess();
+		PostGraphInitProcess();
 	}
 #else
 	MyProc = NULL;
-	InitProcess();
+	PostGraphInitProcess();
 #endif
-*/
-
+IsUnderPostmaster = true;
 	/* We need to allow SIGINT, etc during the initial transaction */
 	PG_SETMASK(&UnBlockSig);
 
@@ -4107,7 +4111,7 @@ PostGraphMain(int argc, char *argv[],
 	 * involves database access should be there, not here.
 	 */
 	InitPostGraph(dbname, InvalidOid, username, InvalidOid, NULL, false);
-
+//MemoryContextCheck(TopMemoryContext);
 	/*
 	 * If the PostmasterContext is still around, recycle the space; we don't
 	 * need it anymore after InitPostGraph completes.  Note this does not trash

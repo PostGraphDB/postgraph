@@ -324,21 +324,12 @@ PostGraphAuxiliaryProcessMain(int argc, char *argv[])
 			MyBackendType = B_STARTUP;
 			break;
 		case ArchiverProcess:
-			MyBackendType = B_ARCHIVER;
-			break;
 		case BgWriterProcess:
-			MyBackendType = B_BG_WRITER;
-			break;
 		case CheckpointerProcess:
-			MyBackendType = B_CHECKPOINTER;
-			break;
 		case WalWriterProcess:
-			MyBackendType = B_WAL_WRITER;
-			break;
 		case WalReceiverProcess:
-			MyBackendType = B_WAL_RECEIVER;
-			break;
 		default:
+			ereport(FATAL, errmsg("PostGraph can only do Startup Processes, not %i" , MyAuxProcType));
 			MyBackendType = B_INVALID;
 	}
 	if (IsUnderGraphmaster)
@@ -401,9 +392,9 @@ PostGraphAuxiliaryProcessMain(int argc, char *argv[])
 		 * this was already done by SubPostmasterMain().
 		 */
 #ifndef EXEC_BACKEND
-		//InitAuxiliaryProcess();
+		InitAuxiliaryProcess();
 #endif
-
+                //InitAuxiliaryProcess();
 		/*
 		 * Assign the ProcSignalSlot for an auxiliary process.  Since it
 		 * doesn't have a BackendId, the slot is statically allocated based on
@@ -445,49 +436,16 @@ PostGraphAuxiliaryProcessMain(int argc, char *argv[])
 //proc_exit(1); 
 	switch (MyAuxProcType)
 	{
-		case CheckerProcess:
-			/* don't set signals, they're useless here */
-			CheckerModeMain();
-			proc_exit(1);		/* should never return */
-
-		case BootstrapProcess:
-
-			/*
-			 * There was a brief instant during which mode was Normal; this is
-			 * okay.  We need to be in bootstrap mode during BootStrapXLOG for
-			 * the sake of multixact initialization.
-			 */
-			SetProcessingMode(BootstrapProcessing);
-			bootstrap_signals();
-			BootStrapXLOG();
-			BootstrapModeMain();
-			proc_exit(1);		/* should never return */
-
 		case StartupProcess:
 			StartupProcessMain();
 			proc_exit(1);
-
+                case CheckerProcess:
+                case BootstrapProcess:
 		case ArchiverProcess:
-			PgArchiverMain();
-			proc_exit(1);
-
 		case BgWriterProcess:
-			BackgroundWriterMain();
-			proc_exit(1);
-
 		case CheckpointerProcess:
-			CheckpointerMain();
-			proc_exit(1);
-
 		case WalWriterProcess:
-			InitXLOGAccess();
-			WalWriterMain();
-			proc_exit(1);
-
 		case WalReceiverProcess:
-			WalReceiverMain();
-			proc_exit(1);
-
 		default:
 			elog(PANIC, "unrecognized process type: %d", (int) MyAuxProcType);
 			proc_exit(1);
@@ -531,7 +489,7 @@ BootstrapModeMain(void)
 	/*
 	 * Do backend-like initialization for bootstrap mode
 	 */
-	InitProcess();
+	PostGraphInitProcess();
 
 	InitPostgres(NULL, InvalidOid, NULL, InvalidOid, NULL, false);
 

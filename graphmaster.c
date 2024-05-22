@@ -406,7 +406,7 @@ static void reset_shared(void);
 static void SIGHUP_handler(SIGNAL_ARGS);
 static void pmdie(SIGNAL_ARGS);
 static void graphmaster_reaper(SIGNAL_ARGS);
-static void sigusr1_handler(SIGNAL_ARGS);
+static void PostGraph_sigusr1_handler(SIGNAL_ARGS);
 static void process_startup_packet_die(SIGNAL_ARGS);
 static void dummy_handler(SIGNAL_ARGS);
 static void StartupPacketTimeoutHandler(void);
@@ -836,7 +836,7 @@ graphmaster_start_new(Datum arg)
                 .bgw_function_name = "graphmaster_start",
                 .bgw_flags = BGWORKER_SHMEM_ACCESS | BGWORKER_BACKEND_DATABASE_CONNECTION,
                 .bgw_start_time = BgWorkerStart_RecoveryFinished};
-        bgw.bgw_restart_time = BGW_NEVER_RESTART;
+        //bgw.bgw_restart_time = BGW_NEVER_RESTART;
         bgw.bgw_notify_pid = 0;
         bgw.bgw_main_arg = ObjectIdGetDatum(1);
 
@@ -846,7 +846,7 @@ graphmaster_start_new(Datum arg)
                                 (errcode(ERRCODE_INSUFFICIENT_RESOURCES),
                                  errmsg("could not start background process"),
                                  errhint("More details may be available in the server log.")));
-
+/*
         BgwHandleStatus status = WaitForBackgroundWorkerStartup(bgw_handle, &pid);
 
         if (status == BGWH_STOPPED)
@@ -868,6 +868,7 @@ graphmaster_start_new(Datum arg)
                                  errmsg("Graphmster has started"),
                                  errhint("More details may be available in the server log.")));
 
+*/
 }
 
 
@@ -883,6 +884,12 @@ graphmaster_start(Datum arg)
 	bool		listen_addr_saved = false;
 	int			i;
 	char	   *output_config_variable = NULL;
+
+        ereport(LOG, errmsg("graphmaster_start"));
+if (!MemoryContextIsValid(CacheMemoryContext))
+	CacheMemoryContext = NULL;
+else
+MemoryContextReset(CacheMemoryContext);// = NULL;
 
         if (!(strcmp(MyBgworkerEntry->bgw_library_name, "postgraph") == 0))
                 return;
@@ -958,7 +965,7 @@ graphmaster_start(Datum arg)
 	pqsignal_pm(SIGTERM, pmdie);	/* wait for children and shut down */
 	pqsignal_pm(SIGALRM, SIG_IGN);	/* ignored */
 	pqsignal_pm(SIGPIPE, SIG_IGN);	/* ignored */
-	pqsignal_pm(SIGUSR1, sigusr1_handler);	/* message from child process */
+	pqsignal_pm(SIGUSR1, PostGraph_sigusr1_handler);	/* message from child process */
 	pqsignal_pm(SIGUSR2, dummy_handler);	/* unused, reserve for children */
 	//pqsignal_pm(SIGCHLD, graphmaster_reaper);	
 	/* handle child termination */
@@ -1090,7 +1097,7 @@ graphmaster_start(Datum arg)
 		char	  **p;
 
 		ereport(DEBUG3,
-				(errmsg_internal("%s: PostmasterMain: initial environment dump:",
+				(errmsg_internal("%s: GraphmasterMain: initial environment dump:",
 								 progname)));
 		ereport(DEBUG3,
 				(errmsg_internal("-----------------------------------------")));
@@ -1101,67 +1108,6 @@ graphmaster_start(Datum arg)
 				(errmsg_internal("-----------------------------------------")));
 	}
 
-	/*
-	 * Create lockfile for data directory.
-	 *
-	 * We want to do this before we try to grab the input sockets, because the
-	 * data directory interlock is more reliable than the socket-file
-	 * interlock (thanks to whoever decided to put socket files in /tmp :-().
-	 * For the same reason, it's best to grab the TCP socket(s) before the
-	 * Unix socket(s).
-	 *
-	 * Also note that this internally sets up the on_proc_exit function that
-	 * is responsible for removing both data directory and socket lockfiles;
-	 * so it must happen before opening sockets so that at exit, the socket
-	 * lockfiles go away after CloseServerPorts runs.
-	 */
-	//CreateDataDirLockFile(true);
-
-	/*
-	 * Read the control file (for error checking and config info).
-	 *
-	 * Since we verify the control file's CRC, this has a useful side effect
-	 * on machines where we need a run-time test for CRC support instructions.
-	 * The postmaster will do the test once at startup, and then its child
-	 * processes will inherit the correct function pointer and not need to
-	 * repeat the test.
-	 */
-	//LocalProcessControlFile(false);
-
-	/*
-	 * Register the apply launcher.  Since it registers a background worker,
-	 * it needs to be called before InitializeMaxBackends(), and it's probably
-	 * a good idea to call it before any modules had chance to take the
-	 * background worker slots.
-	 */
-	//ApplyLauncherRegister();
-
-	/*
-	 * process any libraries that should be preloaded at postmaster start
-	 */
-	//process_shared_preload_libraries();
-
-	/*
-	 * Initialize SSL library, if specified.
-	 */
-#ifdef USE_SSL
-	if (EnableSSL)
-	{
-		(void) secure_initialize(true);
-		LoadedSSL = true;
-	}
-#endif
-
-	/*
-	 * Now that loadable modules have had their chance to register background
-	 * workers, calculate MaxBackends.
-	 */
-	//InitializeMaxBackends();
-
-	/*
-	 * Set up shared memory and semaphores.
-	 */
-	//reset_shared();
 
 	/*
 	 * Estimate number of openable files.  This must happen after setting up
@@ -1207,35 +1153,6 @@ graphmaster_start(Datum arg)
 #endif
 
 	/*
-	 * Forcibly remove the files signaling a standby promotion request.
-	 * Otherwise, the existence of those files triggers a promotion too early,
-	 * whether a user wants that or not.
-	 *
-	 * This removal of files is usually unnecessary because they can exist
-	 * only during a few moments during a standby promotion. However there is
-	 * a race condition: if pg_ctl promote is executed and creates the files
-	 * during a promotion, the files can stay around even after the server is
-	 * brought up to be the primary.  Then, if a new standby starts by using
-	 * the backup taken from the new primary, the files can exist at server
-	 * startup and must be removed in order to avoid an unexpected promotion.
-	 *
-	 * Note that promotion signal files need to be removed before the startup
-	 * process is invoked. Because, after that, they can be used by
-	 * postmaster's SIGUSR1 signal handler.
-	 */
-	RemovePromoteSignalFiles();
-
-	/* Do the same for logrotate signal file */
-	RemoveLogrotateSignalFiles();
-
-	/* Remove any outdated file holding the current log filenames. */
-	if (unlink(LOG_METAINFO_DATAFILE) < 0 && errno != ENOENT)
-		ereport(LOG,
-				(errcode_for_file_access(),
-				 errmsg("could not remove file \"%s\": %m",
-						LOG_METAINFO_DATAFILE)));
-
-	/*
 	 * Initialize input sockets.
 	 *
 	 * Mark them all closed, and set up an on_proc_exit function that's
@@ -1245,11 +1162,6 @@ graphmaster_start(Datum arg)
 		ListenSocket[i] = PGINVALID_SOCKET;
 
 	on_proc_exit(CloseServerPorts, 0);
-
-	/*
-	 * If enabled, start up syslogger collection subprocess
-	 */
-	SysLoggerPID = SysLogger_Start();
 
 	/*
 	 * Reset whereToSendOutput from DestDebug (its starting state) to
@@ -1275,8 +1187,7 @@ graphmaster_start(Datum arg)
 	 * it seems best to do so after starting the log collector, if we intend
 	 * to use one.
 	 */
-	ereport(LOG,
-			(errmsg("starting %s", PG_VERSION_STR)));
+	ereport(LOG, (errmsg("starting Postgraph on %s", PG_VERSION_STR)));
 
 	/*
 	 * Establish input sockets.
@@ -1432,32 +1343,6 @@ graphmaster_start(Datum arg)
 #endif
 
 	/*
-	 * check that we have some socket to listen on
-	 */
-/*
-					bool sstatus = PostGraphStreamServerPort(AF_UNSPEC, NULL,
-										  (unsigned short) 5678,
-										  NULL,
-										  ListenSocket, MAXLISTEN);
-
-									*/  
-									
-	bool socket_status = false;
-	for(int i = 0; i < MAXLISTEN; i++){
-
-		
-if(ListenSocket[i] != PGINVALID_SOCKET) {
-  socket_status = true;
-  break;
-}
-	}
-
-if (!socket_status)
-	//if (ListenSocket[0] == PGINVALID_SOCKET)
-		ereport(FATAL,
-				(errmsg("no socket created for listening")));
-
-	/*
 	 * If no valid TCP ports, write an empty line for listen address,
 	 * indicating the Unix socket must be used.  Note that this line is not
 	 * added to the lock file until there is a socket backing it.
@@ -1489,22 +1374,6 @@ if (!socket_status)
 		on_proc_exit(unlink_external_pid_file, 0);
 	}
 
-	/*
-	 * Remove old temporary files.  At this point there can be no other
-	 * Postgres processes running in this directory, so this should be safe.
-	 */
-	RemovePgTempFiles();
-
-	/*
-	 * Initialize stats collection subsystem (this does NOT start the
-	 * collector process!)
-	 */
-	pgstat_init();
-
-	/*
-	 * Initialize the autovacuum subsystem (again, no process start yet)
-	 */
-	autovac_init();
 
 	/*
 	 * Load configuration files for client authentication.
@@ -1549,31 +1418,28 @@ if (!socket_status)
 	/*
 	 * Remember postmaster startup time
 	 */
-	PgStartTime = GetCurrentTimestamp();
+	//PgStartTime = GetCurrentTimestamp();
 
 	/*
 	 * Report postmaster status in the postmaster.pid file, to allow pg_ctl to
 	 * see what's happening.
 	 */
-	AddToDataDirLockFile(LOCK_FILE_LINE_PM_STATUS, PM_STATUS_STARTING);
+	//AddToDataDirLockFile(LOCK_FILE_LINE_PM_STATUS, PM_STATUS_STARTING);
 
 	/*
 	 * We're ready to rock and roll...
 	 */
-	bool start_here = false;
-	//Assert(start_here);
-
-	StartupPID = StartupDataBase();
-	Assert(StartupPID != 0);
-	StartupStatus = STARTUP_RUNNING;
-	pmState = PM_STARTUP;
+	//StartupPID = StartupDataBase();
+	//Assert(StartupPID != 0);
+	//StartupStatus = STARTUP_RUNNING;
+	//pmState = PM_STARTUP;
 
         //pid_t pid = fork_process();
       //  if (pid == 0)
       /* child */
     //    {
   //             status = GraphmasterServerLoop();
-BackgroundWorkerUnblockSignals();
+//BackgroundWorkerUnblockSignals();
 
 	               /*
          * GraphmasterServerLoop probably shouldn't ever return, but if it does, close down.
@@ -1876,11 +1742,11 @@ GraphmasterServerLoop(void)
 			DetermineSleepTime(&timeout);
 
 			//Assert(false);
-			//PG_SETMASK(&UnBlockSig);
+			PG_SETMASK(&UnBlockSig);
 
 			selres = select(nSockets, &rmask, NULL, NULL, &timeout);
 
-			//PG_SETMASK(&BlockSig);
+			PG_SETMASK(&BlockSig);
 		}
 
 		/* Now check the select() result */
@@ -2873,7 +2739,7 @@ reset_shared(void)
 	 * (if using SysV shmem and/or semas).  This helps ensure that we will
 	 * clean up dead IPC objects if the postmaster crashes and is restarted.
 	 */
-	//CreateSharedMemoryAndSemaphores();
+	CreateSharedMemoryAndSemaphores();
 }
 
 
@@ -2978,6 +2844,10 @@ pmdie(SIGNAL_ARGS)
 	ereport(DEBUG2,
 			(errmsg_internal("postmaster received signal %d",
 							 postgres_signal_arg)));
+
+        ereport(LOG,
+                        (errmsg_internal("graphmaster received signal %d",
+                                                         postgres_signal_arg)));
 
 	switch (postgres_signal_arg)
 	{
@@ -3962,7 +3832,7 @@ LogChildExit(int lev, const char *procname, int pid, int exitstatus)
 /*
  * Advance the postmaster's state machine and take actions as appropriate
  *
- * This is common code for pmdie(), graphmaster_reaper() and sigusr1_handler(), which
+ * This is common code for pmdie(), graphmaster_reaper() and PostGraph_sigusr1_handler(), which
  * receive the signals that might mean we need to change state.
  */
 static void
@@ -4427,19 +4297,24 @@ BackendStartup(Port *port)
 	if (pid == 0)				/* child */
 	{
 		free(bn);
-                //ShutdownLatchSupport();
+                ShutdownLatchSupport();
 
 		/* Detangle from postmaster */
 		InitGraphmasterChild();
 
 		/* Close the postmaster's sockets */
-		//PostGraphClosePostmasterPorts(false);
+		PostGraphClosePostmasterPorts(false);
+                ereport(LOG, errmsg("Child Started"));
 
 		/* Perform additional initialization and collect startup packet */
 		BackendInitialize(port);
 
 		/* And run the backend */
 		BackendRun(port);
+	}
+	else {
+ereport(LOG, errmsg("Parent Continued"));
+
 	}
 #endif							/* EXEC_BACKEND */
 
@@ -5103,7 +4978,7 @@ SubPostmasterMain(int argc, char *argv[])
 	read_backend_variables(argv[2], &port);
 
 	/* Close the postmaster's sockets (as soon as we know them) */
-	//PostGraphClosePostmasterPorts(strcmp(argv[1], "--forklog") == 0);
+	PostGraphClosePostmasterPorts(strcmp(argv[1], "--forklog") == 0);
 
 	/*
 	 * Start our win32 signal implementation. This has to be done after we
@@ -5204,9 +5079,9 @@ SubPostmasterMain(int argc, char *argv[])
 		/*
 		 * Perform additional initialization and collect startup packet.
 		 *
-		 * We want to do this before InitProcess() for a couple of reasons: 1.
+		 * We want to do this before PostGraphInitProcess() for a couple of reasons: 1.
 		 * so that we aren't eating up a PGPROC slot while waiting on the
-		 * client. 2. so that if InitProcess() fails due to being out of
+		 * client. 2. so that if PostGraphInitProcess() fails due to being out of
 		 * PGPROC slots, we have already initialized libpq and are able to
 		 * report the error to the client.
 		 */
@@ -5216,10 +5091,10 @@ SubPostmasterMain(int argc, char *argv[])
 		InitShmemAccess(UsedShmemSegAddr);
 
 		/* Need a PGPROC to run CreateSharedMemoryAndSemaphores */
-		InitProcess();
+		PostGraphInitProcess();
 
 		/* Attach process to shared data structures */
-		//CreateSharedMemoryAndSemaphores();
+		CreateSharedMemoryAndSemaphores();
 
 		/* And run the backend */
 		BackendRun(&port);		/* does not return */
@@ -5233,7 +5108,7 @@ SubPostmasterMain(int argc, char *argv[])
 		InitAuxiliaryProcess();
 
 		/* Attach process to shared data structures */
-		//CreateSharedMemoryAndSemaphores();
+		CreateSharedMemoryAndSemaphores();
 
 		PostGraphAuxiliaryProcessMain(argc - 2, argv + 2);	/* does not return */
 	}
@@ -5243,10 +5118,10 @@ SubPostmasterMain(int argc, char *argv[])
 		InitShmemAccess(UsedShmemSegAddr);
 
 		/* Need a PGPROC to run CreateSharedMemoryAndSemaphores */
-		InitProcess();
+		PostGraphInitProcess();
 
 		/* Attach process to shared data structures */
-		//CreateSharedMemoryAndSemaphores();
+		CreateSharedMemoryAndSemaphores();
 
 		AutoVacLauncherMain(argc - 2, argv + 2);	/* does not return */
 	}
@@ -5256,10 +5131,10 @@ SubPostmasterMain(int argc, char *argv[])
 		InitShmemAccess(UsedShmemSegAddr);
 
 		/* Need a PGPROC to run CreateSharedMemoryAndSemaphores */
-		InitProcess();
+		PostGraphInitProcess();
 
 		/* Attach process to shared data structures */
-		//CreateSharedMemoryAndSemaphores();
+		CreateSharedMemoryAndSemaphores();
 
 		AutoVacWorkerMain(argc - 2, argv + 2);	/* does not return */
 	}
@@ -5267,17 +5142,17 @@ SubPostmasterMain(int argc, char *argv[])
 	{
 		int			shmem_slot;
 
-		/* do this as early as possible; in particular, before InitProcess() */
+		/* do this as early as possible; in particular, before PostGraphInitProcess() */
 		IsBackgroundWorker = true;
 
 		/* Restore basic shared memory pointers */
 		InitShmemAccess(UsedShmemSegAddr);
 
 		/* Need a PGPROC to run CreateSharedMemoryAndSemaphores */
-		InitProcess();
+		PostGraphInitProcess();
 
 		/* Attach process to shared data structures */
-		//CreateSharedMemoryAndSemaphores();
+		CreateSharedMemoryAndSemaphores();
 
 		/* Fetch MyBgworkerEntry from shared memory */
 		shmem_slot = atoi(argv[1] + 15);
@@ -5339,10 +5214,10 @@ ExitPostmaster(int status)
 }
 
 /*
- * sigusr1_handler - handle signal conditions from child processes
+ * PostGraph_sigusr1_handler - handle signal conditions from child processes
  */
 static void
-sigusr1_handler(SIGNAL_ARGS)
+PostGraph_sigusr1_handler(SIGNAL_ARGS)
 {
 	int			save_errno = errno;
 
@@ -5483,7 +5358,7 @@ sigusr1_handler(SIGNAL_ARGS)
 	/*
 	 * Try to advance postmaster's state machine, if a child requests it.
 	 *
-	 * Be careful about the order of this action relative to sigusr1_handler's
+	 * Be careful about the order of this action relative to PostGraph_sigusr1_handler's
 	 * other actions.  Generally, this should be after other actions, in case
 	 * they have effects PostmasterStateMachine would need to know about.
 	 * However, we should do it before the CheckPromoteSignal step, which
@@ -5627,7 +5502,7 @@ StartChildProcess(AuxProcType type)
 	int			ac = 0;
 	char		typebuf[32];
 	bool here = false;
-
+        ereport(LOG, errmsg("StartChildProcess of type %i", type));
 	/*
 	 * Set up command-line arguments for subprocess
 	 */
@@ -5651,6 +5526,8 @@ StartChildProcess(AuxProcType type)
 
 	if (pid == 0)				/* child */
 	{
+	       ereport(LOG, errmsg("StartChildProcess of type %i", type));
+
 		ShutdownLatchSupport();
 		InitGraphmasterChild();
 
@@ -5681,27 +5558,21 @@ StartChildProcess(AuxProcType type)
 			case ArchiverProcess:
 				ereport(LOG,
 						(errmsg("could not fork archiver process: %m")));
-				break;
 			case BgWriterProcess:
 				ereport(LOG,
 						(errmsg("could not fork background writer process: %m")));
-				break;
 			case CheckpointerProcess:
 				ereport(LOG,
 						(errmsg("could not fork checkpointer process: %m")));
-				break;
 			case WalWriterProcess:
 				ereport(LOG,
 						(errmsg("could not fork WAL writer process: %m")));
-				break;
 			case WalReceiverProcess:
 				ereport(LOG,
 						(errmsg("could not fork WAL receiver process: %m")));
-				break;
 			default:
 				ereport(LOG,
 						(errmsg("could not fork process: %m")));
-				break;
 		}
 
 		/*

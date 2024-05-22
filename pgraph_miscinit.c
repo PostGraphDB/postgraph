@@ -128,7 +128,7 @@ InitGraphmasterChild(void)
 	InitializeLatchSupport();
 	MyLatch = &LocalLatchData;
 	InitLatch(MyLatch);
-	//InitializeLatchWaitSet();
+	InitializeLatchWaitSet();
 
 	/*
 	 * If possible, make this process a group leader, so that the postmaster
@@ -173,7 +173,7 @@ PostGraphInitStandaloneProcess(const char *argv0)
 	InitializeLatchSupport();
 	MyLatch = &LocalLatchData;
 	InitLatch(MyLatch);
-	//InitializeLatchWaitSet();
+	InitializeLatchWaitSet();
 
 	/*
 	 * For consistency with InitGraphmasterChild, initialize signal mask here.

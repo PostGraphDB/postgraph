@@ -568,7 +568,7 @@ BaseInit(void)
  * able to read pg_database; it doesn't connect to any particular database.
  * In walsender mode only username is used.
  *
- * As of PostgreSQL 8.2, we expect InitProcess() was already called, so we
+ * As of PostgreSQL 8.2, we expect PostGraphInitProcess() was already called, so we
  * already have a PGPROC struct ... but it's not completely filled in yet.
  *
  * Note:
@@ -591,8 +591,11 @@ InitPostGraph(const char *in_dbname, Oid dboid, const char *username,
 	 *
 	 * Once I have done this, I am visible to other backends!
 	 */
-	InitProcessPhase2();
-
+	elog(LOG, "InitPostGraph, PostGraphInitProcessPhase2");
+MemoryContextCheck(TopMemoryContext);
+	//Fails after crash, may need to bring back
+	PostGraphInitProcessPhase2();
+MemoryContextCheck(TopMemoryContext);
 	/*
 	 * Initialize my entry in the shared-invalidation manager's array of
 	 * per-backend data.
@@ -640,7 +643,9 @@ InitPostGraph(const char *in_dbname, Oid dboid, const char *username,
 		 * This is handled by calling RecoveryInProgress and ignoring the
 		 * result.
 		 */
-		(void) RecoveryInProgress();
+		ereport(LOG, errmsg("PostGraph is getting XLog Access"));
+                InitXLOGAccess();
+		//(void) RecoveryInProgress();
 	}
 	else
 	{
@@ -654,7 +659,7 @@ InitPostGraph(const char *in_dbname, Oid dboid, const char *username,
 		 * (and register a callback to clean it up after ShutdownXLOG runs).
 		 */
 		CreateAuxProcessResourceOwner();
-
+                ereport(LOG, errmsg("PostGraph is Starting XLog"));
 		StartupXLOG();
 		/* Release (and warn about) any buffer pins leaked in StartupXLOG */
 		ReleaseAuxProcessResources(true);
@@ -1038,7 +1043,10 @@ InitPostGraph(const char *in_dbname, Oid dboid, const char *username,
 	 * Load relcache entries for the system catalogs.  This must create at
 	 * least the minimum set of "nailed-in" cache entries.
 	 */
+//MemoryContextCheck(TopMemoryContext);
+        //RelationMapInitializePhase2();
 	RelationCacheInitializePhase3();
+//MemoryContextCheck(TopMemoryContext);
 
 	/* set up ACL framework (so CheckMyDatabase can check permissions) */
 	initialize_acl();
@@ -1088,6 +1096,7 @@ InitPostGraph(const char *in_dbname, Oid dboid, const char *username,
 	/* close the transaction we started above */
 	if (!bootstrap)
 		CommitTransactionCommand();
+
 }
 
 /*

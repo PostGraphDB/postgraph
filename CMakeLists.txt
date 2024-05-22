@@ -29,4 +29,5 @@ add_postgresql_extension(
 	pgraph_miscinit.c
         postgraph_tcop.c
 	postgraph_postinit.c
+	pgraph_proc.c
 )

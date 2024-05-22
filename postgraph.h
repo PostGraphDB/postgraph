@@ -21,7 +21,10 @@ void
 PostGraphMain(int argc, char *argv[],
                          const char *dbname,
                          const char *username);
-
+void
+PostGraphInitProcess(void);
+void
+PostGraphInitProcessPhase2(void);
 void
 InitPostGraph(const char *in_dbname, Oid dboid, const char *username,
                          Oid useroid, char *out_dbname, bool override_allow_connections);
