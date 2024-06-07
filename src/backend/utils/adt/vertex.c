@@ -27,6 +27,7 @@
 #include "nodes/execnodes.h"
 #include "utils/array.h"
 #include "utils/fmgrprotos.h"
+#include "utils/hsearch.h"
 #include "utils/memutils.h"
 #include "utils/varlena.h"
 
@@ -37,6 +38,8 @@
 #include "utils/ag_cache.h"
 
 static void append_to_buffer(StringInfo buffer, const char *data, int len);
+
+static HTAB *vertex_labels = NULL;
 
 /*
  * I/O routines for vertex type
@@ -633,18 +636,85 @@ append_to_buffer(StringInfo buffer, const char *data, int len) {
     memcpy(buffer->data + offset, data, len);
 }
 
+typedef struct label_key {
+   Oid graph_oid;
+   int32 label_id;
+} label_key;
+
+typedef struct label_entry {
+  label_key key;
+  char *label;
+} label_entry;
+
+static uint32 label_key_hash(const void *key, Size keysize) {
+  label_key *lkey = key;
+  return lkey->graph_oid + lkey->label_id;
+}
+
+static int label_key_cmp(const void *key1, const void *key2, size_t len) {
+  label_key *lkey1 = key1;
+  label_key *lkey2 = key2;
+
+  if (lkey1->graph_oid > lkey2->graph_oid) {
+    return 1;
+  } else if (lkey1->graph_oid > lkey2->graph_oid) {
+    return -1;
+  }
+
+  if (lkey1->label_id > lkey2->label_id) {
+    return 1;
+  } else if (lkey1->label_id < lkey2->label_id) {
+    return -1;
+  }
+
+  return 0;
+}
+
+
+HASHCTL labels_info = {
+	.keysize = sizeof(label_key),
+	.entrysize = sizeof(label_entry),
+        .hash = label_key_hash,
+	.match = label_key_cmp,
+	.keycopy = memcpy
+};
+
 char *
 extract_vertex_label(vertex *v) {
     graphid id = EXTRACT_VERTEX_ID(v);
     int32 label_id = get_graphid_label_id(id);
 
     Oid graph_oid = EXTRACT_VERTEX_GRAPH_OID(v);
+    label_key key = { .graph_oid=graph_oid, .label_id=label_id};
+
+    if (!vertex_labels) {
+       vertex_labels = hash_create("vertex label hash", 1000, &labels_info, HASH_ELEM | HASH_FUNCTION | HASH_COMPARE | HASH_KEYCOPY);
+    }
+
+    bool found;
+    label_entry *lentry = hash_search(vertex_labels, &key, HASH_ENTER, &found);
+
+    if (found) {
+      return lentry->label;
+    }
 
     label_cache_data *cache_data = search_label_graph_oid_cache(graph_oid, label_id);
     char *label = NameStr(cache_data->name);
 
-    if (IS_AG_DEFAULT_LABEL(label))
+    if (IS_AG_DEFAULT_LABEL(label)) {
+	    lentry->label = "";
 	    return "";
+    }
+
+    MemoryContext oldcontext = MemoryContextSwitchTo(TopMemoryContext);
+
+    int len = strlen(label) + 1;
+    char *l = palloc0(len * sizeof(char));
+    memcpy(l, label, len);
+
+    //label_entry *e = hash_search(vertex_labels, &key, HASH_ENTER, &found);
+    lentry->label = l;
+    MemoryContextSwitchTo(oldcontext);
 
     return label;
 }
