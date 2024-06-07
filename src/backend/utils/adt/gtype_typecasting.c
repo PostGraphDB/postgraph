@@ -45,6 +45,7 @@
 // PostGraph
 #include "utils/gtype.h"
 #include "utils/gtype_typecasting.h"
+#include "utils/vector.h"
 
 #define int8_to_int4 int84
 #define int8_to_int2 int82
@@ -413,11 +414,13 @@ Datum tovector(PG_FUNCTION_ARGS)
     if (gtv->type != AGTV_STRING)
         ereport(ERROR,
                 (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-                 errmsg("typecastint to vector must be a string")));
+                 errmsg("typecasting to vector must be a string")));
 
-    gtv = gtype_vector_in(gtv->val.string.val, -1);
+    gtype_value *result = gtype_vector_in(gtv->val.string.val, -1);
+//PG_RETURN_POINTER(result);
+    Assert(result->type == AGTV_VECTOR);
 
-    PG_RETURN_POINTER(gtype_value_to_gtype(gtv));
+    PG_RETURN_POINTER(gtype_value_to_gtype(result));
 }
 
 Datum _gtype_toinet(Datum arg){

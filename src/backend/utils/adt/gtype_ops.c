@@ -33,6 +33,7 @@
 
 #include "utils/gtype.h"
 #include "utils/gtype_typecasting.h"
+#include "utils/vector.h"
 
 static void ereport_op_str(const char *op, gtype *lhs, gtype *rhs);
 static gtype *gtype_concat(gtype *agt1, gtype *agt2);

@@ -51,7 +51,14 @@
 #include "catalog/ag_namespace.h"
 #include "catalog/pg_type.h"
 #include "utils/graphid.h"
-#include "utils/vector.h"
+//#include "utils/vector.h"
+
+typedef struct Vector
+{
+    uint16 dim;    // number of dimensions
+    float8 *x;
+} Vector;
+
 
 /* Tokens used when sequentially processing an gtype value */
 typedef enum

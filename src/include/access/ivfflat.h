@@ -14,7 +14,7 @@
 #include "port.h"				/* for random() */
 #include "utils/sampling.h"
 #include "utils/tuplesort.h"
-//#include "utils/vector.h"
+#include "utils/vector.h"
 #include "utils/gtype.h"
 #if PG_VERSION_NUM >= 150000
 #include "common/pg_prng.h"
@@ -27,6 +27,8 @@
 #ifdef IVFFLAT_BENCH
 #include "portability/instr_time.h"
 #endif
+
+
 
 #define IVFFLAT_MAX_DIM 2000
 
