@@ -46,11 +46,11 @@ InitVectorGType(int dim)
 {
   //  int size = VECTOR_SIZE(dim) + sizeof(enum gtype_value_type) + sizeof(float8);
 
-    gtype_value *result = (gtype_value *) palloc0(sizeof(gtype_value));
+    gtype_value *result = (gtype_value *) palloc(sizeof(gtype_value));
 
     result->val.vector.dim = dim;
 
-    result->val.vector.x = palloc0(sizeof(float8) * dim);
+    result->val.vector.x = palloc(sizeof(float8) * dim);
 
     return result;
 }
@@ -140,7 +140,7 @@ CheckStateArray(ArrayType *statearray, const char *caller)
 gtype_value *
 gtype_vector_in(char *str, int32 typmod)
 {
-    float8 x[VECTOR_MAX_DIM];
+    static float8 x[VECTOR_MAX_DIM];
     int dim = 0;
     char *pt;
     char *stringEnd;
@@ -233,9 +233,7 @@ gtype_vector_in(char *str, int32 typmod)
     CheckExpectedDim(typmod, dim);
 
     result = InitVectorGType(dim);
-    for (int i = 0; i < dim; i++)
-        result->val.vector.x[i] = x[i];
-
+    memcpy(result->val.vector.x, x, dim * sizeof(float8));
     result->type = AGTV_VECTOR;
     return result;
 }
