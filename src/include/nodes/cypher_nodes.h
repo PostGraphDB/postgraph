@@ -303,48 +303,22 @@ typedef struct cypher_create_path
 typedef struct cypher_target_node
 {
     ExtensibleNode extensible;
-    // 'v' for vertex or 'e' for edge
     char type;
-    // flags defined below, prefaced with CYPHER_TARGET_NODE_FLAG_*
     uint32 flags;
-    // if an edge, denotes direction
     cypher_rel_dir dir;
-    /*
-     * Used to create the id for the vertex/edge,
-     * if the CYPHER_TARGET_NODE_FLAG_INSERT flag
-     * is set. Doing it this way will protect us when
-     * rescan gets implemented. By calling the function
-     * that creates the id ourselves, we won't have an
-     * issue where the id could be created then not used.
-     * Since there is a limited number of ids available, we
-     * don't want to waste them.
-     */
     Expr *id_expr;
     ExprState *id_expr_state;
 
     Expr *prop_expr;
     ExprState *prop_expr_state;
-    /*
-     * Attribute Number that this entity's properties
-     * are stored in the CustomScanState's child TupleTableSlot
-     */
     AttrNumber prop_attr_num;
-    // RelInfo for the table this entity will be stored in
     ResultRelInfo *resultRelInfo;
-    // elemTupleSlot used to insert the entity into its table
     TupleTableSlot *elemTupleSlot;
-    // relid that the label stores its entity
     Oid relid;
-    // label this entity belongs to.
     char *label_name;
-    // variable name for this entity
     char *variable_name;
-    /*
-     * Attribute number this entity needs to be stored in
-     * for parent execution nodes to reference it. If the
-     * entity is a varaible (CYPHER_TARGET_NODE_IS_VAR).
-     */
     AttrNumber tuple_position;
+    AttrNumber adj_lst_attr;
 } cypher_target_node;
 
 #define CYPHER_TARGET_NODE_FLAG_NONE 0x0000

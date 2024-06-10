@@ -225,6 +225,7 @@ void read_cypher_target_node(struct ExtensibleNode *node)
     READ_STRING_FIELD(label_name);
     READ_STRING_FIELD(variable_name);
     READ_INT_FIELD(tuple_position);
+    READ_INT_FIELD(adj_lst_attr);
 }
 
 /*

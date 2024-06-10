@@ -367,6 +367,7 @@ void out_cypher_target_node(StringInfo str, const ExtensibleNode *node)
     WRITE_STRING_FIELD(label_name);
     WRITE_STRING_FIELD(variable_name);
     WRITE_INT32_FIELD(tuple_position);
+    WRITE_INT32_FIELD(adj_lst_attr);
 }
 
 // serialization function for the cypher_update_information ExtensibleNode.

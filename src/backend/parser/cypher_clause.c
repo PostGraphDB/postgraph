@@ -123,6 +123,7 @@ static Expr *add_volatile_vertex_wrapper(Expr *node);
 static Expr *add_volatile_vle_edge_wrapper(Expr *node);
 static bool variable_exists(cypher_parsestate *cpstate, char *name);
 static int get_target_entry_resno(cypher_parsestate *cpstate, List *target_list, char *name);
+static int get_target_entry_adj_list_resno(cypher_parsestate *cpstate, List *target_list, char *name);
 static void handle_prev_clause(cypher_parsestate *cpstate, Query *query, cypher_clause *clause, bool first_rte);
 static Query *transform_cypher_sub_pattern(cypher_parsestate *cpstate, cypher_clause *clause);
 // set and remove clause
@@ -3717,6 +3718,26 @@ static Expr *transform_cypher_edge(cypher_parsestate *cpstate, cypher_relationsh
     return expr;
 }
 
+
+static char *make_adj_lst_alias(char *var_name) {
+    char *str = palloc0(strlen(var_name) + 8);
+
+    str[0] = '_';
+    str[1] = 'a';
+    str[2] = 'l';
+    str[3] = '_';
+
+    int i = 0;
+    for (; i < strlen(var_name); i++)
+        str[i + 4] = var_name[i];
+
+    str[i + 5] = '_';
+    str[i + 6] = '_';
+    str[i + 7] = '\0';
+
+    return str;
+}
+
 static char *make_property_alias(char *var_name) {
     char *str = palloc0(strlen(var_name) + 8);
 
@@ -4284,6 +4305,21 @@ static int get_target_entry_resno(cypher_parsestate *cpstate, List *target_list,
     return -1;
 }
 
+static int get_target_entry_adj_list_resno(cypher_parsestate *cpstate, List *target_list, char *name) {
+    ListCell *lc;
+
+    foreach (lc, target_list) {
+        TargetEntry *te = (TargetEntry *)lfirst(lc);
+
+        if (!strcmp(te->resname, name)) {
+            //te->expr = add_volatile_wrapper(te->expr);
+            return te->resno;
+        }
+    }
+
+    return -1;
+}
+
 /*
 * Transform logic for a previously declared variable in a CREATE clause.
 * All we need from the variable node is its id, and whether we can skip
@@ -4316,7 +4352,7 @@ static cypher_target_node *transform_create_cypher_existing_node(
      * later.
      */
     rel->tuple_position = get_target_entry_resno(cpstate, *target_list, node->name);
-
+    rel->adj_lst_attr = get_target_entry_adj_list_resno(cpstate, *target_list, make_adj_lst_alias(node->name)) - 1;
     return rel;
 }
 
@@ -4411,6 +4447,15 @@ static cypher_target_node *transform_create_cypher_new_node(cypher_parsestate *c
     rel->prop_attr_num = resno - 1;
     te = makeTargetEntry(props, resno, alias, false);
     *target_list = lappend(*target_list, te);
+
+    // adjacency list
+    alias = make_adj_lst_alias(node->name);
+    resno = pstate->p_next_resno++;
+    rel->adj_lst_attr = resno - 1;
+    Node *adj_lst  = scanNSItemForColumn(pstate, pnsi, 0, "adjacency_list", -1);
+    te = makeTargetEntry(adj_lst, resno, alias, false);
+    *target_list = lappend(*target_list, te);
+
 
     table_close(label_relation, NoLock);
 
