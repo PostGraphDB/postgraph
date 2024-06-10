@@ -322,7 +322,6 @@ typedef struct cypher_target_node
 } cypher_target_node;
 
 #define CYPHER_TARGET_NODE_FLAG_NONE 0x0000
-// node must insert data
 #define CYPHER_TARGET_NODE_FLAG_INSERT 0x0001
 /*
  * Flag that denotes if this target node is referencing
@@ -381,6 +380,7 @@ typedef struct cypher_update_item
     char *prop_name;
     List *qualified_name;
     bool remove_item;
+    AttrNumber adj_lst_attr;
 } cypher_update_item;
 
 typedef struct cypher_delete_information

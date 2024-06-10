@@ -183,6 +183,7 @@ static char *make_property_alias(char *var_name);
 static char *make_id_alias(char *var_name);
 static char *make_startid_alias(char *var_name);
 static char *make_endid_alias(char *var_name);
+static char *make_adj_lst_alias(char *var_name);
 List *
 transform_window_definitions(ParseState *pstate, List *windowdefs, List **targetlist);
 
@@ -1156,6 +1157,7 @@ cypher_update_information *transform_cypher_remove_item_list(cypher_parsestate *
         variable_name = variable_node->val.str;
         item->var_name = variable_name;
         item->entity_position = get_target_entry_resno(cpstate, query->targetList, variable_name);
+        item->adj_lst_attr = get_target_entry_adj_list_resno(cpstate, query->targetList, make_adj_lst_alias(item->var_name)) - 1;
 
         if (item->entity_position == -1)
             ereport(ERROR, (errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
@@ -1235,6 +1237,7 @@ cypher_update_information *transform_cypher_set_item_list(cypher_parsestate *cps
         variable_name = variable_node->val.str;
         item->var_name = variable_name;
         item->entity_position = get_target_entry_resno(cpstate, query->targetList, variable_name);
+        item->adj_lst_attr = get_target_entry_adj_list_resno(cpstate, query->targetList, make_adj_lst_alias(variable_name)) - 1;
 
     if (item->entity_position == -1)
             ereport(ERROR, (errcode(ERRCODE_INVALID_COLUMN_REFERENCE),

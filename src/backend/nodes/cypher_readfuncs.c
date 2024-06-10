@@ -258,6 +258,7 @@ void read_cypher_update_item(struct ExtensibleNode *node)
     READ_STRING_FIELD(prop_name);
     READ_NODE_FIELD(qualified_name);
     READ_BOOL_FIELD(remove_item);
+    READ_INT_FIELD(adj_lst_attr);
 }
 
 /*
