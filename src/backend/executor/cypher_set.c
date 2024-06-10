@@ -354,6 +354,10 @@ TupleTableSlot *populate_vertex_tts_1(TupleTableSlot *elemTupleSlot, graphid id,
         GTYPE_P_GET_DATUM(gtype_value_to_gtype(properties));
     elemTupleSlot->tts_isnull[vertex_tuple_properties] = properties_isnull;
 
+    elemTupleSlot->tts_values[2] = NULL;
+    elemTupleSlot->tts_isnull[2] = true;
+
+
     return elemTupleSlot;
 }
 

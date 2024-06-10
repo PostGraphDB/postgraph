@@ -134,28 +134,28 @@ SELECT * FROM cypher_create.e;
 (10 rows)
 
 SELECT * FROM cypher_create.v;
-       id        |             properties             
------------------+------------------------------------
- 844424930131969 | {}
- 844424930131970 | {}
- 844424930131971 | {"key": "value"}
- 844424930131972 | {"id": "right rel, initial node"}
- 844424930131973 | {"id": "right rel, end node"}
- 844424930131974 | {"id": "left rel, initial node"}
- 844424930131975 | {"id": "left rel, end node"}
- 844424930131976 | {"id": "path, initial node"}
- 844424930131977 | {"id": "path, middle node"}
- 844424930131978 | {"id": "path, last node"}
- 844424930131979 | {"id": "divergent, initial node"}
- 844424930131980 | {"id": "divergent middle node"}
- 844424930131981 | {"id": "divergent, end node"}
- 844424930131982 | {"id": "convergent, initial node"}
- 844424930131983 | {"id": "convergent middle node"}
- 844424930131984 | {"id": "convergent, end node"}
- 844424930131985 | {"id": "paths, vertex one"}
- 844424930131986 | {"id": "paths, vertex two"}
- 844424930131987 | {"id": "paths, vertex three"}
- 844424930131988 | {"id": "paths, vertex four"}
+       id        |             properties             | adjacency_list 
+-----------------+------------------------------------+----------------
+ 844424930131969 | {}                                 | 
+ 844424930131970 | {}                                 | 
+ 844424930131971 | {"key": "value"}                   | 
+ 844424930131972 | {"id": "right rel, initial node"}  | 
+ 844424930131973 | {"id": "right rel, end node"}      | 
+ 844424930131974 | {"id": "left rel, initial node"}   | 
+ 844424930131975 | {"id": "left rel, end node"}       | 
+ 844424930131976 | {"id": "path, initial node"}       | 
+ 844424930131977 | {"id": "path, middle node"}        | 
+ 844424930131978 | {"id": "path, last node"}          | 
+ 844424930131979 | {"id": "divergent, initial node"}  | 
+ 844424930131980 | {"id": "divergent middle node"}    | 
+ 844424930131981 | {"id": "divergent, end node"}      | 
+ 844424930131982 | {"id": "convergent, initial node"} | 
+ 844424930131983 | {"id": "convergent middle node"}   | 
+ 844424930131984 | {"id": "convergent, end node"}     | 
+ 844424930131985 | {"id": "paths, vertex one"}        | 
+ 844424930131986 | {"id": "paths, vertex two"}        | 
+ 844424930131987 | {"id": "paths, vertex three"}      | 
+ 844424930131988 | {"id": "paths, vertex four"}       | 
 (20 rows)
 
 SELECT * FROM cypher('cypher_create', $$

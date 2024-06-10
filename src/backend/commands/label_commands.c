@@ -697,6 +697,7 @@ static List *create_vertex_table_elements(char *graph_name, char *label_name,
 {
     ColumnDef *id;
     ColumnDef *props;
+    ColumnDef *adjacency_list;
 
     // "id" graphid PRIMARY KEY DEFAULT CATALOG_SCHEMA."_graphid"(...)
     id = makeColumnDef(AG_VERTEX_COLNAME_ID, GRAPHIDOID, -1, InvalidOid);
@@ -710,7 +711,14 @@ static List *create_vertex_table_elements(char *graph_name, char *label_name,
     props->constraints = list_make2(build_not_null_constraint(),
                                     build_properties_default());
 
-    return list_make2(id, props);
+    // "adjacency_list" gtype NULL DEFAULT CATALOG_SCHEMA."gtype_build_list"()
+    adjacency_list = makeColumnDef("adjacency_list", GTYPEOID, -1,
+                          InvalidOid);
+   /* adjacency_list->constraints = list_make2(build_not_null_constraint(),
+                                    build_properties_default());
+*/
+
+    return list_make3(id, props, adjacency_list);
 }
 
 // CREATE SEQUENCE `seq_range_var` MAXVALUE `LOCAL_ID_MAX`

@@ -682,6 +682,10 @@ static Datum merge_vertex(cypher_merge_custom_scan_state *css,
         elemTupleSlot->tts_values[vertex_tuple_properties] = prop;
         elemTupleSlot->tts_isnull[vertex_tuple_properties] = isNull;
 
+	elemTupleSlot->tts_values[2] = NULL;
+        elemTupleSlot->tts_isnull[2] = true;
+
+
         /*
          * Insert the new vertex.
          *

@@ -225,34 +225,22 @@ static TupleTableSlot *exec_cypher_create(CustomScanState *node)
      */
     do
     {
-        /*Process the subtree first */
         Decrement_Estate_CommandId(estate)
         slot = ExecProcNode(node->ss.ps.lefttree);
         Increment_Estate_CommandId(estate)
-        /* break when there are no tuples */
         if (TupIsNull(slot))
             break;
 
-	/* setup the scantuple that the process_pattern needs */
         econtext->ecxt_scantuple =
             node->ss.ps.lefttree->ps_ProjInfo->pi_exprContext->ecxt_scantuple;
         process_pattern(css);
-        /*
-         * This may not be necessary. If we have an empty pattern, nothing was
-         * inserted and the current command Id was not used. So, only flag it
-         * if there is a non empty pattern.
-         */
         if (list_length(css->pattern) > 0)
-        {
-            /* the current command Id has been used */
             used = true;
-        }
     } while (terminal);
 
     if (!used)
         return NULL;
 
-    /* if this was a terminal CREATE just return NULL */
     if (terminal)
         return NULL;
 
@@ -281,10 +269,8 @@ static void end_cypher_create(CustomScanState *node)
             if (!CYPHER_TARGET_NODE_INSERT_ENTITY(cypher_node->flags))
                 continue;
 
-            // close all indices for the node
             ExecCloseIndices(cypher_node->resultRelInfo);
 
-            // close the relation itself
             table_close(cypher_node->resultRelInfo->ri_RelationDesc,
                         RowExclusiveLock);
         }
@@ -485,6 +471,9 @@ static Datum create_vertex_1(cypher_create_custom_scan_state *css,
             scanTupleSlot->tts_values[node->prop_attr_num];
         elemTupleSlot->tts_isnull[vertex_tuple_properties] =
             scanTupleSlot->tts_isnull[node->prop_attr_num];
+
+	elemTupleSlot->tts_values[2] = NULL;
+        elemTupleSlot->tts_isnull[2] = true;
 
         // Insert the new vertex
         insert_entity_tuple(resultRelInfo, elemTupleSlot, estate);
