@@ -33,6 +33,8 @@
 #include "storage/bufmgr.h"
 #include "utils/rel.h"
 
+
+#include "access/cypher_heapam.h"
 #include "catalog/ag_label.h"
 #include "executor/cypher_executor.h"
 #include "executor/cypher_utils.h"
@@ -273,10 +275,6 @@ static void delete_entity(EState *estate, ResultRelInfo *resultRelInfo, HeapTupl
         delete_result = heap_delete(resultRelInfo->ri_RelationDesc, &tuple->t_self, GetCurrentCommandId(true),
                                     estate->es_crosscheck_snapshot, true, &hufd, false);
 
-        /*
-         * Unlike locking, the heap_delete either succeeded
-         * HeapTupleMayBeUpdate, or it failed and returned any other result.
-         */
         switch (delete_result)
         {
         case TM_Ok:

@@ -35,6 +35,15 @@ OBJS = src/backend/postgraph.o \
        src/backend/executor/cypher_merge.o \
        src/backend/executor/cypher_set.o \
        src/backend/executor/cypher_utils.o \
+       src/backend/heap/heapam_visibility.o \
+       src/backend/heap/heapam_handler.o \
+       src/backend/heap/heapam.o \
+       src/backend/heap/heaptoast.o \
+       src/backend/heap/hio.o \
+       src/backend/heap/pruneheap.o \
+       src/backend/heap/rewriteheap.o \
+       src/backend/heap/vacuumlazy.o \
+       src/backend/heap/visibilitymap.o \
        src/backend/nodes/ag_nodes.o \
        src/backend/nodes/cypher_copyfuncs.o \
        src/backend/nodes/cypher_outfuncs.o \

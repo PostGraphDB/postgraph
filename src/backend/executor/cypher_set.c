@@ -31,6 +31,7 @@
 #include "storage/bufmgr.h"
 #include "utils/rel.h"
 
+#include "access/cypher_heapam.h"
 #include "executor/cypher_executor.h"
 #include "executor/cypher_utils.h"
 #include "nodes/cypher_nodes.h"

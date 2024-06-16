@@ -106,10 +106,6 @@ void insert_label(const char *label_name, Oid graph_oid, int32 label_id,
 
     tuple = heap_form_tuple(RelationGetDescr(ag_label), values, nulls);
 
-    /*
-     * CatalogTupleInsert() is originally for PostgreSQL's catalog. However,
-     * it is used at here for convenience.
-     */
     CatalogTupleInsert(ag_label, tuple);
 
     table_close(ag_label, RowExclusiveLock);
@@ -270,10 +266,6 @@ RangeVar *get_label_range_var(char *graph_name, Oid graph_oid,
 
 /*
  * Retrieves a list of all the names of a graph.
- *
- * XXX: We may want to use the cache system for this function,
- * however the cache system currently requires us to know the
- * name of the label we want.
  */
 List *get_all_edge_labels_per_graph(EState *estate, Oid graph_oid)
 {
