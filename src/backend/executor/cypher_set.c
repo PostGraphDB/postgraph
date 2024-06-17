@@ -534,7 +534,7 @@ static void process_update_list(CustomScanState *node)
             scan_desc = table_beginscan(resultRelInfo->ri_RelationDesc,
                                         estate->es_snapshot, 1, scan_keys);
 
-            heap_tuple = heap_getnext(scan_desc, ForwardScanDirection);
+            heap_tuple = cypher_heap_getnext(scan_desc, ForwardScanDirection);
 
             if (HeapTupleIsValid(heap_tuple))
                 heap_tuple = update_entity_tuple(resultRelInfo, slot, estate, heap_tuple);

@@ -626,6 +626,9 @@ static void create_table_for_label(char *graph_name, char *label_name,
         ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR),
                         errmsg("undefined label type \'%c\'", label_type)));
 
+    if (label_type == 'v')
+        create_stmt->accessMethod = "vertex_heap";
+
     create_stmt->inhRelations = parents;
     create_stmt->partbound = NULL;
     create_stmt->ofTypename = NULL;

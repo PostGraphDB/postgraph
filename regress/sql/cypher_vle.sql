@@ -50,17 +50,6 @@ SELECT * FROM cypher('cypher_vle', $$
 	RETURN b, e
 $$) AS (b vertex, e vertex);
 
--- Display our points
-SELECT * FROM start_and_end_points;
-
-SELECT edges
-FROM start_and_end_points,
-     vle(
-	'"cypher_vle"'::gtype,
-	start_vertex, end_vertex,
-	'3'::gtype,
-	'3'::gtype,
-	'-1'::gtype);
 
 -- Count the total paths from left (start) to right (end) -[]-> should be 400
 SELECT count(edges) FROM start_and_end_points, vle( '"cypher_vle"'::gtype, start_vertex, end_vertex, '1'::gtype, 'null'::gtype, '1'::gtype, NULL, NULL);

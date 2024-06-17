@@ -20,6 +20,7 @@
 
 #include "postgres.h"
 
+#include "access/cypher_heapam.h"
 #include "access/heapam.h"
 #include "access/relscan.h"
 #include "access/skey.h"
@@ -319,7 +320,7 @@ static void load_vertex_hashtable(graph_context *ggctx) {
       
         tupdesc = RelationGetDescr(graph_vertex_label);
                      
-        while((tuple = heap_getnext(scan_desc, ForwardScanDirection))) {
+        while((tuple = cypher_heap_getnext(scan_desc, ForwardScanDirection))) {
             graphid id;
             Datum properties;
             bool isnull;
@@ -537,12 +538,9 @@ graph_context *manage_graph_contexts(char *graph_name, Oid graph_oid) {
         curr_ggctx = curr_ggctx->next;
     }
 
-    new_ggctx = palloc0(sizeof(graph_context));
+    new_ggctx = palloc(sizeof(graph_context));
 
-    if (global_graph_contexts)
-        new_ggctx->next = global_graph_contexts;
-    else
-        new_ggctx->next = NULL;
+    new_ggctx->next = global_graph_contexts;
 
     global_graph_contexts = new_ggctx;
 

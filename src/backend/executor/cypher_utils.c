@@ -192,7 +192,7 @@ bool entity_exists(EState *estate, Oid graph_oid, graphid id)
     rel = table_open(label->relation, RowExclusiveLock);
     scan_desc = table_beginscan(rel, estate->es_snapshot, 1, scan_keys);
 
-    tuple = heap_getnext(scan_desc, ForwardScanDirection);
+    tuple = cypher_heap_getnext(scan_desc, ForwardScanDirection);
 
     /*
      * If a single tuple was returned, the tuple is still valid, otherwise'

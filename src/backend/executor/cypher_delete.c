@@ -376,7 +376,7 @@ static void process_delete_list(CustomScanState *node) {
 
         scan_desc = table_beginscan(resultRelInfo->ri_RelationDesc, estate->es_snapshot, 1, scan_keys);
 
-        heap_tuple = heap_getnext(scan_desc, ForwardScanDirection);
+        heap_tuple = cypher_heap_getnext(scan_desc, ForwardScanDirection);
 
         if (!HeapTupleIsValid(heap_tuple))
         {
@@ -444,7 +444,7 @@ static void find_connected_edges(CustomScanState *node, char *graph_name,
             graphid startid, endid;
             bool isNull;
 
-            tuple = heap_getnext(scan_desc, ForwardScanDirection);
+            tuple = cypher_heap_getnext(scan_desc, ForwardScanDirection);
 
             // no more tuples to process, break and scan the next label.
             if (!HeapTupleIsValid(tuple))

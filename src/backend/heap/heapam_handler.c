@@ -58,6 +58,10 @@ static BlockNumber heapam_scan_get_blocks_done(HeapScanDesc hscan);
 
 static const TableAmRoutine heapam_methods;
 
+static const TupleTableSlotOps *
+heapam_slot_callbacks(Relation relation);
+
+
 
 /* ------------------------------------------------------------------------
  * Slot related callbacks for heap AM
@@ -2603,8 +2607,12 @@ GetHeapamTableAmRoutine(void)
 	return &heapam_methods;
 }
 
+
+PG_FUNCTION_INFO_V1(cypher_tableam_handler);
 Datum
-heap_tableam_handler(PG_FUNCTION_ARGS)
+cypher_tableam_handler(PG_FUNCTION_ARGS)
 {
 	PG_RETURN_POINTER(&heapam_methods);
 }
+
+

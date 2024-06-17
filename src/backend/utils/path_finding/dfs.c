@@ -222,14 +222,10 @@ static path_finding_context *build_vle_context(FunctionCallInfo fcinfo, FuncCall
     char *graph_name = pnstrdup(agtv_temp->val.string.val, agtv_temp->val.string.len);
     Oid graph_oid = get_graph_oid(graph_name);
 
-    /*
-     * Create or retrieve the GRAPH global context for this graph. This function
-     * will also purge off invalidated contexts.
-     */
     graph_context *ggctx = manage_graph_contexts(graph_name, graph_oid);
 
     // allocate and initialize local VLE context 
-    path_finding_context *path_ctx = palloc0(sizeof(path_finding_context));
+    path_finding_context *path_ctx = palloc(sizeof(path_finding_context));
 
     // set the graph name and id 
     path_ctx->graph_name = graph_name;
@@ -238,7 +234,7 @@ static path_finding_context *build_vle_context(FunctionCallInfo fcinfo, FuncCall
     // set the global context referenced by this local VLE context 
     path_ctx->ggctx = ggctx;
 
-    // initialize the next vertex, in this case the first 
+    // initialize the first vertex
     path_ctx->next_vertex = peek_queue_head(get_graph_vertices(ggctx));
     Assert(path_ctx->next_vertex);
     

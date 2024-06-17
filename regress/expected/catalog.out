@@ -336,7 +336,7 @@ NOTICE:  ELabel "r" has been created
 SELECT * FROM ag_graph;
  graphid | name | namespace | directed 
 ---------+------+-----------+----------
-   21111 | g    | g         | t
+   21115 | g    | g         | t
 (1 row)
 
 -- check if labels have been created or not
