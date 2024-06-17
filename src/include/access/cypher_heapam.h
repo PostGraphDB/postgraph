@@ -32,6 +32,43 @@
 #include "utils/snapshot.h"
 
 
+typedef enum CYPHER_TM_Result
+{
+	/*
+	 * Signals that the action succeeded (i.e. update/delete performed, lock
+	 * was acquired)
+	 */
+	CYPHER_TM_Ok,
+
+	/* The affected tuple wasn't visible to the relevant snapshot */
+	CYPHER_TM_Invisible,
+
+	/* The affected tuple was already modified by the calling backend */
+	CYPHER_TM_SelfModified,
+
+	/*
+	 * The affected tuple was updated by another transaction. This includes
+	 * the case where tuple was moved to another partition.
+	 */
+	CYPHER_TM_Updated,
+
+	/* The affected tuple was deleted by another transaction */
+	CYPHER_TM_Deleted,
+
+	/*
+	 * The affected tuple is currently being modified by another session. This
+	 * will only be returned if table_(update/delete/lock_tuple) are
+	 * instructed not to wait.
+	 */
+	CYPHER_TM_BeingModified,
+
+	/* lock couldn't be acquired, action skipped. Only used by lock_tuple */
+	CYPHER_TM_WouldBlock,
+
+	CYPHER_TM_PrevClauseUpdated
+
+} CYPHER_TM_Result;
+
 /* "options" flag bits for heap_insert */
 #define HEAP_INSERT_SKIP_FSM	TABLE_INSERT_SKIP_FSM
 #define HEAP_INSERT_FROZEN		TABLE_INSERT_FROZEN
@@ -156,16 +193,16 @@ extern void cypher_heap_insert(Relation relation, HeapTuple tup, CommandId cid,
 extern void cypher_heap_multi_insert(Relation relation, struct TupleTableSlot **slots,
 							  int ntuples, CommandId cid, int options,
 							  BulkInsertState bistate);
-extern TM_Result cypher_heap_delete(Relation relation, ItemPointer tid,
+extern CYPHER_TM_Result cypher_heap_delete(Relation relation, ItemPointer tid,
 							 CommandId cid, Snapshot crosscheck, bool wait,
 							 struct TM_FailureData *tmfd, bool changingPart);
 extern void cypher_heap_finish_speculative(Relation relation, ItemPointer tid);
 extern void cypher_heap_abort_speculative(Relation relation, ItemPointer tid);
-extern TM_Result cypher_heap_update(Relation relation, ItemPointer otid,
+extern CYPHER_TM_Result cypher_heap_update(Relation relation, ItemPointer otid,
 							 HeapTuple newtup,
 							 CommandId cid, Snapshot crosscheck, bool wait,
 							 struct TM_FailureData *tmfd, LockTupleMode *lockmode);
-extern TM_Result cypher_heap_lock_tuple(Relation relation, HeapTuple tuple,
+extern CYPHER_TM_Result cypher_heap_lock_tuple(Relation relation, HeapTuple tuple,
 								 CommandId cid, LockTupleMode mode, LockWaitPolicy wait_policy,
 								 bool follow_update,
 								 Buffer *buffer, struct TM_FailureData *tmfd);
@@ -210,7 +247,7 @@ extern void cypher_parallel_vacuum_main(dsm_segment *seg, shm_toc *toc);
 /* in heap/heapam_visibility.c */
 extern bool CypherHeapTupleSatisfiesVisibility(HeapTuple stup, Snapshot snapshot,
 										 Buffer buffer);
-extern TM_Result CypherHeapTupleSatisfiesUpdate(HeapTuple stup, CommandId curcid,
+extern CYPHER_TM_Result CypherHeapTupleSatisfiesUpdate(HeapTuple stup, CommandId curcid,
 										  Buffer buffer);
 extern HTSV_Result CypherHeapTupleSatisfiesVacuum(HeapTuple stup, TransactionId OldestXmin,
 											Buffer buffer);

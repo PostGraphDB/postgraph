@@ -435,26 +435,26 @@ HeapTupleSatisfiesToast(HeapTuple htup, Snapshot snapshot,
  *
  *	The possible return codes are:
  *
- *	TM_Invisible: the tuple didn't exist at all when the scan started, e.g. it
+ *	CYPHER_TM_Invisible: the tuple didn't exist at all when the scan started, e.g. it
  *	was created by a later CommandId.
  *
  *	TM_Ok: The tuple is valid and visible, so it may be updated.
  *
- *	TM_SelfModified: The tuple was updated by the current transaction, after
+ *	CYPHER_TM_SelfModified: The tuple was updated by the current transaction, after
  *	the current scan started.
  *
- *	TM_Updated: The tuple was updated by a committed transaction (including
+ *	CYPHER_TM_Updated: The tuple was updated by a committed transaction (including
  *	the case where the tuple was moved into a different partition).
  *
- *	TM_Deleted: The tuple was deleted by a committed transaction.
+ *	CYPHER_TM_Deleted: The tuple was deleted by a committed transaction.
  *
- *	TM_BeingModified: The tuple is being updated by an in-progress transaction
+ *	CYPHER_TM_BeingModified: The tuple is being updated by an in-progress transaction
  *	other than the current transaction.  (Note: this includes the case where
  *	the tuple is share-locked by a MultiXact, even if the MultiXact includes
  *	the current transaction.  Callers that want to distinguish that case must
  *	test for it themselves.)
  */
-TM_Result
+CYPHER_TM_Result
 CypherHeapTupleSatisfiesUpdate(HeapTuple htup, CommandId curcid,
 						 Buffer buffer)
 {
@@ -466,7 +466,7 @@ CypherHeapTupleSatisfiesUpdate(HeapTuple htup, CommandId curcid,
 	if (!HeapTupleHeaderXminCommitted(tuple))
 	{
 		if (HeapTupleHeaderXminInvalid(tuple))
-			return TM_Invisible;
+			return CYPHER_TM_Invisible;
 
 		/* Used by pre-9.0 binary upgrades */
 		if (tuple->t_infomask & HEAP_MOVED_OFF)
@@ -474,14 +474,15 @@ CypherHeapTupleSatisfiesUpdate(HeapTuple htup, CommandId curcid,
 			TransactionId xvac = HeapTupleHeaderGetXvac(tuple);
 
 			if (TransactionIdIsCurrentTransactionId(xvac))
-				return TM_Invisible;
+				return CYPHER_TM_Invisible;
 			if (!TransactionIdIsInProgress(xvac))
 			{
 				if (TransactionIdDidCommit(xvac))
 				{
 					SetHintBits(tuple, buffer, HEAP_XMIN_INVALID,
 								InvalidTransactionId);
-					return TM_Invisible;
+					ereport(FATAL, errmsg("FUCK"));
+					return CYPHER_TM_Invisible;
 				}
 				SetHintBits(tuple, buffer, HEAP_XMIN_COMMITTED,
 							InvalidTransactionId);
@@ -495,7 +496,7 @@ CypherHeapTupleSatisfiesUpdate(HeapTuple htup, CommandId curcid,
 			if (!TransactionIdIsCurrentTransactionId(xvac))
 			{
 				if (TransactionIdIsInProgress(xvac))
-					return TM_Invisible;
+					return CYPHER_TM_Invisible;
 				if (TransactionIdDidCommit(xvac))
 					SetHintBits(tuple, buffer, HEAP_XMIN_COMMITTED,
 								InvalidTransactionId);
@@ -503,17 +504,17 @@ CypherHeapTupleSatisfiesUpdate(HeapTuple htup, CommandId curcid,
 				{
 					SetHintBits(tuple, buffer, HEAP_XMIN_INVALID,
 								InvalidTransactionId);
-					return TM_Invisible;
+					return CYPHER_TM_Invisible;
 				}
 			}
 		}
 		else if (TransactionIdIsCurrentTransactionId(HeapTupleHeaderGetRawXmin(tuple)))
 		{
 			if (HeapTupleHeaderGetCmin(tuple) >= curcid)
-				return TM_Invisible;	/* inserted after scan started */
+				return CYPHER_TM_Invisible;	/* inserted after scan started */
 
 			if (tuple->t_infomask & HEAP_XMAX_INVALID)	/* xid invalid */
-				return TM_Ok;
+				return CYPHER_TM_Ok;
 
 			if (HEAP_XMAX_IS_LOCKED_ONLY(tuple->t_infomask))
 			{
@@ -530,10 +531,11 @@ CypherHeapTupleSatisfiesUpdate(HeapTuple htup, CommandId curcid,
 
 				if (tuple->t_infomask & HEAP_XMAX_IS_MULTI)
 				{
-					if (MultiXactIdIsRunning(xmax, true))
-						return TM_BeingModified;
+					if (MultiXactIdIsRunning(xmax, true)) {
+						return CYPHER_TM_BeingModified;
+					}
 					else
-						return TM_Ok;
+						return CYPHER_TM_Ok;
 				}
 
 				/*
@@ -542,8 +544,8 @@ CypherHeapTupleSatisfiesUpdate(HeapTuple htup, CommandId curcid,
 				 * locked/updated.
 				 */
 				if (!TransactionIdIsInProgress(xmax))
-					return TM_Ok;
-				return TM_BeingModified;
+					return CYPHER_TM_Ok;
+				return CYPHER_TM_BeingModified;
 			}
 
 			if (tuple->t_infomask & HEAP_XMAX_IS_MULTI)
@@ -560,15 +562,16 @@ CypherHeapTupleSatisfiesUpdate(HeapTuple htup, CommandId curcid,
 				{
 					if (MultiXactIdIsRunning(HeapTupleHeaderGetRawXmax(tuple),
 											 false))
-						return TM_BeingModified;
-					return TM_Ok;
+						return CYPHER_TM_BeingModified;
+
+					return CYPHER_TM_Ok;
 				}
 				else
 				{
 					if (HeapTupleHeaderGetCmax(tuple) >= curcid)
-						return TM_SelfModified; /* updated after scan started */
+						return CYPHER_TM_SelfModified; /* updated after scan started */
 					else
-						return TM_Invisible;	/* updated before scan started */
+						return CYPHER_TM_Invisible;	/* updated before scan started */
 				}
 			}
 
@@ -577,16 +580,16 @@ CypherHeapTupleSatisfiesUpdate(HeapTuple htup, CommandId curcid,
 				/* deleting subtransaction must have aborted */
 				SetHintBits(tuple, buffer, HEAP_XMAX_INVALID,
 							InvalidTransactionId);
-				return TM_Ok;
+				return CYPHER_TM_Ok;
 			}
 
 			if (HeapTupleHeaderGetCmax(tuple) >= curcid)
-				return TM_SelfModified; /* updated after scan started */
+				return CYPHER_TM_SelfModified; /* updated after scan started */
 			else
-				return TM_Invisible;	/* updated before scan started */
+				return CYPHER_TM_Invisible;	/* updated before scan started */
 		}
 		else if (TransactionIdIsInProgress(HeapTupleHeaderGetRawXmin(tuple)))
-			return TM_Invisible;
+			return CYPHER_TM_Invisible;
 		else if (TransactionIdDidCommit(HeapTupleHeaderGetRawXmin(tuple)))
 			SetHintBits(tuple, buffer, HEAP_XMIN_COMMITTED,
 						HeapTupleHeaderGetRawXmin(tuple));
@@ -595,23 +598,23 @@ CypherHeapTupleSatisfiesUpdate(HeapTuple htup, CommandId curcid,
 			/* it must have aborted or crashed */
 			SetHintBits(tuple, buffer, HEAP_XMIN_INVALID,
 						InvalidTransactionId);
-			return TM_Invisible;
+			return CYPHER_TM_Invisible;
 		}
 	}
 
 	/* by here, the inserting transaction has committed */
 
 	if (tuple->t_infomask & HEAP_XMAX_INVALID)	/* xid invalid or aborted */
-		return TM_Ok;
+		return CYPHER_TM_Ok;
 
 	if (tuple->t_infomask & HEAP_XMAX_COMMITTED)
 	{
 		if (HEAP_XMAX_IS_LOCKED_ONLY(tuple->t_infomask))
-			return TM_Ok;
+			return CYPHER_TM_Ok;
 		if (!ItemPointerEquals(&htup->t_self, &tuple->t_ctid))
-			return TM_Updated;	/* updated by other */
+			return CYPHER_TM_Updated;	/* updated by other */
 		else
-			return TM_Deleted;	/* deleted by other */
+			return CYPHER_TM_Deleted;	/* deleted by other */
 	}
 
 	if (tuple->t_infomask & HEAP_XMAX_IS_MULTI)
@@ -619,22 +622,24 @@ CypherHeapTupleSatisfiesUpdate(HeapTuple htup, CommandId curcid,
 		TransactionId xmax;
 
 		if (HEAP_LOCKED_UPGRADED(tuple->t_infomask))
-			return TM_Ok;
+			return CYPHER_TM_Ok;
 
 		if (HEAP_XMAX_IS_LOCKED_ONLY(tuple->t_infomask))
 		{
-			if (MultiXactIdIsRunning(HeapTupleHeaderGetRawXmax(tuple), true))
-				return TM_BeingModified;
+			if (MultiXactIdIsRunning(HeapTupleHeaderGetRawXmax(tuple), true)){
+				return CYPHER_TM_BeingModified;
+			}
 
 			SetHintBits(tuple, buffer, HEAP_XMAX_INVALID, InvalidTransactionId);
-			return TM_Ok;
+			return CYPHER_TM_Ok;
 		}
 
 		xmax = HeapTupleGetUpdateXid(tuple);
 		if (!TransactionIdIsValid(xmax))
 		{
-			if (MultiXactIdIsRunning(HeapTupleHeaderGetRawXmax(tuple), false))
-				return TM_BeingModified;
+			if (MultiXactIdIsRunning(HeapTupleHeaderGetRawXmax(tuple), false)){
+				return CYPHER_TM_BeingModified;
+			}
 		}
 
 		/* not LOCKED_ONLY, so it has to have an xmax */
@@ -643,20 +648,21 @@ CypherHeapTupleSatisfiesUpdate(HeapTuple htup, CommandId curcid,
 		if (TransactionIdIsCurrentTransactionId(xmax))
 		{
 			if (HeapTupleHeaderGetCmax(tuple) >= curcid)
-				return TM_SelfModified; /* updated after scan started */
+				return CYPHER_TM_SelfModified; /* updated after scan started */
 			else
-				return TM_Invisible;	/* updated before scan started */
+				return CYPHER_TM_Invisible;	/* updated before scan started */
 		}
 
-		if (MultiXactIdIsRunning(HeapTupleHeaderGetRawXmax(tuple), false))
-			return TM_BeingModified;
+		if (MultiXactIdIsRunning(HeapTupleHeaderGetRawXmax(tuple), false)){
+			return CYPHER_TM_BeingModified;
+		}
 
 		if (TransactionIdDidCommit(xmax))
 		{
 			if (!ItemPointerEquals(&htup->t_self, &tuple->t_ctid))
-				return TM_Updated;
+				return CYPHER_TM_Updated;
 			else
-				return TM_Deleted;
+				return CYPHER_TM_Deleted;
 		}
 
 		/*
@@ -672,34 +678,43 @@ CypherHeapTupleSatisfiesUpdate(HeapTuple htup, CommandId curcid,
 			 */
 			SetHintBits(tuple, buffer, HEAP_XMAX_INVALID,
 						InvalidTransactionId);
-			return TM_Ok;
+			return CYPHER_TM_Ok;
 		}
 		else
 		{
 			/* There are lockers running */
-			return TM_BeingModified;
+			return CYPHER_TM_BeingModified;
 		}
 	}
 
 	if (TransactionIdIsCurrentTransactionId(HeapTupleHeaderGetRawXmax(tuple)))
 	{
-		if (HEAP_XMAX_IS_LOCKED_ONLY(tuple->t_infomask))
-			return TM_BeingModified;
-		if (HeapTupleHeaderGetCmax(tuple) >= curcid)
-			return TM_SelfModified; /* updated after scan started */
-		else
-			return TM_Invisible;	/* updated before scan started */
+		if (HEAP_XMAX_IS_LOCKED_ONLY(tuple->t_infomask)) {
+					//ereport(ERROR, errmsg("here"));
+            //if (HeapTupleHeaderGetCmax(tuple) <= curcid)
+			  //  return CYPHER_TM_PrevClauseUpdated;
+			  //ereport(ERROR, errmsg("1"));
+			return CYPHER_TM_BeingModified;
+		}
+		if (HeapTupleHeaderGetCmax(tuple) >= curcid){
+			//ereport(ERROR, errmsg("2"));
+			return CYPHER_TM_SelfModified; /* updated after scan started */
+			
+		}else{
+						//ereport(ERROR, errmsg("3"));
+			return CYPHER_TM_Invisible;	/* updated before scan started */
+		}
 	}
 
 	if (TransactionIdIsInProgress(HeapTupleHeaderGetRawXmax(tuple)))
-		return TM_BeingModified;
+		return CYPHER_TM_BeingModified;
 
 	if (!TransactionIdDidCommit(HeapTupleHeaderGetRawXmax(tuple)))
 	{
 		/* it must have aborted or crashed */
 		SetHintBits(tuple, buffer, HEAP_XMAX_INVALID,
 					InvalidTransactionId);
-		return TM_Ok;
+		return CYPHER_TM_Ok;
 	}
 
 	/* xmax transaction committed */
@@ -708,15 +723,15 @@ CypherHeapTupleSatisfiesUpdate(HeapTuple htup, CommandId curcid,
 	{
 		SetHintBits(tuple, buffer, HEAP_XMAX_INVALID,
 					InvalidTransactionId);
-		return TM_Ok;
+		return CYPHER_TM_Ok;
 	}
 
 	SetHintBits(tuple, buffer, HEAP_XMAX_COMMITTED,
 				HeapTupleHeaderGetRawXmax(tuple));
 	if (!ItemPointerEquals(&htup->t_self, &tuple->t_ctid))
-		return TM_Updated;		/* updated by other */
+		return CYPHER_TM_Updated;		/* updated by other */
 	else
-		return TM_Deleted;		/* deleted by other */
+		return CYPHER_TM_Deleted;		/* deleted by other */
 }
 
 /*

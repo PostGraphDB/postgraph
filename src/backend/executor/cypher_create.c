@@ -1,20 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (C) 2023 PostGraphDB
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Portions Copyright (c) 2020-2023, Apache Software Foundation
  */
 
 #include "postgres.h"
@@ -151,17 +151,16 @@ static void begin_cypher_create(CustomScanState *node, EState *estate, int eflag
                 cypher_node->id_expr_state = ExecInitExpr(cypher_node->id_expr, (PlanState *)node); 
 	}
     } 
-    /* 
-     * Postgres does not assign the es_output_cid in queries that do 
-     * not write to disk, ie: SELECT commands. We need the command id 
-     * for our clauses, and we may need to initialize it. We cannot use 
-     * GetCurrentCommandId because there may be other cypher clauses
-     * that have modified the command id.
-     */
+
+    Oid xid = GetCurrentTransactionId();
+    if (xid == InvalidTransactionId){
+        StartTransactionCommand();
+    }
     if (estate->es_output_cid == 0)
         estate->es_output_cid = estate->es_snapshot->curcid;
 
     Increment_Estate_CommandId(estate);
+
 }
 
 /*
@@ -177,17 +176,9 @@ static void process_pattern(cypher_create_custom_scan_state *css)
 
         ListCell *lc = list_head(path->target_nodes);
 
-        /*
-         * Create the first vertex. The create_vertex function will
-         * create the rest of the path, if necessary.
-         */
+
         create_vertex_1(css, lfirst(lc), lnext(path->target_nodes, lc), path->target_nodes);
 
-        /*
-         * If this path is a variable, take the list that was accumulated
-         * in the vertex/edge creation, create a path datum, and add to the
-         * scantuple slot.
-         */
         if (path->path_attr_num != InvalidAttrNumber)
         {
             TupleTableSlot *scantuple;
@@ -217,12 +208,6 @@ static TupleTableSlot *exec_cypher_create(CustomScanState *node)
     bool terminal = CYPHER_CLAUSE_IS_TERMINAL(css->flags);
     bool used = false;
 
-    /*
-     * If the CREATE clause was the final cypher clause written then we aren't
-     * returning anything from this result node. So the exec_cypher_create
-     * function will only be called once. Therefore we will process all tuples
-     * from the subtree at once.
-     */
     do
     {
         Decrement_Estate_CommandId(estate)
@@ -250,10 +235,11 @@ static TupleTableSlot *exec_cypher_create(CustomScanState *node)
 
 static void end_cypher_create(CustomScanState *node)
 {
+        CommandCounterIncrement();
     cypher_create_custom_scan_state *css =
         (cypher_create_custom_scan_state *)node;
     ListCell *lc;
-    CommandCounterIncrement();
+
 
     ExecEndNode(node->ss.ps.lefttree);
 

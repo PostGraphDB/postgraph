@@ -301,7 +301,7 @@ heapam_tuple_complete_speculative(Relation relation, TupleTableSlot *slot,
 		pfree(tuple);
 }
 
-static TM_Result
+static CYPHER_TM_Result
 heapam_tuple_delete(Relation relation, ItemPointer tid, CommandId cid,
 					Snapshot snapshot, Snapshot crosscheck, bool wait,
 					TM_FailureData *tmfd, bool changingPart)
@@ -315,7 +315,7 @@ heapam_tuple_delete(Relation relation, ItemPointer tid, CommandId cid,
 }
 
 
-static TM_Result
+static CYPHER_TM_Result
 heapam_tuple_update(Relation relation, ItemPointer otid, TupleTableSlot *slot,
 					CommandId cid, Snapshot snapshot, Snapshot crosscheck,
 					bool wait, TM_FailureData *tmfd,
@@ -323,7 +323,7 @@ heapam_tuple_update(Relation relation, ItemPointer otid, TupleTableSlot *slot,
 {
 	bool		shouldFree = true;
 	HeapTuple	tuple = ExecFetchSlotHeapTuple(slot, true, &shouldFree);
-	TM_Result	result;
+	CYPHER_TM_Result	result;
 
 	/* Update the tuple with table oid */
 	slot->tts_tableOid = RelationGetRelid(relation);
@@ -341,7 +341,7 @@ heapam_tuple_update(Relation relation, ItemPointer otid, TupleTableSlot *slot,
 	 *
 	 * If it's a HOT update, we mustn't insert new index entries.
 	 */
-	*update_indexes = result == TM_Ok && !HeapTupleIsHeapOnly(tuple);
+	*update_indexes = result == CYPHER_TM_Ok && !HeapTupleIsHeapOnly(tuple);
 
 	if (shouldFree)
 		pfree(tuple);
@@ -349,14 +349,14 @@ heapam_tuple_update(Relation relation, ItemPointer otid, TupleTableSlot *slot,
 	return result;
 }
 
-static TM_Result
+static CYPHER_TM_Result
 heapam_tuple_lock(Relation relation, ItemPointer tid, Snapshot snapshot,
 				  TupleTableSlot *slot, CommandId cid, LockTupleMode mode,
 				  LockWaitPolicy wait_policy, uint8 flags,
 				  TM_FailureData *tmfd)
 {
 	BufferHeapTupleTableSlot *bslot = (BufferHeapTupleTableSlot *) slot;
-	TM_Result	result;
+	CYPHER_TM_Result	result;
 	Buffer		buffer;
 	HeapTuple	tuple = &bslot->base.tupdata;
 	bool		follow_updates;
@@ -371,7 +371,7 @@ tuple_lock_retry:
 	result = heap_lock_tuple(relation, tuple, cid, mode, wait_policy,
 							 follow_updates, &buffer, tmfd);
 
-	if (result == TM_Updated &&
+	if (result == CYPHER_TM_Updated &&
 		(flags & TUPLE_LOCK_FLAG_FIND_LAST_VERSION))
 	{
 		/* Should not encounter speculative tuple on recheck */
@@ -423,7 +423,7 @@ tuple_lock_retry:
 											 priorXmax))
 					{
 						ReleaseBuffer(buffer);
-						return TM_Deleted;
+						return CYPHER_TM_Deleted;
 					}
 
 					/* otherwise xmin should not be dirty... */
@@ -453,7 +453,7 @@ tuple_lock_retry:
 							case LockWaitSkip:
 								if (!ConditionalXactLockTableWait(SnapshotDirty.xmax))
 									/* skip instead of waiting */
-									return TM_WouldBlock;
+									return CYPHER_TM_WouldBlock;
 								break;
 							case LockWaitError:
 								if (!ConditionalXactLockTableWait(SnapshotDirty.xmax))
@@ -489,7 +489,7 @@ tuple_lock_retry:
 						 */
 						tmfd->cmax = HeapTupleHeaderGetCmin(tuple->t_data);
 						ReleaseBuffer(buffer);
-						return TM_SelfModified;
+						return CYPHER_TM_SelfModified;
 					}
 
 					/*
@@ -507,7 +507,7 @@ tuple_lock_retry:
 				if (tuple->t_data == NULL)
 				{
 					Assert(!BufferIsValid(buffer));
-					return TM_Deleted;
+					return CYPHER_TM_Deleted;
 				}
 
 				/*
@@ -517,7 +517,7 @@ tuple_lock_retry:
 										 priorXmax))
 				{
 					ReleaseBuffer(buffer);
-					return TM_Deleted;
+					return CYPHER_TM_Deleted;
 				}
 
 				/*
@@ -538,7 +538,7 @@ tuple_lock_retry:
 				{
 					/* deleted, so forget about it */
 					ReleaseBuffer(buffer);
-					return TM_Deleted;
+					return CYPHER_TM_Deleted;
 				}
 
 				/* updated, so look at the updated row */
@@ -552,7 +552,7 @@ tuple_lock_retry:
 		else
 		{
 			/* tuple was deleted, so give up */
-			return TM_Deleted;
+			return CYPHER_TM_Deleted;
 		}
 	}
 

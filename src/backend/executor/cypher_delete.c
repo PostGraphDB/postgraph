@@ -110,17 +110,16 @@ static void begin_cypher_delete(CustomScanState *node, EState *estate,
      */
     css->edge_labels = get_all_edge_labels_per_graph(estate, css->delete_data->graph_oid);
 
-    /*
-     * Postgres does not assign the es_output_cid in queries that do
-     * not write to disk, ie: SELECT commands. We need the command id
-     * for our clauses, and we may need to initialize it. We cannot use
-     * GetCurrentCommandId because there may be other cypher clauses
-     * that have modified the command id.
-     */
+    Oid xid = GetCurrentTransactionId();
+    if (xid == InvalidTransactionId){
+        StartTransactionCommand();
+    }
+
     if (estate->es_output_cid == 0)
         estate->es_output_cid = estate->es_snapshot->curcid;
 
     Increment_Estate_CommandId(estate);
+
 }
 
 /*
@@ -192,6 +191,7 @@ static TupleTableSlot *exec_cypher_delete(CustomScanState *node)
  */
 static void end_cypher_delete(CustomScanState *node)
 {
+        CommandCounterIncrement();
     ExecEndNode(node->ss.ps.lefttree);
 }
 
@@ -249,8 +249,8 @@ static void delete_entity(EState *estate, ResultRelInfo *resultRelInfo, HeapTupl
     ResultRelInfo **saved_resultRelsInfo;
     LockTupleMode lockmode;
     TM_FailureData hufd;
-    TM_Result lock_result;
-    TM_Result delete_result;
+    CYPHER_TM_Result lock_result;
+    CYPHER_TM_Result delete_result;
     Buffer buffer;
 
     // Find the physical tuple, this variable is coming from
@@ -266,27 +266,27 @@ static void delete_entity(EState *estate, ResultRelInfo *resultRelInfo, HeapTupl
      * It is possible the entity may have already been deleted. If the tuple
      * can be deleted, the lock result will be HeapTupleMayBeUpdated. If the
      * tuple was already deleted by this DELETE clause, the result would be
-     * TM_SelfModified, if the result was deleted by a previous delete
-     * clause, the result will TM_Invisible. Throw an error if any
+     * CYPHER_TM_SelfModified, if the result was deleted by a previous delete
+     * clause, the result will CYPHER_TM_Invisible. Throw an error if any
      * other result was returned.
      */
-    if (lock_result == TM_Ok)
+    if (lock_result == CYPHER_TM_Ok)
     {
         delete_result = heap_delete(resultRelInfo->ri_RelationDesc, &tuple->t_self, GetCurrentCommandId(true),
                                     estate->es_crosscheck_snapshot, true, &hufd, false);
 
         switch (delete_result)
         {
-        case TM_Ok:
+        case CYPHER_TM_Ok:
             break;
-        case TM_SelfModified:
+        case CYPHER_TM_SelfModified:
             ereport(
                 ERROR,
                 (errcode(ERRCODE_INTERNAL_ERROR),
                  errmsg("deleting the same entity more than once cannot happen")));
             /* ereport never gets here */
             break;
-        case TM_Updated:
+        case CYPHER_TM_Updated:
             ereport(
                 ERROR,
                 (errcode(ERRCODE_T_R_SERIALIZATION_FAILURE),
@@ -298,10 +298,9 @@ static void delete_entity(EState *estate, ResultRelInfo *resultRelInfo, HeapTupl
             /* elog never gets here */
             break;
         }
-        /* increment the command counter */
-        CommandCounterIncrement();
+
     }
-    else if (lock_result != TM_Invisible && lock_result != TM_SelfModified)
+    else if (lock_result != CYPHER_TM_Invisible && lock_result != CYPHER_TM_SelfModified)
     {
         ereport(ERROR,
                 (errcode(ERRCODE_INTERNAL_ERROR),

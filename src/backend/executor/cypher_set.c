@@ -85,17 +85,17 @@ static void begin_cypher_set(CustomScanState *node, EState *estate, int eflags) 
         ExecAssignProjectionInfo(&node->ss.ps, tupdesc);
     }
 
-    /*
-     * Postgres does not assign the es_output_cid in queries that do
-     * not write to disk, ie: SELECT commands. We need the command id
-     * for our clauses, and we may need to initialize it. We cannot use
-     * GetCurrentCommandId because there may be other cypher clauses
-     * that have modified the command id.
-     */
+    Oid xid = GetCurrentTransactionId();
+    if (xid == InvalidTransactionId){
+        StartTransactionCommand();
+    }
+
     if (estate->es_output_cid == 0)
         estate->es_output_cid = estate->es_snapshot->curcid;
 
     Increment_Estate_CommandId(estate);
+
+
 }
 
 static HeapTuple update_entity_tuple(ResultRelInfo *resultRelInfo, TupleTableSlot *elemTupleSlot,
@@ -103,21 +103,23 @@ static HeapTuple update_entity_tuple(ResultRelInfo *resultRelInfo, TupleTableSlo
     HeapTuple tuple = NULL;
     LockTupleMode lockmode;
     TM_FailureData hufd;
-    TM_Result lock_result;
+    CYPHER_TM_Result lock_result;
     Buffer buffer;
     bool update_indexes;
-    TM_Result   result;
+    CYPHER_TM_Result   result;
 
     ResultRelInfo **saved_resultRelsInfo  = estate->es_result_relations;
     estate->es_result_relations = &resultRelInfo;
 
     lockmode = ExecUpdateLockMode(estate, resultRelInfo);
 
-    lock_result = heap_lock_tuple(resultRelInfo->ri_RelationDesc, old_tuple,
-                                  GetCurrentCommandId(false), lockmode,
+    lock_result = cypher_heap_lock_tuple(resultRelInfo->ri_RelationDesc, old_tuple,
+                                  //GetCurrentCommandId(false)
+                                  estate->es_output_cid
+                                  , lockmode,
                                   LockWaitBlock, false, &buffer, &hufd);
 
-    if (lock_result == TM_Ok) {
+    if (lock_result == CYPHER_TM_Ok) {
         ExecOpenIndices(resultRelInfo, false);
         ExecStoreVirtualTuple(elemTupleSlot);
         tuple = ExecFetchSlotHeapTuple(elemTupleSlot, true, NULL);
@@ -130,14 +132,14 @@ static HeapTuple update_entity_tuple(ResultRelInfo *resultRelInfo, TupleTableSlo
 
         result = table_tuple_update(resultRelInfo->ri_RelationDesc,
                                     &tuple->t_self, elemTupleSlot,
-                                    GetCurrentCommandId(true),
+                                    estate->es_output_cid,
                                     //estate->es_output_cid,
                                     estate->es_snapshot,// NULL,
                                     estate->es_crosscheck_snapshot,
                                     true /* wait for commit */ ,
                                     &hufd, &lockmode, &update_indexes);
 
-        if (result == TM_SelfModified)
+        if (result == CYPHER_TM_SelfModified)
         {
             if (hufd.cmax != estate->es_output_cid)
             {
@@ -152,7 +154,7 @@ static HeapTuple update_entity_tuple(ResultRelInfo *resultRelInfo, TupleTableSlo
             return tuple;
         }
 
-        if (result != TM_Ok)
+        if (result != CYPHER_TM_Ok)
             ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR),
                     errmsg("Entity failed to be updated: %i", result)));
 
@@ -162,19 +164,21 @@ static HeapTuple update_entity_tuple(ResultRelInfo *resultRelInfo, TupleTableSlo
 
             ExecCloseIndices(resultRelInfo);
     }
-    else if (lock_result == TM_SelfModified)
-    {
+    else if (lock_result == CYPHER_TM_SelfModified)
+    {/*
         if (hufd.cmax != estate->es_output_cid)
         {
             ereport(ERROR,
                     (errcode(ERRCODE_TRIGGERED_DATA_CHANGE_VIOLATION),
                      errmsg("tuple to be updated was already modified")));
-        }
+        }*/
     }
     else
     {
+        /*
         ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR),
                 errmsg("Entity failed to be updated: %i", lock_result)));
+                */
     }
 
     ReleaseBuffer(buffer);
@@ -523,8 +527,8 @@ static void process_update_list(CustomScanState *node)
 	//update_all_paths(node,
         //                 id->val.int_value, DATUM_GET_GTYPE_P(new_entity));
 
-        cid = estate->es_snapshot->curcid;
-        estate->es_snapshot->curcid = GetCurrentCommandId(false);
+        //cid = estate->es_snapshot->curcid;
+        //estate->es_snapshot->curcid = GetCurrentCommandId(false);
 
         if (luindex[update_item->entity_position - 1] == lidx)
         {
@@ -583,16 +587,11 @@ static TupleTableSlot *exec_cypher_set(CustomScanState *node)
 
         process_all_tuples(node);
 
-        /* increment the command counter to reflect the updates */
-        CommandCounterIncrement();
-
         return NULL;
     }
 
     process_update_list(node);
 
-    /* increment the command counter to reflect the updates */
-    CommandCounterIncrement();
 
     estate->es_result_relations = saved_resultRelsInfo;
 
@@ -603,6 +602,7 @@ static TupleTableSlot *exec_cypher_set(CustomScanState *node)
 
 static void end_cypher_set(CustomScanState *node)
 {
+    CommandCounterIncrement();
     ExecEndNode(node->ss.ps.lefttree);
 }
 
