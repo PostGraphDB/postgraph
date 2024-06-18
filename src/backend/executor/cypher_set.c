@@ -19,6 +19,7 @@
 
 #include "postgres.h"
 
+#include "miscadmin.h"
 #include "access/heapam.h"
 #include "access/htup_details.h"
 #include "access/xact.h"
@@ -565,6 +566,16 @@ static TupleTableSlot *exec_cypher_set(CustomScanState *node)
     EState *estate = css->css.ss.ps.state;
     ExprContext *econtext = css->css.ss.ps.ps_ExprContext;
     TupleTableSlot *slot;
+TupleTableSlot *stored_slot ;
+if (css->slot == NULL)
+        css->slot = MakeSingleTupleTableSlot(css->css.ss.ps.ps_ResultTupleDesc, &TTSOpsMinimalTuple);
+
+
+    if (!css->done || CYPHER_CLAUSE_IS_TERMINAL(css->flags)) {
+    if(!CYPHER_CLAUSE_IS_TERMINAL(css->flags))
+        css->tuple_store = tuplestore_begin_heap(false, false, work_mem);
+    else 
+        css->tuple_store = NULL;
 
     saved_resultRelsInfo = estate->es_result_relations;
 
@@ -574,30 +585,56 @@ static TupleTableSlot *exec_cypher_set(CustomScanState *node)
     Increment_Estate_CommandId(estate);
 
     if (TupIsNull(slot))
-    {
         return NULL;
-    }
 
     econtext->ecxt_scantuple =
         node->ss.ps.lefttree->ps_ProjInfo->pi_exprContext->ecxt_scantuple;
-
     if (CYPHER_CLAUSE_IS_TERMINAL(css->flags))
     {
+        
         estate->es_result_relations = saved_resultRelsInfo;
 
         process_all_tuples(node);
 
         return NULL;
+    } else {
+
+        estate->es_result_relations = saved_resultRelsInfo;
+
+        do
+        {
+        process_update_list(node);
+
+        TupleTableSlot *temp = econtext->ecxt_scantuple;
+        econtext->ecxt_scantuple = ExecProject(node->ss.ps.lefttree->ps_ProjInfo);
+        css->slot = ExecProject(node->ss.ps.ps_ProjInfo);
+        //slot_getallattrs(css->slot);
+        
+        //tuplestore_puttupleslot(css->tuple_store, css->slot);
+        tuplestore_putvalues(css->tuple_store, css->slot->tts_tupleDescriptor, 
+                             css->slot->tts_values, css->slot->tts_isnull);
+        
+        econtext->ecxt_scantuple = temp;
+
+        Decrement_Estate_CommandId(estate)
+        slot = ExecProcNode(node->ss.ps.lefttree);
+        Increment_Estate_CommandId(estate)
+
+       } while (!TupIsNull(slot) );
+
+        css->done = true;
+        tuplestore_rescan(css->tuple_store);
     }
 
-    process_update_list(node);
+    }
 
+    css->slot = MakeSingleTupleTableSlot(css->slot->tts_tupleDescriptor, &TTSOpsMinimalTuple);
 
-    estate->es_result_relations = saved_resultRelsInfo;
-
-    econtext->ecxt_scantuple = ExecProject(node->ss.ps.lefttree->ps_ProjInfo);
-
-    return ExecProject(node->ss.ps.ps_ProjInfo);
+    ExecClearTuple(css->slot);
+    bool res = tuplestore_gettupleslot(css->tuple_store, true, true, css->slot);
+    if (!res)
+      return NULL;
+    return css->slot;
 }
 
 static void end_cypher_set(CustomScanState *node)
@@ -641,5 +678,7 @@ Node *create_cypher_set_plan_state(CustomScan *cscan)
     cypher_css->css.ss.ps.type = T_CustomScanState;
     cypher_css->css.methods = &cypher_set_exec_methods;
 
+    cypher_css->done = false;
+    cypher_css->slot = NULL;
     return (Node *)cypher_css;
 }

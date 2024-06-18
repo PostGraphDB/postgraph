@@ -28,6 +28,8 @@
 #include "nodes/nodes.h"
 #include "nodes/plannodes.h"
 
+#include "utils/tuplestore.h"
+
 #include "nodes/cypher_nodes.h"
 #include "utils/gtype.h"
 
@@ -68,6 +70,9 @@ typedef struct cypher_set_custom_scan_state
     cypher_update_information *set_list;
     int flags;
     Oid graph_oid;
+    Tuplestorestate *tuple_store;
+    bool done;
+    TupleTableSlot *slot;
 } cypher_set_custom_scan_state;
 
 typedef struct cypher_delete_custom_scan_state
