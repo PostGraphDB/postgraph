@@ -36,6 +36,8 @@ const CustomScanMethods cypher_delete_plan_methods = {
 const CustomScanMethods cypher_merge_plan_methods = {
     "Cypher Merge", create_cypher_merge_plan_state};
 
+
+
 Plan *plan_cypher_create_path(PlannerInfo *root, RelOptInfo *rel,
                               CustomPath *best_path, List *tlist,
                               List *clauses, List *custom_plans)
@@ -118,7 +120,7 @@ Plan *plan_cypher_set_path(PlannerInfo *root, RelOptInfo *rel,
     cs->custom_relids = NULL;
     cs->methods = &cypher_set_plan_methods;
 
-    return (Plan *)cs;
+    return ((Plan *)cs);
 }
 
 /*

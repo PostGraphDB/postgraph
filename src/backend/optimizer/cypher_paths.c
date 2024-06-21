@@ -181,6 +181,82 @@ static void handle_cypher_create_clause(PlannerInfo *root, RelOptInfo *rel,
     add_path(rel, (Path *)cp);
 }
 
+#include "nodes/extensible.h"
+#include "nodes/nodes.h"
+#include "nodes/pg_list.h"
+#include "nodes/plannodes.h"
+
+static Material *
+make_material(Plan *lefttree)
+{
+	Material   *node = makeNode(Material);
+	Plan	   *plan = &node->plan;
+    CustomScan *cs = lefttree;
+
+	plan->targetlist = cs->custom_scan_tlist;
+	plan->qual = NIL;
+	plan->lefttree = lefttree;
+	plan->righttree = NULL;
+
+	return node;
+}
+/*
+ * Copy cost and size info from a Path node to the Plan node created from it.
+ * The executor usually won't use this info, but it's needed by EXPLAIN.
+ * Also copy the parallel-related flags, which the executor *will* use.
+ */
+static void
+copy_generic_path_info(Plan *dest, Path *src)
+{
+	dest->startup_cost = src->startup_cost;
+	dest->total_cost = src->total_cost;
+	dest->plan_rows = src->rows;
+	dest->plan_width = src->pathtarget->width;
+	dest->parallel_aware = src->parallel_aware;
+	dest->parallel_safe = src->parallel_safe;
+}
+
+static Material *
+create_material_plan(PlannerInfo *root, CustomPath *cp)
+{
+	Material   *plan;
+	Plan	   *subplan;
+
+	plan = make_material(cp);
+
+	copy_generic_path_info(&plan->plan, (Path *) cp);
+
+	return plan;
+}
+
+MaterialPath *
+create_material_path(RelOptInfo *rel, Path *subpath)
+{
+	MaterialPath *pathnode = makeNode(MaterialPath);
+
+	Assert(subpath->parent == rel);
+
+	pathnode->path.pathtype = T_Material;
+	pathnode->path.parent = rel;
+	pathnode->path.pathtarget = rel->reltarget;
+	pathnode->path.param_info = subpath->param_info;
+	pathnode->path.parallel_aware = false;
+	pathnode->path.parallel_safe = rel->consider_parallel &&
+		subpath->parallel_safe;
+	pathnode->path.parallel_workers = subpath->parallel_workers;
+	pathnode->path.pathkeys = subpath->pathkeys;
+
+	pathnode->subpath = subpath;
+
+	cost_material(&pathnode->path,
+				  subpath->startup_cost,
+				  subpath->total_cost,
+				  subpath->rows,
+				  subpath->pathtarget->width);
+
+	return pathnode;
+}
+
 // replace all possible paths with our CustomPath
 static void handle_cypher_set_clause(PlannerInfo *root, RelOptInfo *rel,
                                      Index rti, RangeTblEntry *rte)
@@ -202,7 +278,7 @@ static void handle_cypher_set_clause(PlannerInfo *root, RelOptInfo *rel,
     rel->pathlist = NIL;
     rel->partial_pathlist = NIL;
 
-    add_path(rel, (Path *)cp);
+    add_path(rel, create_material_path(rel, (Path *)cp));
 }
 
 // replace all possible paths with our CustomPath

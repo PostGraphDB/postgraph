@@ -32,6 +32,7 @@
 #include "storage/bufmgr.h"
 #include "utils/rel.h"
 
+#include "utils/cypher_tuplestore.h"
 #include "access/cypher_heapam.h"
 #include "executor/cypher_executor.h"
 #include "executor/cypher_utils.h"
@@ -79,6 +80,10 @@ static void begin_cypher_set(CustomScanState *node, EState *estate, int eflags) 
     ExecAssignExprContext(estate, &node->ss.ps);
 
     ExecInitScanTupleSlot(estate, &node->ss, ExecGetResultType(node->ss.ps.lefttree), &TTSOpsHeapTuple);
+	
+    //ExecInitScanTupleSlot(estate, &node->ss, ExecGetResultType(node->ss.ps.lefttree), &TTSOpsMinimalTuple);
+	//ExecCreateScanSlotFromOuterPlan(estate, &node->ss, &TTSOpsMinimalTuple);
+
 
     if (!CYPHER_CLAUSE_IS_TERMINAL(css->flags)) {
         TupleDesc tupdesc = node->ss.ss_ScanTupleSlot->tts_tupleDescriptor;
@@ -401,17 +406,8 @@ static void process_update_list(CustomScanState *node)
     int *luindex = NULL;
     int lidx = 0;
 
-    /* allocate an array to hold the last update index of each 'entity' */
     luindex = palloc0(sizeof(int) * scanTupleSlot->tts_nvalid);
-    /*
-     * Iterate through the SET items list and store the loop index of each
-     * 'entity' update. As there is only one entry for each entity, this will
-     * have the effect of overwriting the previous loop index stored - if this
-     * 'entity' is used more than once. This will create an array of the last
-     * loop index for the update of that particular 'entity'. This will allow us
-     * to correctly update an 'entity' after all other previous updates to that
-     * 'entity' have been done.
-     */
+
     foreach (lc, css->set_list->set_items)
     {
         cypher_update_item *update_item = NULL;
@@ -419,25 +415,21 @@ static void process_update_list(CustomScanState *node)
         update_item = (cypher_update_item *)lfirst(lc);
         luindex[update_item->entity_position - 1] = lidx;
 
-        /* increment the loop index */
         lidx++;
     }
 
-    /* reset loop index */
     lidx = 0;
 
-    /* iterate through SET set items */
     foreach (lc, css->set_list->set_items)
     {
         gtype_value *altered_properties;
-        gtype_value *original_properties;
+        gtype *original_properties;
         graphid id;
         gtype *new_property_value;
         TupleTableSlot *slot;
         ResultRelInfo *resultRelInfo;
         ScanKeyData scan_keys[1];
         TableScanDesc scan_desc;
-        bool remove_property;
         char *label_name;
         cypher_update_item *update_item;
         Datum new_entity;
@@ -447,22 +439,16 @@ static void process_update_list(CustomScanState *node)
 
         update_item = (cypher_update_item *)lfirst(lc);
 
-        /*
-         * If the entity is null, we can skip this update. this will be
-         * possible when the OPTIONAL MATCH clause is implemented.
-         */
+
         if (scanTupleSlot->tts_isnull[update_item->entity_position - 1])
             continue;
 
+        bool remove_property;
         if (update_item->remove_item)
             remove_property = true;
         else
             remove_property = scanTupleSlot->tts_isnull[update_item->prop_position - 1];
 
-        /*
-         * If we need to remove the property, set the value to NULL. Otherwise
-         * fetch the evaluated expression from the tuble slot.
-         */
         if (remove_property)
             new_property_value = NULL;
         else
@@ -479,10 +465,6 @@ static void process_update_list(CustomScanState *node)
 
             original_properties = extract_vertex_properties(v);
 
-            /*
-             * Alter the properties Agtype value to contain or remove the updated
-             * property.
-             */
             altered_properties = alter_property_value(original_properties, update_item->prop_name,
                                                   new_property_value, remove_property);
 
@@ -548,15 +530,13 @@ static void process_update_list(CustomScanState *node)
         }
 
         estate->es_snapshot->curcid = cid;
-        /* close relation */
+
         ExecCloseIndices(resultRelInfo);
         table_close(resultRelInfo->ri_RelationDesc, RowExclusiveLock);
 
-        /* increment loop index */
         lidx++;	
     }
-    /* free our lookup array */
-    pfree(luindex);
+
 }
 
 static TupleTableSlot *exec_cypher_set(CustomScanState *node)
@@ -566,80 +546,84 @@ static TupleTableSlot *exec_cypher_set(CustomScanState *node)
     EState *estate = css->css.ss.ps.state;
     ExprContext *econtext = css->css.ss.ps.ps_ExprContext;
     TupleTableSlot *slot;
-TupleTableSlot *stored_slot ;
-if (css->slot == NULL)
+    TupleTableSlot *stored_slot;
+
+    if (css->slot == NULL)
         css->slot = MakeSingleTupleTableSlot(css->css.ss.ps.ps_ResultTupleDesc, &TTSOpsMinimalTuple);
 
 
     if (!css->done || CYPHER_CLAUSE_IS_TERMINAL(css->flags)) {
-    if(!CYPHER_CLAUSE_IS_TERMINAL(css->flags))
-        css->tuple_store = tuplestore_begin_heap(false, false, work_mem);
-    else 
-        css->tuple_store = NULL;
+       /*if(!CYPHER_CLAUSE_IS_TERMINAL(css->flags))
+            css->tuple_store = tuplestore_begin_heap(false, false, work_mem);
+        else 
+            css->tuple_store = NULL;
+*/
+        saved_resultRelsInfo = estate->es_result_relations;
 
-    saved_resultRelsInfo = estate->es_result_relations;
-
-    //Process the subtree first
-    Decrement_Estate_CommandId(estate);
-    slot = ExecProcNode(node->ss.ps.lefttree);
-    Increment_Estate_CommandId(estate);
-
-    if (TupIsNull(slot))
-        return NULL;
-
-    econtext->ecxt_scantuple =
-        node->ss.ps.lefttree->ps_ProjInfo->pi_exprContext->ecxt_scantuple;
-    if (CYPHER_CLAUSE_IS_TERMINAL(css->flags))
-    {
-        
-        estate->es_result_relations = saved_resultRelsInfo;
-
-        process_all_tuples(node);
-
-        return NULL;
-    } else {
-
-        estate->es_result_relations = saved_resultRelsInfo;
-
-        do
-        {
-        process_update_list(node);
-
-        TupleTableSlot *temp = econtext->ecxt_scantuple;
-        econtext->ecxt_scantuple = ExecProject(node->ss.ps.lefttree->ps_ProjInfo);
-        css->slot = ExecProject(node->ss.ps.ps_ProjInfo);
-        //slot_getallattrs(css->slot);
-        
-        //tuplestore_puttupleslot(css->tuple_store, css->slot);
-        tuplestore_putvalues(css->tuple_store, css->slot->tts_tupleDescriptor, 
-                             css->slot->tts_values, css->slot->tts_isnull);
-        
-        econtext->ecxt_scantuple = temp;
-
-        Decrement_Estate_CommandId(estate)
+        //Process the subtree first
+        Decrement_Estate_CommandId(estate);
         slot = ExecProcNode(node->ss.ps.lefttree);
-        Increment_Estate_CommandId(estate)
+        Increment_Estate_CommandId(estate);
 
-       } while (!TupIsNull(slot) );
+        if (TupIsNull(slot))
+            return NULL;
 
-        css->done = true;
-        tuplestore_rescan(css->tuple_store);
+        econtext->ecxt_scantuple =
+            node->ss.ps.lefttree->ps_ProjInfo->pi_exprContext->ecxt_scantuple;
+
+        if (CYPHER_CLAUSE_IS_TERMINAL(css->flags)) {
+            estate->es_result_relations = saved_resultRelsInfo;
+
+            process_all_tuples(node);
+
+            return NULL;
+        } else {
+            estate->es_result_relations = saved_resultRelsInfo;
+return slot;
+        }
+/*
+            do {
+                process_update_list(node);
+
+                TupleTableSlot *temp = econtext->ecxt_scantuple;
+                econtext->ecxt_scantuple = ExecProject(node->ss.ps.lefttree->ps_ProjInfo);
+                css->slot = ExecProject(node->ss.ps.ps_ProjInfo);
+
+                tuplestore_putvalues(css->tuple_store, css->slot->tts_tupleDescriptor, 
+                                     css->slot->tts_values, css->slot->tts_isnull);
+        
+                econtext->ecxt_scantuple = temp;
+
+                Decrement_Estate_CommandId(estate)
+                slot = ExecProcNode(node->ss.ps.lefttree);
+                Increment_Estate_CommandId(estate)
+
+            } while (!TupIsNull(slot) );
+
+            css->done = true;
+            tuplestore_rescan(css->tuple_store);
+        }*/
+
     }
 
-    }
-
-    css->slot = MakeSingleTupleTableSlot(css->slot->tts_tupleDescriptor, &TTSOpsMinimalTuple);
-
+    /*css->slot = MakeSingleTupleTableSlot(css->slot->tts_tupleDescriptor, &TTSOpsMinimalTuple);
     ExecClearTuple(css->slot);
     bool res = tuplestore_gettupleslot(css->tuple_store, true, true, css->slot);
+
+    //css->slot->tts_ops = (const TupleTableSlotOps *)&TTSOpsVirtual;
+    //memcpy(&css->slot->tts_ops, &TTSOpsVirtual, 4);
+    //econtext->ecxt_scantuple = css->slot;
+    //node->ss.ps.lefttree->ps_ProjInfo->pi_exprContext->ecxt_scantuple = css->slot;
+
     if (!res)
       return NULL;
-    return css->slot;
+    return css->slot;*/
 }
 
 static void end_cypher_set(CustomScanState *node)
 {
     CommandCounterIncrement();
+
     ExecEndNode(node->ss.ps.lefttree);
 }
 
@@ -680,5 +664,6 @@ Node *create_cypher_set_plan_state(CustomScan *cscan)
 
     cypher_css->done = false;
     cypher_css->slot = NULL;
+    
     return (Node *)cypher_css;
 }

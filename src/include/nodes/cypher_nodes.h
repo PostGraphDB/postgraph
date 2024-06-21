@@ -369,6 +369,7 @@ typedef struct cypher_update_information
     char *graph_name;
     Oid graph_oid;
     char *clause_name;
+    bool first_write_clause;
 } cypher_update_information;
 
 typedef struct cypher_update_item
