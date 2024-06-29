@@ -1,20 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (C) 2023-2024 PostGraphDB
+ *  
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Portions Copyright (c) 2020-2023, Apache Software Foundation
  */
 
 #include "postgres.h"
@@ -54,18 +54,8 @@ static HeapTuple update_entity_tuple(ResultRelInfo *resultRelInfo, TupleTableSlo
                                      EState *estate, HeapTuple old_tuple);
 
 const CustomExecMethods cypher_set_exec_methods = {SET_SCAN_STATE_NAME,
-                                                      begin_cypher_set,
-                                                      exec_cypher_set,
-                                                      end_cypher_set,
-                                                      rescan_cypher_set,
-                                                      NULL,
-                                                      NULL,
-                                                      NULL,
-                                                      NULL,
-                                                      NULL,
-                                                      NULL,
-                                                      NULL,
-                                                      NULL};
+    begin_cypher_set, exec_cypher_set, end_cypher_set, rescan_cypher_set,
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 
 static void begin_cypher_set(CustomScanState *node, EState *estate, int eflags) {
     cypher_set_custom_scan_state *css =
@@ -92,9 +82,6 @@ static void begin_cypher_set(CustomScanState *node, EState *estate, int eflags) 
     }
 
     Oid xid = GetCurrentTransactionId();
-    if (xid == InvalidTransactionId){
-        StartTransactionCommand();
-    }
 
     if (estate->es_output_cid == 0)
         estate->es_output_cid = estate->es_snapshot->curcid;
@@ -120,9 +107,7 @@ static HeapTuple update_entity_tuple(ResultRelInfo *resultRelInfo, TupleTableSlo
     lockmode = ExecUpdateLockMode(estate, resultRelInfo);
 
     lock_result = cypher_heap_lock_tuple(resultRelInfo->ri_RelationDesc, old_tuple,
-                                  //GetCurrentCommandId(false)
-                                  estate->es_output_cid
-                                  , lockmode,
+                                  estate->es_snapshot->curcid, lockmode,
                                   LockWaitBlock, false, &buffer, &hufd);
 
     if (lock_result == CYPHER_TM_Ok) {
@@ -138,9 +123,8 @@ static HeapTuple update_entity_tuple(ResultRelInfo *resultRelInfo, TupleTableSlo
 
         result = table_tuple_update(resultRelInfo->ri_RelationDesc,
                                     &tuple->t_self, elemTupleSlot,
-                                    estate->es_output_cid,
-                                    //estate->es_output_cid,
-                                    estate->es_snapshot,// NULL,
+                                    estate->es_snapshot->curcid,
+                                    estate->es_snapshot,
                                     estate->es_crosscheck_snapshot,
                                     true /* wait for commit */ ,
                                     &hufd, &lockmode, &update_indexes);
@@ -213,157 +197,20 @@ static void process_all_tuples(CustomScanState *node)
     } while (!TupIsNull(slot));
 }
 
-/*
- * Checks the path to see if the entities contained within
- * have the same graphid and the updated_id field. Returns
- * true if yes, false otherwise.
- */
-static bool check_path(gtype_value *path, graphid updated_id)
-{
-    int i;
-
-/*    for (i = 0; i < path->val.array.num_elems; i++)
-    {
-        gtype_value *elem = &path->val.array.elems[i];
-
-        gtype_value *id = GET_GTYPE_VALUE_OBJECT_VALUE(elem, "id");
-
-        if (updated_id == id->val.int_value)
-        {
-            return true;
-        }
-    }
-*/
-    return false;
-}
-
-/* XXX: Update to new datatype
- * Construct a new gtype path with the entity with updated_id
- * replacing all of its intances in path with updated_entity
- */
-static gtype_value *replace_entity_in_path(gtype_value *path, graphid updated_id, gtype *updated_entity) {
-    gtype_iterator *it;
-    gtype_iterator_token tok = WGT_DONE;
-    gtype_parse_state *parse_state = NULL;
-    gtype_value *r;
-    gtype_value *parsed_gtype_value = NULL;
-    gtype *prop_gtype;
-    int i;
-
-    r = palloc(sizeof(gtype_value));
-
-    prop_gtype = gtype_value_to_gtype(path);
-    it = gtype_iterator_init(&prop_gtype->root);
-    tok = gtype_iterator_next(&it, r, true);
-
-    parsed_gtype_value = push_gtype_value(&parse_state, tok,
-                                            tok < WGT_BEGIN_ARRAY ? r : NULL);
-
-    // Iterate through the path, replace entities as necessary.
-    for (i = 0; i < path->val.array.num_elems; i++)
-    {
-        gtype_value *id, *elem;
-
-        elem = &path->val.array.elems[i];
-
-        // extract the id field
-        id = NULL;//GET_GTYPE_VALUE_OBJECT_VALUE(elem, "id");
-
-        /*
-         * Either replace or keep the entity in the new path, depending on the id
-         * check.
-         */
-        if (updated_id == id->val.int_value)
-        {
-            parsed_gtype_value = push_gtype_value(&parse_state, WGT_ELEM,
-                get_ith_gtype_value_from_container(&updated_entity->root, 0));
-        }
-        else
-        {
-            parsed_gtype_value = push_gtype_value(&parse_state, WGT_ELEM,
-                                                    elem);
-        }
-    }
-
-    parsed_gtype_value = push_gtype_value(&parse_state, WGT_END_ARRAY, NULL);
-    //parsed_gtype_value->type = AGTV_PATH;
-
-    return parsed_gtype_value;
-}
-
-/*
- * When a vertex or edge is updated, we need to update the vertex
- * or edge if it is contained within a path. Scan through scanTupleSlot
- * to find all paths and check if they need to be updated.
- */
-static void update_all_paths(CustomScanState *node, graphid id,
-                             gtype *updated_entity)
-{
-    cypher_set_custom_scan_state *css = (cypher_set_custom_scan_state *)node;
-    ExprContext *econtext = css->css.ss.ps.ps_ExprContext;
-    TupleTableSlot *scanTupleSlot = econtext->ecxt_scantuple;
-    int i;
-
-    for (i = 0; i < scanTupleSlot->tts_tupleDescriptor->natts; i++)
-    {
-        gtype *original_entity;
-        gtype_value *original_entity_value;
-
-        // skip nulls
-        if (scanTupleSlot->tts_tupleDescriptor->attrs[i].atttypid != GTYPEOID)
-        {
-            continue;
-        }
-
-        // skip non gtype values
-        if (scanTupleSlot->tts_isnull[i])
-        {
-            continue;
-        }
-
-        original_entity = DATUM_GET_GTYPE_P(scanTupleSlot->tts_values[i]);
-
-        // if the value is not a scalar type, its not a path
-        if (!GTYPE_CONTAINER_IS_SCALAR(&original_entity->root))
-        {
-            continue;
-        }
-
-        original_entity_value = get_ith_gtype_value_from_container(&original_entity->root, 0);
-
-        // we found a path
-        if (original_entity_value->type == 1)// AGTV_PATH)
-        {
-            // check if the path contains the entity.
-            if (check_path(original_entity_value, id))
-            {
-                // the path does contain the entity replace with the new entity.
-                gtype_value *new_path = replace_entity_in_path(original_entity_value, id, updated_entity);
-
-                scanTupleSlot->tts_values[i] = GTYPE_P_GET_DATUM(gtype_value_to_gtype(new_path));
-            }
-        }
-    }
-}
-
 TupleTableSlot *populate_vertex_tts_1(TupleTableSlot *elemTupleSlot, graphid id, gtype_value *properties)
 {
     bool properties_isnull;
 
     if (id == NULL)
-    {
         ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
                         errmsg("vertex id field cannot be NULL")));
-    }
-
-    properties_isnull = properties == NULL;
 
     elemTupleSlot->tts_values[vertex_tuple_id] = GRAPHID_GET_DATUM(id);
     elemTupleSlot->tts_isnull[vertex_tuple_id] = false;
 
     elemTupleSlot->tts_values[vertex_tuple_properties] =
         GTYPE_P_GET_DATUM(gtype_value_to_gtype(properties));
-    elemTupleSlot->tts_isnull[vertex_tuple_properties] = properties_isnull;
+    elemTupleSlot->tts_isnull[vertex_tuple_properties] = properties == NULL;
 
     elemTupleSlot->tts_values[2] = NULL;
     elemTupleSlot->tts_isnull[2] = true;
@@ -506,12 +353,6 @@ static void process_update_list(CustomScanState *node)
         }
 
         scanTupleSlot->tts_values[update_item->entity_position - 1] = new_entity;
-
-	//update_all_paths(node,
-        //                 id->val.int_value, DATUM_GET_GTYPE_P(new_entity));
-
-        //cid = estate->es_snapshot->curcid;
-        //estate->es_snapshot->curcid = GetCurrentCommandId(false);
 
         if (luindex[update_item->entity_position - 1] == lidx)
         {
