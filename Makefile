@@ -32,6 +32,7 @@ OBJS = src/backend/postgraph.o \
        src/backend/commands/graph_commands.o \
        src/backend/commands/label_commands.o \
        src/backend/executor/cypher_create.o \
+       src/backend/executor/cypher_executor_start.o \
        src/backend/executor/cypher_merge.o \
        src/backend/executor/cypher_set.o \
        src/backend/executor/cypher_utils.o \

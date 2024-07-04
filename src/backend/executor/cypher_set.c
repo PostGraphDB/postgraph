@@ -43,7 +43,6 @@
 #include "utils/edge.h"
 #include "catalog/ag_label.h"
 
-
 static void begin_cypher_set(CustomScanState *node, EState *estate, int eflags);
 static TupleTableSlot *exec_cypher_set(CustomScanState *node);
 static void end_cypher_set(CustomScanState *node);
@@ -69,18 +68,21 @@ static void begin_cypher_set(CustomScanState *node, EState *estate, int eflags) 
 
     ExecAssignExprContext(estate, &node->ss.ps);
 
-    ExecInitScanTupleSlot(estate, &node->ss, ExecGetResultType(node->ss.ps.lefttree), &TTSOpsHeapTuple);
+    //ExecInitScanTupleSlot(estate, &node->ss, ExecGetResultType(node->ss.ps.lefttree), &TTSOpsHeapTuple);
 	
-    //ExecInitScanTupleSlot(estate, &node->ss, ExecGetResultType(node->ss.ps.lefttree), &TTSOpsMinimalTuple);
+    ExecInitScanTupleSlot(estate, &node->ss, ExecGetResultType(node->ss.ps.lefttree), &TTSOpsMinimalTuple);
 	//ExecCreateScanSlotFromOuterPlan(estate, &node->ss, &TTSOpsMinimalTuple);
 
+    //node->ss.ps.plan->targetlist = css->targetList;
 
+    ExecInitResultTupleSlotTL(node, &TTSOpsMinimalTuple);
+/*
     if (!CYPHER_CLAUSE_IS_TERMINAL(css->flags)) {
-        TupleDesc tupdesc = node->ss.ss_ScanTupleSlot->tts_tupleDescriptor;
-
+        //TupleDesc tupdesc = node->ss.ss_ScanTupleSlot->tts_tupleDescriptor;
+        TupleDesc tupdesc = node->ss.ps.ps_ResultTupleDesc;
         ExecAssignProjectionInfo(&node->ss.ps, tupdesc);
     }
-
+*/
     Oid xid = GetCurrentTransactionId();
 
     if (estate->es_output_cid == 0)
@@ -132,11 +134,9 @@ static HeapTuple update_entity_tuple(ResultRelInfo *resultRelInfo, TupleTableSlo
         if (result == CYPHER_TM_SelfModified)
         {
             if (hufd.cmax != estate->es_output_cid)
-            {
                 ereport(ERROR,
                         (errcode(ERRCODE_TRIGGERED_DATA_CHANGE_VIOLATION),
                          errmsg("tuple to be updated was already modified")));
-            }
 
             ExecCloseIndices(resultRelInfo);
             estate->es_result_relations = saved_resultRelsInfo;
@@ -152,7 +152,7 @@ static HeapTuple update_entity_tuple(ResultRelInfo *resultRelInfo, TupleTableSlo
         if (resultRelInfo->ri_NumIndices > 0 && update_indexes)
           ExecInsertIndexTuples(resultRelInfo, elemTupleSlot, estate, false, false, NULL, NIL);
 
-            ExecCloseIndices(resultRelInfo);
+        ExecCloseIndices(resultRelInfo);
     }
     else if (lock_result == CYPHER_TM_SelfModified)
     {/*
@@ -394,11 +394,11 @@ static TupleTableSlot *exec_cypher_set(CustomScanState *node)
 
 
     if (!css->done || CYPHER_CLAUSE_IS_TERMINAL(css->flags)) {
-       /*if(!CYPHER_CLAUSE_IS_TERMINAL(css->flags))
+       if(!CYPHER_CLAUSE_IS_TERMINAL(css->flags))
             css->tuple_store = tuplestore_begin_heap(false, false, work_mem);
         else 
             css->tuple_store = NULL;
-*/
+
         saved_resultRelsInfo = estate->es_result_relations;
 
         //Process the subtree first
@@ -420,15 +420,18 @@ static TupleTableSlot *exec_cypher_set(CustomScanState *node)
             return NULL;
         } else {
             estate->es_result_relations = saved_resultRelsInfo;
-return slot;
-        }
-/*
+//return slot;
+  //      }
+
             do {
                 process_update_list(node);
 
                 TupleTableSlot *temp = econtext->ecxt_scantuple;
+                css->slot = econtext->ecxt_scantuple;
+                /*
                 econtext->ecxt_scantuple = ExecProject(node->ss.ps.lefttree->ps_ProjInfo);
                 css->slot = ExecProject(node->ss.ps.ps_ProjInfo);
+                */
 
                 tuplestore_putvalues(css->tuple_store, css->slot->tts_tupleDescriptor, 
                                      css->slot->tts_values, css->slot->tts_isnull);
@@ -439,15 +442,18 @@ return slot;
                 slot = ExecProcNode(node->ss.ps.lefttree);
                 Increment_Estate_CommandId(estate)
 
+econtext->ecxt_scantuple =
+            node->ss.ps.lefttree->ps_ProjInfo->pi_exprContext->ecxt_scantuple;
+
             } while (!TupIsNull(slot) );
 
             css->done = true;
             tuplestore_rescan(css->tuple_store);
-        }*/
+        }
 
     }
 
-    /*css->slot = MakeSingleTupleTableSlot(css->slot->tts_tupleDescriptor, &TTSOpsMinimalTuple);
+    css->slot = MakeSingleTupleTableSlot(css->slot->tts_tupleDescriptor, &TTSOpsMinimalTuple);
     ExecClearTuple(css->slot);
     bool res = tuplestore_gettupleslot(css->tuple_store, true, true, css->slot);
 
@@ -458,7 +464,7 @@ return slot;
 
     if (!res)
       return NULL;
-    return css->slot;*/
+    return css->slot;
 }
 
 static void end_cypher_set(CustomScanState *node)
@@ -500,6 +506,7 @@ Node *create_cypher_set_plan_state(CustomScan *cscan)
     cypher_css->flags = set_list->flags;
     cypher_css->graph_oid = set_list->graph_oid;
 
+    cypher_css->targetList = cscan->custom_scan_tlist;
     cypher_css->css.ss.ps.type = T_CustomScanState;
     cypher_css->css.methods = &cypher_set_exec_methods;
 

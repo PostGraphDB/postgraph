@@ -39,6 +39,7 @@ void _PG_init(void)
     process_utility_hook_init();
     post_parse_analyze_init();
     IvfflatInit();
+    init_executor_start_hook();
 }
 
 void _PG_fini(void);

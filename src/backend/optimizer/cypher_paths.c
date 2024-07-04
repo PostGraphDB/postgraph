@@ -278,7 +278,8 @@ static void handle_cypher_set_clause(PlannerInfo *root, RelOptInfo *rel,
     rel->pathlist = NIL;
     rel->partial_pathlist = NIL;
 
-    add_path(rel, create_material_path(rel, (Path *)cp));
+    //add_path(rel, create_material_path(rel, (Path *)cp));
+    add_path(rel, (Path *)cp);
 }
 
 // replace all possible paths with our CustomPath

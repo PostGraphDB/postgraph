@@ -42,4 +42,6 @@ extern const CustomExecMethods cypher_delete_exec_methods;
 Node *create_cypher_merge_plan_state(CustomScan *cscan);
 extern const CustomExecMethods cypher_merge_exec_methods;
 
+void init_executor_start_hook(void);
+
 #endif

@@ -73,6 +73,7 @@ typedef struct cypher_set_custom_scan_state
     Tuplestorestate *tuple_store;
     bool done;
     TupleTableSlot *slot;
+    List *targetList;
 } cypher_set_custom_scan_state;
 
 typedef struct cypher_delete_custom_scan_state
