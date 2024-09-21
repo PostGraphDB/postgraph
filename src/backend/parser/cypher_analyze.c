@@ -147,7 +147,6 @@ static List *cypher_parse(char *string){
 	 * tree nodes, so we don't try to implement WRITE_READ_PARSE_PLAN_TREES
 	 * here.
 	 */
-
 	//TRACE_POSTGRESQL_QUERY_PARSE_DONE(string);
 
 	return raw_parsetree_list;
@@ -225,7 +224,7 @@ cypher_use_graph_utility(ParseState *pstate, const char *graph_name) {
     return query;
 }
 
-
+#include "utils/ag_cache.h"
 /*
  * parse_analyze
  *		Analyze a raw parse tree and transform it to Query form.
@@ -277,9 +276,7 @@ cypher_parse_analyze(RawStmt *parseTree, const char *sourceText,
 	    return query;
 
       } else if (is_ag_node(n, cypher_use_graph)) {
-
         cypher_use_graph *ccg = n;
-        //ereport(ERROR, errmsg("Here"));
 
         query = cypher_use_graph_utility(pstate, ccg->graph_name);
 
@@ -295,8 +292,9 @@ cypher_parse_analyze(RawStmt *parseTree, const char *sourceText,
 	    return query;
       }
     }
-    query = analyze_cypher(parseTree->stmt, pstate, sourceText, 0, NULL, CurrentGraphOid, NULL);
-	
+    graph_cache_data *gcd = search_graph_namespace_cache(CurrentGraphOid);
+    query = analyze_cypher(parseTree->stmt, pstate, sourceText, 0, gcd->name.data, CurrentGraphOid, NULL);
+			PushActiveSnapshot(GetTransactionSnapshot());
     if (IsQueryIdEnabled())
 		jstate = JumbleQuery(query, sourceText);
 

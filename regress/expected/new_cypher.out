@@ -13,3 +13,10 @@ NOTICE:  graph "new_cypher" is being used
  
 (1 row)
 
+RETURN 1 as a;
+WARNING:  snapshot 0x2786be8 still active
+ a 
+---
+ 1
+(1 row)
+
