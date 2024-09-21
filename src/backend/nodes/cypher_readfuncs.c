@@ -307,3 +307,11 @@ void read_cypher_create_graph(struct ExtensibleNode *node)
 
     READ_STRING_FIELD(graph_name);
 }
+
+
+void read_cypher_use_graph(struct ExtensibleNode *node)
+{
+    READ_LOCALS(cypher_create_graph);
+
+    READ_STRING_FIELD(graph_name);
+}

@@ -101,7 +101,7 @@
                  RANGE REMOVE RETURN ROLLUP ROW ROWS
                  SET SETS SKIP SOME STARTS
                  TIME TIES THEN TIMESTAMP TRUE_P
-                 UNBOUNDED UNION UNWIND USING
+                 UNBOUNDED UNION UNWIND USE USING
                  WHEN WHERE WINDOW WITH WITHIN WITHOUT
                  XOR
                  YIELD
@@ -111,6 +111,7 @@
 %type <node> stmt
 %type <list> single_query query_part_init query_part_last cypher_stmt
              reading_clause_list updating_clause_list_0 updating_clause_list_1
+             use
 %type <node> reading_clause updating_clause
 
 /* RETURN and WITH clause */
@@ -413,7 +414,20 @@ single_query:
         {
             $$ = list_concat($1, $2);
         }
+    | use
+        {
+            $$ = $1;
+        }
     ;
+
+use:
+    USE GRAPH IDENTIFIER
+    {
+        cypher_use_graph *n = make_ag_node(cypher_use_graph);
+        n->graph_name = $3;
+
+        $$ = list_make1(n);
+    };
 
 query_part_init:
     /* empty */

@@ -435,6 +435,13 @@ void out_cypher_create_graph(StringInfo str, const ExtensibleNode *node)
     WRITE_STRING_FIELD(graph_name);
 }
 
+void out_cypher_use_graph(StringInfo str, const ExtensibleNode *node)
+{
+    DEFINE_AG_NODE(cypher_use_graph);
+
+    WRITE_STRING_FIELD(graph_name);
+}
+
 /*
  * Copied from Postgres
  *

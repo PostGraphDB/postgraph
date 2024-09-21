@@ -75,7 +75,9 @@ typedef enum ag_node_tag
     cypher_delete_item_t,
     cypher_merge_information_t,
     // CREATE GRAPH ident
-    cypher_create_graph_t
+    cypher_create_graph_t,
+    // USE GRAPH ident
+    cypher_use_graph_t
 } ag_node_tag;
 
 void register_ag_nodes(void);

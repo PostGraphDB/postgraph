@@ -6,3 +6,10 @@ NOTICE:  graph "new_cypher" has been created
  
 (1 row)
 
+USE GRAPH new_cypher;
+NOTICE:  graph "new_cypher" is being used
+ use_graph 
+-----------
+ 
+(1 row)
+

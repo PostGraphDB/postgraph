@@ -104,6 +104,11 @@ RETURNS void
 LANGUAGE c 
 AS 'MODULE_PATHNAME';
 
+CREATE FUNCTION use_graph(graph_name text)
+RETURNS void 
+LANGUAGE c 
+AS 'MODULE_PATHNAME';
+
 CREATE FUNCTION create_graph_if_not_exists(graph_name name) 
 RETURNS void 
 LANGUAGE c 

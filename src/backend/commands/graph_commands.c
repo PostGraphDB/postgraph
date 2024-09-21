@@ -18,6 +18,7 @@
  */
 
 #include "postgres.h"
+#include "postgraph.h"
 
 #include "access/genam.h"
 #include "access/heapam.h"
@@ -95,6 +96,38 @@ Datum create_graph_if_not_exists(PG_FUNCTION_ARGS)
     PG_RETURN_VOID();
 }
 
+
+PG_FUNCTION_INFO_V1(use_graph);
+
+Datum use_graph(PG_FUNCTION_ARGS)
+{
+    char *graph;
+    Name graph_name;
+    char *graph_name_str;
+    Oid nsp_id;
+
+    if (PG_ARGISNULL(0))
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+                        errmsg("graph name must not be NULL")));
+
+    graph_name_str =  TextDatumGetCString(PG_GETARG_DATUM(0));
+    if (!graph_exists(graph_name_str))
+        ereport(ERROR,
+                (errcode(ERRCODE_UNDEFINED_SCHEMA),
+                        errmsg("graph \"%s\" already exists", graph_name_str)));
+
+    //Increment the Command counter before create the generic labels.
+    CommandCounterIncrement();
+
+    CurrentGraphOid = get_graph_oid(graph_name_str);
+
+    ereport(NOTICE,
+            (errmsg("graph \"%s\" is being used", graph_name_str)));
+
+    PopActiveSnapshot();
+    
+    PG_RETURN_VOID();
+}
 
 PG_FUNCTION_INFO_V1(create_graph);
 

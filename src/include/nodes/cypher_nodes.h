@@ -212,6 +212,12 @@ typedef struct cypher_create_graph
     char *graph_name;
 } cypher_create_graph;
 
+typedef struct cypher_use_graph
+{
+    ExtensibleNode extensible;
+    char *graph_name;
+} cypher_use_graph;
+
 /*
  * expression
  */
