@@ -37,6 +37,7 @@
 #include "parser/parser.h"
 #include "utils/rel.h"
 #include "utils/relcache.h"
+#include "utils/builtins.h"
 
 #include "catalog/ag_graph.h"
 #include "catalog/ag_label.h"
@@ -49,7 +50,7 @@
  */
 #define gen_graph_namespace_name(graph_name) (graph_name)
 
-static Oid create_schema_for_graph(const Name graph_name);
+static Oid create_schema_for_graph(const char *graph_name);
 static void drop_schema_for_graph(char *graph_name_str, const bool cascade);
 static void remove_schema(Node *schema_name, DropBehavior behavior);
 static void rename_graph(const Name graph_name, const Name new_name);
@@ -105,41 +106,42 @@ Datum create_graph(PG_FUNCTION_ARGS)
     Oid nsp_id;
 
     if (PG_ARGISNULL(0))
-    {
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("graph name must not be NULL")));
-    }
+
+    /*
     graph_name = PG_GETARG_NAME(0);
 
-    graph_name_str = NameStr(*graph_name);
+    graph_name_str = NameStr(*graph_name);*/
+    graph_name_str =  TextDatumGetCString(PG_GETARG_DATUM(0));
     if (graph_exists(graph_name_str))
-    {
         ereport(ERROR,
                 (errcode(ERRCODE_UNDEFINED_SCHEMA),
                         errmsg("graph \"%s\" already exists", graph_name_str)));
-    }
 
-    nsp_id = create_schema_for_graph(graph_name);
+    nsp_id = create_schema_for_graph(graph_name_str);
 
-    insert_graph(graph_name, nsp_id);
+    insert_graph(graph_name_str, nsp_id);
 
     //Increment the Command counter before create the generic labels.
     CommandCounterIncrement();
 
     //Create the default label tables
-    graph = graph_name->data;
+    graph = graph_name_str;//graph_name->data;
     create_label(graph, AG_DEFAULT_LABEL_VERTEX, LABEL_TYPE_VERTEX, NIL);
     create_label(graph, AG_DEFAULT_LABEL_EDGE, LABEL_TYPE_EDGE, NIL);
 
     ereport(NOTICE,
-            (errmsg("graph \"%s\" has been created", NameStr(*graph_name))));
+            (errmsg("graph \"%s\" has been created", graph_name_str)));
 
+    PopActiveSnapshot();
+    
     PG_RETURN_VOID();
 }
 
-static Oid create_schema_for_graph(const Name graph_name)
+static Oid create_schema_for_graph(const char * graph_name)
 {
-    char *graph_name_str = NameStr(*graph_name);
+    char *graph_name_str = graph_name;
     CreateSchemaStmt *schema_stmt;
     CreateSeqStmt *seq_stmt;
     TypeName *integer;

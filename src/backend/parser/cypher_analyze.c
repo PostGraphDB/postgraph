@@ -103,10 +103,10 @@ makeRawStmt(Node *stmt, int stmt_location)
 static List *cypher_parse(char *string){
 	List	   *raw_parsetree_list;
 
-	TRACE_POSTGRESQL_QUERY_PARSE_START(string);
+	//TRACE_POSTGRESQL_QUERY_PARSE_START(string);
 
-	if (log_parser_stats)
-		ResetUsage();
+	//if (log_parser_stats)
+		//ResetUsage();
 /*
 	raw_parsetree_list = raw_parser(string, RAW_PARSE_DEFAULT);
 
@@ -148,7 +148,7 @@ static List *cypher_parse(char *string){
 	 * here.
 	 */
 
-	TRACE_POSTGRESQL_QUERY_PARSE_DONE(string);
+	//TRACE_POSTGRESQL_QUERY_PARSE_DONE(string);
 
 	return raw_parsetree_list;
 }
@@ -162,6 +162,39 @@ void parse_analyze_fini(void){
    parse_analyze_hook = NULL;
 }
 
+/*
+ * Creates the function expression that represents the clause. Adds the
+ * extensible node that represents the metadata that the clause needs to
+ * handle the clause in the execution phase.
+ */
+static FuncExpr *make_clause_create_graph_func_expr(char *graph_name) {
+    Const *c = makeConst(TEXTOID, -1, InvalidOid, strlen(graph_name), CStringGetTextDatum(graph_name), false, false);
+
+    Oid func_oid = get_ag_func_oid("create_graph", 1, TEXTOID);
+
+    return makeFuncExpr(func_oid, VOIDOID, list_make1(c), InvalidOid, InvalidOid, COERCE_EXPLICIT_CALL);
+}
+
+static Query *
+cypher_create_graph_utility(ParseState *pstate, const char *graph_name) {
+    Query *query;
+    TargetEntry *tle;
+    FuncExpr *func_expr;
+
+    query = makeNode(Query);
+    query->commandType = CMD_SELECT;
+    query->targetList = NIL;
+
+    func_expr = make_clause_create_graph_func_expr(graph_name);
+
+    // Create the target entry
+    tle = makeTargetEntry((Expr *)func_expr, pstate->p_next_resno++, "create_graph", false);
+    query->targetList = lappend(query->targetList, tle);
+
+    query->rtable = pstate->p_rtable;
+    query->jointree = makeFromExpr(pstate->p_joinlist, NULL);
+    return query;
+}
 
 /*
  * parse_analyze
@@ -193,6 +226,28 @@ cypher_parse_analyze(RawStmt *parseTree, const char *sourceText,
 	pstate->p_queryEnv = queryEnv;
 
 	//query = transformTopLevelStmt(pstate, parseTree);
+    if (list_length(parseTree->stmt) == 1) {
+      Node *n = linitial(parseTree->stmt);
+
+      if (is_ag_node(n, cypher_create_graph)) {
+        cypher_create_graph *ccg = n;
+        //ereport(ERROR, errmsg("Here"));
+
+        query = cypher_create_graph_utility(pstate, ccg->graph_name);
+
+        query->canSetTag = true;
+
+        if (IsQueryIdEnabled())
+		  jstate = JumbleQuery(query, sourceText);
+
+	    free_parsestate(pstate);
+
+	    pgstat_report_query_id(query->queryId, false);
+		PushActiveSnapshot(GetTransactionSnapshot());
+	    return query;
+
+      }
+    }
     query = analyze_cypher(parseTree->stmt, pstate, sourceText, 0, NULL, CurrentGraphOid, NULL);
 	
     if (IsQueryIdEnabled())

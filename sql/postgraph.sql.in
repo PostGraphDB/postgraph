@@ -99,7 +99,7 @@ AS 'MODULE_PATHNAME';
 --
 -- utility functions
 --
-CREATE FUNCTION create_graph(graph_name name)
+CREATE FUNCTION create_graph(graph_name text)
 RETURNS void 
 LANGUAGE c 
 AS 'MODULE_PATHNAME';

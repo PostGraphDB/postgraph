@@ -204,6 +204,15 @@ typedef struct cypher_relationship
 } cypher_relationship;
 
 /*
+ * DDL Commands
+ */
+typedef struct cypher_create_graph
+{
+    ExtensibleNode extensible;
+    char *graph_name;
+} cypher_create_graph;
+
+/*
  * expression
  */
 

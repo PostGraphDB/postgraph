@@ -1,0 +1,8 @@
+LOAD 'postgraph';
+CREATE GRAPH new_cypher;
+NOTICE:  graph "new_cypher" has been created
+ create_graph 
+--------------
+ 
+(1 row)
+

@@ -89,7 +89,7 @@
                  CALL CASE COALESCE CONTAINS CREATE CUBE CURRENT CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
                  DATE DECADE DELETE DESC DESCENDING DETACH DISTINCT
                  ELSE END_P ENDS EXCEPT EXCLUDE EXISTS EXTRACT
-                 GROUP GROUPS GROUPING
+                 GRAPH GROUP GROUPS GROUPING
                  FALSE_P FILTER FIRST_P FOLLOWING FROM
                  HAVING
                  ILIKE IN INTERSECT INTERVAL IS
@@ -252,8 +252,8 @@ stmt:
              *
              * Throw syntax error in this case.
              */
-            if (yychar != YYEOF)
-                yyerror(&yylloc, scanner, extra, "syntax error");
+            //if (yychar != YYEOF)
+                //yyerror(&yylloc, scanner, extra, "syntax error");
 
             extra->result = $1;
         }
@@ -385,6 +385,7 @@ yield_item:
 semicolon_opt:
     /* empty */
     | ';'
+
     ;
 
 all_or_distinct:
@@ -922,7 +923,6 @@ unwind:
 /*
  * CREATE clause
  */
-
 create:
     CREATE pattern
         {
@@ -930,6 +930,15 @@ create:
 
             n = make_ag_node(cypher_create);
             n->pattern = $2;
+
+            $$ = (Node *)n;
+        }
+    | CREATE GRAPH IDENTIFIER
+        {
+
+            cypher_create_graph *n;
+            n = make_ag_node(cypher_create_graph);
+            n->graph_name = $3;
 
             $$ = (Node *)n;
         }

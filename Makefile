@@ -86,42 +86,7 @@ EXTENSION = postgraph
 
 DATA = postgraph--0.1.0.sql
 
-# sorted in dependency order
-REGRESS = graphid \
-          gtype \
-	  network \
-          temporal \
-          range \
-          vertex \
-          edge \
-          variable_edge \
-          traversal \
-          catalog \
-          cypher  \
-          lists\
-          expr \
-	  vector \
-          cypher_create \
-          cypher_match \
-          cypher_unwind \
-          cypher_set \
-          cypher_remove \
-          cypher_delete \
-          cypher_with \
-          cypher_vle \
-          cypher_union \
-          cypher_merge \
-          cypher_call \
-          order_by \
-	  regex \
-          tsearch \
-          aggregation \
-          traversal_functions \
-          variable_edge_functions \
-	  geometric \
-          postgis \
-          index \
-          drop
+REGRESS = new_cypher
 
 srcdir=`pwd`
 POSTGIS_DIR ?= postgis_dir

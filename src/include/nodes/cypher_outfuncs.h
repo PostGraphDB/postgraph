@@ -79,4 +79,7 @@ void out_cypher_delete_item(StringInfo str, const ExtensibleNode *node);
 // merge private data structures
 void out_cypher_merge_information(StringInfo str, const ExtensibleNode *node);
 
+// ddl utils
+void out_cypher_create_graph(StringInfo str, const ExtensibleNode *node);
+
 #endif
