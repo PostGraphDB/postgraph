@@ -25,6 +25,12 @@
 void post_parse_analyze_init(void);
 void post_parse_analyze_fini(void);
 
+void parse_init(void);
+void parse_fini(void);
+
+void parse_analyze_init(void);
+void parse_analyze_fini(void);
+
 List *transform_cypher_order_by(cypher_parsestate *cpstate, List *sort_items, List **target_list, ParseExprKind expr_kind);
 
 #endif

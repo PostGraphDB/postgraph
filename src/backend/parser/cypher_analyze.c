@@ -25,6 +25,7 @@
 
 #include "postgraph.h"
 
+#include "tcop/tcopprot.h"
 #include "catalog/pg_type_d.h"
 #include "nodes/makefuncs.h"
 #include "nodes/nodeFuncs.h"
@@ -62,6 +63,10 @@ static const char *expr_get_const_cstring(Node *expr, const char *source_str);
 static int get_query_location(const int location, const char *source_str);
 static Query *analyze_cypher(List *stmt, ParseState *parent_pstate, const char *query_str, int query_loc, char *graph_name, uint32 graph_oid, Param *params);
 static Query *analyze_cypher_and_coerce(List *stmt, RangeTblFunction *rtfunc, ParseState *parent_pstate, const char *query_str, int query_loc, char *graph_name, uint32 graph_oid, Param *params);
+static List *cypher_parse(char *string);
+static List * cypher_parse_analyze_hook (RawStmt *parsetree, const char *query_string,
+					                     Oid *paramTypes, int numParams,
+					                     QueryEnvironment *queryEnv);
 
 void
 post_parse_analyze_init(void) {
@@ -73,6 +78,36 @@ void
 post_parse_analyze_fini(void) {
     post_parse_analyze_hook = prev_post_parse_analyze_hook;
 }
+
+void parse_init(void){
+   parse_hook = cypher_parse;
+}
+void parse_fini(void){
+   parse_hook = NULL;
+}
+
+static List *cypher_parse(char *string){
+    return pg_parse_query(string);
+}
+
+
+void parse_analyze_init(void){
+   parse_analyze_hook = cypher_parse_analyze_hook;
+}
+
+void parse_analyze_fini(void){
+   parse_analyze_hook = NULL;
+}
+
+static List * cypher_parse_analyze_hook (RawStmt *parsetree, const char *query_string,
+					                     Oid *paramTypes, int numParams,
+					                     QueryEnvironment *queryEnv) {
+    List *lst = pg_analyze_and_rewrite(parsetree, query_string,
+			   									    NULL, 0, NULL);
+
+    return lst;
+}
+
 
 static
 void post_parse_analyze(ParseState *pstate, Query *query, JumbleState *jstate) {
