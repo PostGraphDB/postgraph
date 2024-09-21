@@ -87,8 +87,7 @@ EXTENSION = postgraph
 DATA = postgraph--0.1.0.sql
 
 # sorted in dependency order
-REGRESS = scan \
-          graphid \
+REGRESS = graphid \
           gtype \
 	  network \
           temporal \

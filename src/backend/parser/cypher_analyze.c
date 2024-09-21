@@ -25,6 +25,7 @@
 
 #include "postgraph.h"
 
+#include "utils/probes.h"
 #include "tcop/tcopprot.h"
 #include "catalog/pg_type_d.h"
 #include "nodes/makefuncs.h"
@@ -34,6 +35,7 @@
 #include "nodes/pg_list.h"
 #include "nodes/primnodes.h"
 #include "parser/analyze.h"
+#include "parser/parser.h"
 #include "parser/parse_coerce.h"
 #include "parser/parse_collate.h"
 #include "parser/parse_node.h"
@@ -82,12 +84,73 @@ post_parse_analyze_fini(void) {
 void parse_init(void){
    parse_hook = cypher_parse;
 }
+
 void parse_fini(void){
    parse_hook = NULL;
 }
 
+static RawStmt *
+makeRawStmt(Node *stmt, int stmt_location)
+{
+	RawStmt    *rs = makeNode(RawStmt);
+
+	rs->stmt = stmt;
+	rs->stmt_location = stmt_location;
+	rs->stmt_len = 0;			/* might get changed later */
+	return rs;
+}
+
 static List *cypher_parse(char *string){
-    return pg_parse_query(string);
+	List	   *raw_parsetree_list;
+
+	TRACE_POSTGRESQL_QUERY_PARSE_START(string);
+
+	if (log_parser_stats)
+		ResetUsage();
+/*
+	raw_parsetree_list = raw_parser(string, RAW_PARSE_DEFAULT);
+
+    if (list_length(raw_parsetree_list) != 1)
+        ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                        errmsg("cypher can only handle one parse tree at a time")));
+    else {
+    */
+        //RawStmt *rawStmt = linitial(raw_parsetree_list);
+        //raw_parsetree_list = list_make1(makeRawStmt(rawStmt->stmt, 0));
+
+        List *stmt = parse_cypher(string);
+        raw_parsetree_list = list_make1(makeRawStmt(stmt, 0));
+
+
+    //}
+
+
+
+	if (log_parser_stats)
+		ShowUsage("PARSER STATISTICS");
+
+#ifdef COPY_PARSE_PLAN_TREES
+	/* Optional debugging check: pass raw parsetrees through copyObject() */
+	{
+		List	   *new_list = copyObject(raw_parsetree_list);
+
+		/* This checks both copyObject() and the equal() routines... */
+		if (!equal(new_list, raw_parsetree_list))
+			elog(WARNING, "copyObject() failed to produce an equal raw parse tree");
+		else
+			raw_parsetree_list = new_list;
+	}
+#endif
+
+	/*
+	 * Currently, outfuncs/readfuncs support is missing for many raw parse
+	 * tree nodes, so we don't try to implement WRITE_READ_PARSE_PLAN_TREES
+	 * here.
+	 */
+
+	TRACE_POSTGRESQL_QUERY_PARSE_DONE(string);
+
+	return raw_parsetree_list;
 }
 
 
@@ -99,13 +162,82 @@ void parse_analyze_fini(void){
    parse_analyze_hook = NULL;
 }
 
+
+/*
+ * parse_analyze
+ *		Analyze a raw parse tree and transform it to Query form.
+ *
+ * Optionally, information about $n parameter types can be supplied.
+ * References to $n indexes not defined by paramTypes[] are disallowed.
+ *
+ * The result is a Query node.  Optimizable statements require considerable
+ * transformation, while utility-type statements are simply hung off
+ * a dummy CMD_UTILITY Query node.
+ */
+Query *
+cypher_parse_analyze(RawStmt *parseTree, const char *sourceText,
+			  Oid *paramTypes, int numParams,
+			  QueryEnvironment *queryEnv)
+{
+	ParseState *pstate = make_cypher_parsestate(NULL);
+	Query	   *query;
+	JumbleState *jstate = NULL;
+
+	Assert(sourceText != NULL); /* required as of 8.4 */
+
+	pstate->p_sourcetext = sourceText;
+
+	if (numParams > 0)
+		parse_fixed_parameters(pstate, paramTypes, numParams);
+
+	pstate->p_queryEnv = queryEnv;
+
+	//query = transformTopLevelStmt(pstate, parseTree);
+    query = analyze_cypher(parseTree->stmt, pstate, sourceText, 0, NULL, CurrentGraphOid, NULL);
+	
+    if (IsQueryIdEnabled())
+		jstate = JumbleQuery(query, sourceText);
+
+	if (post_parse_analyze_hook)
+		(*post_parse_analyze_hook) (pstate, query, jstate);
+
+	free_parsestate(pstate);
+
+	pgstat_report_query_id(query->queryId, false);
+
+	return query;
+}
+
+
 static List * cypher_parse_analyze_hook (RawStmt *parsetree, const char *query_string,
 					                     Oid *paramTypes, int numParams,
 					                     QueryEnvironment *queryEnv) {
-    List *lst = pg_analyze_and_rewrite(parsetree, query_string,
-			   									    NULL, 0, NULL);
+	Query	   *query;
+	List	   *querytree_list;
 
-    return lst;
+	TRACE_POSTGRESQL_QUERY_REWRITE_START(query_string);
+
+	/*
+	 * (1) Perform parse analysis.
+	 */
+	if (log_parser_stats)
+		ResetUsage();
+
+	query = cypher_parse_analyze(parsetree, query_string, paramTypes, numParams,
+						  queryEnv);
+    //query = analyze_cypher(parsetree->stmt, pstate, query_string, 0, NULL, CurrentGraphOid, NULL);
+
+	if (log_parser_stats)
+		ShowUsage("PARSE ANALYSIS STATISTICS");
+
+	/*
+	 * (2) Rewrite the queries, as necessary
+	 */
+	querytree_list = pg_rewrite_query(query);
+
+	TRACE_POSTGRESQL_QUERY_REWRITE_DONE(query_string);
+
+	return querytree_list;
 }
 
 
