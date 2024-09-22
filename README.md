@@ -34,7 +34,6 @@ createdb postgraph
 psql postgraph -c "CREATE EXTENSION PostGIS"
 psql postgraph -c "CREATE EXTENSION LTree"
 psql postgraph -c "CREATE EXTENSION PostGraph"
-
 ```
 
 You can find the location of the `postgresql.conf` file as given next:
@@ -48,8 +47,9 @@ As can be seen, the PostgreSQL binaries are in the `bin` subdirectory while the 
 
 Set the following in `postgresql.conf` depending on the version of PostGraph and it's dependecy PostGIS:
 ```bash
-shared_preload_libraries = 'postgis-3', 'postgraph'
+shared_preload_libraries = 'postgraph'
 ```
+
 POSTGIS Dependencies:
 autoconf
 automake
@@ -69,16 +69,22 @@ psql postgraph
 
 Create a graph
 ```sql
-SELECT create_graph('graph_name');
+CREATE GRAPH graph_name;
 ```
 
-Create Data with the Cypher Command
+Set the Graph being used
 ```sql
-SELECT *
-FROM cypher('graph_name', $$
-    CREATE (v { name: 'Hello Graph!'})
-    RETURN (v)
-as (v vertex);
+USE GRAPH graph_name;
+```
+
+Create Data with the CREATE command
+```sql
+CREATE (v { name: 'Hello Graph!'}) RETURN v;
+```
+
+Find data with the MATCH command
+```sql
+MATCH (n) RETURN n;
 ```
 
 ## Roadmap
