@@ -97,6 +97,61 @@ Datum create_graph_if_not_exists(PG_FUNCTION_ARGS)
 }
 
 
+// Function updates graph name in ag_graph table.
+void update_session_graph_oid(const Name graph_oid)
+{
+    ScanKeyData scan_keys[1];
+    Relation ag_graph;
+    SysScanDesc scan_desc;
+    HeapTuple cur_tuple;
+    Datum repl_values[2];
+    bool repl_isnull[2];
+    bool do_replace[2];
+    HeapTuple new_tuple;
+
+    // open and scan ag_graph for graph name
+    ScanKeyInit(&scan_keys[0], Anum_ag_graph_name, BTEqualStrategyNumber,
+                F_OIDEQ, Int32GetDatum(MyProcPid));
+
+    ag_graph = table_open(session_graph_use(), RowExclusiveLock);
+    scan_desc = systable_beginscan(ag_graph, session_graph_use_index(), true,
+                                   NULL, 1, scan_keys);
+
+    cur_tuple = systable_getnext(scan_desc);
+
+    // modify (which creates a new tuple) the current tuple's graph name
+    MemSet(repl_values, 0, sizeof(repl_values));
+    MemSet(repl_isnull, false, sizeof(repl_isnull));
+    MemSet(do_replace, false, sizeof(do_replace));
+
+    repl_values[0] = Int32GetDatum(MyProcPid);
+    repl_isnull[0] = false;
+    do_replace[0] = true;
+
+    repl_values[1] = Int32GetDatum(graph_oid);
+    repl_isnull[1] = false;
+    do_replace[1] = true;
+
+    if (!HeapTupleIsValid(cur_tuple))
+    {
+
+        new_tuple = heap_form_tuple(RelationGetDescr(ag_graph), repl_values, repl_isnull);
+    CatalogTupleInsert(ag_graph, new_tuple);
+    }
+else {
+
+
+    new_tuple = heap_modify_tuple(cur_tuple, RelationGetDescr(ag_graph),
+                                  repl_values, repl_isnull, do_replace);
+
+    // update the current tuple with the new tuple
+    CatalogTupleUpdate(ag_graph, &cur_tuple->t_self, new_tuple);
+}
+    // end scan and close ag_graph
+    systable_endscan(scan_desc);
+    table_close(ag_graph, RowExclusiveLock);
+}
+
 PG_FUNCTION_INFO_V1(use_graph);
 
 Datum use_graph(PG_FUNCTION_ARGS)
@@ -119,10 +174,13 @@ Datum use_graph(PG_FUNCTION_ARGS)
     //Increment the Command counter before create the generic labels.
     CommandCounterIncrement();
 
+    //MemoryContext oldMemoryContext = MemoryContextSwitchTo(TopMemoryContext);
     CurrentGraphOid = get_graph_oid(graph_name_str);
+    update_session_graph_oid(get_graph_oid(graph_name_str));
+    //MemoryContextSwitchTo(oldMemoryContext);
 
     ereport(NOTICE,
-            (errmsg("graph \"%s\" is being used", graph_name_str)));
+            (errmsg("graph oid: %i is being used", CurrentGraphOid)));
 
     PopActiveSnapshot();
     

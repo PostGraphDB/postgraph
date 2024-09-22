@@ -30,6 +30,11 @@
 
 #define Natts_ag_graph 3
 
+
+#define session_graph_use() ag_relation_id("session_graph_use", "table")
+#define session_graph_use_index() \
+    ag_relation_id("session_graph_use_index", "index")
+
 #define ag_graph_relation_id() ag_relation_id("ag_graph", "table")
 #define ag_graph_name_index_id() ag_relation_id("ag_graph_name_index", "index")
 #define ag_graph_namespace_index_id() \

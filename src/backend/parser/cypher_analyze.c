@@ -43,6 +43,7 @@
 #include "parser/parse_target.h"
 #include "utils/builtins.h"
 
+#include "utils/ag_cache.h"
 #include "catalog/ag_graph.h"
 #include "nodes/ag_nodes.h"
 #include "parser/cypher_analyze.h"
@@ -224,7 +225,48 @@ cypher_use_graph_utility(ParseState *pstate, const char *graph_name) {
     return query;
 }
 
-#include "utils/ag_cache.h"
+#include "access/skey.h"
+#include "access/relscan.h"
+#include "miscadmin.h"
+#include "access/genam.h"
+#include "utils/rel.h"
+#include "access/table.h"
+
+// Function updates graph name in ag_graph table.
+Oid get_session_graph_oid()
+{
+    ScanKeyData scan_keys[1];
+    Relation ag_graph;
+    TableScanDesc scan_desc;
+    HeapTuple cur_tuple;
+    Datum repl_values[2];
+    bool repl_isnull[2];
+    bool do_replace[2];
+    HeapTuple new_tuple;
+    bool is_null;
+
+    // open and scan ag_graph for graph name
+    ScanKeyInit(&scan_keys[0], 1, BTEqualStrategyNumber, F_OIDEQ, Int32GetDatum(MyProcPid));
+
+    ag_graph = table_open(session_graph_use(), RowExclusiveLock);
+    scan_desc = systable_beginscan(ag_graph, session_graph_use_index(), true,
+                                   NULL, 1, scan_keys);
+
+
+    cur_tuple = systable_getnext(scan_desc);
+
+    if (!HeapTupleIsValid(cur_tuple))
+        ereport(ERROR, errmsg("Here"));
+
+
+    Oid graph_oid = heap_getattr(cur_tuple, 2, RelationGetDescr(ag_graph), &is_null);
+    // end scan and close ag_graph
+    systable_endscan(scan_desc);
+    table_close(ag_graph, RowExclusiveLock);
+
+    return graph_oid;
+}
+
 /*
  * parse_analyze
  *		Analyze a raw parse tree and transform it to Query form.
@@ -242,6 +284,7 @@ cypher_parse_analyze(RawStmt *parseTree, const char *sourceText,
 			  QueryEnvironment *queryEnv)
 {
 	ParseState *pstate = make_cypher_parsestate(NULL);
+    cypher_parsestate *cpstate = pstate;
 	Query	   *query;
 	JumbleState *jstate = NULL;
 
@@ -292,9 +335,14 @@ cypher_parse_analyze(RawStmt *parseTree, const char *sourceText,
 	    return query;
       }
     }
-    graph_cache_data *gcd = search_graph_namespace_cache(CurrentGraphOid);
-    query = analyze_cypher(parseTree->stmt, pstate, sourceText, 0, gcd->name.data, CurrentGraphOid, NULL);
-			PushActiveSnapshot(GetTransactionSnapshot());
+    Oid graph_oid = get_session_graph_oid();
+    graph_cache_data *gcd = search_graph_namespace_cache(graph_oid);
+
+cpstate->graph_name = gcd->name.data;
+cpstate->graph_oid = graph_oid;
+
+    query = analyze_cypher(parseTree->stmt, pstate, sourceText, 0, gcd->name.data, graph_oid, NULL);
+	PushActiveSnapshot(GetTransactionSnapshot());
     if (IsQueryIdEnabled())
 		jstate = JumbleQuery(query, sourceText);
 

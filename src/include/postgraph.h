@@ -21,6 +21,6 @@
 
 #define CATALOG_SCHEMA "postgraph"
 
-static Oid CurrentGraphOid = InvalidOid;
+static Oid CurrentGraphOid;
 
 #endif

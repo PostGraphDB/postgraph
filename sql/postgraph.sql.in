@@ -85,6 +85,15 @@ CREATE UNIQUE INDEX ag_label_path_graph_index
 ON ag_label
 USING btree (label_path, graph);
 
+CREATE TABLE session_graph_use (
+   pid oid not null,
+   graph_oid oid not null
+);
+
+
+CREATE UNIQUE INDEX session_graph_use_index 
+ON session_graph_use 
+USING btree (pid, graph_oid);
 
 --
 -- catalog lookup functions
