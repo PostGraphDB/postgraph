@@ -37,7 +37,6 @@ void _PG_init(void)
     set_rel_pathlist_init();
     object_access_hook_init();
     process_utility_hook_init();
-    //post_parse_analyze_init();
     parse_analyze_init();
     parse_init();
     IvfflatInit();
@@ -47,7 +46,6 @@ void _PG_fini(void);
 
 void _PG_fini(void)
 {
-    //post_parse_analyze_fini();
     process_utility_hook_fini();
     object_access_hook_fini();
     set_rel_pathlist_fini();

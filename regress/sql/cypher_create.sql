@@ -18,113 +18,68 @@
  */
 
 LOAD 'postgraph';
-SET search_path TO postgraph;
 
-SELECT create_graph('cypher_create');
+CREATE GRAPH cypher_create;
+USE GRAPH cypher_create;
 
-SELECT * FROM cypher('cypher_create', $$CREATE ()$$) AS (a gtype);
+CREATE ();
 
--- vertex graphid
-SELECT * FROM cypher('cypher_create', $$CREATE (:v)$$) AS (a gtype);
+CREATE (:v);
 
-SELECT * FROM cypher('cypher_create', $$CREATE (:v {})$$) AS (a gtype);
+CREATE (:v {});
 
-SELECT * FROM cypher('cypher_create', $$CREATE (:v {key: 'value'})$$) AS (a gtype);
+CREATE (:v {key: 'value'});
 
-SELECT * FROM cypher('cypher_create', $$MATCH (n:v) RETURN n$$) AS (n vertex);
+MATCH (n:v) RETURN n;
 
 -- Left relationship
-SELECT * FROM cypher('cypher_create', $$
-    CREATE (:v {id:"right rel, initial node"})-[:e {id:"right rel"}]->(:v {id:"right rel, end node"})
-$$) AS (a gtype);
+CREATE (:v {id:"right rel, initial node"})-[:e {id:"right rel"}]->(:v {id:"right rel, end node"});
 
 -- Right relationship
-SELECT * FROM cypher('cypher_create', $$
-    CREATE (:v {id:"left rel, initial node"})<-[:e {id:"left rel"}]-(:v {id:"left rel, end node"})
-$$) AS (a gtype);
+CREATE (:v {id:"left rel, initial node"})<-[:e {id:"left rel"}]-(:v {id:"left rel, end node"});
 
 -- Pattern creates a path from the initial node to the last node
-SELECT * FROM cypher('cypher_create', $$
-    CREATE (:v {id: "path, initial node"})-[:e {id: "path, edge one"}]->(:v {id:"path, middle node"})-[:e {id:"path, edge two"}]->(:v {id:"path, last node"})
-$$) AS (a gtype);
+CREATE (:v {id: "path, initial node"})-[:e {id: "path, edge one"}]->(:v {id:"path, middle node"})-[:e {id:"path, edge two"}]->(:v {id:"path, last node"});
 
 -- middle vertex points to the initial and last vertex
-SELECT * FROM cypher('cypher_create', $$
-    CREATE (:v {id: "divergent, initial node"})<-[:e {id: "divergent, edge one"}]-(:v {id: "divergent middle node"})-[:e {id: "divergent, edge two"}]->(:v {id: "divergent, end node"})
-$$) AS (a gtype);
+CREATE (:v {id: "divergent, initial node"})<-[:e {id: "divergent, edge one"}]-(:v {id: "divergent middle node"})-[:e {id: "divergent, edge two"}]->(:v {id: "divergent, end node"});
 
 -- initial and last vertex point to the middle vertex
-SELECT * FROM cypher('cypher_create', $$
-    CREATE (:v {id: "convergent, initial node"})-[:e {id: "convergent, edge one"}]->(:v {id: "convergent middle node"})<-[:e {id: "convergent, edge two"}]-(:v {id: "convergent, end node"})
-$$) AS (a gtype);
+CREATE (:v {id: "convergent, initial node"})-[:e {id: "convergent, edge one"}]->(:v {id: "convergent middle node"})<-[:e {id: "convergent, edge two"}]-(:v {id: "convergent, end node"});
 
 -- Validate Paths work correctly
-SELECT * FROM cypher('cypher_create', $$
-    CREATE (:v {id: "paths, vertex one"})-[:e {id: "paths, edge one"}]->(:v {id: "paths, vertex two"}),
-           (:v {id: "paths, vertex three"})-[:e {id: "paths, edge two"}]->(:v {id: "paths, vertex four"})
-$$) AS (a gtype);
+CREATE (:v {id: "paths, vertex one"})-[:e {id: "paths, edge one"}]->(:v {id: "paths, vertex two"}),
+       (:v {id: "paths, vertex three"})-[:e {id: "paths, edge two"}]->(:v {id: "paths, vertex four"});
 
 --edge with double relationship will throw an error
-SELECT * FROM cypher('cypher_create', $$CREATE (:v)<-[:e]->()$$) AS (a gtype);
+CREATE (:v)<-[:e]->();
 
 --edge with no relationship will throw an error
-SELECT * FROM cypher('cypher_create', $$CREATE (:v)-[:e]-()$$) AS (a gtype);
+CREATE (:v)-[:e]-();
 
 --edges without labels are not supported
-SELECT * FROM cypher('cypher_create', $$CREATE (:v)-[]->(:v)$$) AS (a gtype);
+CREATE (:v)-[]->(:v);
 
-SELECT * FROM cypher_create.e;
+MATCH (n) RETURN n;
+MATCH ()-[e]-() RETURN e;
 
-SELECT * FROM cypher_create.v;
+CREATE (:n_var {name: 'Node A'});
+CREATE (:n_var {name: 'Node B'});
+CREATE (:n_var {name: 'Node C'});
 
-SELECT * FROM cypher('cypher_create', $$
-	CREATE (:n_var {name: 'Node A'})
-$$) as (a gtype);
+MATCH (a:n_var), (b:n_var) WHERE a.name <> b.name CREATE (a)-[:e_var {name: a.name + ' -> ' + b.name}]->(b);
 
-SELECT * FROM cypher('cypher_create', $$
-	CREATE (:n_var {name: 'Node B'})
-$$) as (a gtype);
+MATCH (a:n_var) CREATE (a)-[:e_var {name: a.name + ' -> ' + a.name}]->(a);
 
-SELECT * FROM cypher('cypher_create', $$
-	CREATE (:n_var {name: 'Node C'})
-$$) as (a gtype);
+MATCH (a:n_var) CREATE (a)-[:e_var {name: a.name + ' -> new node'}]->(:n_other_node);
 
-SELECT * FROM cypher('cypher_create', $$
-	MATCH (a:n_var), (b:n_var)
-	WHERE a.name <> b.name
-	CREATE (a)-[:e_var {name: a.name + ' -> ' + b.name}]->(b)
-$$) as (a gtype);
+MATCH (a:n_var) WHERE a.name = 'Node A' CREATE (a)-[b:e_var]->();
 
-SELECT * FROM cypher('cypher_create', $$
-	MATCH (a:n_var)
-	CREATE (a)-[:e_var {name: a.name + ' -> ' + a.name}]->(a)
-$$) as (a gtype);
+CREATE (a)-[:b_var]->() RETURN a, id(a);
 
-SELECT * FROM cypher('cypher_create', $$
-	MATCH (a:n_var)
-	CREATE (a)-[:e_var {name: a.name + ' -> new node'}]->(:n_other_node)
-$$) as (a gtype);
+CREATE ()-[b:e_var]->() RETURN b, id(b);
 
-SELECT * FROM cypher('cypher_create', $$
-	MATCH (a:n_var)
-	WHERE a.name = 'Node A'
-	CREATE (a)-[b:e_var]->()
-$$) as (a gtype);
-
-SELECT * FROM cypher('cypher_create', $$
-	CREATE (a)-[:b_var]->()
-	RETURN a, id(a)
-$$) as (a vertex, b gtype);
-
-SELECT * FROM cypher('cypher_create', $$
-	CREATE ()-[b:e_var]->()
-	RETURN b, id(b)
-$$) as (a edge, b gtype);
-
-SELECT * FROM cypher('cypher_create', $$
-	CREATE (a)-[b:e_var {id: 0}]->()
-	RETURN a, b, b.id, b.id + 1
-$$) as (a vertex, b edge, c gtype, d gtype);
+CREATE (a)-[b:e_var {id: 0}]->() RETURN a, b, b.id, b.id + 1;
 
 SELECT * FROM cypher('cypher_create', $$
 	MATCH (a:n_var)

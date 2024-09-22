@@ -86,7 +86,8 @@ EXTENSION = postgraph
 
 DATA = postgraph--0.1.0.sql
 
-REGRESS = new_cypher
+REGRESS = new_cypher \
+          cypher_create
 
 srcdir=`pwd`
 POSTGIS_DIR ?= postgis_dir

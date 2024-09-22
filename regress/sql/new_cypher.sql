@@ -13,6 +13,10 @@ CREATE GRAPH new_cypher;
 -- Graph Does not exist, should throw error
 USE GRAPH new_cypher;
 
+CREATE GRAPH new_cypher_2;
+USE GRAPH new_cypher_2;
+USE GRAPH new_cypher;
+
 -- Old Grammar is at least partially plugged in.
 RETURN 1 as a;
 
