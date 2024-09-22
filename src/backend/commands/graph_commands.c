@@ -110,7 +110,7 @@ void update_session_graph_oid(const Name graph_oid)
     HeapTuple new_tuple;
 
     // open and scan ag_graph for graph name
-    ScanKeyInit(&scan_keys[0], Anum_ag_graph_name, BTEqualStrategyNumber,
+    ScanKeyInit(&scan_keys[0], 1, BTEqualStrategyNumber,
                 F_OIDEQ, Int32GetDatum(MyProcPid));
 
     ag_graph = table_open(session_graph_use(), RowExclusiveLock);
@@ -132,21 +132,17 @@ void update_session_graph_oid(const Name graph_oid)
     repl_isnull[1] = false;
     do_replace[1] = true;
 
-    if (!HeapTupleIsValid(cur_tuple))
-    {
-
+    if (!HeapTupleIsValid(cur_tuple)) {
         new_tuple = heap_form_tuple(RelationGetDescr(ag_graph), repl_values, repl_isnull);
-    CatalogTupleInsert(ag_graph, new_tuple);
+        CatalogTupleInsert(ag_graph, new_tuple);
+    } else {
+        new_tuple = heap_modify_tuple(cur_tuple, RelationGetDescr(ag_graph),
+                                     repl_values, repl_isnull, do_replace);
+
+        // update the current tuple with the new tuple
+        CatalogTupleUpdate(ag_graph, &cur_tuple->t_self, new_tuple);
     }
-else {
 
-
-    new_tuple = heap_modify_tuple(cur_tuple, RelationGetDescr(ag_graph),
-                                  repl_values, repl_isnull, do_replace);
-
-    // update the current tuple with the new tuple
-    CatalogTupleUpdate(ag_graph, &cur_tuple->t_self, new_tuple);
-}
     // end scan and close ag_graph
     systable_endscan(scan_desc);
     table_close(ag_graph, RowExclusiveLock);

@@ -4007,8 +4007,7 @@ cypher_parsestate *new_cpstate = make_cypher_parsestate(cpstate);
      ParseNamespaceItem *pnsi = transform_cypher_clause_as_subquery_2(new_cpstate, clause, NULL, false, query);
         topquery->rtable = new_cpstate->pstate.p_rtable;
         topquery->jointree = makeFromExpr(new_cpstate->pstate.p_joinlist, NULL);
-    // add all the rte's attributes to the current queries targetlist
-    //query->targetList = list_concat(query->targetList, expandNSItemAttrs(pstate, pnsi, 0, -1));
+
     return topquery;
 }
 
