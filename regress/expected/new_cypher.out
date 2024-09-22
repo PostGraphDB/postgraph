@@ -1,4 +1,6 @@
+-- Regression tests don't preload extensions, gotta load it first
 LOAD 'postgraph';
+-- Basic Graph creation
 CREATE GRAPH new_cypher;
 NOTICE:  graph "new_cypher" has been created
  create_graph 
@@ -6,17 +8,55 @@ NOTICE:  graph "new_cypher" has been created
  
 (1 row)
 
+-- Assign Graph to use
 USE GRAPH new_cypher;
-NOTICE:  graph "new_cypher" is being used
+NOTICE:  graph oid: 18547 is being used
  use_graph 
 -----------
  
 (1 row)
 
+-- Reuse Name, should throw error
+CREATE GRAPH new_cypher;
+ERROR:  graph "new_cypher" already exists
+-- Graph Does not exist, should throw error
+USE GRAPH new_cypher;
+ERROR:  duplicate key value violates unique constraint "session_graph_use_index"
+DETAIL:  Key (pid, graph_oid)=(11301, 18547) already exists.
+-- Old Grammar is at least partially plugged in.
 RETURN 1 as a;
-WARNING:  snapshot 0x2786be8 still active
+WARNING:  snapshot 0x168d938 still active
  a 
 ---
  1
+(1 row)
+
+CREATE (n);
+WARNING:  snapshot 0x168d938 still active
+ _null | _id_n___ | _pr_n | n | _create_clause 
+-------+----------+-------+---+----------------
+       | 0        | {}    |   | 
+(1 row)
+
+CREATE (n) RETURN n;
+WARNING:  snapshot 0x168d938 still active
+                           n                            
+--------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {}}
+(1 row)
+
+--CREATE (n) RETURN *;
+MATCH (n) RETURN n;
+WARNING:  snapshot 0x168d938 still active
+                           n                            
+--------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {}}
+(1 row)
+
+MATCH (n) RETURN *;
+WARNING:  snapshot 0x168d938 still active
+                           n                            
+--------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {}}
 (1 row)
 

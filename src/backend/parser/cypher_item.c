@@ -59,6 +59,111 @@ TargetEntry *transform_cypher_item(cypher_parsestate *cpstate, Node *node,
                            colname, resjunk);
 }
 
+/*
+ * expandNSItemAttrs -
+ *	  Workhorse for "*" expansion: produce a list of targetentries
+ *	  for the attributes of the nsitem
+ *
+ * pstate->p_next_resno determines the resnos assigned to the TLEs.
+ * The referenced columns are marked as requiring SELECT access.
+ */
+List *
+expand_NS_Item_Attrs(ParseState *pstate, ParseNamespaceItem *nsitem,
+				  int sublevels_up, int location)
+{
+	RangeTblEntry *rte = nsitem->p_rte;
+	List	   *names,
+			   *vars;
+	ListCell   *name,
+			   *var;
+	List	   *te_list = NIL;
+
+	vars = expandNSItemVars(nsitem, sublevels_up, location, &names);
+
+	/*
+	 * Require read access to the table.  This is normally redundant with the
+	 * markVarForSelectPriv calls below, but not if the table has zero
+	 * columns.  We need not do anything if the nsitem is for a join: its
+	 * component tables will have been marked ACL_SELECT when they were added
+	 * to the rangetable.  (This step changes things only for the target
+	 * relation of UPDATE/DELETE, which cannot be under a join.)
+	 */
+	if (rte->rtekind == RTE_RELATION)
+		rte->requiredPerms |= ACL_SELECT;
+
+	forboth(name, names, var, vars)
+	{
+		char	   *label = strVal(lfirst(name));
+		Var		   *varnode = (Var *) lfirst(var);
+		TargetEntry *te;
+        if (strlen(label) < 2 || (strlen(label) >= 2 && label[0] == '_' && label[1] == '_')) {
+		te = makeTargetEntry((Expr *) varnode,
+							 (AttrNumber) pstate->p_next_resno++,
+							 label,
+							 false);
+		te_list = lappend(te_list, te);
+
+		/* Require read access to each column */
+		markVarForSelectPriv(pstate, varnode);
+        }
+	}
+
+	Assert(name == NULL && var == NULL);	/* lists not the same length? */
+
+	return te_list;
+}
+
+/*
+ * ExpandAllTables()
+ *		Transforms '*' (in the target list) into a list of targetlist entries.
+ *
+ * tlist entries are generated for each relation visible for unqualified
+ * column name access.  We do not consider qualified-name-only entries because
+ * that would include input tables of aliasless JOINs, NEW/OLD pseudo-entries,
+ * etc.
+ *
+ * The referenced relations/columns are marked as requiring SELECT access.
+ */
+static List *
+Expand_All_Tables(ParseState *pstate, int location)
+{
+	List	   *target = NIL;
+	bool		found_table = false;
+	ListCell   *l;
+
+	foreach(l, pstate->p_namespace)
+	{
+		ParseNamespaceItem *nsitem = (ParseNamespaceItem *) lfirst(l);
+
+		/* Ignore table-only items */
+		if (!nsitem->p_cols_visible)
+			continue;
+		/* Should not have any lateral-only items when parsing targetlist */
+		Assert(!nsitem->p_lateral_only);
+		/* Remember we found a p_cols_visible item */
+		found_table = true;
+
+		target = list_concat(target,
+							 expand_NS_Item_Attrs(pstate,
+											   nsitem,
+											   0,
+											   location));
+	}
+
+	/*
+	 * Check for "SELECT *;".  We do it this way, rather than checking for
+	 * target == NIL, because we want to allow SELECT * FROM a zero_column
+	 * table.
+	 */
+	if (!found_table)
+		ereport(ERROR,
+				(errcode(ERRCODE_SYNTAX_ERROR),
+				 errmsg("SELECT * with no tables specified is not valid"),
+				 parser_errposition(pstate, location)));
+
+	return target;
+}
+
 // see transformTargetList()
 List *transform_cypher_item_list(cypher_parsestate *cpstate, List *item_list,
                                  List **groupClause, ParseExprKind expr_kind)
@@ -77,8 +182,8 @@ List *transform_cypher_item_list(cypher_parsestate *cpstate, List *item_list,
         ResTarget *item = lfirst(li);
         TargetEntry *te;
 
-	cpstate->prop_node = NULL;
-	cpstate->prop_name = NULL;
+	    cpstate->prop_node = NULL;
+	    cpstate->prop_name = NULL;
 
         if (expand_star) {
             if (IsA(item->val, ColumnRef)) {
@@ -93,7 +198,7 @@ List *transform_cypher_item_list(cypher_parsestate *cpstate, List *item_list,
                                         errmsg("Invalid number of fields for *"),
                                         parser_errposition(pstate, cref->location)));
 
-                    target_list = list_concat(target_list, ExpandAllTables(pstate, cref->location));
+                    target_list = list_concat(target_list, Expand_All_Tables(pstate, cref->location));
                     continue;
                 }
             }
@@ -101,6 +206,8 @@ List *transform_cypher_item_list(cypher_parsestate *cpstate, List *item_list,
         /* clear the exprHasAgg flag to check transform for an aggregate */
         cpstate->exprHasAgg = false;
 
+       // if (item->name[0] == '_' && item->name[1] == '_')
+        //    continue;
         /* transform the item */
         te = transform_cypher_item(cpstate, item->val, NULL, expr_kind, item->name, false);
 

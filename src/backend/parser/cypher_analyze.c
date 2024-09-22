@@ -162,6 +162,37 @@ void parse_analyze_fini(void){
    parse_analyze_hook = NULL;
 }
 
+
+static FuncExpr *make_utility_func_expr(char *graph_name, char *function_name) {
+    Const *c = makeConst(TEXTOID, -1, InvalidOid, strlen(graph_name), CStringGetTextDatum(graph_name), false, false);
+
+    Oid func_oid = get_ag_func_oid("create_graph", 1, TEXTOID);
+
+    return makeFuncExpr(func_oid, VOIDOID, list_make1(c), InvalidOid, InvalidOid, COERCE_EXPLICIT_CALL);
+}
+
+static Query *
+cypher_graph_utility(ParseState *pstate, const char *graph_name, char *function_name) {
+    Query *query;
+    TargetEntry *tle;
+    FuncExpr *func_expr;
+
+    query = makeNode(Query);
+    query->commandType = CMD_SELECT;
+    query->targetList = NIL;
+
+    func_expr = make_utility_func_expr(graph_name, function_name);
+
+    // Create the target entry
+    tle = makeTargetEntry((Expr *)func_expr, pstate->p_next_resno++, "create_graph", false);
+    query->targetList = lappend(query->targetList, tle);
+
+    query->rtable = pstate->p_rtable;
+    query->jointree = makeFromExpr(pstate->p_joinlist, NULL);
+    return query;
+}
+
+
 /*
  * Creates the function expression that represents the clause. Adds the
  * extensible node that represents the metadata that the clause needs to
