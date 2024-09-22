@@ -218,6 +218,13 @@ typedef struct cypher_use_graph
     char *graph_name;
 } cypher_use_graph;
 
+typedef struct cypher_drop_graph
+{
+    ExtensibleNode extensible;
+    char *graph_name;
+    bool cascade;
+} cypher_drop_graph;
+
 /*
  * expression
  */

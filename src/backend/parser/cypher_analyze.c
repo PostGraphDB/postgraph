@@ -192,7 +192,40 @@ cypher_graph_utility(ParseState *pstate, const char *graph_name, char *function_
     return query;
 }
 
+/*
+ * Creates the function expression that represents the clause. Adds the
+ * extensible node that represents the metadata that the clause needs to
+ * handle the clause in the execution phase.
+ */
+static FuncExpr *make_clause_drop_graph_func_expr(char *graph_name) {
+    Const *c = makeConst(NAMEOID, -1, InvalidOid, strlen(graph_name), CStringGetTextDatum(graph_name), false, false);
+    Const *c1 = makeConst(BOOLOID, -1, InvalidOid, 1, BoolGetDatum(true), false, false);
+    
+    Oid func_oid = get_ag_func_oid("drop_graph", 2, NAMEOID, BOOLOID);
 
+    return makeFuncExpr(func_oid, VOIDOID, list_make2(c, c1), InvalidOid, InvalidOid, COERCE_EXPLICIT_CALL);
+}
+
+static Query *
+cypher_drop_graph_utility(ParseState *pstate, const char *graph_name) {
+    Query *query;
+    TargetEntry *tle;
+    FuncExpr *func_expr;
+
+    query = makeNode(Query);
+    query->commandType = CMD_SELECT;
+    query->targetList = NIL;
+
+    func_expr = make_clause_drop_graph_func_expr(graph_name);
+
+    // Create the target entry
+    tle = makeTargetEntry((Expr *)func_expr, pstate->p_next_resno++, "drop_graph", false);
+    query->targetList = lappend(query->targetList, tle);
+
+    query->rtable = pstate->p_rtable;
+    query->jointree = makeFromExpr(pstate->p_joinlist, NULL);
+    return query;
+}
 /*
  * Creates the function expression that represents the clause. Adds the
  * extensible node that represents the metadata that the clause needs to
@@ -364,6 +397,22 @@ cypher_parse_analyze(RawStmt *parseTree, const char *sourceText,
 	    pgstat_report_query_id(query->queryId, false);
 		PushActiveSnapshot(GetTransactionSnapshot());
 	    return query;
+      } else if (is_ag_node(n, cypher_drop_graph)) {
+        cypher_drop_graph *ccg = n;
+
+        query = cypher_drop_graph_utility(pstate, ccg->graph_name);
+
+        query->canSetTag = true;
+
+        if (IsQueryIdEnabled())
+		  jstate = JumbleQuery(query, sourceText);
+
+	    free_parsestate(pstate);
+
+	    pgstat_report_query_id(query->queryId, false);
+		PushActiveSnapshot(GetTransactionSnapshot());
+	    return query;
+        
       }
     }
     Oid graph_oid = get_session_graph_oid();

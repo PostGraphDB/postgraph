@@ -86,8 +86,8 @@
 /* keywords in alphabetical order */
 %token <keyword> ALL AND ANY AS ASC ASCENDING
                  BETWEEN BY
-                 CALL CASE COALESCE CONTAINS CREATE CUBE CURRENT CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
-                 DATE DECADE DELETE DESC DESCENDING DETACH DISTINCT
+                 CALL CASE CASCADE COALESCE CONTAINS CREATE CUBE CURRENT CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
+                 DATE DECADE DELETE DESC DESCENDING DETACH DISTINCT DROP
                  ELSE END_P ENDS EXCEPT EXCLUDE EXISTS EXTRACT
                  GRAPH GROUP GROUPS GROUPING
                  FALSE_P FILTER FIRST_P FOLLOWING FROM
@@ -111,7 +111,7 @@
 %type <node> stmt
 %type <list> single_query query_part_init query_part_last cypher_stmt
              reading_clause_list updating_clause_list_0 updating_clause_list_1
-             use
+             use drop
 %type <node> reading_clause updating_clause
 
 /* RETURN and WITH clause */
@@ -418,6 +418,10 @@ single_query:
         {
             $$ = $1;
         }
+    | drop
+        {
+            $$ = $1;
+        }
     ;
 
 use:
@@ -428,6 +432,17 @@ use:
 
         $$ = list_make1(n);
     };
+
+drop:
+    DROP GRAPH IDENTIFIER CASCADE
+    {
+
+        cypher_drop_graph *n = make_ag_node(cypher_drop_graph);
+        n->graph_name = $3;
+        n->cascade = true;
+
+        $$ = list_make1(n);
+    }
 
 query_part_init:
     /* empty */

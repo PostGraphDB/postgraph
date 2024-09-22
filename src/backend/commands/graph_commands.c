@@ -170,14 +170,7 @@ Datum use_graph(PG_FUNCTION_ARGS)
     //Increment the Command counter before create the generic labels.
     CommandCounterIncrement();
 
-    //MemoryContext oldMemoryContext = MemoryContextSwitchTo(TopMemoryContext);
-    CurrentGraphOid = get_graph_oid(graph_name_str);
     update_session_graph_oid(get_graph_oid(graph_name_str));
-    //MemoryContextSwitchTo(oldMemoryContext);
-
-    ereport(NOTICE,
-            (errmsg("graph oid: %i is being used", CurrentGraphOid)));
-
     PopActiveSnapshot();
     
     PG_RETURN_VOID();
@@ -285,14 +278,13 @@ Datum drop_graph(PG_FUNCTION_ARGS)
     bool cascade;
 
     if (PG_ARGISNULL(0))
-    {
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE),
                         errmsg("graph name must not be NULL")));
-    }
+                        
     graph_name = PG_GETARG_NAME(0);
     cascade = PG_GETARG_BOOL(1);
 
-    graph_name_str = NameStr(*graph_name);
+    graph_name_str = TextDatumGetCString(PG_GETARG_DATUM(0));
     if (!graph_exists(graph_name_str))
     {
         ereport(ERROR, (errcode(ERRCODE_UNDEFINED_SCHEMA),
@@ -301,7 +293,7 @@ Datum drop_graph(PG_FUNCTION_ARGS)
 
     drop_schema_for_graph(graph_name_str, cascade);
 
-    delete_graph(graph_name);
+    delete_graph(graph_name_str);
     CommandCounterIncrement();
 
     ereport(NOTICE, (errmsg("graph \"%s\" has been dropped", graph_name_str)));

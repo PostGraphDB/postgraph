@@ -29,3 +29,6 @@ CREATE (n) RETURN n;
 MATCH (n) RETURN n;
 
 MATCH (n) RETURN *;
+
+DROP GRAPH new_cypher CASCADE;
+DROP GRAPH new_cypher_2 CASCADE;

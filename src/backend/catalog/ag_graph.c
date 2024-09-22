@@ -93,11 +93,8 @@ void delete_graph(const Name graph_name)
 
     tuple = systable_getnext(scan_desc);
     if (!HeapTupleIsValid(tuple))
-    {
-        ereport(ERROR,
-                (errcode(ERRCODE_UNDEFINED_SCHEMA),
-                 errmsg("graph \"%s\" does not exist", NameStr(*graph_name))));
-    }
+        ereport(ERROR,(errcode(ERRCODE_UNDEFINED_SCHEMA),
+                       errmsg("graph \"%s\" does not exist", NameStr(*graph_name))));
 
     CatalogTupleDelete(ag_graph, &tuple->t_self);
 

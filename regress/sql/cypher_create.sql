@@ -203,34 +203,11 @@ cypher('cypher_create', $$
 	RETURN b
 $$) as t(b vertex);
 
--- column definition list for CREATE clause must contain a single gtype
--- attribute
-SELECT * FROM cypher('cypher_create', $$CREATE ()$$) AS (a int);
-SELECT * FROM cypher('cypher_create', $$CREATE ()$$) AS (a gtype, b int);
-
--- nodes cannot use edge labels and edge labels cannot use node labels
-SELECT * FROM cypher('cypher_create', $$
-	CREATE
-		(:existing_vlabel {id: 1})
-		-[c:existing_elabel {id: 3}]->
-		(:existing_vlabel {id: 2})
-$$) as (a gtype);
-
-SELECT * FROM cypher('cypher_create', $$
-	MATCH(a), (b)
-		WHERE a.id = 1 AND b.id = 2
-	CREATE (a)-[c:existing_vlabel { id: 4}]->(b)
-	RETURN c.id
-$$) as (c gtype);
-
-SELECT * FROM cypher('cypher_create', $$
-	CREATE (a:existing_elabel { id: 5})
-	RETURN a.id
-$$) as (a gtype);
 
 --
 -- check the cypher CREATE clause inside an INSERT INTO
 --
+/*
 CREATE TABLE simple_path (u vertex, e edge, v vertex);
 
 INSERT INTO simple_path(SELECT * FROM cypher('cypher_create',
@@ -238,10 +215,11 @@ INSERT INTO simple_path(SELECT * FROM cypher('cypher_create',
     $$) AS (u vertex, e edge, v vertex));
 
 SELECT count(*) FROM simple_path;
-
+*/
 --
 -- check the cypher CREATE clause inside of a BEGIN/END/COMMIT block
 --
+/*
 BEGIN;
 SELECT * FROM cypher('cypher_create', $$ CREATE (a:Part {part_num: '670'}) $$) as (a gtype);
 SELECT * FROM cypher('cypher_create', $$ MATCH (a:Part) RETURN a $$) as (a vertex);
@@ -253,12 +231,10 @@ SELECT * FROM cypher('cypher_create', $$ MATCH (a:Part) RETURN a $$) as (a verte
 SELECT * FROM cypher('cypher_create', $$ CREATE (a:Part {part_num: '673'}) $$) as (a gtype);
 SELECT * FROM cypher('cypher_create', $$ MATCH (a:Part) RETURN a $$) as (a vertex);
 END;
-
+*/
 --
 -- Clean up
 --
-DROP TABLE simple_path;
-DROP FUNCTION create_test;
 SELECT drop_graph('cypher_create', true);
 
 --

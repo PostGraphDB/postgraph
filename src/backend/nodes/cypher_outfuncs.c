@@ -442,6 +442,15 @@ void out_cypher_use_graph(StringInfo str, const ExtensibleNode *node)
     WRITE_STRING_FIELD(graph_name);
 }
 
+
+void out_cypher_drop_graph(StringInfo str, const ExtensibleNode *node)
+{
+    DEFINE_AG_NODE(cypher_drop_graph);
+
+    WRITE_STRING_FIELD(graph_name);
+    WRITE_BOOL_FIELD(cascade);
+}
+
 /*
  * Copied from Postgres
  *
