@@ -22,41 +22,41 @@ ERROR:  graph "new_cypher" already exists
 -- Graph Does not exist, should throw error
 USE GRAPH new_cypher;
 ERROR:  duplicate key value violates unique constraint "session_graph_use_index"
-DETAIL:  Key (pid, graph_oid)=(11301, 18547) already exists.
+DETAIL:  Key (pid, graph_oid)=(14732, 18547) already exists.
 -- Old Grammar is at least partially plugged in.
 RETURN 1 as a;
-WARNING:  snapshot 0x168d938 still active
+WARNING:  snapshot 0xebf938 still active
  a 
 ---
  1
 (1 row)
 
 CREATE (n);
-WARNING:  snapshot 0x168d938 still active
- _null | _id_n___ | _pr_n | n | _create_clause 
--------+----------+-------+---+----------------
-       | 0        | {}    |   | 
-(1 row)
+WARNING:  snapshot 0xebf938 still active
+--
+(0 rows)
 
 CREATE (n) RETURN n;
-WARNING:  snapshot 0x168d938 still active
+WARNING:  snapshot 0xebf938 still active
                            n                            
 --------------------------------------------------------
- {"id": 281474976710657, "label": "", "properties": {}}
+ {"id": 281474976710658, "label": "", "properties": {}}
 (1 row)
 
 --CREATE (n) RETURN *;
 MATCH (n) RETURN n;
-WARNING:  snapshot 0x168d938 still active
+WARNING:  snapshot 0xebf938 still active
                            n                            
 --------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {}}
-(1 row)
+ {"id": 281474976710658, "label": "", "properties": {}}
+(2 rows)
 
 MATCH (n) RETURN *;
-WARNING:  snapshot 0x168d938 still active
+WARNING:  snapshot 0xebf938 still active
                            n                            
 --------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {}}
-(1 row)
+ {"id": 281474976710658, "label": "", "properties": {}}
+(2 rows)
 

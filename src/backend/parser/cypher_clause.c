@@ -184,7 +184,8 @@ static char *make_startid_alias(char *var_name);
 static char *make_endid_alias(char *var_name);
 List *
 transform_window_definitions(ParseState *pstate, List *windowdefs, List **targetlist);
-
+static ParseNamespaceItem *
+transform_cypher_clause_as_subquery_2(cypher_parsestate *cpstate, cypher_clause *clause, Alias *alias, bool add_rte_to_query, Query *query);
 /*
  * transform a cypher_clause
  */
@@ -3956,12 +3957,13 @@ static Query *transform_cypher_create(cypher_parsestate *cpstate, cypher_clause 
     query = makeNode(Query);
     query->commandType = CMD_SELECT;
     query->targetList = NIL;
-
+/*
     if (!clause->next) {
         null_const = makeNullConst(GTYPEOID, -1, InvalidOid);
         tle = makeTargetEntry((Expr *)null_const, pstate->p_next_resno++, "_null", false);
         query->targetList = lappend(query->targetList, tle);
     }
+*/
 
     if (clause->prev) {
         handle_prev_clause(cpstate, query, clause->prev, true);
@@ -3989,8 +3991,27 @@ static Query *transform_cypher_create(cypher_parsestate *cpstate, cypher_clause 
 
     query->rtable = pstate->p_rtable;
     query->jointree = makeFromExpr(pstate->p_joinlist, NULL);
+if (clause->next)
+   return query;
 
-    return query;
+{
+    Query *topquery;
+cypher_parsestate *new_cpstate = make_cypher_parsestate(cpstate);
+    topquery = makeNode(Query);
+    topquery->commandType = CMD_SELECT;
+    topquery->targetList = NIL;
+
+    ParseState *pstate = (ParseState *) cpstate;
+    int rtindex;
+
+     ParseNamespaceItem *pnsi = transform_cypher_clause_as_subquery_2(new_cpstate, clause, NULL, false, query);
+        topquery->rtable = new_cpstate->pstate.p_rtable;
+        topquery->jointree = makeFromExpr(new_cpstate->pstate.p_joinlist, NULL);
+    // add all the rte's attributes to the current queries targetlist
+    //query->targetList = list_concat(query->targetList, expandNSItemAttrs(pstate, pnsi, 0, -1));
+    return topquery;
+}
+
 }
 
 static List *transform_cypher_create_pattern(cypher_parsestate *cpstate, Query *query, List *pattern) {
@@ -4501,6 +4522,49 @@ static Expr *cypher_create_properties(cypher_parsestate *cpstate, cypher_target_
     // add a volatile wrapper call to prevent the optimizer from removing it
     return (Expr *)add_volatile_wrapper(properties);
 }
+
+/*
+ * This function is similar to transformFromClause() that is called with a
+ * single RangeSubselect.
+ */
+static ParseNamespaceItem *
+transform_cypher_clause_as_subquery_2(cypher_parsestate *cpstate, cypher_clause *clause, Alias *alias, bool add_rte_to_query, Query *query) {
+    ParseState *pstate = (ParseState *)cpstate;
+    ParseExprKind old_expr_kind = pstate->p_expr_kind;
+    bool lateral = pstate->p_lateral_active;
+
+
+    if (!alias)
+        alias = makeAlias(PREV_CYPHER_CLAUSE_ALIAS, NIL);
+
+    ParseNamespaceItem *pnsi = addRangeTableEntryForSubquery(pstate, query, alias, lateral, true);
+
+    /*
+     * NOTE: skip namespace conflicts check if the rte will be the only
+     *       RangeTblEntry in pstate
+     */
+    if (list_length(pstate->p_rtable) > 1) {
+        List *namespace = NULL;
+        int rtindex = 0;
+
+        rtindex = list_length(pstate->p_rtable);
+
+        if (pnsi->p_rte != rt_fetch(rtindex, pstate->p_rtable))
+            ereport(ERROR,
+                    (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+                     errmsg("rte must be last entry in p_rtable")));
+
+        namespace = list_make1(pnsi);
+
+        checkNameSpaceConflicts(pstate, pstate->p_namespace, namespace);
+    }
+
+    //if (add_rte_to_query)
+        addNSItemToQuery(pstate, pnsi, true, false, true);
+
+    return pnsi;
+}
+
 
 /*
  * This function is similar to transformFromClause() that is called with a
