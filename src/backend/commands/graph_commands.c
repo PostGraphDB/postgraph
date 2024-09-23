@@ -171,7 +171,7 @@ Datum use_graph(PG_FUNCTION_ARGS)
     CommandCounterIncrement();
 
     update_session_graph_oid(get_graph_oid(graph_name_str));
-    PopActiveSnapshot();
+    //PopActiveSnapshot();
     
     PG_RETURN_VOID();
 }
@@ -214,7 +214,7 @@ Datum create_graph(PG_FUNCTION_ARGS)
     ereport(NOTICE,
             (errmsg("graph \"%s\" has been created", graph_name_str)));
 
-    PopActiveSnapshot();
+    //PopActiveSnapshot();
     
     PG_RETURN_VOID();
 }

@@ -87,6 +87,7 @@ EXTENSION = postgraph
 DATA = postgraph--0.1.0.sql
 
 REGRESS = new_cypher \
+          expr \
           cypher_create
 
 srcdir=`pwd`
