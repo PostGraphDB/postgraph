@@ -1157,8 +1157,23 @@ CypherCreateCommandTag(Node *parsetree)
             break;
 
         default:
+        {
+            if (IsA(parsetree, List)) {
+
+                List *lst = parsetree;
+                if (list_length(lst) == 1) {
+                    Node *n = linitial(lst);
+
+                    if (IsA(n, CreateExtensionStmt)) {
+	                    tag = CMDTAG_CREATE_EXTENSION;
+                        break;
+                    } 
+                }
+            }
+
             tag = CMDTAG_SELECT;
             break;
+        }
     }
 
     return tag;
@@ -1343,6 +1358,8 @@ Oid get_session_graph_oid()
     return graph_oid;
 }
 
+
+
 /*
  * parse_analyze
  *        Analyze a raw parse tree and transform it to Query form.
@@ -1377,7 +1394,12 @@ cypher_parse_analyze(RawStmt *parseTree, const char *sourceText,
     if (list_length(parseTree->stmt) == 1) {
       Node *n = linitial(parseTree->stmt);
 
-      if (is_ag_node(n, cypher_create_graph)) {
+      if (IsA(n, CreateExtensionStmt)) {
+	        query = parse_analyze((makeRawStmt(n, 0)), sourceText, paramTypes, numParams,
+						  queryEnv);
+
+            return query;
+      } else if (is_ag_node(n, cypher_create_graph)) {
         cypher_create_graph *ccg = n;
         //ereport(ERROR, errmsg("Here"));
 

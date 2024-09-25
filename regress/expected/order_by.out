@@ -1,163 +1,91 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information 
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance 
- * with the License.  You may obtain a copy of the License at
+ * Copyright (C) 2023-2024 PostGraphDB
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an 
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Portions Copyright (c) 2020-2023, Apache Software Foundation
+ * Portions Copyright (c) 2019-2020, Bitnine Global
+ */ 
 LOAD 'postgraph';
-SET search_path TO postgraph;
-SELECT create_graph('order_by');
+CREATE GRAPH order_by;
 NOTICE:  graph "order_by" has been created
  create_graph 
 --------------
  
 (1 row)
 
-SELECT * FROM cypher('order_by', $$CREATE ()$$) AS (result gtype);
- result 
---------
+USE GRAPH order_by;
+ use_graph 
+-----------
+ 
+(1 row)
+
+CREATE ();
+--
 (0 rows)
 
-SELECT * FROM cypher('order_by', $$CREATE ({i: '1', j: 1})$$) AS (result gtype);
- result 
---------
+CREATE ({i: '1', j: 1});
+--
 (0 rows)
 
-SELECT * FROM cypher('order_by', $$CREATE ({i: 1})$$) AS (result gtype);
- result 
---------
+CREATE ({i: 1});
+--
 (0 rows)
 
-SELECT * FROM cypher('order_by', $$CREATE ({i: 1.0})$$) AS (result gtype);
- result 
---------
+CREATE ({i: 1.0});
+--
 (0 rows)
 
-SELECT * FROM cypher('order_by', $$CREATE ({i: 1::numeric})$$) AS (result gtype);
- result 
---------
+CREATE ({i: 1::numeric});
+--
 (0 rows)
 
-SELECT * FROM cypher('order_by', $$CREATE ({i: true})$$) AS (result gtype);
- result 
---------
+CREATE ({i: true});
+--
 (0 rows)
 
-SELECT * FROM cypher('order_by', $$CREATE ({i: false})$$) AS (result gtype);
- result 
---------
+CREATE ({i: false});
+--
 (0 rows)
 
-SELECT * FROM cypher('order_by', $$CREATE ({i: {key: 'value'}})$$) AS (result gtype);
- result 
---------
+CREATE ({i: {key: 'value'}});
+--
 (0 rows)
 
-SELECT * FROM cypher('order_by', $$CREATE ({i: [1]})$$) AS (result gtype);
- result 
---------
+CREATE ({i: [1]});
+--
 (0 rows)
 
-SELECT * FROM cypher('order_by', $$
-        MATCH (u)
-        RETURN u.i
-        ORDER BY u.i
-$$) AS (i gtype);
-        i         
-------------------
- {"key": "value"}
- [1]
- "1"
- false
- true
- 1::numeric
- 1
- 1.0
- 
-(9 rows)
-
-SELECT * FROM cypher('order_by', $$
-        MATCH (u)
-        RETURN u.i
-        ORDER BY u.i DESC
-$$) AS (i gtype);
-        i         
-------------------
- 
- 1
- 1.0
- 1::numeric
- true
- false
- "1"
- [1]
- {"key": "value"}
-(9 rows)
-
-SELECT * FROM cypher('order_by', $$
-    MATCH (x)
-    RETURN x.j ORDER BY x.j NULLS FIRST  
-$$) AS (j gtype);
- j 
----
- 
- 
- 
- 
- 
- 
- 
- 
- 1
-(9 rows)
-
-SELECT * FROM cypher('order_by', $$
-    MATCH (x)
-    RETURN x.j ORDER BY x.j NULLS LAST
-$$) AS (j gtype);
- j 
----
- 1
- 
- 
- 
- 
- 
- 
- 
- 
-(9 rows)
-
-SELECT * FROM cypher('order_by', $$
-    MATCH (x)
-    RETURN x.i ORDER BY x.i USING <
-$$) AS (i gtype);
-        i         
-------------------
- {"key": "value"}
- [1]
- "1"
- false
- true
- 1::numeric
- 1
- 1.0
- 
-(9 rows)
-
-SELECT drop_graph('order_by', true);
+MATCH (u) RETURN u.i ORDER BY u.i;
+ERROR:  operator does not exist: postgraph.vertex -> postgraph.gtype
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+MATCH (u) RETURN u.i ORDER BY u.i DESC;
+ERROR:  operator does not exist: postgraph.vertex -> postgraph.gtype
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+MATCH (u) RETURN u.i ORDER BY u.i ASC;
+ERROR:  operator does not exist: postgraph.vertex -> postgraph.gtype
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+MATCH (x) RETURN x.j ORDER BY x.j NULLS FIRST;
+ERROR:  operator does not exist: postgraph.vertex -> postgraph.gtype
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+MATCH (x) RETURN x.j ORDER BY x.j NULLS LAST;
+ERROR:  operator does not exist: postgraph.vertex -> postgraph.gtype
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+MATCH (x) RETURN x.i ORDER BY x.i USING <;
+ERROR:  operator does not exist: postgraph.vertex -> postgraph.gtype
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+DROP GRAPH order_by CASCADE;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table order_by._ag_label_vertex
 drop cascades to table order_by._ag_label_edge

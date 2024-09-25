@@ -88,7 +88,7 @@
                  BETWEEN BY
                  CALL CASE CASCADE COALESCE CONTAINS CREATE CUBE CURRENT CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
                  DATE DECADE DELETE DESC DESCENDING DETACH DISTINCT DROP
-                 ELSE END_P ENDS EXCEPT EXCLUDE EXISTS EXTRACT
+                 ELSE END_P ENDS EXCEPT EXCLUDE EXISTS EXTENSION EXTRACT
                  GRAPH GROUP GROUPS GROUPING
                  FALSE_P FILTER FIRST_P FOLLOWING FROM
                  HAVING
@@ -970,6 +970,16 @@ create:
             n->graph_name = $3;
 
             $$ = (Node *)n;
+        } 
+    | CREATE EXTENSION IDENTIFIER
+        {
+            CreateExtensionStmt *n = makeNode(CreateExtensionStmt);
+            
+            n->extname = $3;
+            n->if_not_exists = false;
+            n->options = NULL;
+            
+            $$ = (Node *) n;
         }
     ;
 

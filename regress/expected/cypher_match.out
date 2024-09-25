@@ -1,21 +1,22 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (C) 2023-2024 PostGraphDB
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Portions Copyright (c) 2020-2023, Apache Software Foundation
+ * Portions Copyright (c) 2019-2020, Bitnine Global
+ */ 
 LOAD 'postgraph';
 CREATE GRAPH cypher_match;
 NOTICE:  graph "cypher_match" has been created
@@ -212,9 +213,7 @@ HINT:  No operator matches the given name and argument types. You might need to 
 MATCH (n {lst: [1, NULL, 3.14, "string", {key: "value"}, [], "extra value"]})  RETURN n;
 ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
---
 -- Path of one vertex.
---
 MATCH p=() RETURN p;
                                                                                  p                                                                                 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -254,186 +253,87 @@ MATCH (u) WHERE EXISTS((u)-[]->({id: NULL})) RETURN u;
 ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 -- Exists checks for a loop. There shouldn't be any.
-MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) RETURN u, e, v ;
+MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) RETURN u, e, v;
 ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-AS (u vertex, e edge, v vertex);
-ERROR:  syntax error at or near "AS"
-LINE 1: AS (u vertex, e edge, v vertex);
-        ^
+-- Querying NOT EXISTS syntax
 -- Create a loop
 CREATE (u:loop {id:'initial'})-[:self]->(u);
 --
 (0 rows)
 
 -- dump paths
-MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(v)) RETURN u, e, v ;
+MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(v)) RETURN u, e, v;
 ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-AS (u vertex, e edge, v vertex);
-ERROR:  syntax error at or near "AS"
-LINE 1: AS (u vertex, e edge, v vertex);
-        ^
 -- Exists checks for a loop. There should be one.
-MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) RETURN u, e, v ;
+MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) RETURN u, e, v;
 ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-AS (u vertex, e edge, v vertex);
-ERROR:  syntax error at or near "AS"
-LINE 1: AS (u vertex, e edge, v vertex);
-        ^
 -- Exists checks for a loop. There should be one.
-MATCH (u)-[e]->(v) WHERE EXISTS((v)-[e]->(v)) RETURN u, e, v ;
+MATCH (u)-[e]->(v) WHERE EXISTS((v)-[e]->(v)) RETURN u, e, v;
 ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-AS (u vertex, e edge, v vertex);
-ERROR:  syntax error at or near "AS"
-LINE 1: AS (u vertex, e edge, v vertex);
-        ^
 -- Exists checks for a loop. There should be none because of edge uniqueness
 -- requirement.
-MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)-[e]->(u)) RETURN u, e, v ;
+MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)-[e]->(u)) RETURN u, e, v;
 ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-AS (u vertex, e edge, v vertex);
-ERROR:  syntax error at or near "AS"
-LINE 1: AS (u vertex, e edge, v vertex);
-        ^
-MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) AND EXISTS((v)-[e]->(v)) RETURN u, e, v ;
+MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) AND EXISTS((v)-[e]->(v)) RETURN u, e, v;
 ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-AS (u vertex, e edge, v vertex);
-ERROR:  syntax error at or near "AS"
-LINE 1: AS (u vertex, e edge, v vertex);
-        ^
-MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(x)) RETURN u, e, v ;
+MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(x)) RETURN u, e, v;
 ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-AS (u vertex, e edge, v vertex);
-ERROR:  syntax error at or near "AS"
-LINE 1: AS (u vertex, e edge, v vertex);
-        ^
-MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "middle"}) RETURN 1) RETURN u ;
+MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "middle"}) RETURN 1) RETURN u;
 ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-AS (u vertex);
-ERROR:  syntax error at or near "AS"
-LINE 1: AS (u vertex);
-        ^
-MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "middle"}) RETURN u) RETURN u ;
+MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "middle"}) RETURN u) RETURN u;
 ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-AS (u vertex);
-ERROR:  syntax error at or near "AS"
-LINE 1: AS (u vertex);
-        ^
-MATCH (u) WHERE u.id = ANY (MATCH (v) RETURN v.id) RETURN u ;
+MATCH (u) WHERE u.id = ANY (MATCH (v) RETURN v.id) RETURN u;
 ERROR:  operator does not exist: postgraph.vertex -> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-AS (u vertex);
-ERROR:  syntax error at or near "AS"
-LINE 1: AS (u vertex);
-        ^
-MATCH (u) WHERE u.id = ANY (MATCH (v) RETURN NULL) RETURN u ;
+MATCH (u) WHERE u.id = ANY (MATCH (v) RETURN NULL) RETURN u;
 ERROR:  operator does not exist: postgraph.gtype -> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-AS (u vertex);
-ERROR:  syntax error at or near "AS"
-LINE 1: AS (u vertex);
-        ^
-MATCH (u) WHERE u.id = SOME (MATCH (v) RETURN v.id) RETURN u ;
+MATCH (u) WHERE u.id = SOME (MATCH (v) RETURN v.id) RETURN u;
 ERROR:  operator does not exist: postgraph.vertex -> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-AS (u vertex);
-ERROR:  syntax error at or near "AS"
-LINE 1: AS (u vertex);
-        ^
-MATCH (u) WHERE u.id = ALL (MATCH (v) RETURN v.id) RETURN u ;
+MATCH (u) WHERE u.id = ALL (MATCH (v) RETURN v.id) RETURN u;
 ERROR:  operator does not exist: postgraph.vertex -> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-AS (u vertex);
-ERROR:  syntax error at or near "AS"
-LINE 1: AS (u vertex);
-        ^
 MATCH (u)
-WHERE EXISTS(
-	MATCH (u)-[]->(v) 
-	WHERE v.id = "middle"
-	RETURN 1
-    )
+WHERE EXISTS( MATCH (u)-[]->(v) WHERE v.id = "middle" RETURN 1)
 RETURN u;
 ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "gsjka"}) RETURN 1) RETURN u ;
+MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "gsjka"}) RETURN 1) RETURN u;
 ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-AS (u vertex);
-ERROR:  syntax error at or near "AS"
-LINE 1: AS (u vertex);
-        ^
-MATCH (u) WHERE EXISTS(MATCH (v {id: 'middle'}) MATCH (u)-[]->(v) RETURN 1) RETURN u ;
+MATCH (u) WHERE EXISTS(MATCH (v {id: 'middle'}) MATCH (u)-[]->(v) RETURN 1) RETURN u;
 ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-AS (u vertex);
-ERROR:  syntax error at or near "AS"
-LINE 1: AS (u vertex);
-        ^
-EXPLAIN 
-MATCH (u) WHERE EXISTS(MATCH (v {id: 'middle'}) MATCH (u)-[]->(v) RETURN 1) RETURN u ;
-ERROR:  syntax error at or near "EXPLAIN"
-LINE 1: EXPLAIN 
-        ^
-AS (u vertex);
-ERROR:  syntax error at or near "AS"
-LINE 1: AS (u vertex);
-        ^
-EXPLAIN
-MATCH (u) WHERE EXISTS(MATCH (u)-[]->(v {id: 'middle'}) RETURN 1) RETURN u ;
-ERROR:  syntax error at or near "EXPLAIN"
-LINE 1: EXPLAIN
-        ^
-AS (u vertex);
-ERROR:  syntax error at or near "AS"
-LINE 1: AS (u vertex);
-        ^
-MATCH (u) 
-RETURN case WHEN EXISTS(MATCH (u)-[]->({id: "gsjka"}) RETURN 1) THEN 1 ELSE 2 END
-)
-AS (u gtype);
-ERROR:  syntax error at or near ")"
-LINE 3: )
-        ^
-MATCH (u)
-RETURN case WHEN EXISTS(MATCH (u)-[]->() RETURN 1) THEN 1 ELSE 2 END
-)
-AS (u gtype);
-ERROR:  syntax error at or near ")"
-LINE 3: )
-        ^
-EXPLAIN 
-MATCH (u)
-RETURN case WHEN EXISTS(MATCH (u)-[]->() RETURN 1) THEN 1 ELSE 2 END
-)
-AS (u gtype);
-ERROR:  syntax error at or near "EXPLAIN"
-LINE 1: EXPLAIN 
-        ^
-MATCH (u)
-RETURN case WHEN EXISTS((u)-[]->()) THEN 1 ELSE 2 END
-)
-AS (u gtype);
-ERROR:  syntax error at or near ")"
-LINE 3: )
-        ^
-EXPLAIN
-SELECT *
-FROM cypher_match._ag_label_vertex as v
-WHERE EXISTS (
-SELECT * FROM cypher_match._ag_label_edge as e WHERE v.id = e.start_id
-);
-ERROR:  syntax error at or near "EXPLAIN"
-LINE 1: EXPLAIN
-        ^
+MATCH (u) WHERE EXISTS(MATCH (v {id: 'middle'}) MATCH (u)-[]->(v) RETURN 1) RETURN u;
+ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+MATCH (u) WHERE EXISTS(MATCH (u)-[]->(v {id: 'middle'}) RETURN 1) RETURN u;
+ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+MATCH (u) RETURN case WHEN EXISTS(MATCH (u)-[]->({id: "gsjka"}) RETURN 1) THEN 1 ELSE 2 END;
+ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+MATCH (u) RETURN case WHEN EXISTS(MATCH (u)-[]->() RETURN 1) THEN 1 ELSE 2 END;
+ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+ 
+MATCH (u) RETURN case WHEN EXISTS(MATCH (u)-[]->() RETURN 1) THEN 1 ELSE 2 END;
+ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+MATCH (u) RETURN case WHEN EXISTS((u)-[]->()) THEN 1 ELSE 2 END;
+ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+/*
 EXPLAIN
 SELECT *
 FROM cypher_match._ag_label_vertex as u
@@ -442,39 +342,33 @@ SELECT * FROM cypher_match._ag_label_edge as e
 JOIN cypher_match._ag_label_vertex as v ON v.id = e.end_id
 WHERE u.id = e.start_id
 );
-ERROR:  syntax error at or near "EXPLAIN"
-LINE 1: EXPLAIN
-        ^
+*/
 --
 --Distinct
 --
 MATCH (u) RETURN DISTINCT props(u);
 ERROR:  function postgraph.props(postgraph.vertex) does not exist
-LINE 1: MATCH (u) RETURN DISTINCT props(u);
-                                  ^
+LINE 14: MATCH (u) RETURN DISTINCT props(u);
+                                   ^
 HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 CREATE (u:duplicate)-[:dup_edge {id:1 }]->(:other_v);
 --
 (0 rows)
 
-	MATCH (u:duplicate)
-	CREATE (u)-[:dup_edge {id:2 }]->(:other_v);
+MATCH (u:duplicate) CREATE (u)-[:dup_edge {id:2 }]->(:other_v);
 --
 (0 rows)
 
-	MATCH (u:duplicate)-[]-(:other_v)
-	RETURN DISTINCT u;
+MATCH (u:duplicate)-[]-(:other_v) RETURN DISTINCT u;
 ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-	MATCH p=(:duplicate)-[]-(:other_v)
-	RETURN DISTINCT p;
+MATCH p=(:duplicate)-[]-(:other_v) RETURN DISTINCT p;
 ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 --
--- Limit
+-- Limit & Skip
 --
-	MATCH (u)
-	RETURN u;
+MATCH (u) RETURN u;
                                                                                 u                                                                                
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {"int_key": 1, "map_key": {"key": "value"}, "list_key": [1, 2, 3], "float_key": 3.14, "string_key": "test"}}
@@ -497,8 +391,7 @@ HINT:  No operator matches the given name and argument types. You might need to 
  {"id": 3940649673949186, "label": "other_v", "properties": {}}
 (18 rows)
 
-	MATCH (u)
-	RETURN u LIMIT 3;
+MATCH (u) RETURN u LIMIT 3;
                                                                                 u                                                                                
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {"int_key": 1, "map_key": {"key": "value"}, "list_key": [1, 2, 3], "float_key": 3.14, "string_key": "test"}}
@@ -506,11 +399,7 @@ HINT:  No operator matches the given name and argument types. You might need to 
  {"id": 844424930131969, "label": "v", "properties": {}}
 (3 rows)
 
---
--- Skip
---
-	MATCH (u)
-	RETURN u SKIP 7;
+MATCH (u) RETURN u SKIP 7;
                                      u                                      
 ----------------------------------------------------------------------------
  {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}
@@ -526,8 +415,7 @@ HINT:  No operator matches the given name and argument types. You might need to 
  {"id": 3940649673949186, "label": "other_v", "properties": {}}
 (11 rows)
 
-	MATCH (u)
-	RETURN u SKIP 7 LIMIT 3;
+MATCH (u) RETURN u SKIP 7 LIMIT 3;
                                     u                                     
 --------------------------------------------------------------------------
  {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}
@@ -539,51 +427,55 @@ HINT:  No operator matches the given name and argument types. You might need to 
 -- Optional Match
 --
 CREATE (:opt_match_v {name: 'someone'})-[:opt_match_e]->(:opt_match_v {name: 'somebody'}),
-           (:opt_match_v {name: 'anybody'})-[:opt_match_e]->(:opt_match_v {name: 'nobody'});
+        (:opt_match_v {name: 'anybody'})-[:opt_match_e]->(:opt_match_v {name: 'nobody'});
 --
 (0 rows)
 
-MATCH (u:opt_match_v)
-OPTIONAL MATCH (u)-[m]-(l)
-RETURN u.name as u, type(m), l.name as l
-ORDER BY u, m, l;
+MATCH (u:opt_match_v) OPTIONAL MATCH (u)-[m]-(l) RETURN u.name as u, type(m), l.name as l ORDER BY u, m, l;
 ERROR:  operator does not exist: postgraph.graphid = postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-OPTIONAL MATCH (n:opt_match_v)-[r]->(p), (m:opt_match_v)-[s]->(q)
-WHERE id(n) <> id(m)
-RETURN n.name as n, type(r;
-           m.name AS m, type(s;
-ORDER BY n, p, m, q;
+OPTIONAL MATCH (n:opt_match_v)-[r]->(p), (m:opt_match_v)-[s]->(q) WHERE id(n) <> id(m) RETURN n.name as n, type(r); m.name AS m, type(s); ORDER BY n, p, m, q;
+ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+ERROR:  syntax error at or near "m"
+LINE 1: m.name AS m, type(s);
+        ^
+ERROR:  syntax error at or near "ORDER"
+LINE 1: ORDER BY n, p, m, q;
+        ^
 MATCH (n:opt_match_v), (m:opt_match_v)
 WHERE id(n) <> id(m)
 OPTIONAL MATCH (n)-[r]->(p), (m)-[s]->(q)
-RETURN n.name AS n, type(r;
-           m.name AS m, type(s;
+RETURN n.name AS n, type(r)
+           m.name AS m, type(s)
 ORDER BY n, p, m, q;
--- Prepare
-CREATE (u {name: "orphan"})
-CREATE (u1 {name: "F"})-[u2:e1]->(u3 {name: "T"})
-RETURN u1, u2, u3;
+ERROR:  syntax error at or near "m"
+LINE 5:            m.name AS m, type(s)
+                   ^
+CREATE (u {name: "orphan"}) CREATE (u1 {name: "F"})-[u2:e1]->(u3 {name: "T"}) RETURN u1, u2, u3;
+                                u1                                 |                                                        u2                                                         |                                u3                                 
+-------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------
+ {"id": 281474976710660, "label": "", "properties": {"name": "F"}} | {"id": 1407374883553283, "start_id": 281474976710660, "end_id": 281474976710661, "label": "e1", "properties": {}} | {"id": 281474976710661, "label": "", "properties": {"name": "T"}}
+(1 row)
+
 -- Querying NOT EXISTS syntax
-MATCH (f),(t)
-WHERE NOT EXISTS((f)-[]->(t))
-RETURN f.name, t.name;
+MATCH (f),(t) WHERE NOT EXISTS((f)-[]->(t)) RETURN f.name, t.name;
+ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 -- Querying EXISTS syntax
-MATCH (f),(t)
-WHERE EXISTS((f)-[]->(t))
-RETURN f.name, t.name;
+MATCH (f),(t) WHERE EXISTS((f)-[]->(t)) RETURN f.name, t.name;
+ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 --
 -- Constraints and WHERE clause together
 --
 CREATE ({i: 1, j: 2, k: 3}), ({i: 1, j: 3}), ({i:2, k: 3});
+--
+(0 rows)
+
 MATCH (n {j: 2}) WHERE n.i = 1 RETURN n;
---
--- ORDER BY
---
-MATCH (n) ORDER BY n.i RETURN n;
-MATCH (n) MATCH (n)-[]->(m) ORDER BY m RETURN n;
-MATCH (n) MATCH (n)-[]-(m) ORDER BY m DESC RETURN m;
-MATCH (n) MATCH (n)-[]-(m) ORDER BY m ASC RETURN m;
+ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 --
 -- Prepared Statement Property Constraint
 --
@@ -593,22 +485,66 @@ MATCH (n) MATCH (n)-[]-(m) ORDER BY m ASC RETURN m;
 --
 -- need a following RETURN clause
 MATCH (n:v);
+ERROR:  syntax error at or near ";"
+LINE 1: MATCH (n:v);
+                   ^
 --Invalid Variables
 MATCH (a)-[]-()-[]-(a:v1) RETURN a;
+ERROR:  variable a already exists
+LINE 1: MATCH (a)-[]-()-[]-(a:v1) RETURN a;
+                           ^
 MATCH (a:v1)-[]-()-[a]-() RETURN a;
+ERROR:  variable a already exists
+LINE 1: MATCH (a:v1)-[]-()-[a]-() RETURN a;
+                           ^
 MATCH (a:v1)-[]-()-[]-(a {id:'will_fail'}) RETURN a;
+ERROR:  variable a already exists
+LINE 1: MATCH (a:v1)-[]-()-[]-(a {id:'will_fail'}) RETURN a;
+                              ^
 --Incorrect Labels
 MATCH (n)-[:v]-() RETURN n;
+ERROR:  label v is for vertices, not edges
+LINE 1: MATCH (n)-[:v]-() RETURN n;
+                  ^
 MATCH (n)-[:emissing]-() RETURN n;
+ERROR:  label emissing does not exists
+LINE 1: MATCH (n)-[:emissing]-() RETURN n;
+                  ^
 MATCH (n:e1)-[]-() RETURN n;
+ERROR:  label e1 is for edges, not vertices
+LINE 1: MATCH (n:e1)-[]-() RETURN n;
+              ^
 MATCH (n:vmissing)-[]-() RETURN n;
+ERROR:  label vmissing does not exists
+LINE 1: MATCH (n:vmissing)-[]-() RETURN n;
+              ^
 --
 -- Clean up
 --
 DROP GRAPH cypher_match CASCADE;
+NOTICE:  drop cascades to 16 other objects
+DETAIL:  drop cascades to table cypher_match._ag_label_vertex
+drop cascades to table cypher_match._ag_label_edge
+drop cascades to table cypher_match.v
+drop cascades to table cypher_match.v1
+drop cascades to table cypher_match.e1
+drop cascades to table cypher_match.v2
+drop cascades to table cypher_match.e2
+drop cascades to table cypher_match.v3
+drop cascades to table cypher_match.e3
+drop cascades to table cypher_match.loop
+drop cascades to table cypher_match.self
+drop cascades to table cypher_match.duplicate
+drop cascades to table cypher_match.dup_edge
+drop cascades to table cypher_match.other_v
+drop cascades to table cypher_match.opt_match_v
+drop cascades to table cypher_match.opt_match_e
+NOTICE:  graph "cypher_match" has been dropped
+ drop_graph 
+------------
+ 
+(1 row)
+
 --
 -- End
 --
-ERROR:  syntax error at or near ";"
-LINE 3: RETURN n.name as n, type(r;
-                                  ^

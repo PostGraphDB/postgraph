@@ -16,6 +16,9 @@
  */ 
 -- Regression tests don't preload extensions, gotta load it first
 LOAD 'postgraph';
+CREATE EXTENSION postgraph;
+ERROR:  extension "postgraph" already exists
+CREATE EXTENSION hstore;
 -- Basic Graph creation
 CREATE GRAPH new_cypher;
 NOTICE:  graph "new_cypher" has been created

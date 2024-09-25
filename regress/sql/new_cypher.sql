@@ -15,7 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */ 
 -- Regression tests don't preload extensions, gotta load it first
+
 LOAD 'postgraph';
+
+CREATE EXTENSION postgraph;
+CREATE EXTENSION hstore;
 
 -- Basic Graph creation
 CREATE GRAPH new_cypher;
