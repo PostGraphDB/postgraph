@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2024 PostGraphDB
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */ 
 -- Regression tests don't preload extensions, gotta load it first
 LOAD 'postgraph';
 -- Basic Graph creation
@@ -10,7 +26,6 @@ NOTICE:  graph "new_cypher" has been created
 
 -- Assign Graph to use
 USE GRAPH new_cypher;
-NOTICE:  graph oid: 18547 is being used
  use_graph 
 -----------
  
@@ -21,23 +36,42 @@ CREATE GRAPH new_cypher;
 ERROR:  graph "new_cypher" already exists
 -- Graph Does not exist, should throw error
 USE GRAPH new_cypher;
-ERROR:  duplicate key value violates unique constraint "session_graph_use_index"
-DETAIL:  Key (pid, graph_oid)=(14732, 18547) already exists.
+ use_graph 
+-----------
+ 
+(1 row)
+
+CREATE GRAPH new_cypher_2;
+NOTICE:  graph "new_cypher_2" has been created
+ create_graph 
+--------------
+ 
+(1 row)
+
+USE GRAPH new_cypher_2;
+ use_graph 
+-----------
+ 
+(1 row)
+
+USE GRAPH new_cypher;
+ use_graph 
+-----------
+ 
+(1 row)
+
 -- Old Grammar is at least partially plugged in.
 RETURN 1 as a;
-WARNING:  snapshot 0xebf938 still active
  a 
 ---
  1
 (1 row)
 
 CREATE (n);
-WARNING:  snapshot 0xebf938 still active
 --
 (0 rows)
 
 CREATE (n) RETURN n;
-WARNING:  snapshot 0xebf938 still active
                            n                            
 --------------------------------------------------------
  {"id": 281474976710658, "label": "", "properties": {}}
@@ -45,7 +79,6 @@ WARNING:  snapshot 0xebf938 still active
 
 --CREATE (n) RETURN *;
 MATCH (n) RETURN n;
-WARNING:  snapshot 0xebf938 still active
                            n                            
 --------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {}}
@@ -53,10 +86,29 @@ WARNING:  snapshot 0xebf938 still active
 (2 rows)
 
 MATCH (n) RETURN *;
-WARNING:  snapshot 0xebf938 still active
                            n                            
 --------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {}}
  {"id": 281474976710658, "label": "", "properties": {}}
 (2 rows)
+
+DROP GRAPH new_cypher CASCADE;
+NOTICE:  drop cascades to 2 other objects
+DETAIL:  drop cascades to table new_cypher._ag_label_vertex
+drop cascades to table new_cypher._ag_label_edge
+NOTICE:  graph "new_cypher" has been dropped
+ drop_graph 
+------------
+ 
+(1 row)
+
+DROP GRAPH new_cypher_2 CASCADE;
+NOTICE:  drop cascades to 2 other objects
+DETAIL:  drop cascades to table new_cypher_2._ag_label_vertex
+drop cascades to table new_cypher_2._ag_label_edge
+NOTICE:  graph "new_cypher_2" has been dropped
+ drop_graph 
+------------
+ 
+(1 row)
 

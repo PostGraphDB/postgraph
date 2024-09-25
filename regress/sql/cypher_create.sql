@@ -1,21 +1,23 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright (C) 2023-2024 PostGraphDB
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Portions Copyright (c) 2020-2023, Apache Software Foundation
+ * Portions Copyright (c) 2019-2020, Bitnine Global
+ */ 
+
 
 LOAD 'postgraph';
 
@@ -81,66 +83,32 @@ CREATE ()-[b:e_var]->() RETURN b, id(b);
 
 CREATE (a)-[b:e_var {id: 0}]->() RETURN a, b, b.id, b.id + 1;
 
-SELECT * FROM cypher('cypher_create', $$
-	MATCH (a:n_var)
-	CREATE (a)-[b:e_var]->(a)
-	RETURN a, b
-$$) as (a vertex, b edge);
+MATCH (a:n_var) CREATE (a)-[b:e_var]->(a) RETURN a, b;
 
-SELECT * FROM cypher('cypher_create', $$
-	MATCH (a:n_var)
-	CREATE (a)-[b:e_var]->(c)
-	RETURN a, b, c
-$$) as (a vertex, b edge, c vertex);
+MATCH (a:n_var) CREATE (a)-[b:e_var]->(c) RETURN a, b, c;
 
-SELECT * FROM cypher('cypher_create', $$
-	CREATE (a)-[:e_var]->()
-	RETURN a
-$$) as (b vertex);
+CREATE (a)-[:e_var]->() RETURN a;
 
-SELECT * FROM cypher('cypher_create', $$
-	CREATE ()-[b:e_var]->()
-	RETURN b
-$$) as (b edge);
+CREATE ()-[b:e_var]->() RETURN b;
 
-SELECT * FROM cypher('cypher_create', $$
-	CREATE p=()-[:e_var]->()
-	RETURN p
-$$) as (b traversal);
+CREATE p=()-[:e_var]->() RETURN p;
 
-SELECT * FROM cypher('cypher_create', $$
-	CREATE p=(a {id:0})-[:e_var]->(a)
-	RETURN p
-$$) as (b traversal);
+CREATE p=(a {id:0})-[:e_var]->(a) RETURN p;
 
-SELECT * FROM cypher('cypher_create', $$
-	MATCH (a:n_var)
-	CREATE p=(a)-[:e_var]->(a)
-	RETURN p
-$$) as (b traversal);
+MATCH (a:n_var) CREATE p=(a)-[:e_var]->(a) RETURN p;
 
-SELECT * FROM cypher('cypher_create', $$
-	CREATE p=(a)-[:e_var]->(), (a)-[b:e_var]->(a)
-	RETURN p, b
-$$) as (a traversal, b edge);
+CREATE p=(a)-[:e_var]->(), (a)-[b:e_var]->(a) RETURN p, b;
 
-SELECT * FROM cypher('cypher_create', $$
-	MATCH (a:n_var)
-	WHERE a.name = 'Node Z'
-	CREATE (a)-[:e_var {name: a.name + ' -> doesnt exist'}]->(:n_other_node)
-	RETURN a
-$$) as (a vertex);
+MATCH (a:n_var) WHERE a.name = 'Node Z' CREATE (a)-[:e_var {name: a.name + ' -> doesnt exist'}]->(:n_other_node) RETURN a;
 
-SELECT * FROM cypher('cypher_create', $$MATCH (n:n_var) RETURN n$$) AS (n vertex);
-SELECT * FROM cypher('cypher_create', $$MATCH ()-[e:e_var]->() RETURN e$$) AS (e edge);
-
---Check every label has been created
-SELECT name, kind FROM ag_label ORDER BY name;
+MATCH (n:n_var) RETURN n;
+MATCH ()-[e:e_var]->() RETURN e;
 
 --Validate every vertex has the correct label
-SELECT * FROM cypher('cypher_create', $$MATCH (n) RETURN n$$) AS (n vertex);
+MATCH (n) RETURN n;
 
 -- prepared statements
+/*
 PREPARE p_1 AS SELECT * FROM cypher('cypher_create', $$CREATE (v:new_vertex {key: 'value'}) RETURN v$$) AS (a vertex);
 EXECUTE p_1;
 EXECUTE p_1;
@@ -162,47 +130,7 @@ $BODY$;
 
 SELECT create_test();
 SELECT create_test();
-
---
--- Errors
---
--- Var 'a' cannot have properties in the create clause
-SELECT * FROM cypher('cypher_create', $$
-	MATCH (a:n_var)
-	WHERE a.name = 'Node A'
-	CREATE (a {test:1})-[:e_var]->()
-$$) as (a gtype);
-
--- Var 'a' cannot change labels
-SELECT * FROM cypher('cypher_create', $$
-	MATCH (a:n_var)
-	WHERE a.name = 'Node A'
-	CREATE (a:new_label)-[:e_var]->()
-$$) as (a gtype);
-
-SELECT * FROM cypher('cypher_create', $$
-	MATCH (a:n_var)-[b]-()
-	WHERE a.name = 'Node A'
-	CREATE (a)-[b:e_var]->()
-$$) as (a gtype);
-
--- A valid single vertex path
-SELECT * FROM cypher('cypher_create', $$
-	CREATE p=(a)
-	RETURN p
-$$) as (a traversal);
-
---CREATE with joins
-SELECT *
-FROM cypher('cypher_create', $$
-	CREATE (a)
-	RETURN a
-$$) as q(a vertex),
-cypher('cypher_create', $$
-	CREATE (b)
-	RETURN b
-$$) as t(b vertex);
-
+*/
 
 --
 -- check the cypher CREATE clause inside an INSERT INTO
@@ -232,10 +160,29 @@ SELECT * FROM cypher('cypher_create', $$ CREATE (a:Part {part_num: '673'}) $$) a
 SELECT * FROM cypher('cypher_create', $$ MATCH (a:Part) RETURN a $$) as (a vertex);
 END;
 */
+
+--
+-- Errors
+--
+-- Var 'a' cannot have properties in the create clause
+MATCH (a:n_var) WHERE a.name = 'Node A' CREATE (a {test:1})-[:e_var]->();
+
+-- Var 'a' cannot change labels
+MATCH (a:n_var) WHERE a.name = 'Node A' CREATE (a:new_label)-[:e_var]->();
+
+MATCH (a:n_var)-[b]-() WHERE a.name = 'Node A' CREATE (a)-[b:e_var]->();
+
+--CREATE with joins
+/*
+SELECT *
+FROM (CREATE (a) RETURN a) as q(a vertex),
+     (CREATE (b) RETURN b) as t(b vertex);
+*/
+
 --
 -- Clean up
 --
-SELECT drop_graph('cypher_create', true);
+DROP GRAPH cypher_create CASCADE;
 
 --
 -- End

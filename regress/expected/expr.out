@@ -1,0 +1,207 @@
+/*
+ * Copyright (C) 2023-2024 PostGraphDB
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Portions Copyright (c) 2020-2023, Apache Software Foundation
+ * Portions Copyright (c) 2019-2020, Bitnine Global
+ */ 
+LOAD 'postgraph';
+CREATE GRAPH expr;
+NOTICE:  graph "expr" has been created
+ create_graph 
+--------------
+ 
+(1 row)
+
+USE GRAPH expr;
+ use_graph 
+-----------
+ 
+(1 row)
+
+--
+-- a bunch of comparison operators
+--
+RETURN 1 = 1.0;
+ERROR:  operator is not unique: postgraph.gtype = postgraph.gtype
+LINE 1: RETURN 1 = 1.0;
+                 ^
+HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
+RETURN 1 > -1.0;
+ERROR:  operator is not unique: postgraph.gtype > postgraph.gtype
+LINE 1: RETURN 1 > -1.0;
+                 ^
+HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
+RETURN -1.0 < 1;
+ERROR:  operator is not unique: postgraph.gtype < postgraph.gtype
+LINE 1: RETURN -1.0 < 1;
+                    ^
+HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
+RETURN "aaa" < "z";
+ERROR:  operator is not unique: postgraph.gtype < postgraph.gtype
+LINE 1: RETURN "aaa" < "z";
+                     ^
+HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
+RETURN "z" > "aaa";
+ERROR:  operator is not unique: postgraph.gtype > postgraph.gtype
+LINE 1: RETURN "z" > "aaa";
+                   ^
+HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
+RETURN false = false;
+ERROR:  operator is not unique: postgraph.gtype = postgraph.gtype
+LINE 1: RETURN false = false;
+                     ^
+HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
+RETURN ("string" < true);
+ERROR:  operator is not unique: postgraph.gtype < postgraph.gtype
+LINE 1: RETURN ("string" < true);
+                         ^
+HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
+RETURN true < 1;
+ERROR:  operator is not unique: postgraph.gtype < postgraph.gtype
+LINE 1: RETURN true < 1;
+                    ^
+HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
+RETURN (1 + 1.0) = (7 % 5);
+ ?column? 
+----------
+ t
+(1 row)
+
+-- IS NULL
+RETURN null IS NULL;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN 1 IS NULL;
+ ?column? 
+----------
+ f
+(1 row)
+
+-- IS NOT NULL
+RETURN 1 IS NOT NULL;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN null IS NOT NULL;
+ ?column? 
+----------
+ f
+(1 row)
+
+-- NOT
+RETURN NOT false;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN NOT true;
+ ?column? 
+----------
+ f
+(1 row)
+
+-- AND
+RETURN true AND true;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN true AND false;
+ ?column? 
+----------
+ f
+(1 row)
+
+RETURN false AND true;
+ ?column? 
+----------
+ f
+(1 row)
+
+RETURN false AND false;
+ ?column? 
+----------
+ f
+(1 row)
+
+-- OR
+RETURN true OR true;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN true OR false;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN false OR true;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN false OR false;
+ ?column? 
+----------
+ f
+(1 row)
+
+-- The ONE test on operator precedence...
+RETURN NOT ((true OR false) AND (false OR true));
+ ?column? 
+----------
+ f
+(1 row)
+
+-- XOR
+RETURN true XOR true;
+ ?column? 
+----------
+ f
+(1 row)
+
+RETURN true XOR false;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN false XOR true;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN false XOR false;
+ ?column? 
+----------
+ f
+(1 row)
+
+DROP GRAPH expr;
+ERROR:  syntax error at or near ";"
+LINE 1: DROP GRAPH expr;
+                       ^
