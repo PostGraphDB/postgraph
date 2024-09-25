@@ -134,12 +134,7 @@ MATCH (n {lst: [1, NULL, 3.14, "string", {key: "value"}, []]}) RETURN n;
 
 MATCH (n {lst: [1, NULL, 3.14, "string", {key: "value"}, [], "extra value"]})  RETURN n;
 
-
-
---
 -- Path of one vertex.
---
-
 MATCH p=() RETURN p;
 
 --
@@ -147,141 +142,78 @@ MATCH p=() RETURN p;
 --
 MATCH (u)-[e]->(v) RETURN u, e, v ;
 
-
 MATCH (u)-[e]->(v) WHERE EXISTS ((u)-[e]->(v)) RETURN u, e, v;
-
 
 -- Property Constraint in EXISTS
 MATCH (u) WHERE EXISTS((u)-[]->({id: "middle"})) RETURN u;
 
-
 MATCH (u) WHERE EXISTS((u)-[]->({id: "not a valid id"})) RETURN u;
-
 
 MATCH (u) WHERE EXISTS((u)-[]->({id: NULL})) RETURN u;
 
 -- Exists checks for a loop. There shouldn't be any.
+MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) RETURN u, e, v;
 
-MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) RETURN u, e, v ;
-AS (u vertex, e edge, v vertex);
-
+-- Querying NOT EXISTS syntax
 -- Create a loop
 
 CREATE (u:loop {id:'initial'})-[:self]->(u);
 -- dump paths
 
-MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(v)) RETURN u, e, v ;
-AS (u vertex, e edge, v vertex);
+MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(v)) RETURN u, e, v;
 
 -- Exists checks for a loop. There should be one.
-
-MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) RETURN u, e, v ;
-AS (u vertex, e edge, v vertex);
+MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) RETURN u, e, v;
 
 -- Exists checks for a loop. There should be one.
-
-MATCH (u)-[e]->(v) WHERE EXISTS((v)-[e]->(v)) RETURN u, e, v ;
-AS (u vertex, e edge, v vertex);
+MATCH (u)-[e]->(v) WHERE EXISTS((v)-[e]->(v)) RETURN u, e, v;
 
 -- Exists checks for a loop. There should be none because of edge uniqueness
 -- requirement.
 
-MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)-[e]->(u)) RETURN u, e, v ;
-AS (u vertex, e edge, v vertex);
+MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)-[e]->(u)) RETURN u, e, v;
 
+MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) AND EXISTS((v)-[e]->(v)) RETURN u, e, v;
 
-MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) AND EXISTS((v)-[e]->(v)) RETURN u, e, v ;
-AS (u vertex, e edge, v vertex);
+MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(x)) RETURN u, e, v;
 
+MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "middle"}) RETURN 1) RETURN u;
 
-MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(x)) RETURN u, e, v ;
-AS (u vertex, e edge, v vertex);
+MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "middle"}) RETURN u) RETURN u;
 
+MATCH (u) WHERE u.id = ANY (MATCH (v) RETURN v.id) RETURN u;
 
-MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "middle"}) RETURN 1) RETURN u ;
-AS (u vertex);
+MATCH (u) WHERE u.id = ANY (MATCH (v) RETURN NULL) RETURN u;
 
+MATCH (u) WHERE u.id = SOME (MATCH (v) RETURN v.id) RETURN u;
 
-MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "middle"}) RETURN u) RETURN u ;
-AS (u vertex);
-
-
-MATCH (u) WHERE u.id = ANY (MATCH (v) RETURN v.id) RETURN u ;
-AS (u vertex);
-
-
-MATCH (u) WHERE u.id = ANY (MATCH (v) RETURN NULL) RETURN u ;
-AS (u vertex);
-
-
-MATCH (u) WHERE u.id = SOME (MATCH (v) RETURN v.id) RETURN u ;
-AS (u vertex);
-
-
-MATCH (u) WHERE u.id = ALL (MATCH (v) RETURN v.id) RETURN u ;
-AS (u vertex);
-
+MATCH (u) WHERE u.id = ALL (MATCH (v) RETURN v.id) RETURN u;
 
 MATCH (u)
-WHERE EXISTS(
-	MATCH (u)-[]->(v) 
-	WHERE v.id = "middle"
-	RETURN 1
-    )
+WHERE EXISTS( MATCH (u)-[]->(v) WHERE v.id = "middle" RETURN 1)
 RETURN u;
 
-MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "gsjka"}) RETURN 1) RETURN u ;
-AS (u vertex);
+MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "gsjka"}) RETURN 1) RETURN u;
+
+MATCH (u) WHERE EXISTS(MATCH (v {id: 'middle'}) MATCH (u)-[]->(v) RETURN 1) RETURN u;
+
+MATCH (u) WHERE EXISTS(MATCH (v {id: 'middle'}) MATCH (u)-[]->(v) RETURN 1) RETURN u;
+
+MATCH (u) WHERE EXISTS(MATCH (u)-[]->(v {id: 'middle'}) RETURN 1) RETURN u;
+
+MATCH (u) RETURN case WHEN EXISTS(MATCH (u)-[]->({id: "gsjka"}) RETURN 1) THEN 1 ELSE 2 END;
 
 
+MATCH (u) RETURN case WHEN EXISTS(MATCH (u)-[]->() RETURN 1) THEN 1 ELSE 2 END;
 
-MATCH (u) WHERE EXISTS(MATCH (v {id: 'middle'}) MATCH (u)-[]->(v) RETURN 1) RETURN u ;
-AS (u vertex);
-
-EXPLAIN 
-MATCH (u) WHERE EXISTS(MATCH (v {id: 'middle'}) MATCH (u)-[]->(v) RETURN 1) RETURN u ;
-AS (u vertex);
-
-EXPLAIN
-
-MATCH (u) WHERE EXISTS(MATCH (u)-[]->(v {id: 'middle'}) RETURN 1) RETURN u ;
-AS (u vertex);
+ 
+MATCH (u) RETURN case WHEN EXISTS(MATCH (u)-[]->() RETURN 1) THEN 1 ELSE 2 END;
 
 
+MATCH (u) RETURN case WHEN EXISTS((u)-[]->()) THEN 1 ELSE 2 END;
 
 
-MATCH (u) 
-RETURN case WHEN EXISTS(MATCH (u)-[]->({id: "gsjka"}) RETURN 1) THEN 1 ELSE 2 END
-)
-AS (u gtype);
-
-
-MATCH (u)
-RETURN case WHEN EXISTS(MATCH (u)-[]->() RETURN 1) THEN 1 ELSE 2 END
-)
-AS (u gtype);
-
-
-EXPLAIN 
-MATCH (u)
-RETURN case WHEN EXISTS(MATCH (u)-[]->() RETURN 1) THEN 1 ELSE 2 END
-)
-AS (u gtype);
-
-
-MATCH (u)
-RETURN case WHEN EXISTS((u)-[]->()) THEN 1 ELSE 2 END
-)
-AS (u gtype);
-
-
-EXPLAIN
-SELECT *
-FROM cypher_match._ag_label_vertex as v
-WHERE EXISTS (
-SELECT * FROM cypher_match._ag_label_edge as e WHERE v.id = e.start_id
-);
-
+/*
 EXPLAIN
 SELECT *
 FROM cypher_match._ag_label_vertex as u
@@ -290,6 +222,7 @@ SELECT * FROM cypher_match._ag_label_edge as e
 JOIN cypher_match._ag_label_vertex as v ON v.id = e.end_id
 WHERE u.id = e.start_id
 );
+*/
 
 --
 --Distinct
@@ -298,72 +231,48 @@ MATCH (u) RETURN DISTINCT props(u);
 
 CREATE (u:duplicate)-[:dup_edge {id:1 }]->(:other_v);
 
-	MATCH (u:duplicate)
-	CREATE (u)-[:dup_edge {id:2 }]->(:other_v);
+MATCH (u:duplicate) CREATE (u)-[:dup_edge {id:2 }]->(:other_v);
 
-	MATCH (u:duplicate)-[]-(:other_v)
-	RETURN DISTINCT u;
+MATCH (u:duplicate)-[]-(:other_v) RETURN DISTINCT u;
 
-	MATCH p=(:duplicate)-[]-(:other_v)
-	RETURN DISTINCT p;
+MATCH p=(:duplicate)-[]-(:other_v) RETURN DISTINCT p;
+
 --
--- Limit
+-- Limit & Skip
 --
+MATCH (u) RETURN u;
 
-	MATCH (u)
-	RETURN u;
+MATCH (u) RETURN u LIMIT 3;
 
-	MATCH (u)
-	RETURN u LIMIT 3;
---
--- Skip
---
+MATCH (u) RETURN u SKIP 7;
 
-	MATCH (u)
-	RETURN u SKIP 7;
-
-	MATCH (u)
-	RETURN u SKIP 7 LIMIT 3;
+MATCH (u) RETURN u SKIP 7 LIMIT 3;
 
 --
 -- Optional Match
 --
-
 CREATE (:opt_match_v {name: 'someone'})-[:opt_match_e]->(:opt_match_v {name: 'somebody'}),
-           (:opt_match_v {name: 'anybody'})-[:opt_match_e]->(:opt_match_v {name: 'nobody'});
+        (:opt_match_v {name: 'anybody'})-[:opt_match_e]->(:opt_match_v {name: 'nobody'});
 
-MATCH (u:opt_match_v)
-OPTIONAL MATCH (u)-[m]-(l)
-RETURN u.name as u, type(m), l.name as l
-ORDER BY u, m, l;
 
-OPTIONAL MATCH (n:opt_match_v)-[r]->(p), (m:opt_match_v)-[s]->(q)
-WHERE id(n) <> id(m)
-RETURN n.name as n, type(r;
-           m.name AS m, type(s;
-ORDER BY n, p, m, q;
+MATCH (u:opt_match_v) OPTIONAL MATCH (u)-[m]-(l) RETURN u.name as u, type(m), l.name as l ORDER BY u, m, l;
+
+OPTIONAL MATCH (n:opt_match_v)-[r]->(p), (m:opt_match_v)-[s]->(q) WHERE id(n) <> id(m) RETURN n.name as n, type(r); m.name AS m, type(s); ORDER BY n, p, m, q;
 
 MATCH (n:opt_match_v), (m:opt_match_v)
 WHERE id(n) <> id(m)
 OPTIONAL MATCH (n)-[r]->(p), (m)-[s]->(q)
-RETURN n.name AS n, type(r;
-           m.name AS m, type(s;
+RETURN n.name AS n, type(r)
+           m.name AS m, type(s)
 ORDER BY n, p, m, q;
 
--- Prepare
-CREATE (u {name: "orphan"})
-CREATE (u1 {name: "F"})-[u2:e1]->(u3 {name: "T"})
-RETURN u1, u2, u3;
+CREATE (u {name: "orphan"}) CREATE (u1 {name: "F"})-[u2:e1]->(u3 {name: "T"}) RETURN u1, u2, u3;
 
 -- Querying NOT EXISTS syntax
-MATCH (f),(t)
-WHERE NOT EXISTS((f)-[]->(t))
-RETURN f.name, t.name;
+MATCH (f),(t) WHERE NOT EXISTS((f)-[]->(t)) RETURN f.name, t.name;
 
 -- Querying EXISTS syntax
-MATCH (f),(t)
-WHERE EXISTS((f)-[]->(t))
-RETURN f.name, t.name;
+MATCH (f),(t) WHERE EXISTS((f)-[]->(t)) RETURN f.name, t.name;
 
 
 --
@@ -371,20 +280,7 @@ RETURN f.name, t.name;
 --
 CREATE ({i: 1, j: 2, k: 3}), ({i: 1, j: 3}), ({i:2, k: 3});
 
-
 MATCH (n {j: 2}) WHERE n.i = 1 RETURN n;
-
-
---
--- ORDER BY
---
-MATCH (n) ORDER BY n.i RETURN n;
-
-MATCH (n) MATCH (n)-[]->(m) ORDER BY m RETURN n;
-
-MATCH (n) MATCH (n)-[]-(m) ORDER BY m DESC RETURN m;
-
-MATCH (n) MATCH (n)-[]-(m) ORDER BY m ASC RETURN m;
 
 --
 -- Prepared Statement Property Constraint

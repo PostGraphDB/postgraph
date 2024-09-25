@@ -45,6 +45,7 @@ SELECT * FROM cypher('cypher_remove', $$CREATE (:test_3 { i : 20 } )-[:test_3_ed
 SELECT * FROM cypher('cypher_remove', $$MATCH p=(n)-[:test_3_edge]->() REMOVE n.i RETURN p$$) AS (a traversal);
 
 --test 4 Edges
+SELECT * FROM cypher('cypher_remove', $$MATCH (n) REMOVE n.i RETURN n$$) AS (a vertex);
 SELECT * FROM cypher('cypher_remove', $$CREATE (:test_4 { i : 20 } )-[:test_4_edge {j:20}]->(:test_4 {i:10})$$) AS (a gtype);
 
 SELECT * FROM cypher('cypher_remove', $$MATCH ()-[n]->(:test_4) REMOVE n.i RETURN n$$) AS (a edge);

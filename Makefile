@@ -89,7 +89,8 @@ DATA = postgraph--0.1.0.sql
 REGRESS = new_cypher \
           expr \
           cypher_create \
-          cypher_match
+          cypher_match \
+          order_by
 
 srcdir=`pwd`
 POSTGIS_DIR ?= postgis_dir
