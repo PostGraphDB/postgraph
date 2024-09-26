@@ -92,13 +92,13 @@
                  GRAPH GROUP GROUPS GROUPING
                  FALSE_P FILTER FIRST_P FOLLOWING FROM
                  HAVING
-                 ILIKE IN INTERSECT INTERVAL IS
+                 IF ILIKE IN INTERSECT INTERVAL IS
                  LAST_P LIKE LIMIT LOCALTIME LOCALTIMESTAMP
                  MATCH MERGE 
                  NO NOT NULL_P NULLS_LA
                  OPTIONAL OTHERS OR ORDER OVER OVERLAPS
                  PARTITION PRECEDING
-                 RANGE REMOVE RETURN ROLLUP ROW ROWS
+                 RANGE REMOVE REPLACE RETURN ROLLUP ROW ROWS
                  SET SETS SKIP SOME STARTS
                  TIME TIES THEN TIMESTAMP TRUE_P
                  UNBOUNDED UNION UNWIND USE USING
@@ -123,7 +123,7 @@
 %type <node> match cypher_varlen_opt cypher_range_opt cypher_range_idx
              cypher_range_idx_opt
 %type <integer> Iconst
-%type <boolean> optional_opt
+%type <boolean> optional_opt opt_or_replace
 
 /* CREATE clause */
 %type <node> create
@@ -981,7 +981,23 @@ create:
             
             $$ = (Node *) n;
         }
+	| CREATE EXTENSION IF NOT EXISTS IDENTIFIER
+		{
+			CreateExtensionStmt *n = makeNode(CreateExtensionStmt);
+		
+        	n->extname = $6;
+			n->if_not_exists = true;
+			n->options = NULL;
+		
+        	$$ = (Node *) n;
+		}
     ;
+
+
+opt_or_replace:
+			OR REPLACE								{ $$ = true; }
+			| /*EMPTY*/								{ $$ = false; }
+		;
 
 /*
  * SET and REMOVE clause

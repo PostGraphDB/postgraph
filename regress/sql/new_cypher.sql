@@ -20,7 +20,7 @@ LOAD 'postgraph';
 
 CREATE EXTENSION postgraph;
 CREATE EXTENSION hstore;
-
+CREATE EXTENSION IF NOT EXISTS hstore;
 -- Basic Graph creation
 CREATE GRAPH new_cypher;
 

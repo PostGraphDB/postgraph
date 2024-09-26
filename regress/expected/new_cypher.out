@@ -19,6 +19,8 @@ LOAD 'postgraph';
 CREATE EXTENSION postgraph;
 ERROR:  extension "postgraph" already exists
 CREATE EXTENSION hstore;
+CREATE EXTENSION IF NOT EXISTS hstore;
+NOTICE:  extension "hstore" already exists, skipping
 -- Basic Graph creation
 CREATE GRAPH new_cypher;
 NOTICE:  graph "new_cypher" has been created
