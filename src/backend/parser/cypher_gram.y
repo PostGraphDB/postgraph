@@ -24,6 +24,7 @@
 
 #include "postgraph.h"
 
+#include "catalog/pg_class.h"
 #include "nodes/makefuncs.h"
 #include "nodes/nodes.h"
 #include "nodes/parsenodes.h"
@@ -72,6 +73,8 @@
     List *list;
     struct WindowDef *windef;
     struct DefElem *defelt;
+    struct RangeVar *range;
+    struct TypeName *typnam;
 }
 
 %token <integer> INTEGER
@@ -102,7 +105,7 @@
                  PARTITION PRECEDING
                  RANGE REMOVE REPLACE RETURN ROLLUP ROW ROWS
                  SCHEMA SET SETS SKIP SOME STARTS
-                 TIME TIES THEN TIMESTAMP TRUE_P
+                 TABLE TIME TIES THEN TIMESTAMP TRUE_P
                  UNBOUNDED UNION UNWIND USE USING
                  VERSION_P
                  WHEN WHERE WINDOW WITH WITHIN WITHOUT
@@ -157,16 +160,18 @@
 %type <node> path anonymous_path
              path_node path_relationship path_relationship_body
              properties_opt
-%type <string> label_opt
+%type <string> label_opt type_function_name
 
 /* expression */
 %type <node> a_expr expr_opt expr_atom expr_literal map list in_expr
+             indirection_el
 
 %type <node> expr_case expr_case_when expr_case_default
 %type <list> expr_case_when_list
 
 %type <node> expr_func expr_func_norm expr_func_subexpr
 %type <list> expr_list expr_list_opt map_keyval_list_opt map_keyval_list
+             indirection
 
 %type <node> filter_clause
 %type <list> window_clause window_definition_list opt_partition_clause
@@ -176,16 +181,22 @@
 %type <string> all_op
 /* names */
 %type <string> property_key_name var_name var_name_opt label_name
-%type <string> symbolic_name schema_name temporal_cast
+%type <string> symbolic_name schema_name temporal_cast attr_name
 %type <keyword> reserved_keyword safe_keywords conflicted_keywords
-%type <list> func_name
+%type <list> func_name TableElementList OptTableElementList
 
 %type <string> Sconst 
-%type <string> ColId 
+%type <string> ColId  ColLabel
 %type <string> NonReservedWord_or_Sconst name
 %type <list> create_extension_opt_list
 %type <defelt> create_extension_opt_item
 
+%type <typnam>	Typename SimpleTypename GenericType 
+
+%type <range>	qualified_name 
+
+%type <node>	TableElement 
+%type <node>	columnDef 
 
 /*set operations*/
 %type <boolean> all_or_distinct
@@ -240,6 +251,7 @@ static Node *make_set_op(SetOperation op, bool all_or_distinct, List *larg, List
 
 // comparison
 static bool is_A_Expr_a_comparison_operation(A_Expr *a);
+
 %}
 %%
 
@@ -1001,7 +1013,271 @@ create:
 		
         	$$ = (Node *) n;
 		}
+    | CREATE /*OptTemp*/ TABLE qualified_name '(' OptTableElementList ')'
+			/*OptInherit OptPartitionSpec table_access_method_clause OptWith
+			OnCommitOption OptTableSpace*/
+				{
+					CreateStmt *n = makeNode(CreateStmt);
+					/*
+                    $4->relpersistence = $2;
+					n->relation = $4;
+					n->tableElts = $6;
+					n->inhRelations = $8;
+					n->partspec = $9;
+					n->ofTypename = NULL;
+					n->constraints = NIL;
+					n->accessMethod = $10;
+					n->options = $11;
+					n->oncommit = $12;
+					n->tablespacename = $13;
+					n->if_not_exists = false;
+                    */
+                    $3->relpersistence = RELPERSISTENCE_PERMANENT;
+					n->relation = $3;
+					n->tableElts = $5;
+					n->inhRelations = NULL;
+					n->partspec = NULL;
+					n->ofTypename = NULL;
+					n->constraints = NIL;
+					n->accessMethod = NULL;
+					n->options = NULL;
+					n->oncommit = ONCOMMIT_NOOP;
+					n->tablespacename = NULL;
+					n->if_not_exists = false;
+
+					$$ = (Node *)n;
+				}
     ;
+
+OptTableElementList:
+			TableElementList					{ $$ = $1; }
+			| /*EMPTY*/							{ $$ = NIL; }
+		;
+
+TableElementList:
+			TableElement
+				{
+					$$ = list_make1($1);
+				}
+			| TableElementList ',' TableElement
+				{
+					$$ = lappend($1, $3);
+				}
+		;
+
+TableElement:
+			columnDef							{ $$ = $1; }
+			/*| TableLikeClause					{ $$ = $1; }
+			| TableConstraint					{ $$ = $1; }*/
+		;
+
+
+
+columnDef:	ColId Typename //opt_column_compression create_generic_options ColQualList
+				{
+					ColumnDef *n = makeNode(ColumnDef);
+					n->colname = $1;
+					n->typeName = $2;
+                    n->compression = NULL;
+					n->inhcount = 0;
+					n->is_local = true;
+					n->is_not_null = false;
+					n->is_from_type = false;
+					n->storage = 0;
+					n->raw_default = NULL;
+					n->cooked_default = NULL;
+					n->collOid = InvalidOid;
+					n->fdwoptions = NULL;
+					n->location = @1;
+					/*n->compression = $3;
+					n->inhcount = 0;
+					n->is_local = true;
+					n->is_not_null = false;
+					n->is_from_type = false;
+					n->storage = 0;
+					n->raw_default = NULL;
+					n->cooked_default = NULL;
+					n->collOid = InvalidOid;
+					n->fdwoptions = $4;
+					SplitColQualList($5, &n->constraints, &n->collClause,
+									 yyscanner);
+					n->location = @1;*/
+					$$ = (Node *)n;
+				}
+		;
+
+/* Column label --- allowed labels in "AS" clauses.
+ * This presently includes *all* Postgres keywords.
+ */
+ColLabel:	IDENTIFIER									{ $$ = $1; }
+			/*| unreserved_keyword					{ $$ = pstrdup($1); }
+			| col_name_keyword						{ $$ = pstrdup($1); }
+			| type_func_name_keyword				{ $$ = pstrdup($1); }
+			| reserved_keyword						{ $$ = pstrdup($1); }
+		*/;
+
+indirection:
+			indirection_el							{ $$ = list_make1($1); }
+			| indirection indirection_el			{ $$ = lappend($1, $2); }
+		;
+
+indirection_el:
+			'.' attr_name
+				{
+					$$ = (Node *) makeString($2);
+				}
+			/*| '.' '*'
+				{
+					$$ = (Node *) makeNode(A_Star);
+				}
+			| '[' a_expr ']'
+				{
+					A_Indices *ai = makeNode(A_Indices);
+					ai->is_slice = false;
+					ai->lidx = NULL;
+					ai->uidx = $2;
+					$$ = (Node *) ai;
+				}
+			| '[' opt_slice_bound ':' opt_slice_bound ']'
+				{
+					A_Indices *ai = makeNode(A_Indices);
+					ai->is_slice = true;
+					ai->lidx = $2;
+					ai->uidx = $4;
+					$$ = (Node *) ai;
+				}*/
+		;
+
+/*
+ * The production for a qualified relation name has to exactly match the
+ * production for a qualified func_name, because in a FROM clause we cannot
+ * tell which we are parsing until we see what comes after it ('(' for a
+ * func_name, something else for a relation). Therefore we allow 'indirection'
+ * which may contain subscripts, and reject that case in the C code.
+ */
+qualified_name:
+			ColId
+				{
+					$$ = makeRangeVar(NULL, $1, @1);
+				}
+			| ColId indirection
+				{
+					//check_qualified_name($2, scanner);
+					$$ = makeRangeVar(NULL, NULL, @1);
+					switch (list_length($2))
+					{
+						case 1:
+							$$->catalogname = NULL;
+							$$->schemaname = $1;
+							$$->relname = strVal(linitial($2));
+							break;
+						case 2:
+							$$->catalogname = $1;
+							$$->schemaname = strVal(linitial($2));
+							$$->relname = strVal(lsecond($2));
+							break;
+						default:
+							ereport(ERROR,
+									(errcode(ERRCODE_SYNTAX_ERROR),
+									 errmsg("improper qualified name (too many dotted names): %s",
+											NameListToString(lcons(makeString($1), $2))) ));//,
+									 //parser_errposition(@1)));
+							break;
+					}
+				}
+		;
+
+/*****************************************************************************
+ *
+ *	Type syntax
+ *		SQL introduces a large amount of type-specific syntax.
+ *		Define individual clauses to handle these cases, and use
+ *		 the generic case to handle regular type-extensible Postgres syntax.
+ *		- thomas 1997-10-10
+ *
+ *****************************************************************************/
+
+Typename:	SimpleTypename //opt_array_bounds
+				{
+					$$ = $1;
+					$$->arrayBounds = NULL;//$2;
+				}
+			/*| SETOF SimpleTypename opt_array_bounds
+				{
+					$$ = $2;
+					$$->arrayBounds = $3;
+					$$->setof = true;
+				}
+			// SQL standard syntax, currently only one-dimensional
+			| SimpleTypename ARRAY '[' Iconst ']'
+				{
+					$$ = $1;
+					$$->arrayBounds = list_make1(makeInteger($4));
+				}
+			| SETOF SimpleTypename ARRAY '[' Iconst ']'
+				{
+					$$ = $2;
+					$$->arrayBounds = list_make1(makeInteger($5));
+					$$->setof = true;
+				}
+			| SimpleTypename ARRAY
+				{
+					$$ = $1;
+					$$->arrayBounds = list_make1(makeInteger(-1));
+				}
+			| SETOF SimpleTypename ARRAY
+				{
+					$$ = $2;
+					$$->arrayBounds = list_make1(makeInteger(-1));
+					$$->setof = true;
+				}*/
+		;
+SimpleTypename:
+			GenericType								{ $$ = $1; }
+			/*| Numeric								{ $$ = $1; }
+			| Bit									{ $$ = $1; }
+			| Character								{ $$ = $1; }
+			| ConstDatetime							{ $$ = $1; }
+			| ConstInterval opt_interval
+				{
+					$$ = $1;
+					$$->typmods = $2;
+				}
+			| ConstInterval '(' Iconst ')'
+				{
+					$$ = $1;
+					$$->typmods = list_make2(makeIntConst(INTERVAL_FULL_RANGE, -1),
+											 makeIntConst($3, @3));
+				}*/
+		;
+
+/*
+ * GenericType covers all type names that don't have special syntax mandated
+ * by the standard, including qualified names.  We also allow type modifiers.
+ * To avoid parsing conflicts against function invocations, the modifiers
+ * have to be shown as expr_list here, but parse analysis will only accept
+ * constants for them.
+ */
+GenericType:
+			type_function_name //opt_type_modifiers
+				{
+					$$ = makeTypeName($1);
+					$$->typmods = NULL;//$2;
+					$$->location = @1;
+				}
+			/*| type_function_name attrs opt_type_modifiers
+				{
+					$$ = makeTypeNameFromNameList(lcons(makeString($1), $2));
+					$$->typmods = $3;
+					$$->location = @1;
+				}*/
+		;
+/* Type/function identifier --- names that can be type or function names.
+ */
+type_function_name:	IDENTIFIER							{ $$ = $1; }
+			/*| unreserved_keyword					{ $$ = pstrdup($1); }
+			| type_func_name_keyword				{ $$ = pstrdup($1); }
+		*/;
 
 create_extension_opt_list:
 	create_extension_opt_list create_extension_opt_item
@@ -1041,7 +1317,7 @@ Sconst:		STRING									{ $$ = $1; };
  * is chosen in part to make keywords acceptable as names wherever possible.
  */
 
-
+attr_name:	ColLabel								{ $$ = $1; };
 name:		ColId									{ $$ = $1; };
 ColId:		IDENTIFIER									{ $$ = $1; }
 			/*| unreserved_keyword					{ $$ = pstrdup($1); }
@@ -2710,3 +2986,4 @@ static Node *make_set_op(SetOperation op, bool all_or_distinct, List *larg, List
     n->rarg = (List *) rarg;
     return (Node *) n;
 }
+

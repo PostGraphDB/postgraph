@@ -1394,7 +1394,7 @@ cypher_parse_analyze(RawStmt *parseTree, const char *sourceText,
     if (list_length(parseTree->stmt) == 1) {
       Node *n = linitial(parseTree->stmt);
 
-      if (IsA(n, CreateExtensionStmt)) {
+      if (IsA(n, CreateExtensionStmt) || IsA(n,CreateStmt)) {
 	        query = parse_analyze((makeRawStmt(n, 0)), sourceText, paramTypes, numParams,
 						  queryEnv);
 
