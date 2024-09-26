@@ -1167,7 +1167,10 @@ CypherCreateCommandTag(Node *parsetree)
                     if (IsA(n, CreateExtensionStmt)) {
 	                    tag = CMDTAG_CREATE_EXTENSION;
                         break;
-                    } 
+                    } else if (IsA(n, CreateStmt)) {
+	                    tag = CMDTAG_CREATE_TABLE;
+                        break;
+                    }
                 }
             }
 
