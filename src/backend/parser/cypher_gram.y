@@ -94,19 +94,19 @@
                  CALL CASE CASCADE COALESCE CONTAINS CREATE CUBE CURRENT CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
                  DATE DECADE DELETE DESC DESCENDING DETACH DISTINCT DROP
                  ELSE END_P ENDS EXCEPT EXCLUDE EXISTS EXTENSION EXTRACT
-                 GRAPH GROUP GROUPS GROUPING
+                 GLOBAL GRAPH GROUP GROUPS GROUPING
                  FALSE_P FILTER FIRST_P FOLLOWING FROM
                  HAVING
                  IF ILIKE IN INTERSECT INTERVAL IS
-                 LAST_P LIKE LIMIT LOCALTIME LOCALTIMESTAMP
+                 LAST_P LIKE LIMIT LOCAL LOCALTIME LOCALTIMESTAMP
                  MATCH MERGE 
                  NO NOT NULL_P NULLS_LA
                  OPTIONAL OTHERS OR ORDER OVER OVERLAPS
                  PARTITION PRECEDING
                  RANGE REMOVE REPLACE RETURN ROLLUP ROW ROWS
                  SCHEMA SET SETS SKIP SOME STARTS
-                 TABLE TIME TIES THEN TIMESTAMP TRUE_P
-                 UNBOUNDED UNION UNWIND USE USING
+                 TABLE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TRUE_P
+                 UNBOUNDED UNION UNLOGGED UNWIND USE USING
                  VERSION_P
                  WHEN WHERE WINDOW WITH WITHIN WITHOUT
                  XOR
@@ -190,6 +190,8 @@
 %type <string> NonReservedWord_or_Sconst name
 %type <list> create_extension_opt_list
 %type <defelt> create_extension_opt_item
+
+%type <integer>	 OptTemp
 
 %type <typnam>	Typename SimpleTypename GenericType 
 
@@ -1013,7 +1015,7 @@ create:
 		
         	$$ = (Node *) n;
 		}
-    | CREATE /*OptTemp*/ TABLE qualified_name '(' OptTableElementList ')'
+    | CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 			/*OptInherit OptPartitionSpec table_access_method_clause OptWith
 			OnCommitOption OptTableSpace*/
 				{
@@ -1032,9 +1034,9 @@ create:
 					n->tablespacename = $13;
 					n->if_not_exists = false;
                     */
-                    $3->relpersistence = RELPERSISTENCE_PERMANENT;
-					n->relation = $3;
-					n->tableElts = $5;
+                    $4->relpersistence = $2;
+					n->relation = $4;
+					n->tableElts = $6;
 					n->inhRelations = NULL;
 					n->partspec = NULL;
 					n->ofTypename = NULL;
@@ -1049,6 +1051,37 @@ create:
 				}
     ;
 
+/*
+ * Redundancy here is needed to avoid shift/reduce conflicts,
+ * since TEMP is not a reserved word.  See also OptTempTableName.
+ *
+ * NOTE: we accept both GLOBAL and LOCAL options.  They currently do nothing,
+ * but future versions might consider GLOBAL to request SQL-spec-compliant
+ * temp table behavior, so warn about that.  Since we have no modules the
+ * LOCAL keyword is really meaningless; furthermore, some other products
+ * implement LOCAL as meaning the same as our default temp table behavior,
+ * so we'll probably continue to treat LOCAL as a noise word.
+ */
+OptTemp:	TEMPORARY					{ $$ = RELPERSISTENCE_TEMP; }
+			| TEMP						{ $$ = RELPERSISTENCE_TEMP; }
+			| LOCAL TEMPORARY			{ $$ = RELPERSISTENCE_TEMP; }
+			| LOCAL TEMP				{ $$ = RELPERSISTENCE_TEMP; }
+			| GLOBAL TEMPORARY
+				{
+					ereport(WARNING,
+							(errmsg("GLOBAL is deprecated in temporary table creation")));
+					$$ = RELPERSISTENCE_TEMP;
+				}
+			| GLOBAL TEMP
+				{
+					ereport(WARNING,
+							(errmsg("GLOBAL is deprecated in temporary table creation")));
+					$$ = RELPERSISTENCE_TEMP;
+				}
+			| UNLOGGED					{ $$ = RELPERSISTENCE_UNLOGGED; }
+			| /*EMPTY*/					{ $$ = RELPERSISTENCE_PERMANENT; }
+		;
+        
 OptTableElementList:
 			TableElementList					{ $$ = $1; }
 			| /*EMPTY*/							{ $$ = NIL; }

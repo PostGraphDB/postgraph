@@ -53,6 +53,7 @@ MATCH (n) RETURN n;
 MATCH (n) RETURN *;
 
 CREATE TABLE tst (i text);
+CREATE TEMPORARY TABLE tst2 (i text);
 
 DROP GRAPH new_cypher CASCADE;
 DROP GRAPH new_cypher_2 CASCADE;

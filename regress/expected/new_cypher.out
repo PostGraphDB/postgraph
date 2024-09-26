@@ -99,6 +99,7 @@ MATCH (n) RETURN *;
 (2 rows)
 
 CREATE TABLE tst (i text);
+CREATE TEMPORARY TABLE tst2 (i text);
 DROP GRAPH new_cypher CASCADE;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table new_cypher._ag_label_vertex
