@@ -59,6 +59,7 @@
 %parse-param {ag_scanner_t scanner}
 %parse-param {cypher_yy_extra *extra}
 
+
 %union {
     /* types in cypher_yylex() */
     int integer;
@@ -70,6 +71,7 @@
     Node *node;
     List *list;
     struct WindowDef *windef;
+    struct DefElem *defelt;
 }
 
 %token <integer> INTEGER
@@ -99,9 +101,10 @@
                  OPTIONAL OTHERS OR ORDER OVER OVERLAPS
                  PARTITION PRECEDING
                  RANGE REMOVE REPLACE RETURN ROLLUP ROW ROWS
-                 SET SETS SKIP SOME STARTS
+                 SCHEMA SET SETS SKIP SOME STARTS
                  TIME TIES THEN TIMESTAMP TRUE_P
                  UNBOUNDED UNION UNWIND USE USING
+                 VERSION_P
                  WHEN WHERE WINDOW WITH WITHIN WITHOUT
                  XOR
                  YIELD
@@ -176,6 +179,13 @@
 %type <string> symbolic_name schema_name temporal_cast
 %type <keyword> reserved_keyword safe_keywords conflicted_keywords
 %type <list> func_name
+
+%type <string> Sconst 
+%type <string> ColId 
+%type <string> NonReservedWord_or_Sconst name
+%type <list> create_extension_opt_list
+%type <defelt> create_extension_opt_item
+
 
 /*set operations*/
 %type <boolean> all_or_distinct
@@ -971,28 +981,77 @@ create:
 
             $$ = (Node *)n;
         } 
-    | CREATE EXTENSION IDENTIFIER
+    | CREATE EXTENSION IDENTIFIER create_extension_opt_list
         {
             CreateExtensionStmt *n = makeNode(CreateExtensionStmt);
             
             n->extname = $3;
             n->if_not_exists = false;
-            n->options = NULL;
+            n->options = $4;
             
             $$ = (Node *) n;
         }
-	| CREATE EXTENSION IF NOT EXISTS IDENTIFIER
+	| CREATE EXTENSION IF NOT EXISTS IDENTIFIER  create_extension_opt_list
 		{
 			CreateExtensionStmt *n = makeNode(CreateExtensionStmt);
 		
         	n->extname = $6;
 			n->if_not_exists = true;
-			n->options = NULL;
+			n->options = $7;
 		
         	$$ = (Node *) n;
 		}
     ;
 
+create_extension_opt_list:
+	create_extension_opt_list create_extension_opt_item
+		{ $$ = lappend($1, $2); }
+	| /* EMPTY */
+		{ $$ = NIL; }
+	;
+
+create_extension_opt_item:
+	SCHEMA name
+		{
+			$$ = makeDefElem("schema", (Node *)makeString($2), @1);
+		}
+	| VERSION_P NonReservedWord_or_Sconst
+		{
+			$$ = makeDefElem("new_version", (Node *)makeString($2), @1);
+		}
+	| CASCADE
+		{
+			$$ = makeDefElem("cascade", (Node *)makeInteger(true), @1);
+		}
+	;
+
+/*
+ * Constants
+ */
+Sconst:		STRING									{ $$ = $1; };
+
+/*
+ * Name classification hierarchy.
+ *
+ * IDENT is the lexeme returned by the lexer for identifiers that match
+ * no known keyword.  In most cases, we can accept certain keywords as
+ * names, not only IDENTs.	We prefer to accept as many such keywords
+ * as possible to minimize the impact of "reserved words" on programmers.
+ * So, we divide names into several possible classes.  The classification
+ * is chosen in part to make keywords acceptable as names wherever possible.
+ */
+
+
+name:		ColId									{ $$ = $1; };
+ColId:		IDENTIFIER									{ $$ = $1; }
+			/*| unreserved_keyword					{ $$ = pstrdup($1); }
+			| col_name_keyword						{ $$ = pstrdup($1); }
+		*/;
+
+NonReservedWord_or_Sconst:
+			/*NonReservedWord							{ $$ = $1; } //TODO
+			| */Sconst								{ $$ = $1; }
+		;
 
 opt_or_replace:
 			OR REPLACE								{ $$ = true; }

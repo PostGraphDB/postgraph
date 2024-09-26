@@ -19,8 +19,10 @@
 LOAD 'postgraph';
 
 CREATE EXTENSION postgraph;
-CREATE EXTENSION hstore;
+CREATE EXTENSION hstore CASCADE SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS hstore;
+CREATE EXTENSION IF NOT EXISTS pg_trgm VERSION '1.3';
+
 -- Basic Graph creation
 CREATE GRAPH new_cypher;
 
