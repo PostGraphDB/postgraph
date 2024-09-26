@@ -97,7 +97,7 @@
                  GLOBAL GRAPH GROUP GROUPS GROUPING
                  FALSE_P FILTER FIRST_P FOLLOWING FROM
                  HAVING
-                 IF ILIKE IN INTERSECT INTERVAL IS
+                 IF ILIKE IN INHERITS INTERSECT INTERVAL IS
                  LAST_P LIKE LIMIT LOCAL LOCALTIME LOCALTIMESTAMP
                  MATCH MERGE 
                  NO NOT NULL_P NULLS_LA
@@ -183,7 +183,9 @@
 %type <string> property_key_name var_name var_name_opt label_name
 %type <string> symbolic_name schema_name temporal_cast attr_name
 %type <keyword> reserved_keyword safe_keywords conflicted_keywords
-%type <list> func_name TableElementList OptTableElementList
+%type <list> func_name
+             TableElementList OptTableElementList OptInherit
+             qualified_name_list
 
 %type <string> Sconst 
 %type <string> ColId  ColLabel
@@ -1016,7 +1018,7 @@ create:
         	$$ = (Node *) n;
 		}
     | CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
-			/*OptInherit OptPartitionSpec table_access_method_clause OptWith
+			OptInherit /*OptPartitionSpec table_access_method_clause OptWith
 			OnCommitOption OptTableSpace*/
 				{
 					CreateStmt *n = makeNode(CreateStmt);
@@ -1037,7 +1039,7 @@ create:
                     $4->relpersistence = $2;
 					n->relation = $4;
 					n->tableElts = $6;
-					n->inhRelations = NULL;
+					n->inhRelations = $8;
 					n->partspec = NULL;
 					n->ofTypename = NULL;
 					n->constraints = NIL;
@@ -1050,6 +1052,11 @@ create:
 					$$ = (Node *)n;
 				}
     ;
+
+
+OptInherit: INHERITS '(' qualified_name_list ')'	{ $$ = $3; }
+			| /*EMPTY*/								{ $$ = NIL; }
+		;
 
 /*
  * Redundancy here is needed to avoid shift/reduce conflicts,
@@ -1179,6 +1186,16 @@ indirection_el:
 					ai->uidx = $4;
 					$$ = (Node *) ai;
 				}*/
+		;
+
+/*****************************************************************************
+ *
+ *	Names and constants
+ *
+ *****************************************************************************/
+qualified_name_list:
+			qualified_name							{ $$ = list_make1($1); }
+			| qualified_name_list ',' qualified_name { $$ = lappend($1, $3); }
 		;
 
 /*
