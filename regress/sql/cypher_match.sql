@@ -264,7 +264,7 @@ OPTIONAL MATCH (n:opt_match_v)-[r]->(p), (m:opt_match_v)-[s]->(q) WHERE id(n) <>
 MATCH (n:opt_match_v), (m:opt_match_v)
 WHERE id(n) <> id(m)
 OPTIONAL MATCH (n)-[r]->(p), (m)-[s]->(q)
-RETURN n.name AS n, type(r)
+RETURN n.name AS n, type(r),
            m.name AS m, type(s)
 ORDER BY n, p, m, q;
 

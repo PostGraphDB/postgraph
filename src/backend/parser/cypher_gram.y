@@ -117,10 +117,11 @@
 
 /* query */
 %type <node> stmt
-%type <list> single_query query_part_init query_part_last cypher_stmt
-             reading_clause_list updating_clause_list_0 updating_clause_list_1
+%type <list> single_query  cypher_stmt
              use drop
-%type <node> reading_clause updating_clause
+
+%type <node> util_stmt
+%type <node> clause
 
 /* RETURN and WITH clause */
 %type <node> empty_grouping_set cube_clause rollup_clause group_item having_opt return return_item sort_item skip_opt limit_opt with
@@ -299,6 +300,10 @@ stmt:
 
             extra->result = $1;
         }
+    | util_stmt semicolon_opt
+        {
+            extra->result = list_make1($1);
+        } 
     ;
 
 cypher_stmt:
@@ -324,6 +329,73 @@ cypher_stmt:
         }
     ;
 
+util_stmt:
+    CREATE GRAPH IDENTIFIER
+        {
+
+            cypher_create_graph *n;
+            n = make_ag_node(cypher_create_graph);
+            n->graph_name = $3;
+
+            $$ = (Node *)n;
+        } 
+    | CREATE EXTENSION IDENTIFIER create_extension_opt_list
+        {
+            CreateExtensionStmt *n = makeNode(CreateExtensionStmt);
+            
+            n->extname = $3;
+            n->if_not_exists = false;
+            n->options = $4;
+            
+            $$ = (Node *) n;
+        }
+	| CREATE EXTENSION IF NOT EXISTS IDENTIFIER  create_extension_opt_list
+		{
+			CreateExtensionStmt *n = makeNode(CreateExtensionStmt);
+		
+        	n->extname = $6;
+			n->if_not_exists = true;
+			n->options = $7;
+		
+        	$$ = (Node *) n;
+		}
+    | CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
+			OptInherit OptPartitionSpec table_access_method_clause OptWith
+			//OnCommitOption  OptTableSpace
+				{
+					CreateStmt *n = makeNode(CreateStmt);
+					/*
+                    $4->relpersistence = $2;
+					n->relation = $4;
+					n->tableElts = $6;
+					n->inhRelations = $8;
+					n->partspec = $9;
+					n->ofTypename = NULL;
+					n->constraints = NIL;
+					n->accessMethod = $10;
+					n->options = $11;
+					n->oncommit = $12;
+					n->tablespacename = $13;
+					n->if_not_exists = false;
+                    */
+                    $4->relpersistence = $2;
+					n->relation = $4;
+					n->tableElts = $6;
+					n->inhRelations = $8;
+					n->partspec = $9;
+					n->ofTypename = NULL;
+					n->constraints = NIL;
+					n->accessMethod = $10;
+					n->options = $11;
+					n->oncommit = ONCOMMIT_NOOP;
+					n->tablespacename = NULL;
+					n->if_not_exists = false;
+
+					$$ = (Node *)n;
+				} 
+                | use { $$ = linitial($1); }
+                | drop { $$ = linitial($1); }
+                ;
 call_stmt:
     CALL expr_func_norm AS var_name where_opt
         {
@@ -451,18 +523,25 @@ all_or_distinct:
  * reading_clause* ( updating_clause+ | updating_clause* return )
  */
 single_query:
-    query_part_init query_part_last
-        {
-            $$ = list_concat($1, $2);
-        }
-    | use
-        {
-            $$ = $1;
-        }
-    | drop
-        {
-            $$ = $1;
-        }
+    clause {
+        $$ = list_make1($1);
+    }
+    | single_query clause {
+        $$ = lappend($1, $2);
+    }
+    ;
+    
+clause:
+    create
+    | set
+    | remove
+    | match
+    | with
+    | delete
+    | merge
+    | call_stmt
+    | return
+    | unwind
     ;
 
 use:
@@ -484,72 +563,6 @@ drop:
 
         $$ = list_make1(n);
     }
-
-query_part_init:
-    /* empty */
-        {
-            $$ = NIL;
-        }
-    | query_part_init reading_clause_list updating_clause_list_0 with
-        {
-            $$ = lappend(list_concat(list_concat($1, $2), $3), $4);
-        }
-    ;
-
-query_part_last:
-    reading_clause_list updating_clause_list_1
-        {
-            $$ = list_concat($1, $2);
-        }
-    | reading_clause_list updating_clause_list_0 return
-        {
-            $$ = lappend(list_concat($1, $2), $3);
-        }
-    ;
-
-reading_clause_list:
-    /* empty */
-        {
-            $$ = NIL;
-        }
-    | reading_clause_list reading_clause
-        {
-            $$ = lappend($1, $2);
-        }
-    ;
-
-reading_clause:
-    match
-    | unwind
-    ;
-
-updating_clause_list_0:
-    /* empty */
-        {
-            $$ = NIL;
-        }
-    | updating_clause_list_1
-    ;
-
-updating_clause_list_1:
-    updating_clause
-        {
-            $$ = list_make1($1);
-        }
-    | updating_clause_list_1 updating_clause
-        {
-            $$ = lappend($1, $2);
-        }
-    ;
-
-updating_clause:
-    create
-    | set
-    | remove
-    | delete
-    | merge
-    | call_stmt
-    ;
 
 cypher_varlen_opt:
     '*' cypher_range_opt
@@ -1003,69 +1016,7 @@ create:
 
             $$ = (Node *)n;
         }
-    | CREATE GRAPH IDENTIFIER
-        {
-
-            cypher_create_graph *n;
-            n = make_ag_node(cypher_create_graph);
-            n->graph_name = $3;
-
-            $$ = (Node *)n;
-        } 
-    | CREATE EXTENSION IDENTIFIER create_extension_opt_list
-        {
-            CreateExtensionStmt *n = makeNode(CreateExtensionStmt);
-            
-            n->extname = $3;
-            n->if_not_exists = false;
-            n->options = $4;
-            
-            $$ = (Node *) n;
-        }
-	| CREATE EXTENSION IF NOT EXISTS IDENTIFIER  create_extension_opt_list
-		{
-			CreateExtensionStmt *n = makeNode(CreateExtensionStmt);
-		
-        	n->extname = $6;
-			n->if_not_exists = true;
-			n->options = $7;
-		
-        	$$ = (Node *) n;
-		}
-    | CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
-			OptInherit OptPartitionSpec table_access_method_clause OptWith
-			//OnCommitOption  OptTableSpace
-				{
-					CreateStmt *n = makeNode(CreateStmt);
-					/*
-                    $4->relpersistence = $2;
-					n->relation = $4;
-					n->tableElts = $6;
-					n->inhRelations = $8;
-					n->partspec = $9;
-					n->ofTypename = NULL;
-					n->constraints = NIL;
-					n->accessMethod = $10;
-					n->options = $11;
-					n->oncommit = $12;
-					n->tablespacename = $13;
-					n->if_not_exists = false;
-                    */
-                    $4->relpersistence = $2;
-					n->relation = $4;
-					n->tableElts = $6;
-					n->inhRelations = $8;
-					n->partspec = $9;
-					n->ofTypename = NULL;
-					n->constraints = NIL;
-					n->accessMethod = $10;
-					n->options = $11;
-					n->oncommit = ONCOMMIT_NOOP;
-					n->tablespacename = NULL;
-					n->if_not_exists = false;
-
-					$$ = (Node *)n;
-				}
+    
     ;
 
 
