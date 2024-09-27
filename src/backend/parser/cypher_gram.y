@@ -1,6 +1,6 @@
 %{
 /*
- * Copyright (C) 2023 PostGraphDB
+ * Copyright (C) 2023-2024 PostGraphDB
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -14,9 +14,6 @@
  *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
- * For PostgreSQL Database Management System:
- * (formerly known as Postgres, then as Postgres95)
  *
  * Portions Copyright (c) 2020-2023, Apache Software Foundation
  * Portions Copyright (c) 2019-2020, Bitnine Global
@@ -32,6 +29,7 @@
 #include "nodes/primnodes.h"
 #include "nodes/value.h"
 #include "parser/parser.h"
+
 
 #include "nodes/ag_nodes.h"
 #include "nodes/cypher_nodes.h"
@@ -75,6 +73,10 @@
     struct DefElem *defelt;
     struct RangeVar *range;
     struct TypeName *typnam;
+	struct PartitionElem *partelem;
+	struct PartitionSpec *partspec;
+	struct PartitionBoundSpec *partboundspec;
+    struct Value *value;
 }
 
 %token <integer> INTEGER
@@ -91,7 +93,7 @@
 /* keywords in alphabetical order */
 %token <keyword> ALL AND ANY AS ASC ASCENDING
                  BETWEEN BY
-                 CALL CASE CASCADE COALESCE CONTAINS CREATE CUBE CURRENT CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
+                 CALL CASE CASCADE COALESCE COLLATE CONTAINS CREATE CUBE CURRENT CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
                  DATE DECADE DELETE DESC DESCENDING DETACH DISTINCT DROP
                  ELSE END_P ENDS EXCEPT EXCLUDE EXISTS EXTENSION EXTRACT
                  GLOBAL GRAPH GROUP GROUPS GROUPING
@@ -181,12 +183,17 @@
 %type <string> all_op
 /* names */
 %type <string> property_key_name var_name var_name_opt label_name
-%type <string> symbolic_name schema_name temporal_cast attr_name
+%type <string> symbolic_name schema_name temporal_cast attr_name table_access_method_clause
 %type <keyword> reserved_keyword safe_keywords conflicted_keywords
 %type <list> func_name
              TableElementList OptTableElementList OptInherit
+             reloptions 
+             OptWith
              qualified_name_list
-
+             reloption_list
+             opt_collate
+             any_name attrs opt_class
+%type <defelt>	def_elem reloption_elem
 %type <string> Sconst 
 %type <string> ColId  ColLabel
 %type <string> NonReservedWord_or_Sconst name
@@ -195,7 +202,7 @@
 
 %type <integer>	 OptTemp
 
-%type <typnam>	Typename SimpleTypename GenericType 
+%type <typnam>	Typename SimpleTypename GenericType func_type
 
 %type <range>	qualified_name 
 
@@ -204,6 +211,13 @@
 
 /*set operations*/
 %type <boolean> all_or_distinct
+
+%type <integer> SignedIconst
+%type <node>	def_arg 
+%type <partspec> PartitionSpec OptPartitionSpec
+%type <partelem> part_elem
+%type <list> part_params
+%type <value>	NumericOnly
 
 /* precedence: lowest to highest */
 %left UNION INTERSECT EXCEPT
@@ -255,7 +269,8 @@ static Node *make_set_op(SetOperation op, bool all_or_distinct, List *larg, List
 
 // comparison
 static bool is_A_Expr_a_comparison_operation(A_Expr *a);
-
+static void
+doNegateFloat(Value *v);
 %}
 %%
 
@@ -1018,8 +1033,8 @@ create:
         	$$ = (Node *) n;
 		}
     | CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
-			OptInherit /*OptPartitionSpec table_access_method_clause OptWith
-			OnCommitOption OptTableSpace*/
+			OptInherit OptPartitionSpec table_access_method_clause OptWith
+			//OnCommitOption  OptTableSpace
 				{
 					CreateStmt *n = makeNode(CreateStmt);
 					/*
@@ -1040,11 +1055,11 @@ create:
 					n->relation = $4;
 					n->tableElts = $6;
 					n->inhRelations = $8;
-					n->partspec = NULL;
+					n->partspec = $9;
 					n->ofTypename = NULL;
 					n->constraints = NIL;
-					n->accessMethod = NULL;
-					n->options = NULL;
+					n->accessMethod = $10;
+					n->options = $11;
 					n->oncommit = ONCOMMIT_NOOP;
 					n->tablespacename = NULL;
 					n->if_not_exists = false;
@@ -1054,8 +1069,181 @@ create:
     ;
 
 
+/* WITHOUT OIDS is legacy only */
+OptWith:
+			WITH reloptions				{ $$ = $2; }
+			/*| WITHOUT OIDS				{ $$ = NIL; }*/
+			| /*EMPTY*/					{ $$ = NIL; }
+		;
+reloptions:
+			'(' reloption_list ')'					{ $$ = $2; }
+		;
+reloption_list:
+			reloption_elem							{ $$ = list_make1($1); }
+			| reloption_list ',' reloption_elem		{ $$ = lappend($1, $3); }
+		;
+
+/* This should match def_elem and also allow qualified names */
+reloption_elem:
+			ColLabel '=' def_arg
+				{
+					$$ = makeDefElem($1, (Node *) $3, @1);
+				}
+			| ColLabel
+				{
+					$$ = makeDefElem($1, NULL, @1);
+				}
+			| ColLabel '.' ColLabel '=' def_arg
+				{
+					$$ = makeDefElemExtended($1, $3, (Node *) $5,
+											 DEFELEM_UNSPEC, @1);
+				}
+			| ColLabel '.' ColLabel
+				{
+					$$ = makeDefElemExtended($1, $3, NULL, DEFELEM_UNSPEC, @1);
+				}
+		;  
+
+NumericOnly:
+			DECIMAL								{ $$ = makeFloat($1); }
+			| '+' DECIMAL						{ $$ = makeFloat($2); }
+			| '-' DECIMAL
+				{
+					$$ = makeFloat($2);
+					doNegateFloat($$);
+				}
+			| SignedIconst						{ $$ = makeInteger($1); }
+		;
+ SignedIconst: Iconst								{ $$ = $1; }
+			| '+' Iconst							{ $$ = + $2; }
+			| '-' Iconst							{ $$ = - $2; }
+		;
+Iconst:		INTEGER									{ $$ = $1; };
+/* Note: any simple identifier will be returned as a type name! */
+def_arg:	func_type						{ $$ = (Node *)$1; }
+			//| reserved_keyword				{ $$ = (Node *)makeString(pstrdup($1)); }
+			//| qual_all_Op					{ $$ = (Node *)$1; }
+			| NumericOnly					{ $$ = (Node *)$1; }
+			| Sconst						{ $$ = (Node *)makeString($1); }
+			//| NONE							{ $$ = (Node *)makeString(pstrdup($1)); }
+		;
+
 OptInherit: INHERITS '(' qualified_name_list ')'	{ $$ = $3; }
 			| /*EMPTY*/								{ $$ = NIL; }
+		;
+        
+
+/* Optional partition key specification */
+OptPartitionSpec: PartitionSpec	{ $$ = $1; }
+			| /*EMPTY*/			{ $$ = NULL; }
+		;
+
+PartitionSpec: PARTITION BY ColId '(' part_params ')'
+				{
+					PartitionSpec *n = makeNode(PartitionSpec);
+
+					n->strategy = $3;
+					n->partParams = $5;
+					n->location = @1;
+
+					$$ = n;
+				}
+		;
+
+part_params:	part_elem						{ $$ = list_make1($1); }
+			| part_params ',' part_elem			{ $$ = lappend($1, $3); }
+		;
+
+ opt_class:	any_name								{ $$ = $1; }
+			| /*EMPTY*/								{ $$ = NIL; }
+		;
+        
+part_elem: ColId opt_collate opt_class
+				{
+					PartitionElem *n = makeNode(PartitionElem);
+
+					n->name = $1;
+					n->expr = NULL;
+					n->collation = $2;
+					n->opclass = $3;
+					n->location = @1;
+
+					$$ = n;
+				}
+			/*| func_expr_windowless opt_collate opt_class
+				{
+					PartitionElem *n = makeNode(PartitionElem);
+
+					n->name = NULL;
+					n->expr = $1;
+					n->collation = $2;
+					n->opclass = $3;
+					n->location = @1;
+					$$ = n;
+				}
+			| '(' a_expr ')' opt_collate opt_class
+				{
+					PartitionElem *n = makeNode(PartitionElem);
+
+					n->name = NULL;
+					n->expr = $2;
+					n->collation = $4;
+					n->opclass = $5;
+					n->location = @1;
+					$$ = n;
+				}*/
+		;       
+
+
+/*
+ * We would like to make the %TYPE productions here be ColId attrs etc,
+ * but that causes reduce/reduce conflicts.  type_function_name
+ * is next best choice.
+ */
+func_type:	Typename								{ $$ = $1; }
+			/*| type_function_name attrs '%' TYPE_P
+				{
+					$$ = makeTypeNameFromNameList(lcons(makeString($1), $2));
+					$$->pct_type = true;
+					$$->location = @1;
+				}
+			| SETOF type_function_name attrs '%' TYPE_P
+				{
+					$$ = makeTypeNameFromNameList(lcons(makeString($2), $3));
+					$$->pct_type = true;
+					$$->setof = true;
+					$$->location = @2;
+				}*/
+		;
+
+def_elem:	ColLabel '=' def_arg
+				{
+					$$ = makeDefElem($1, (Node *) $3, @1);
+				}
+			| ColLabel
+				{
+					$$ = makeDefElem($1, NULL, @1);
+				}
+		;
+
+table_access_method_clause:
+			USING name							{ $$ = $2; }
+			| /*EMPTY*/							{ $$ = NULL; }
+		;
+
+any_name:	ColId						{ $$ = list_make1(makeString($1)); }
+			| ColId attrs				{ $$ = lcons(makeString($1), $2); }
+		;
+
+opt_collate: COLLATE any_name						{ $$ = $2; }
+			| /*EMPTY*/								{ $$ = NIL; }
+		;
+
+
+attrs:		'.' attr_name
+					{ $$ = list_make1(makeString($2)); }
+			| attrs '.' attr_name
+					{ $$ = lappend($1, makeString($3)); }
 		;
 
 /*
@@ -2799,7 +2987,7 @@ conflicted_keywords:
     | FALSE_P { $$ = pnstrdup($1, 7); }
     | NULL_P  { $$ = pnstrdup($1, 6); }
     | TRUE_P  { $$ = pnstrdup($1, 6); }
-    | WITH       { $$ = pnstrdup($1, 4); }
+  //  | WITH       { $$ = pnstrdup($1, 4); }
     ;
 
 %%
@@ -3037,3 +3225,16 @@ static Node *make_set_op(SetOperation op, bool all_or_distinct, List *larg, List
     return (Node *) n;
 }
 
+static void
+doNegateFloat(Value *v)
+{
+	char   *oldval = v->val.str;
+
+	Assert(IsA(v, Float));
+	if (*oldval == '+')
+		oldval++;
+	if (*oldval == '-')
+		v->val.str = oldval+1;	/* just strip the '-' */
+	else
+		v->val.str = psprintf("-%s", oldval);
+}
