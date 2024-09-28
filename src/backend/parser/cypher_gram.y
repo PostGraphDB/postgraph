@@ -157,7 +157,7 @@ static Node *makeNotExpr(Node *expr, int location);
                  LAST_P LIKE LIMIT LOCAL LOCALTIME LOCALTIMESTAMP
                  MATCH MERGE 
                  NO NOT NULL_P NULLS_LA
-                 OPTIONAL OTHERS OR ORDER OVER OVERLAPS
+                 ONLY OPTIONAL OTHERS OR ORDER OVER OVERLAPS
                  PARTITION PRECEDING
                  RANGE REMOVE REPLACE RETURN ROLLUP ROW ROWS
                  SCHEMA SELECT SET SETS SKIP SOME STARTS
@@ -394,8 +394,8 @@ stmt:
     | DeleteStmt semicolon_opt          { extra->result = list_make1($1); }
     | DropGraphStmt semicolon_opt       { extra->result = list_make1($1); }
     | InsertStmt semicolon_opt          { extra->result = list_make1($1); }
-    | UseGraphStmt semicolon_opt        { extra->result = list_make1($1); }
     | SelectStmt semicolon_opt          { extra->result = list_make1($1); }
+    | UseGraphStmt semicolon_opt        { extra->result = list_make1($1); }
     | UpdateStmt semicolon_opt          { extra->result = list_make1($1); }
 
     ;
@@ -856,7 +856,7 @@ relation_expr:
 					$$->inh = true;
 					$$->alias = NULL;
 				}
-		/*	| qualified_name '*'
+			| qualified_name '*'
 				{
 					// inheritance query, explicitly
 					$$ = $1;
@@ -876,7 +876,7 @@ relation_expr:
 					$$ = $3;
 					$$->inh = false;
 					$$->alias = NULL;
-				}*/
+				}
 		;
 
 

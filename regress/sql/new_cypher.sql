@@ -134,5 +134,7 @@ SELECT a.i FROM tst a;
 DELETE FROM tst;
 SELECT a.i FROM tst a;
 
+SELECT a.i FROM ONLY tst a;
+
 DROP GRAPH new_cypher CASCADE;
 DROP GRAPH new_cypher_2 CASCADE;
