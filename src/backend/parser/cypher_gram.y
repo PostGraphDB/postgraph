@@ -88,6 +88,13 @@ static void insertSelectOptions(SelectStmt *stmt,
 								SelectLimit *limitClause,
 								WithClause *withClause,
 								ag_scanner_t yyscanner);
+
+static Node *makeStringConst(char *str, int location);
+static Node *makeIntConst(int val, int location);
+static Node *makeFloatConst(char *str, int location);
+static Node *makeBoolAConst(bool state, int location);
+static Node *makeNullAConst(int location);
+static Node *makeTypeCast(Node *arg, TypeName *typename, int location);
 %}
 
 %locations
@@ -121,6 +128,7 @@ static void insertSelectOptions(SelectStmt *stmt,
     struct Alias *alias;
     struct GroupClause  *groupclause;
     struct SortBy *sortby;
+    struct InsertStmt *istmt;
 }
 
 %token <integer> INTEGER
@@ -142,7 +150,7 @@ static void insertSelectOptions(SelectStmt *stmt,
                  GLOBAL GRAPH GROUP GROUPS GROUPING
                  FALSE_P FILTER FIRST_P FOLLOWING FROM
                  HAVING
-                 IF ILIKE IN INHERITS INTERSECT INTERVAL IS
+                 IF ILIKE IN INHERITS INTERSECT INSERT INTERVAL INTO IS
                  LAST_P LIKE LIMIT LOCAL LOCALTIME LOCALTIMESTAMP
                  MATCH MERGE 
                  NO NOT NULL_P NULLS_LA
@@ -165,6 +173,7 @@ static void insertSelectOptions(SelectStmt *stmt,
 
 %type <node> CreateExtensionStmt CreateGraphStmt CreateTableStmt
              DropGraphStmt
+             InsertStmt
              UseGraphStmt
              SelectStmt
 
@@ -172,7 +181,7 @@ static void insertSelectOptions(SelectStmt *stmt,
              simple_select
 
 %type <node> where_clause
-             a_expr b_expr c_expr indirection_el
+             a_expr b_expr c_expr AexprConst indirection_el
              columnref having_clause
 
 %type <integer> set_quantifier
@@ -273,8 +282,8 @@ static void insertSelectOptions(SelectStmt *stmt,
 
 %type <typnam>	Typename SimpleTypename GenericType func_type
 
-%type <range>	qualified_name 
-
+%type <range>	qualified_name insert_target
+%type <istmt>	insert_rest
 %type <node>	TableElement 
 %type <node>	columnDef 
 
@@ -372,6 +381,7 @@ stmt:
     | CreateExtensionStmt semicolon_opt { extra->result = list_make1($1); }
     | CreateTableStmt semicolon_opt     { extra->result = list_make1($1); }
     | DropGraphStmt semicolon_opt       { extra->result = list_make1($1); }
+    | InsertStmt semicolon_opt          { extra->result = list_make1($1); }
     | UseGraphStmt semicolon_opt        { extra->result = list_make1($1); }
     | SelectStmt semicolon_opt          { extra->result = list_make1($1); }
     ;
@@ -398,6 +408,7 @@ cypher_stmt:
             $$ = list_make1(make_set_op(SETOP_EXCEPT, $3, $1, $4));
         }
     ;
+
 /*****************************************************************************
  *
  *		QUERY:
@@ -938,6 +949,90 @@ sortby:		a_expr USING all_op opt_nulls_order
 					$$->location = -1;		/* no operator */
 				}
 		;
+
+
+/*****************************************************************************
+ *
+ *		QUERY:
+ *				INSERT STATEMENTS
+ *
+ *****************************************************************************/
+
+InsertStmt:
+/*			opt_with_clause INSERT INTO insert_target insert_rest
+			opt_on_conflict returning_clause
+				{
+					$5->relation = $4;
+					$5->onConflictClause = $6;
+					$5->returningList = $7;
+					$5->withClause = $1;
+					$$ = (Node *) $5;
+				}
+*/
+	INSERT INTO insert_target insert_rest
+			//opt_on_conflict returning_clause
+				{
+					$4->relation = $3;
+					$4->onConflictClause = NULL;
+					$4->returningList = NULL;
+					$4->withClause = NULL;
+
+					$$ = (Node *) $4;
+				}
+		;
+
+/*
+ * Can't easily make AS optional here, because VALUES in insert_rest would
+ * have a shift/reduce conflict with VALUES as an optional alias.  We could
+ * easily allow unreserved_keywords as optional aliases, but that'd be an odd
+ * divergence from other places.  So just require AS for now.
+ */
+insert_target:
+			qualified_name
+				{
+					$$ = $1;
+				}
+			| qualified_name AS ColId
+				{
+					$1->alias = makeAlias($3, NIL);
+					$$ = $1;
+				}
+		;
+
+insert_rest:
+			SelectStmt
+				{
+					$$ = makeNode(InsertStmt);
+					$$->cols = NIL;
+					$$->selectStmt = $1;
+				}/*
+			| OVERRIDING override_kind VALUE_P SelectStmt
+				{
+					$$ = makeNode(InsertStmt);
+					$$->cols = NIL;
+					$$->override = $2;
+					$$->selectStmt = $4;
+				}
+			| '(' insert_column_list ')' SelectStmt
+				{
+					$$ = makeNode(InsertStmt);
+					$$->cols = $2;
+					$$->selectStmt = $4;
+				}
+			| '(' insert_column_list ')' OVERRIDING override_kind VALUE_P SelectStmt
+				{
+					$$ = makeNode(InsertStmt);
+					$$->cols = $2;
+					$$->override = $5;
+					$$->selectStmt = $7;
+				}
+			| DEFAULT VALUES
+				{
+					$$ = makeNode(InsertStmt);
+					$$->cols = NIL;
+					$$->selectStmt = NULL;
+				}*/
+		;        
 
 CreateGraphStmt:
     CREATE GRAPH IDENTIFIER
@@ -2521,8 +2616,8 @@ b_expr:		c_expr
  * ambiguity to the b_expr syntax.
  */
 c_expr:		columnref								{ $$ = $1; }
-			/*| AexprConst							{ $$ = $1; }
-			| PARAM opt_indirection
+			| AexprConst							{ $$ = $1; }
+			/*| PARAM opt_indirection
 				{
 					ParamRef *p = makeNode(ParamRef);
 					p->number = $1;
@@ -2636,6 +2731,94 @@ c_expr:		columnref								{ $$ = $1; }
 				  $$ = (Node *)g;
 			  }*/
 		;
+
+
+/*
+ * Constants
+ */
+AexprConst: Iconst
+				{
+					$$ = makeIntConst($1, @1);
+				}
+			| DECIMAL
+				{
+					$$ = makeFloatConst($1, @1);
+				}
+			| Sconst
+				{
+					$$ = makeStringConst($1, @1);
+				}
+			/*| BCONST
+				{
+					$$ = makeBitStringConst($1, @1);
+				}
+			| XCONST
+				{
+
+					$$ = makeBitStringConst($1, @1);
+				}
+			| func_name Sconst
+				{
+					TypeName *t = makeTypeNameFromNameList($1);
+					t->location = @1;
+					$$ = makeStringConstCast($2, @2, t);
+				}
+			| func_name '(' func_arg_list opt_sort_clause ')' Sconst
+				{
+					TypeName *t = makeTypeNameFromNameList($1);
+					ListCell *lc;
+
+					foreach(lc, $3)
+					{
+						NamedArgExpr *arg = (NamedArgExpr *) lfirst(lc);
+
+						if (IsA(arg, NamedArgExpr))
+							ereport(ERROR,
+									(errcode(ERRCODE_SYNTAX_ERROR),
+									 errmsg("type modifier cannot have parameter name"),
+									 parser_errposition(arg->location)));
+					}
+					if ($4 != NIL)
+							ereport(ERROR,
+									(errcode(ERRCODE_SYNTAX_ERROR),
+									 errmsg("type modifier cannot have ORDER BY"),
+									 parser_errposition(@4)));
+
+					t->typmods = $3;
+					t->location = @1;
+					$$ = makeStringConstCast($6, @6, t);
+				}
+			| ConstTypename Sconst
+				{
+					$$ = makeStringConstCast($2, @2, $1);
+				}
+			| ConstInterval Sconst opt_interval
+				{
+					TypeName *t = $1;
+					t->typmods = $3;
+					$$ = makeStringConstCast($2, @2, t);
+				}
+			| ConstInterval '(' Iconst ')' Sconst
+				{
+					TypeName *t = $1;
+					t->typmods = list_make2(makeIntConst(INTERVAL_FULL_RANGE, -1),
+											makeIntConst($3, @3));
+					$$ = makeStringConstCast($5, @5, t);
+				}*/
+			| TRUE_P
+				{
+					$$ = makeBoolAConst(true, @1);
+				}
+			| FALSE_P
+				{
+					$$ = makeBoolAConst(false, @1);
+				}
+			| NULL_P
+				{
+					$$ = makeNullAConst(@1);
+				}
+		;
+
 
 /*****************************************************************************
  *
@@ -4708,4 +4891,73 @@ makeSetOp(SetOperation op, bool all, Node *larg, Node *rarg)
 	n->larg = (SelectStmt *) larg;
 	n->rarg = (SelectStmt *) rarg;
 	return (Node *) n;
+}
+
+static Node *
+makeTypeCast(Node *arg, TypeName *typename, int location)
+{
+	TypeCast *n = makeNode(TypeCast);
+	n->arg = arg;
+	n->typeName = typename;
+	n->location = location;
+	return (Node *) n;
+}
+
+static Node *
+makeStringConst(char *str, int location)
+{
+	A_Const *n = makeNode(A_Const);
+
+	n->val.type = T_String;
+	n->val.val.str = str;
+	n->location = location;
+
+	return (Node *)n;
+}
+
+static Node *
+makeIntConst(int val, int location)
+{
+	A_Const *n = makeNode(A_Const);
+
+	n->val.type = T_Integer;
+	n->val.val.ival = val;
+	n->location = location;
+
+	return (Node *)n;
+}
+
+static Node *
+makeFloatConst(char *str, int location)
+{
+	A_Const *n = makeNode(A_Const);
+
+	n->val.type = T_Float;
+	n->val.val.str = str;
+	n->location = location;
+
+	return (Node *)n;
+}
+
+static Node *
+makeBoolAConst(bool state, int location)
+{
+	A_Const *n = makeNode(A_Const);
+
+	n->val.type = T_String;
+	n->val.val.str = (state ? "t" : "f");
+	n->location = location;
+
+	return makeTypeCast((Node *)n, SystemTypeName("bool"), -1);
+}
+
+static Node *
+makeNullAConst(int location)
+{
+	A_Const *n = makeNode(A_Const);
+
+	n->val.type = T_Null;
+	n->location = location;
+
+	return (Node *)n;
 }

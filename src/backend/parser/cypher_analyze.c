@@ -1170,6 +1170,9 @@ CypherCreateCommandTag(Node *parsetree)
                     } else if (IsA(n, CreateStmt)) {
 	                    tag = CMDTAG_CREATE_TABLE;
                         break;
+                    } else if (IsA(n, InsertStmt)) {
+                        tag = CMDTAG_INSERT;
+                        break;
                     }
                 }
             }
@@ -1397,7 +1400,7 @@ cypher_parse_analyze(RawStmt *parseTree, const char *sourceText,
     if (list_length(parseTree->stmt) == 1) {
       Node *n = linitial(parseTree->stmt);
 
-      if (IsA(n, CreateExtensionStmt) || IsA(n,CreateStmt) || IsA(n, SelectStmt)) {
+      if (IsA(n, CreateExtensionStmt) || IsA(n,CreateStmt) || IsA(n, SelectStmt) || IsA(n, InsertStmt)) {
 	        query = parse_analyze((makeRawStmt(n, 0)), sourceText, paramTypes, numParams,
 						  queryEnv);
 

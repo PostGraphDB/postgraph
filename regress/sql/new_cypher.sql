@@ -104,5 +104,9 @@ SELECT a.i FROM tst a
 INTERSECT
 SELECT a.i FROM tst a;
 
+INSERT INTO tst SELECT 'Hello';
+
+SELECT * FROM tst;
+
 DROP GRAPH new_cypher CASCADE;
 DROP GRAPH new_cypher_2 CASCADE;
