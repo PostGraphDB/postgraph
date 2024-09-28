@@ -284,6 +284,12 @@ SELECT a.i FROM tst a;
  World
 (1 row)
 
+DELETE FROM tst;
+SELECT a.i FROM tst a;
+ i 
+---
+(0 rows)
+
 DROP GRAPH new_cypher CASCADE;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table new_cypher._ag_label_vertex

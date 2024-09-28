@@ -175,7 +175,7 @@ static Node *makeNotExpr(Node *expr, int location);
              
 
 %type <node> CreateExtensionStmt CreateGraphStmt CreateTableStmt
-             DropGraphStmt
+             DeleteStmt DropGraphStmt
              InsertStmt
              UseGraphStmt
              SelectStmt
@@ -278,6 +278,7 @@ static Node *makeNotExpr(Node *expr, int location);
              target_list opt_target_list set_target_list
              set_clause_list set_clause
              opt_collate
+             using_clause
              indirection opt_indirection
              any_name attrs opt_class
 %type <defelt>	def_elem reloption_elem
@@ -390,6 +391,7 @@ stmt:
     | CreateGraphStmt semicolon_opt     { extra->result = list_make1($1); }
     | CreateExtensionStmt semicolon_opt { extra->result = list_make1($1); }
     | CreateTableStmt semicolon_opt     { extra->result = list_make1($1); }
+    | DeleteStmt semicolon_opt          { extra->result = list_make1($1); }
     | DropGraphStmt semicolon_opt       { extra->result = list_make1($1); }
     | InsertStmt semicolon_opt          { extra->result = list_make1($1); }
     | UseGraphStmt semicolon_opt        { extra->result = list_make1($1); }
@@ -1150,6 +1152,32 @@ set_target_list:
 			| set_target_list ',' set_target		{ $$ = lappend($1,$3); }
 		;
 
+
+/*****************************************************************************
+ *
+ *		QUERY:
+ *				DELETE STATEMENTS
+ *
+ *****************************************************************************/
+
+DeleteStmt: //opt_with_clause 
+            DELETE FROM relation_expr_opt_alias
+			using_clause //where_or_current_clause returning_clause
+				{
+					DeleteStmt *n = makeNode(DeleteStmt);
+					n->relation = $3;
+					n->usingClause = $4;
+					n->whereClause = NULL;//$5;
+					n->returningList = NULL;//$6;
+					n->withClause = NULL;//$1;
+					$$ = (Node *)n;
+				}
+		;
+
+using_clause:
+				USING from_list						{ $$ = $2; }
+			| /*EMPTY*/								{ $$ = NIL; }
+		;
 
 CreateGraphStmt:
     CREATE GRAPH IDENTIFIER
