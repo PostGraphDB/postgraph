@@ -163,6 +163,11 @@ SELECT a.* FROM tst as a;
 ---
 (0 rows)
 
+SELECT a.* FROM tst as a ORDER BY a.i DESC;
+ i 
+---
+(0 rows)
+
 SELECT a.i as j FROM tst a GROUP BY a.i;
  j 
 ---
@@ -173,6 +178,12 @@ SELECT a.i as j FROM tst a GROUP BY a.i HAVING a.i = a.i;
 ---
 (0 rows)
 
+SELECT sum(salary) OVER w, avg(salary) OVER w
+  FROM empsalary
+  WINDOW w AS (PARTITION BY i ORDER BY i DESC);
+ERROR:  syntax error at or near "("
+LINE 1: SELECT sum(salary) OVER w, avg(salary) OVER w
+                  ^
 DROP GRAPH new_cypher CASCADE;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table new_cypher._ag_label_vertex

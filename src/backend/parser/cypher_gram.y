@@ -52,6 +52,29 @@
 #define parser_yyerror(msg)  scanner_yyerror(msg, yyscanner)
 #define parser_errposition(pos)  scanner_errposition(pos, yyscanner)
 
+/* Private struct for the result of privilege_target production */
+typedef struct PrivTarget
+{
+	GrantTargetType targtype;
+	ObjectType	objtype;
+	List	   *objs;
+} PrivTarget;
+
+/* Private struct for the result of import_qualification production */
+typedef struct ImportQual
+{
+	ImportForeignSchemaType type;
+	List	   *table_names;
+} ImportQual;
+
+/* Private struct for the result of opt_select_limit production */
+typedef struct SelectLimit
+{
+	Node *limitOffset;
+	Node *limitCount;
+	LimitOption limitOption;
+} SelectLimit;
+
 /* Private struct for the result of group_clause production */
 typedef struct GroupClause
 {
@@ -59,6 +82,11 @@ typedef struct GroupClause
 	List   *list;
 } GroupClause;
 
+static void insertSelectOptions(SelectStmt *stmt,
+								List *sortClause, List *lockingClause,
+								SelectLimit *limitClause,
+								WithClause *withClause,
+								ag_scanner_t yyscanner);
 %}
 
 %locations
@@ -91,6 +119,7 @@ typedef struct GroupClause
     struct ResTarget *target;
     struct Alias *alias;
     struct GroupClause  *groupclause;
+    struct SortBy *sortby;
 }
 
 %token <integer> INTEGER
@@ -100,7 +129,6 @@ typedef struct GroupClause
 %token <string> INET
 %token <string> PARAMETER
 %token <string> OPERATOR
-
 /* operators that have more than 1 character */
 %token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ
 
@@ -227,6 +255,7 @@ typedef struct GroupClause
              OptWith
              qualified_name_list
              reloption_list
+             sort_clause opt_sort_clause sortby_list
              from_clause from_list
              target_list opt_target_list
              opt_collate
@@ -238,8 +267,8 @@ typedef struct GroupClause
 %type <string> NonReservedWord_or_Sconst name
 %type <list> create_extension_opt_list
 %type <defelt> create_extension_opt_item
-
-%type <integer>	 OptTemp
+%type <sortby>	sortby
+%type <integer>	 OptTemp opt_asc_desc
 
 %type <typnam>	Typename SimpleTypename GenericType func_type
 
@@ -436,19 +465,19 @@ select_with_parens:
  */
 select_no_parens:
 			simple_select						{ $$ = $1; }
-		/*	| select_clause sort_clause
+			| select_clause sort_clause
 				{
 					insertSelectOptions((SelectStmt *) $1, $2, NIL,
 										NULL, NULL,
-										yyscanner);
+										scanner);
 					$$ = $1;
 				}
-			| select_clause opt_sort_clause for_locking_clause opt_select_limit
+		/*	| select_clause opt_sort_clause for_locking_clause opt_select_limit
 				{
 					insertSelectOptions((SelectStmt *) $1, $2, $3,
 										$4,
 										NULL,
-										yyscanner);
+										scanner);
 					$$ = $1;
 				}
 			| select_clause opt_sort_clause select_limit opt_for_locking_clause
@@ -456,7 +485,7 @@ select_no_parens:
 					insertSelectOptions((SelectStmt *) $1, $2, $4,
 										$3,
 										NULL,
-										yyscanner);
+										scanner);
 					$$ = $1;
 				}
 			| with_clause select_clause
@@ -464,7 +493,7 @@ select_no_parens:
 					insertSelectOptions((SelectStmt *) $2, NULL, NIL,
 										NULL,
 										$1,
-										yyscanner);
+										scanner);
 					$$ = $2;
 				}
 			| with_clause select_clause sort_clause
@@ -472,7 +501,7 @@ select_no_parens:
 					insertSelectOptions((SelectStmt *) $2, $3, NIL,
 										NULL,
 										$1,
-										yyscanner);
+										scanner);
 					$$ = $2;
 				}
 			| with_clause select_clause opt_sort_clause for_locking_clause opt_select_limit
@@ -480,7 +509,7 @@ select_no_parens:
 					insertSelectOptions((SelectStmt *) $2, $3, $4,
 										$5,
 										$1,
-										yyscanner);
+										scanner);
 					$$ = $2;
 				}
 			| with_clause select_clause opt_sort_clause select_limit opt_for_locking_clause
@@ -488,7 +517,7 @@ select_no_parens:
 					insertSelectOptions((SelectStmt *) $2, $3, $5,
 										$4,
 										$1,
-										yyscanner);
+										scanner);
 					$$ = $2;
 				}*/
 		;
@@ -873,6 +902,40 @@ opt_alias_clause: alias_clause						{ $$ = $1; }
 where_clause:
 			WHERE a_expr							{ $$ = $2; }
 			| /*EMPTY*/								{ $$ = NULL; }
+		;
+
+opt_sort_clause:
+			sort_clause								{ $$ = $1; }
+			| /*EMPTY*/								{ $$ = NIL; }
+		;
+
+sort_clause:
+			ORDER BY sortby_list					{ $$ = $3; }
+		;
+
+sortby_list:
+			sortby									{ $$ = list_make1($1); }
+			| sortby_list ',' sortby				{ $$ = lappend($1, $3); }
+		;
+
+sortby:		a_expr USING all_op opt_nulls_order
+				{
+					$$ = makeNode(SortBy);
+					$$->node = $1;
+					$$->sortby_dir = SORTBY_USING;
+					$$->sortby_nulls = $4;
+					$$->useOp = $3;
+					$$->location = @3;
+				}
+			| a_expr opt_asc_desc opt_nulls_order
+				{
+					$$ = makeNode(SortBy);
+					$$->node = $1;
+					$$->sortby_dir = $2;
+					$$->sortby_nulls = $3;
+					$$->useOp = NIL;
+					$$->location = -1;		/* no operator */
+				}
 		;
 
 CreateGraphStmt:
@@ -1394,6 +1457,12 @@ return_item:
         }
     ;
 
+opt_asc_desc: ASC							{ $$ = SORTBY_ASC; }
+	| DESC							{ $$ = SORTBY_DESC; }
+	| /*EMPTY*/						{ $$ = SORTBY_DEFAULT; }
+	;
+
+
 opt_nulls_order: NULLS_LA FIRST_P { $$ = SORTBY_NULLS_FIRST; }
      | NULLS_LA LAST_P { $$ = SORTBY_NULLS_LAST; }
      | /*EMPTY*/ { $$ = SORTBY_NULLS_DEFAULT; }
@@ -1686,7 +1755,7 @@ Iconst:		INTEGER									{ $$ = $1; };
 /* Note: any simple identifier will be returned as a type name! */
 def_arg:	func_type						{ $$ = (Node *)$1; }
 			//| reserved_keyword				{ $$ = (Node *)makeString(pstrdup($1)); }
-			//| qual_all_Op					{ $$ = (Node *)$1; }
+			| all_op					{ $$ = (Node *)$1; }
 			| NumericOnly					{ $$ = (Node *)$1; }
 			| Sconst						{ $$ = (Node *)makeString($1); }
 			//| NONE							{ $$ = (Node *)makeString(pstrdup($1)); }
@@ -4543,3 +4612,87 @@ doNegate(Node *n, int location)
 	return (Node *) makeSimpleA_Expr(AEXPR_OP, "-", NULL, n, location);
 }
 
+/* insertSelectOptions()
+ * Insert ORDER BY, etc into an already-constructed SelectStmt.
+ *
+ * This routine is just to avoid duplicating code in SelectStmt productions.
+ */
+static void
+insertSelectOptions(SelectStmt *stmt,
+					List *sortClause, List *lockingClause,
+					SelectLimit *limitClause,
+					WithClause *withClause,
+					ag_scanner_t yyscanner)
+{
+	Assert(IsA(stmt, SelectStmt));
+
+	/*
+	 * Tests here are to reject constructs like
+	 *	(SELECT foo ORDER BY bar) ORDER BY baz
+	 */
+	if (sortClause)
+	{
+		if (stmt->sortClause)
+			ereport(ERROR,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+					 errmsg("multiple ORDER BY clauses not allowed"),
+					 parser_errposition(exprLocation((Node *) sortClause))));
+		stmt->sortClause = sortClause;
+	}
+	/* We can handle multiple locking clauses, though */
+	stmt->lockingClause = list_concat(stmt->lockingClause, lockingClause);
+	if (limitClause && limitClause->limitOffset)
+	{
+		if (stmt->limitOffset)
+			ereport(ERROR,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+					 errmsg("multiple OFFSET clauses not allowed"),
+					 parser_errposition(exprLocation(limitClause->limitOffset))));
+		stmt->limitOffset = limitClause->limitOffset;
+	}
+	if (limitClause && limitClause->limitCount)
+	{
+		if (stmt->limitCount)
+			ereport(ERROR,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+					 errmsg("multiple LIMIT clauses not allowed"),
+					 parser_errposition(exprLocation(limitClause->limitCount))));
+		stmt->limitCount = limitClause->limitCount;
+	}
+	if (limitClause && limitClause->limitOption != LIMIT_OPTION_DEFAULT)
+	{
+		if (stmt->limitOption)
+			ereport(ERROR,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+					 errmsg("multiple limit options not allowed")));
+		if (!stmt->sortClause && limitClause->limitOption == LIMIT_OPTION_WITH_TIES)
+			ereport(ERROR,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+					 errmsg("WITH TIES cannot be specified without ORDER BY clause")));
+		if (limitClause->limitOption == LIMIT_OPTION_WITH_TIES && stmt->lockingClause)
+		{
+			ListCell   *lc;
+
+			foreach(lc, stmt->lockingClause)
+			{
+				LockingClause *lock = lfirst_node(LockingClause, lc);
+
+				if (lock->waitPolicy == LockWaitSkip)
+					ereport(ERROR,
+							(errcode(ERRCODE_SYNTAX_ERROR),
+							 errmsg("%s and %s options cannot be used together",
+									"SKIP LOCKED", "WITH TIES")));
+			}
+		}
+		stmt->limitOption = limitClause->limitOption;
+	}
+	if (withClause)
+	{
+		if (stmt->withClause)
+			ereport(ERROR,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+					 errmsg("multiple WITH clauses not allowed"),
+					 parser_errposition(exprLocation((Node *) withClause))));
+		stmt->withClause = withClause;
+	}
+}
