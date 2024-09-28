@@ -149,7 +149,7 @@ static Node *makeNotExpr(Node *expr, int location);
                  BETWEEN BY
                  CALL CASE CASCADE COALESCE COLLATE CONTAINS CREATE CUBE CURRENT CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
                  DATE DECADE DELETE DESC DESCENDING DETACH DISTINCT DROP
-                 ELSE END_P ENDS EXCEPT EXCLUDE EXISTS EXTENSION EXTRACT
+                 ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXISTS EXTENSION EXTRACT
                  GLOBAL GRAPH GROUP GROUPS GROUPING
                  FALSE_P FILTER FIRST_P FOLLOWING FROM
                  HAVING
@@ -2199,7 +2199,6 @@ a_expr:		c_expr									{ $$ = $1; }
 				{ $$ = makeOrExpr($1, $3, @2); }
 			| NOT a_expr
 				{ $$ = makeNotExpr($2, @1); }
-			/*
 			| a_expr LIKE a_expr
 				{
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_LIKE, "~~",
@@ -2214,12 +2213,12 @@ a_expr:		c_expr									{ $$ = $1; }
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_LIKE, "~~",
 												   $1, (Node *) n, @2);
 				}
-			| a_expr NOT_LA LIKE a_expr							%prec NOT_LA
+			| a_expr NOT LIKE a_expr							%prec NOT
 				{
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_LIKE, "!~~",
 												   $1, $4, @2);
 				}
-			| a_expr NOT_LA LIKE a_expr ESCAPE a_expr			%prec NOT_LA
+			| a_expr NOT LIKE a_expr ESCAPE a_expr			%prec NOT
 				{
 					FuncCall *n = makeFuncCall(SystemFuncName("like_escape"),
 											   list_make2($4, $6),
@@ -2242,12 +2241,12 @@ a_expr:		c_expr									{ $$ = $1; }
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_ILIKE, "~~*",
 												   $1, (Node *) n, @2);
 				}
-			| a_expr NOT_LA ILIKE a_expr						%prec NOT_LA
+			| a_expr NOT ILIKE a_expr						%prec NOT
 				{
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_ILIKE, "!~~*",
 												   $1, $4, @2);
 				}
-			| a_expr NOT_LA ILIKE a_expr ESCAPE a_expr			%prec NOT_LA
+			| a_expr NOT ILIKE a_expr ESCAPE a_expr			%prec NOT
 				{
 					FuncCall *n = makeFuncCall(SystemFuncName("like_escape"),
 											   list_make2($4, $6),
@@ -2256,7 +2255,7 @@ a_expr:		c_expr									{ $$ = $1; }
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_ILIKE, "!~~*",
 												   $1, (Node *) n, @2);
 				}
-
+/*
 			| a_expr SIMILAR TO a_expr							%prec SIMILAR
 				{
 					FuncCall *n = makeFuncCall(SystemFuncName("similar_to_escape"),

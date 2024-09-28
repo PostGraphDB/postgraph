@@ -223,6 +223,30 @@ SELECT '{"Hello": "World"}'::gtype <@ '"Hello"'::gtype;
 ERROR:  syntax error at or near "<@"
 LINE 1: SELECT '{"Hello": "World"}'::gtype <@ '"Hello"'::gtype;
                                            ^
+SELECT 'Hello' LIKE 'Hello';
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT 'Hello' NOT LIKE 'Hello';
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT 'Hello' ILIKE 'hello';
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT 'Hello' NOT ILIKE 'hello';
+ ?column? 
+----------
+ f
+(1 row)
+
 SELECT true AND false;
  ?column? 
 ----------

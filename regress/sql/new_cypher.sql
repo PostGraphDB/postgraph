@@ -112,6 +112,15 @@ SELECT '"Hello"'::gtype = '"Hello"'::gtype;
 
 SELECT '{"Hello": "World"}'::gtype <@ '"Hello"'::gtype;
 
+SELECT 'Hello' LIKE 'Hello';
+
+SELECT 'Hello' NOT LIKE 'Hello';
+
+
+SELECT 'Hello' ILIKE 'hello';
+
+SELECT 'Hello' NOT ILIKE 'hello';
+
 SELECT true AND false;
 SELECT true OR false;
 SELECT NOT false;
