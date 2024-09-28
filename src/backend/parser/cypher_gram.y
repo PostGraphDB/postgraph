@@ -133,7 +133,8 @@
 %type <node> select_no_parens select_with_parens select_clause
              simple_select
 
-%type <node> a_expr b_expr c_expr indirection_el
+%type <node> where_clause
+             a_expr b_expr c_expr indirection_el
              columnref 
 %type <target>	target_el 
 %type <node>	table_ref
@@ -175,7 +176,7 @@
 %type <list> yield_item_list
 
 /* common */
-%type <node> where_opt
+%type <node> cypher_where_opt
 
 /* pattern */
 %type <list> pattern simple_path_opt_parens simple_path
@@ -216,7 +217,6 @@
              opt_collate
              indirection
              any_name attrs opt_class
-             
 %type <defelt>	def_elem reloption_elem
 %type <string> Sconst 
 %type <string> ColId  ColLabel
@@ -302,6 +302,11 @@ makeColumnRef(char *colname, List *indirection,
 			  int location, ag_scanner_t yyscanner);
 static List *
 check_indirection(List *indirection, ag_scanner_t yyscanner);
+
+static Node *
+doNegate(Node *n, int location);
+
+
 %}
 %%
 
@@ -509,7 +514,7 @@ select_clause:
 simple_select:
 			SELECT opt_all_clause opt_target_list
 			//into_clause 
-            from_clause //where_clause
+            from_clause where_clause
 			//group_clause having_clause window_clause
 				{
 					SelectStmt *n = makeNode(SelectStmt);
@@ -850,6 +855,11 @@ opt_alias_clause: alias_clause						{ $$ = $1; }
 		;
 
 
+where_clause:
+			WHERE a_expr							{ $$ = $2; }
+			| /*EMPTY*/								{ $$ = NULL; }
+		;
+
 CreateGraphStmt:
     CREATE GRAPH IDENTIFIER
         {
@@ -919,7 +929,7 @@ CreateTableStmt:
     ;
 
 call_stmt:
-    CALL expr_func_norm AS var_name where_opt
+    CALL expr_func_norm AS var_name cypher_where_opt
         {
             cypher_call *call = make_ag_node(cypher_call);
             call->cck = CCK_FUNCTION;
@@ -931,7 +941,7 @@ call_stmt:
             call->query_tree = NULL;
             $$ = call;
        }
-    | CALL expr_func_norm YIELD yield_item_list where_opt
+    | CALL expr_func_norm YIELD yield_item_list cypher_where_opt
         {
             cypher_call *call = make_ag_node(cypher_call);
             call->cck = CCK_FUNCTION;
@@ -1409,7 +1419,7 @@ limit_opt:
     ;
 
 with:
-    WITH DISTINCT return_item_list where_opt group_by_opt having_opt window_clause order_by_opt skip_opt limit_opt
+    WITH DISTINCT return_item_list cypher_where_opt group_by_opt having_opt window_clause order_by_opt skip_opt limit_opt
         {
             ListCell *li;
             cypher_with *n;
@@ -1443,7 +1453,7 @@ with:
 
             $$ = (Node *)n;
         }
-    | WITH return_item_list where_opt group_by_opt having_opt window_clause order_by_opt skip_opt limit_opt
+    | WITH return_item_list cypher_where_opt group_by_opt having_opt window_clause order_by_opt skip_opt limit_opt
         {
             ListCell *li;
             cypher_with *n;
@@ -1484,7 +1494,7 @@ with:
  */
 
 match:
-    optional_opt MATCH pattern where_opt order_by_opt
+    optional_opt MATCH pattern cypher_where_opt order_by_opt
         {
             cypher_match *n;
 
@@ -1895,10 +1905,10 @@ a_expr:		c_expr									{ $$ = $1; }
 											   list_make2($5, $1),
 											   COERCE_SQL_SYNTAX,
 											   @2);
-				}
-			| '+' a_expr					%prec UMINUS
+				}*/
+			| '+' a_expr				//	%prec ;
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "+", NULL, $2, @1); }
-			| '-' a_expr					%prec UMINUS
+			| '-' a_expr				//	%prec UMINUS
 				{ $$ = doNegate($2, @1); }
 			| a_expr '+' a_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "+", $1, $3, @2); }
@@ -1918,16 +1928,16 @@ a_expr:		c_expr									{ $$ = $1; }
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, ">", $1, $3, @2); }
 			| a_expr '=' a_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "=", $1, $3, @2); }
-			| a_expr LESS_EQUALS a_expr
+			/*| a_expr LESS_EQUALS a_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "<=", $1, $3, @2); }
 			| a_expr GREATER_EQUALS a_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, ">=", $1, $3, @2); }
 			| a_expr NOT_EQUALS a_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "<>", $1, $3, @2); }
 
-			| a_expr qual_Op a_expr				%prec Op
+			| a_expr qual_Op a_expr			//	%prec Op
 				{ $$ = (Node *) makeA_Expr(AEXPR_OP, $2, $1, $3, @2); }
-			| qual_Op a_expr					%prec Op
+			| qual_Op a_expr				//	%prec Op
 				{ $$ = (Node *) makeA_Expr(AEXPR_OP, $1, NULL, $2, @1); }
 
 			| a_expr AND a_expr
@@ -2808,7 +2818,7 @@ merge:
  * common
  */
 
-where_opt:
+cypher_where_opt:
     /* empty */
         {
             $$ = NULL;
@@ -4406,3 +4416,42 @@ check_indirection(List *indirection, ag_scanner_t yyscanner)
 	}
 	return indirection;
 }
+
+/* doNegate()
+ * Handle negation of a numeric constant.
+ *
+ * Formerly, we did this here because the optimizer couldn't cope with
+ * indexquals that looked like "var = -4" --- it wants "var = const"
+ * and a unary minus operator applied to a constant didn't qualify.
+ * As of Postgres 7.0, that problem doesn't exist anymore because there
+ * is a constant-subexpression simplifier in the optimizer.  However,
+ * there's still a good reason for doing this here, which is that we can
+ * postpone committing to a particular internal representation for simple
+ * negative constants.	It's better to leave "-123.456" in string form
+ * until we know what the desired type is.
+ */
+static Node *
+doNegate(Node *n, int location)
+{
+	if (IsA(n, A_Const))
+	{
+		A_Const *con = (A_Const *)n;
+
+		/* report the constant's location as that of the '-' sign */
+		con->location = location;
+
+		if (con->val.type == T_Integer)
+		{
+			con->val.val.ival = -con->val.val.ival;
+			return n;
+		}
+		if (con->val.type == T_Float)
+		{
+			doNegateFloat(&con->val);
+			return n;
+		}
+	}
+
+	return (Node *) makeSimpleA_Expr(AEXPR_OP, "-", NULL, n, location);
+}
+

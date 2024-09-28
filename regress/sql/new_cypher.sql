@@ -73,6 +73,9 @@ SELECT a.i FROM tst AS a;
 SELECT a.i FROM tst a;
 
 SELECT a.j FROM tst AS a(j);
+
+SELECT i FROM tst WHERE i = i;
+SELECT i FROM tst WHERE i > i;
 --SELECT a.j FROM tst a(j);
 
 

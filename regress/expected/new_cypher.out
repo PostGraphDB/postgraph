@@ -142,6 +142,16 @@ SELECT a.j FROM tst AS a(j);
 ERROR:  syntax error at or near "("
 LINE 1: SELECT a.j FROM tst AS a(j);
                                 ^
+SELECT i FROM tst WHERE i = i;
+ i 
+---
+(0 rows)
+
+SELECT i FROM tst WHERE i > i;
+ i 
+---
+(0 rows)
+
 --SELECT a.j FROM tst a(j);
 DROP GRAPH new_cypher CASCADE;
 NOTICE:  drop cascades to 2 other objects
