@@ -247,6 +247,18 @@ SELECT 'Hello' NOT ILIKE 'hello';
  f
 (1 row)
 
+SELECT 'Hello' SIMILAR TO 'Hello';
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT 'Hello' NOT SIMILAR TO 'Hello';
+ ?column? 
+----------
+ f
+(1 row)
+
 SELECT true AND false;
  ?column? 
 ----------

@@ -116,10 +116,13 @@ SELECT 'Hello' LIKE 'Hello';
 
 SELECT 'Hello' NOT LIKE 'Hello';
 
-
 SELECT 'Hello' ILIKE 'hello';
 
 SELECT 'Hello' NOT ILIKE 'hello';
+
+SELECT 'Hello' SIMILAR TO 'Hello';
+
+SELECT 'Hello' NOT SIMILAR TO 'Hello';
 
 SELECT true AND false;
 SELECT true OR false;

@@ -161,7 +161,7 @@ static Node *makeNotExpr(Node *expr, int location);
                  PARTITION PRECEDING
                  RANGE REMOVE REPLACE RETURN ROLLUP ROW ROWS
                  SCHEMA SELECT SET SETS SKIP SOME STARTS
-                 TABLE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TRUE_P
+                 TABLE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRUE_P
                  UNBOUNDED UNION UNLOGGED UNWIND USE USING
                  VERSION_P
                  WHEN WHERE WINDOW WITH WITHIN WITHOUT
@@ -313,7 +313,7 @@ static Node *makeNotExpr(Node *expr, int location);
 %left '^' '&' '|'
 %nonassoc IN IS
 %right UNARY_MINUS
-%nonassoc CONTAINS ENDS EQ_TILDE STARTS LIKE ILIKE
+%nonassoc CONTAINS ENDS EQ_TILDE STARTS LIKE ILIKE SIMILAR
 %left '[' ']' '(' ')'
 %left '.'
 %left TYPECAST
@@ -2255,7 +2255,6 @@ a_expr:		c_expr									{ $$ = $1; }
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_ILIKE, "!~~*",
 												   $1, (Node *) n, @2);
 				}
-/*
 			| a_expr SIMILAR TO a_expr							%prec SIMILAR
 				{
 					FuncCall *n = makeFuncCall(SystemFuncName("similar_to_escape"),
@@ -2274,7 +2273,7 @@ a_expr:		c_expr									{ $$ = $1; }
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_SIMILAR, "~",
 												   $1, (Node *) n, @2);
 				}
-			| a_expr NOT_LA SIMILAR TO a_expr					%prec NOT_LA
+			| a_expr NOT SIMILAR TO a_expr					%prec NOT
 				{
 					FuncCall *n = makeFuncCall(SystemFuncName("similar_to_escape"),
 											   list_make1($5),
@@ -2283,7 +2282,7 @@ a_expr:		c_expr									{ $$ = $1; }
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_SIMILAR, "!~",
 												   $1, (Node *) n, @2);
 				}
-			| a_expr NOT_LA SIMILAR TO a_expr ESCAPE a_expr		%prec NOT_LA
+			| a_expr NOT SIMILAR TO a_expr ESCAPE a_expr		%prec NOT
 				{
 					FuncCall *n = makeFuncCall(SystemFuncName("similar_to_escape"),
 											   list_make2($5, $7),
@@ -2292,6 +2291,7 @@ a_expr:		c_expr									{ $$ = $1; }
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_SIMILAR, "!~",
 												   $1, (Node *) n, @2);
 				}
+                /*
 			| a_expr IS NULL_P							%prec IS
 				{
 					NullTest *n = makeNode(NullTest);
