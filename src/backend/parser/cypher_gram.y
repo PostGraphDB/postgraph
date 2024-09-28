@@ -642,9 +642,6 @@ simple_select:
 				}
 		;
 
-
-
-
 opt_all_clause:
 			ALL
 			| /*EMPTY*/
@@ -2142,9 +2139,9 @@ indirection_el:
  * you expect!  So we use %prec annotations freely to set precedences.
  */
 a_expr:		c_expr									{ $$ = $1; }
-			/*| a_expr TYPECAST Typename
+			| a_expr TYPECAST Typename
 					{ $$ = makeTypeCast($1, $3, @2); }
-			| a_expr COLLATE any_name
+			/*| a_expr COLLATE any_name
 				{
 					CollateClause *n = makeNode(CollateClause);
 					n->arg = $1;

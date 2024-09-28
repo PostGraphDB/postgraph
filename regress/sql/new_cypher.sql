@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */ 
 -- Regression tests don't preload extensions, gotta load it first
-
+SET search_path TO postgraph;
 LOAD 'postgraph';
 
 CREATE EXTENSION postgraph;
@@ -107,6 +107,8 @@ SELECT a.i FROM tst a;
 INSERT INTO tst SELECT 'Hello';
 
 SELECT * FROM tst;
+
+SELECT '"Hello"'::gtype = '"Hello"'::gtype;
 
 DROP GRAPH new_cypher CASCADE;
 DROP GRAPH new_cypher_2 CASCADE;
