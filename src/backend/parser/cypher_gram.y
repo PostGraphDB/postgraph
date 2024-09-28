@@ -163,7 +163,7 @@ static Node *makeNotExpr(Node *expr, int location);
                  SCHEMA SELECT SET SETS SKIP SOME STARTS
                  TABLE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRUE_P
                  UNBOUNDED UNION UNLOGGED UPDATE UNWIND USE USING
-                 VERSION_P
+                 VALUES VERSION_P
                  WHEN WHERE WINDOW WITH WITHIN WITHOUT
                  XOR
                  YIELD
@@ -250,11 +250,11 @@ static Node *makeNotExpr(Node *expr, int location);
 %type <node> cypher_a_expr expr_opt expr_atom expr_literal map list in_expr
              
 
-%type <node> expr_case expr_case_when expr_case_default
+%type <node> expr_case expr_case_when expr_case_default values_clause
 %type <list> expr_case_when_list
 
 %type <node> expr_func expr_func_norm expr_func_subexpr
-%type <list> expr_list expr_list_opt map_keyval_list_opt map_keyval_list
+%type <list> cypher_expr_list cypher_expr_list_opt map_keyval_list_opt map_keyval_list
         
 
 %type <node> filter_clause
@@ -267,7 +267,7 @@ static Node *makeNotExpr(Node *expr, int location);
 %type <string> property_key_name var_name var_name_opt label_name
 %type <string> symbolic_name schema_name temporal_cast attr_name table_access_method_clause
 %type <keyword> reserved_keyword safe_keywords conflicted_keywords
-%type <list> func_name
+%type <list> func_name expr_list
              TableElementList OptTableElementList OptInherit
              reloptions 
              OptWith
@@ -606,6 +606,7 @@ simple_select:
 					n->windowClause = NULL;
 					$$ = (Node *)n;
 				}
+			| values_clause							{ $$ = $1; }
 			/*| SELECT distinct_clause target_list
 			into_clause from_clause where_clause
 			group_clause having_clause window_clause
@@ -622,7 +623,7 @@ simple_select:
 					n->windowClause = $9;
 					$$ = (Node *)n;
 				}
-			| values_clause							{ $$ = $1; }
+*/
 			| TABLE relation_expr
 				{
 					// same as SELECT * FROM relation_expr 
@@ -641,7 +642,7 @@ simple_select:
 					n->targetList = list_make1(rt);
 					n->fromClause = list_make1($2);
 					$$ = (Node *)n;
-				}*/
+				}
 			| select_clause UNION set_quantifier select_clause
 				{
 					$$ = makeSetOp(SETOP_UNION, $3 == SET_QUANTIFIER_ALL, $1, $4);
@@ -1629,6 +1630,36 @@ empty_grouping_set:
 having_clause:
 			HAVING a_expr							{ $$ = $2; }
 			| /*EMPTY*/								{ $$ = NULL; }
+		;
+
+/*
+ * We should allow ROW '(' expr_list ')' too, but that seems to require
+ * making VALUES a fully reserved word, which will probably break more apps
+ * than allowing the noise-word is worth.
+ */
+values_clause:
+			VALUES '(' expr_list ')'
+				{
+					SelectStmt *n = makeNode(SelectStmt);
+					n->valuesLists = list_make1($3);
+					$$ = (Node *) n;
+				}
+			| values_clause ',' '(' expr_list ')'
+				{
+					SelectStmt *n = (SelectStmt *) $1;
+					n->valuesLists = lappend(n->valuesLists, $4);
+					$$ = (Node *) n;
+				}
+		;
+
+expr_list:	a_expr
+				{
+					$$ = list_make1($1);
+				}
+			| expr_list ',' a_expr
+				{
+					$$ = lappend($1, $3);
+				}
 		;
 
 
@@ -3290,7 +3321,7 @@ remove_item:
  */
 
 delete:
-    detach_opt DELETE expr_list
+    detach_opt DELETE cypher_expr_list
         {
             cypher_delete *n;
 
@@ -3833,23 +3864,23 @@ expr_opt:
     | cypher_a_expr
     ;
 
-expr_list:
+cypher_expr_list:
     cypher_a_expr
         {
             $$ = list_make1($1);
         }
-    | expr_list ',' cypher_a_expr
+    | cypher_expr_list ',' cypher_a_expr
         {
             $$ = lappend($1, $3);
         }
     ;
 
-expr_list_opt:
+cypher_expr_list_opt:
     /* empty */
         {
             $$ = NIL;
         }
-    | expr_list
+    | cypher_expr_list
     ;
 
 expr_func:
@@ -4383,7 +4414,7 @@ map_keyval_list:
     ;
 
 list:
-    '[' expr_list_opt ']'
+    '[' cypher_expr_list_opt ']'
         {
             cypher_list *n;
 

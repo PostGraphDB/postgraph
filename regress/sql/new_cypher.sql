@@ -106,6 +106,8 @@ SELECT a.i FROM tst a;
 
 INSERT INTO tst SELECT 'Hello';
 
+
+TABLE tst;
 SELECT * FROM tst;
 
 SELECT '"Hello"'::gtype = '"Hello"'::gtype;
