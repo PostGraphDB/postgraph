@@ -48,6 +48,9 @@
 
 #define YYMALLOC palloc
 #define YYFREE pfree
+
+#define parser_yyerror(msg)  scanner_yyerror(msg, yyscanner)
+#define parser_errposition(pos)  scanner_errposition(pos, yyscanner)
 %}
 
 %locations
@@ -130,6 +133,8 @@
 %type <node> select_no_parens select_with_parens select_clause
              simple_select
 
+%type <node> a_expr b_expr c_expr indirection_el
+             columnref 
 %type <target>	target_el 
 %type <node>	table_ref
 %type <range>	relation_expr
@@ -180,15 +185,15 @@
 %type <string> label_opt type_function_name
 
 /* expression */
-%type <node> a_expr expr_opt expr_atom expr_literal map list in_expr
-             indirection_el
+%type <node> cypher_a_expr expr_opt expr_atom expr_literal map list in_expr
+             
 
 %type <node> expr_case expr_case_when expr_case_default
 %type <list> expr_case_when_list
 
 %type <node> expr_func expr_func_norm expr_func_subexpr
 %type <list> expr_list expr_list_opt map_keyval_list_opt map_keyval_list
-             indirection
+        
 
 %type <node> filter_clause
 %type <list> window_clause window_definition_list opt_partition_clause
@@ -209,7 +214,9 @@
              from_clause from_list
              target_list opt_target_list
              opt_collate
+             indirection
              any_name attrs opt_class
+             
 %type <defelt>	def_elem reloption_elem
 %type <string> Sconst 
 %type <string> ColId  ColLabel
@@ -285,9 +292,16 @@ static Node *makeSQLValueFunction(SQLValueFunctionOp op, int32 typmod, int locat
 static Node *make_set_op(SetOperation op, bool all_or_distinct, List *larg, List *rarg);
 
 // comparison
-static bool is_A_Expr_a_comparison_operation(A_Expr *a);
+static bool is_cypher_a_expr_a_comparison_operation(A_Expr *a);
 static void
 doNegateFloat(Value *v);
+
+
+static Node *
+makeColumnRef(char *colname, List *indirection,
+			  int location, ag_scanner_t yyscanner);
+static List *
+check_indirection(List *indirection, ag_scanner_t yyscanner);
 %}
 %%
 
@@ -608,7 +622,7 @@ target_el:	/*a_expr AS ColLabel
 					$$->val = (Node *)$1;
 					$$->location = @1;
 				}
-			| a_expr
+			| */a_expr
 				{
 					$$ = makeNode(ResTarget);
 					$$->name = NULL;
@@ -616,7 +630,7 @@ target_el:	/*a_expr AS ColLabel
 					$$->val = (Node *)$1;
 					$$->location = @1;
 				}
-			| */'*'
+			| '*'
 				{
 					ColumnRef *n = makeNode(ColumnRef);
 					n->fields = list_make1(makeNode(A_Star));
@@ -794,6 +808,18 @@ relation_expr:
 		;
 
 
+columnref:	ColId
+				{
+					$$ = makeColumnRef($1, NIL, @1, scanner);
+				}
+			| ColId indirection
+				{
+					$$ = makeColumnRef($1, $2, @1, scanner);
+				}
+		;
+
+
+
 alias_clause:
 			/*AS ColId '(' name_list ')'
 				{
@@ -948,7 +974,7 @@ yield_item_list:
     ;
 
 yield_item:
-    a_expr AS var_name
+    cypher_a_expr AS var_name
         {
             ResTarget *n;
 
@@ -960,7 +986,7 @@ yield_item:
 
             $$ = (Node *)n;
         }
-    | a_expr
+    | cypher_a_expr
         {
             ResTarget *n;
 
@@ -1134,7 +1160,7 @@ having_opt:
         {
             $$ = NULL;
         }
-    | HAVING a_expr
+    | HAVING cypher_a_expr
         {
             $$ = $2;
         }
@@ -1158,7 +1184,7 @@ group_item_list:
 ;
 
 group_item:
-    a_expr { $$ = $1; }
+    cypher_a_expr { $$ = $1; }
         | cube_clause { $$ = $1; }
         | rollup_clause { $$ = $1; }
         | empty_grouping_set { $$ = $1; }
@@ -1235,7 +1261,7 @@ return_item_list:
     ;
 
 return_item:
-    a_expr AS var_name
+    cypher_a_expr AS var_name
         {
             ResTarget *n;
 
@@ -1247,7 +1273,7 @@ return_item:
 
             $$ = (Node *)n;
         }
-    | a_expr
+    | cypher_a_expr
         {
             ResTarget *n;
 
@@ -1308,7 +1334,7 @@ sort_item_list:
     ;
 
 sort_item:
-    a_expr USING all_op opt_nulls_order
+    cypher_a_expr USING all_op opt_nulls_order
     {
         SortBy *n;
 
@@ -1322,7 +1348,7 @@ sort_item:
         $$ = (Node *)n;
 
     }
-    | a_expr order_opt opt_nulls_order
+    | cypher_a_expr order_opt opt_nulls_order
     {
         SortBy *n;
 
@@ -1365,7 +1391,7 @@ skip_opt:
         {
             $$ = NULL;
         }
-    | SKIP a_expr
+    | SKIP cypher_a_expr
         {
             $$ = $2;
         }
@@ -1376,7 +1402,7 @@ limit_opt:
         {
             $$ = NULL;
         }
-    | LIMIT a_expr
+    | LIMIT cypher_a_expr
         {
             $$ = $2;
         }
@@ -1485,7 +1511,7 @@ optional_opt:
 
 
 unwind:
-    UNWIND a_expr AS var_name
+    UNWIND cypher_a_expr AS var_name
         {
             ResTarget  *res;
             cypher_unwind *n;
@@ -1629,7 +1655,7 @@ part_elem: ColId opt_collate opt_class
 					n->location = @1;
 					$$ = n;
 				}
-			| '(' a_expr ')' opt_collate opt_class
+			| '(' cypher_a_expr ')' opt_collate opt_class
 				{
 					PartitionElem *n = makeNode(PartitionElem);
 
@@ -1806,7 +1832,7 @@ indirection_el:
 				{
 					$$ = (Node *) makeNode(A_Star);
 				}
-			| '[' a_expr ']'
+			| '[' cypher_a_expr ']'
 				{
 					A_Indices *ai = makeNode(A_Indices);
 					ai->is_slice = false;
@@ -1822,6 +1848,625 @@ indirection_el:
 					ai->uidx = $4;
 					$$ = (Node *) ai;
 				}*/
+		;
+
+/*****************************************************************************
+ *
+ *	expression grammar
+ *
+ *****************************************************************************/
+
+/*
+ * General expressions
+ * This is the heart of the expression syntax.
+ *
+ * We have two expression types: a_expr is the unrestricted kind, and
+ * b_expr is a subset that must be used in some places to avoid shift/reduce
+ * conflicts.  For example, we can't do BETWEEN as "BETWEEN a_expr AND a_expr"
+ * because that use of AND conflicts with AND as a boolean operator.  So,
+ * b_expr is used in BETWEEN and we remove boolean keywords from b_expr.
+ *
+ * Note that '(' a_expr ')' is a b_expr, so an unrestricted expression can
+ * always be used by surrounding it with parens.
+ *
+ * c_expr is all the productions that are common to a_expr and b_expr;
+ * it's factored out just to eliminate redundant coding.
+ *
+ * Be careful of productions involving more than one terminal token.
+ * By default, bison will assign such productions the precedence of their
+ * last terminal, but in nearly all cases you want it to be the precedence
+ * of the first terminal instead; otherwise you will not get the behavior
+ * you expect!  So we use %prec annotations freely to set precedences.
+ */
+a_expr:		c_expr									{ $$ = $1; }
+			/*| a_expr TYPECAST Typename
+					{ $$ = makeTypeCast($1, $3, @2); }
+			| a_expr COLLATE any_name
+				{
+					CollateClause *n = makeNode(CollateClause);
+					n->arg = $1;
+					n->collname = $3;
+					n->location = @2;
+					$$ = (Node *) n;
+				}
+			| a_expr AT TIME ZONE a_expr			%prec AT
+				{
+					$$ = (Node *) makeFuncCall(SystemFuncName("timezone"),
+											   list_make2($5, $1),
+											   COERCE_SQL_SYNTAX,
+											   @2);
+				}
+			| '+' a_expr					%prec UMINUS
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "+", NULL, $2, @1); }
+			| '-' a_expr					%prec UMINUS
+				{ $$ = doNegate($2, @1); }
+			| a_expr '+' a_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "+", $1, $3, @2); }
+			| a_expr '-' a_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "-", $1, $3, @2); }
+			| a_expr '*' a_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "*", $1, $3, @2); }
+			| a_expr '/' a_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "/", $1, $3, @2); }
+			| a_expr '%' a_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "%", $1, $3, @2); }
+			| a_expr '^' a_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "^", $1, $3, @2); }
+			| a_expr '<' a_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "<", $1, $3, @2); }
+			| a_expr '>' a_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, ">", $1, $3, @2); }
+			| a_expr '=' a_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "=", $1, $3, @2); }
+			| a_expr LESS_EQUALS a_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "<=", $1, $3, @2); }
+			| a_expr GREATER_EQUALS a_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, ">=", $1, $3, @2); }
+			| a_expr NOT_EQUALS a_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "<>", $1, $3, @2); }
+
+			| a_expr qual_Op a_expr				%prec Op
+				{ $$ = (Node *) makeA_Expr(AEXPR_OP, $2, $1, $3, @2); }
+			| qual_Op a_expr					%prec Op
+				{ $$ = (Node *) makeA_Expr(AEXPR_OP, $1, NULL, $2, @1); }
+
+			| a_expr AND a_expr
+				{ $$ = makeAndExpr($1, $3, @2); }
+			| a_expr OR a_expr
+				{ $$ = makeOrExpr($1, $3, @2); }
+			| NOT a_expr
+				{ $$ = makeNotExpr($2, @1); }
+			| NOT_LA a_expr						%prec NOT
+				{ $$ = makeNotExpr($2, @1); }
+
+			| a_expr LIKE a_expr
+				{
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_LIKE, "~~",
+												   $1, $3, @2);
+				}
+			| a_expr LIKE a_expr ESCAPE a_expr					%prec LIKE
+				{
+					FuncCall *n = makeFuncCall(SystemFuncName("like_escape"),
+											   list_make2($3, $5),
+											   COERCE_EXPLICIT_CALL,
+											   @2);
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_LIKE, "~~",
+												   $1, (Node *) n, @2);
+				}
+			| a_expr NOT_LA LIKE a_expr							%prec NOT_LA
+				{
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_LIKE, "!~~",
+												   $1, $4, @2);
+				}
+			| a_expr NOT_LA LIKE a_expr ESCAPE a_expr			%prec NOT_LA
+				{
+					FuncCall *n = makeFuncCall(SystemFuncName("like_escape"),
+											   list_make2($4, $6),
+											   COERCE_EXPLICIT_CALL,
+											   @2);
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_LIKE, "!~~",
+												   $1, (Node *) n, @2);
+				}
+			| a_expr ILIKE a_expr
+				{
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_ILIKE, "~~*",
+												   $1, $3, @2);
+				}
+			| a_expr ILIKE a_expr ESCAPE a_expr					%prec ILIKE
+				{
+					FuncCall *n = makeFuncCall(SystemFuncName("like_escape"),
+											   list_make2($3, $5),
+											   COERCE_EXPLICIT_CALL,
+											   @2);
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_ILIKE, "~~*",
+												   $1, (Node *) n, @2);
+				}
+			| a_expr NOT_LA ILIKE a_expr						%prec NOT_LA
+				{
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_ILIKE, "!~~*",
+												   $1, $4, @2);
+				}
+			| a_expr NOT_LA ILIKE a_expr ESCAPE a_expr			%prec NOT_LA
+				{
+					FuncCall *n = makeFuncCall(SystemFuncName("like_escape"),
+											   list_make2($4, $6),
+											   COERCE_EXPLICIT_CALL,
+											   @2);
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_ILIKE, "!~~*",
+												   $1, (Node *) n, @2);
+				}
+
+			| a_expr SIMILAR TO a_expr							%prec SIMILAR
+				{
+					FuncCall *n = makeFuncCall(SystemFuncName("similar_to_escape"),
+											   list_make1($4),
+											   COERCE_EXPLICIT_CALL,
+											   @2);
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_SIMILAR, "~",
+												   $1, (Node *) n, @2);
+				}
+			| a_expr SIMILAR TO a_expr ESCAPE a_expr			%prec SIMILAR
+				{
+					FuncCall *n = makeFuncCall(SystemFuncName("similar_to_escape"),
+											   list_make2($4, $6),
+											   COERCE_EXPLICIT_CALL,
+											   @2);
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_SIMILAR, "~",
+												   $1, (Node *) n, @2);
+				}
+			| a_expr NOT_LA SIMILAR TO a_expr					%prec NOT_LA
+				{
+					FuncCall *n = makeFuncCall(SystemFuncName("similar_to_escape"),
+											   list_make1($5),
+											   COERCE_EXPLICIT_CALL,
+											   @2);
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_SIMILAR, "!~",
+												   $1, (Node *) n, @2);
+				}
+			| a_expr NOT_LA SIMILAR TO a_expr ESCAPE a_expr		%prec NOT_LA
+				{
+					FuncCall *n = makeFuncCall(SystemFuncName("similar_to_escape"),
+											   list_make2($5, $7),
+											   COERCE_EXPLICIT_CALL,
+											   @2);
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_SIMILAR, "!~",
+												   $1, (Node *) n, @2);
+				}
+			| a_expr IS NULL_P							%prec IS
+				{
+					NullTest *n = makeNode(NullTest);
+					n->arg = (Expr *) $1;
+					n->nulltesttype = IS_NULL;
+					n->location = @2;
+					$$ = (Node *)n;
+				}
+			| a_expr ISNULL
+				{
+					NullTest *n = makeNode(NullTest);
+					n->arg = (Expr *) $1;
+					n->nulltesttype = IS_NULL;
+					n->location = @2;
+					$$ = (Node *)n;
+				}
+			| a_expr IS NOT NULL_P						%prec IS
+				{
+					NullTest *n = makeNode(NullTest);
+					n->arg = (Expr *) $1;
+					n->nulltesttype = IS_NOT_NULL;
+					n->location = @2;
+					$$ = (Node *)n;
+				}
+			| a_expr NOTNULL
+				{
+					NullTest *n = makeNode(NullTest);
+					n->arg = (Expr *) $1;
+					n->nulltesttype = IS_NOT_NULL;
+					n->location = @2;
+					$$ = (Node *)n;
+				}
+			| row OVERLAPS row
+				{
+					if (list_length($1) != 2)
+						ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+								 errmsg("wrong number of parameters on left side of OVERLAPS expression"),
+								 parser_errposition(@1)));
+					if (list_length($3) != 2)
+						ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+								 errmsg("wrong number of parameters on right side of OVERLAPS expression"),
+								 parser_errposition(@3)));
+					$$ = (Node *) makeFuncCall(SystemFuncName("overlaps"),
+											   list_concat($1, $3),
+											   COERCE_SQL_SYNTAX,
+											   @2);
+				}
+			| a_expr IS TRUE_P							%prec IS
+				{
+					BooleanTest *b = makeNode(BooleanTest);
+					b->arg = (Expr *) $1;
+					b->booltesttype = IS_TRUE;
+					b->location = @2;
+					$$ = (Node *)b;
+				}
+			| a_expr IS NOT TRUE_P						%prec IS
+				{
+					BooleanTest *b = makeNode(BooleanTest);
+					b->arg = (Expr *) $1;
+					b->booltesttype = IS_NOT_TRUE;
+					b->location = @2;
+					$$ = (Node *)b;
+				}
+			| a_expr IS FALSE_P							%prec IS
+				{
+					BooleanTest *b = makeNode(BooleanTest);
+					b->arg = (Expr *) $1;
+					b->booltesttype = IS_FALSE;
+					b->location = @2;
+					$$ = (Node *)b;
+				}
+			| a_expr IS NOT FALSE_P						%prec IS
+				{
+					BooleanTest *b = makeNode(BooleanTest);
+					b->arg = (Expr *) $1;
+					b->booltesttype = IS_NOT_FALSE;
+					b->location = @2;
+					$$ = (Node *)b;
+				}
+			| a_expr IS UNKNOWN							%prec IS
+				{
+					BooleanTest *b = makeNode(BooleanTest);
+					b->arg = (Expr *) $1;
+					b->booltesttype = IS_UNKNOWN;
+					b->location = @2;
+					$$ = (Node *)b;
+				}
+			| a_expr IS NOT UNKNOWN						%prec IS
+				{
+					BooleanTest *b = makeNode(BooleanTest);
+					b->arg = (Expr *) $1;
+					b->booltesttype = IS_NOT_UNKNOWN;
+					b->location = @2;
+					$$ = (Node *)b;
+				}
+			| a_expr IS DISTINCT FROM a_expr			%prec IS
+				{
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_DISTINCT, "=", $1, $5, @2);
+				}
+			| a_expr IS NOT DISTINCT FROM a_expr		%prec IS
+				{
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_NOT_DISTINCT, "=", $1, $6, @2);
+				}
+			| a_expr BETWEEN opt_asymmetric b_expr AND a_expr		%prec BETWEEN
+				{
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_BETWEEN,
+												   "BETWEEN",
+												   $1,
+												   (Node *) list_make2($4, $6),
+												   @2);
+				}
+			| a_expr NOT_LA BETWEEN opt_asymmetric b_expr AND a_expr %prec NOT_LA
+				{
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_NOT_BETWEEN,
+												   "NOT BETWEEN",
+												   $1,
+												   (Node *) list_make2($5, $7),
+												   @2);
+				}
+			| a_expr BETWEEN SYMMETRIC b_expr AND a_expr			%prec BETWEEN
+				{
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_BETWEEN_SYM,
+												   "BETWEEN SYMMETRIC",
+												   $1,
+												   (Node *) list_make2($4, $6),
+												   @2);
+				}
+			| a_expr NOT_LA BETWEEN SYMMETRIC b_expr AND a_expr		%prec NOT_LA
+				{
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_NOT_BETWEEN_SYM,
+												   "NOT BETWEEN SYMMETRIC",
+												   $1,
+												   (Node *) list_make2($5, $7),
+												   @2);
+				}
+			| a_expr IN_P in_expr
+				{
+					if (IsA($3, SubLink))
+					{
+						SubLink *n = (SubLink *) $3;
+						n->subLinkType = ANY_SUBLINK;
+						n->subLinkId = 0;
+						n->testexpr = $1;
+						n->operName = NIL;		
+						n->location = @2;
+						$$ = (Node *)n;
+					}
+					else
+					{
+						$$ = (Node *) makeSimpleA_Expr(AEXPR_IN, "=", $1, $3, @2);
+					}
+				}
+			| a_expr NOT IN_P in_expr						%prec NOT
+				{
+					if (IsA($4, SubLink))
+					{
+						SubLink *n = (SubLink *) $4;
+						n->subLinkType = ANY_SUBLINK;
+						n->subLinkId = 0;
+						n->testexpr = $1;
+						n->operName = NIL;	
+						n->location = @2;
+						$$ = makeNotExpr((Node *) n, @2);
+					}
+					else
+					{
+						$$ = (Node *) makeSimpleA_Expr(AEXPR_IN, "<>", $1, $4, @2);
+					}
+				}
+			| a_expr subquery_Op sub_type select_with_parens	%prec Op
+				{
+					SubLink *n = makeNode(SubLink);
+					n->subLinkType = $3;
+					n->subLinkId = 0;
+					n->testexpr = $1;
+					n->operName = $2;
+					n->subselect = $4;
+					n->location = @2;
+					$$ = (Node *)n;
+				}
+			| a_expr subquery_Op sub_type '(' a_expr ')'		%prec Op
+				{
+					if ($3 == ANY_SUBLINK)
+						$$ = (Node *) makeA_Expr(AEXPR_OP_ANY, $2, $1, $5, @2);
+					else
+						$$ = (Node *) makeA_Expr(AEXPR_OP_ALL, $2, $1, $5, @2);
+				}
+			| UNIQUE select_with_parens
+				{
+					ereport(ERROR,
+							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+							 errmsg("UNIQUE predicate is not yet implemented"),
+							 parser_errposition(@1)));
+				}
+			| a_expr IS DOCUMENT_P					%prec IS
+				{
+					$$ = makeXmlExpr(IS_DOCUMENT, NULL, NIL,
+									 list_make1($1), @2);
+				}
+			| a_expr IS NOT DOCUMENT_P				%prec IS
+				{
+					$$ = makeNotExpr(makeXmlExpr(IS_DOCUMENT, NULL, NIL,
+												 list_make1($1), @2),
+									 @2);
+				}
+			| a_expr IS NORMALIZED								%prec IS
+				{
+					$$ = (Node *) makeFuncCall(SystemFuncName("is_normalized"),
+											   list_make1($1),
+											   COERCE_SQL_SYNTAX,
+											   @2);
+				}
+			| a_expr IS unicode_normal_form NORMALIZED			%prec IS
+				{
+					$$ = (Node *) makeFuncCall(SystemFuncName("is_normalized"),
+											   list_make2($1, makeStringConst($3, @3)),
+											   COERCE_SQL_SYNTAX,
+											   @2);
+				}
+			| a_expr IS NOT NORMALIZED							%prec IS
+				{
+					$$ = makeNotExpr((Node *) makeFuncCall(SystemFuncName("is_normalized"),
+														   list_make1($1),
+														   COERCE_SQL_SYNTAX,
+														   @2),
+									 @2);
+				}
+			| a_expr IS NOT unicode_normal_form NORMALIZED		%prec IS
+				{
+					$$ = makeNotExpr((Node *) makeFuncCall(SystemFuncName("is_normalized"),
+														   list_make2($1, makeStringConst($4, @4)),
+														   COERCE_SQL_SYNTAX,
+														   @2),
+									 @2);
+				}
+			| DEFAULT
+				{
+
+					SetToDefault *n = makeNode(SetToDefault);
+					n->location = @1;
+					$$ = (Node *)n;
+				}*/
+		;
+
+/*
+ * Restricted expressions
+ *
+ * b_expr is a subset of the complete expression syntax defined by a_expr.
+ *
+ * Presently, AND, NOT, IS, and IN are the a_expr keywords that would
+ * cause trouble in the places where b_expr is used.  For simplicity, we
+ * just eliminate all the boolean-keyword-operator productions from b_expr.
+ */
+b_expr:		c_expr
+				{ $$ = $1; }
+			/*| b_expr TYPECAST Typename
+				{ $$ = makeTypeCast($1, $3, @2); }
+			| '+' b_expr					%prec UMINUS
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "+", NULL, $2, @1); }
+			| '-' b_expr					%prec UMINUS
+				{ $$ = doNegate($2, @1); }
+			| b_expr '+' b_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "+", $1, $3, @2); }
+			| b_expr '-' b_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "-", $1, $3, @2); }
+			| b_expr '*' b_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "*", $1, $3, @2); }
+			| b_expr '/' b_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "/", $1, $3, @2); }
+			| b_expr '%' b_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "%", $1, $3, @2); }
+			| b_expr '^' b_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "^", $1, $3, @2); }
+			| b_expr '<' b_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "<", $1, $3, @2); }
+			| b_expr '>' b_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, ">", $1, $3, @2); }
+			| b_expr '=' b_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "=", $1, $3, @2); }
+			| b_expr LESS_EQUALS b_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "<=", $1, $3, @2); }
+			| b_expr GREATER_EQUALS b_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, ">=", $1, $3, @2); }
+			| b_expr NOT_EQUALS b_expr
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "<>", $1, $3, @2); }
+			| b_expr qual_Op b_expr				%prec Op
+				{ $$ = (Node *) makeA_Expr(AEXPR_OP, $2, $1, $3, @2); }
+			| qual_Op b_expr					%prec Op
+				{ $$ = (Node *) makeA_Expr(AEXPR_OP, $1, NULL, $2, @1); }
+			| b_expr IS DISTINCT FROM b_expr		%prec IS
+				{
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_DISTINCT, "=", $1, $5, @2);
+				}
+			| b_expr IS NOT DISTINCT FROM b_expr	%prec IS
+				{
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_NOT_DISTINCT, "=", $1, $6, @2);
+				}
+			| b_expr IS DOCUMENT_P					%prec IS
+				{
+					$$ = makeXmlExpr(IS_DOCUMENT, NULL, NIL,
+									 list_make1($1), @2);
+				}
+			| b_expr IS NOT DOCUMENT_P				%prec IS
+				{
+					$$ = makeNotExpr(makeXmlExpr(IS_DOCUMENT, NULL, NIL,
+												 list_make1($1), @2),
+									 @2);
+				}*/
+		;
+
+/*
+ * Productions that can be used in both a_expr and b_expr.
+ *
+ * Note: productions that refer recursively to a_expr or b_expr mostly
+ * cannot appear here.	However, it's OK to refer to a_exprs that occur
+ * inside parentheses, such as function arguments; that cannot introduce
+ * ambiguity to the b_expr syntax.
+ */
+c_expr:		columnref								{ $$ = $1; }
+			/*| AexprConst							{ $$ = $1; }
+			| PARAM opt_indirection
+				{
+					ParamRef *p = makeNode(ParamRef);
+					p->number = $1;
+					p->location = @1;
+					if ($2)
+					{
+						A_Indirection *n = makeNode(A_Indirection);
+						n->arg = (Node *) p;
+						n->indirection = check_indirection($2, yyscanner);
+						$$ = (Node *) n;
+					}
+					else
+						$$ = (Node *) p;
+				}
+			| '(' a_expr ')' opt_indirection
+				{
+					if ($4)
+					{
+						A_Indirection *n = makeNode(A_Indirection);
+						n->arg = $2;
+						n->indirection = check_indirection($4, yyscanner);
+						$$ = (Node *)n;
+					}
+					else
+						$$ = $2;
+				}
+			| case_expr
+				{ $$ = $1; }
+			| func_expr
+				{ $$ = $1; }
+			| select_with_parens			%prec UMINUS
+				{
+					SubLink *n = makeNode(SubLink);
+					n->subLinkType = EXPR_SUBLINK;
+					n->subLinkId = 0;
+					n->testexpr = NULL;
+					n->operName = NIL;
+					n->subselect = $1;
+					n->location = @1;
+					$$ = (Node *)n;
+				}
+			| select_with_parens indirection
+				{
+
+					SubLink *n = makeNode(SubLink);
+					A_Indirection *a = makeNode(A_Indirection);
+					n->subLinkType = EXPR_SUBLINK;
+					n->subLinkId = 0;
+					n->testexpr = NULL;
+					n->operName = NIL;
+					n->subselect = $1;
+					n->location = @1;
+					a->arg = (Node *)n;
+					a->indirection = check_indirection($2, yyscanner);
+					$$ = (Node *)a;
+				}
+			| EXISTS select_with_parens
+				{
+					SubLink *n = makeNode(SubLink);
+					n->subLinkType = EXISTS_SUBLINK;
+					n->subLinkId = 0;
+					n->testexpr = NULL;
+					n->operName = NIL;
+					n->subselect = $2;
+					n->location = @1;
+					$$ = (Node *)n;
+				}
+			| ARRAY select_with_parens
+				{
+					SubLink *n = makeNode(SubLink);
+					n->subLinkType = ARRAY_SUBLINK;
+					n->subLinkId = 0;
+					n->testexpr = NULL;
+					n->operName = NIL;
+					n->subselect = $2;
+					n->location = @1;
+					$$ = (Node *)n;
+				}
+			| ARRAY array_expr
+				{
+					A_ArrayExpr *n = castNode(A_ArrayExpr, $2);
+				
+					n->location = @1;
+					$$ = (Node *)n;
+				}
+			| explicit_row
+				{
+					RowExpr *r = makeNode(RowExpr);
+					r->args = $1;
+					r->row_typeid = InvalidOid;	
+					r->colnames = NIL;
+					r->row_format = COERCE_EXPLICIT_CALL;
+					r->location = @1;
+					$$ = (Node *)r;
+				}
+			| implicit_row
+				{
+					RowExpr *r = makeNode(RowExpr);
+					r->args = $1;
+					r->row_typeid = InvalidOid;	
+					r->colnames = NIL;
+					r->row_format = COERCE_IMPLICIT_CAST; 
+					r->location = @1;
+					$$ = (Node *)r;
+				}
+			| GROUPING '(' expr_list ')'
+			  {
+				  GroupingFunc *g = makeNode(GroupingFunc);
+				  g->args = $3;
+				  g->location = @1;
+				  $$ = (Node *)g;
+			  }*/
 		;
 
 /*****************************************************************************
@@ -2050,7 +2695,7 @@ set_item_list:
     ;
 
 set_item:
-    a_expr '=' a_expr
+    cypher_a_expr '=' cypher_a_expr
         {
             cypher_set_item *n;
 
@@ -2062,7 +2707,7 @@ set_item:
 
             $$ = (Node *)n;
         }
-   | a_expr PLUS_EQ a_expr
+   | cypher_a_expr PLUS_EQ cypher_a_expr
         {
             cypher_set_item *n;
 
@@ -2102,7 +2747,7 @@ remove_item_list:
     ;
 
 remove_item:
-    a_expr
+    cypher_a_expr
         {
             cypher_set_item *n;
 
@@ -2168,7 +2813,7 @@ where_opt:
         {
             $$ = NULL;
         }
-    | WHERE a_expr
+    | WHERE cypher_a_expr
         {
             $$ = $2;
         }
@@ -2344,104 +2989,104 @@ properties_opt:
 /*
  * expression
  */
-a_expr:
-    a_expr OR a_expr
+cypher_a_expr:
+    cypher_a_expr OR cypher_a_expr
         {
             $$ = make_or_expr($1, $3, @2);
         }
-    | a_expr AND a_expr
+    | cypher_a_expr AND cypher_a_expr
         {
             $$ = make_and_expr($1, $3, @2);
         }
-    | a_expr XOR a_expr
+    | cypher_a_expr XOR cypher_a_expr
         {
             $$ = make_xor_expr($1, $3, @2);
         }
-    | NOT a_expr
+    | NOT cypher_a_expr
         {
             $$ = make_not_expr($2, @1);
         }
-    | a_expr '=' a_expr
+    | cypher_a_expr '=' cypher_a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "=", $1, $3, @2);
         }
-    | a_expr LIKE a_expr
+    | cypher_a_expr LIKE cypher_a_expr
         {   
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~~~", $1, $3, @2);
         } 
-    | a_expr NOT LIKE a_expr
+    | cypher_a_expr NOT LIKE cypher_a_expr
         {   
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "!~~", $1, $4, @2);
         }  
-    | a_expr ILIKE a_expr
+    | cypher_a_expr ILIKE cypher_a_expr
         {   
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~~*", $1, $3, @2);
         } 
-    | a_expr NOT ILIKE a_expr
+    | cypher_a_expr NOT ILIKE cypher_a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "!~~*", $1, $4, @2);
         }  
-    | a_expr NOT_EQ a_expr
+    | cypher_a_expr NOT_EQ cypher_a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<>", $1, $3, @2);
         }
-    | a_expr '<' a_expr
+    | cypher_a_expr '<' cypher_a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<", $1, $3, @2);
         }
-    | a_expr LT_EQ a_expr
+    | cypher_a_expr LT_EQ cypher_a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<=", $1, $3, @2);
         }
-    | a_expr '>' a_expr
+    | cypher_a_expr '>' cypher_a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, ">", $1, $3, @2);
         }
-    | a_expr GT_EQ a_expr
+    | cypher_a_expr GT_EQ cypher_a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, ">=", $1, $3, @2);
         }
-    | a_expr '+' a_expr
+    | cypher_a_expr '+' cypher_a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "+", $1, $3, @2);
         }
-    | a_expr '-' a_expr
+    | cypher_a_expr '-' cypher_a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "-", $1, $3, @2);
         }
-    | a_expr '*' a_expr
+    | cypher_a_expr '*' cypher_a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "*", $1, $3, @2);
         }
-    | a_expr '/' a_expr
+    | cypher_a_expr '/' cypher_a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "/", $1, $3, @2);
         }
-    | a_expr '%' a_expr
+    | cypher_a_expr '%' cypher_a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "%", $1, $3, @2);
         }
-    | a_expr '^' a_expr
+    | cypher_a_expr '^' cypher_a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "^", $1, $3, @2);
         }
-    | a_expr OPERATOR a_expr
+    | cypher_a_expr OPERATOR cypher_a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, $2, $1, $3, @2);
         }
-    | OPERATOR a_expr
+    | OPERATOR cypher_a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, $1, NULL, $2, @1);
         }
-    | a_expr '<' '-' '>' a_expr
+    | cypher_a_expr '<' '-' '>' cypher_a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<->", $1, $5, @3);
         }
-    | a_expr IN a_expr
+    | cypher_a_expr IN cypher_a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "@=", $1, $3, @2);
         }
-    | a_expr IS NULL_P %prec IS
+    | cypher_a_expr IS NULL_P %prec IS
         {
             NullTest *n;
 
@@ -2452,7 +3097,7 @@ a_expr:
 
             $$ = (Node *)n;
         }
-    | a_expr IS NOT NULL_P %prec IS
+    | cypher_a_expr IS NOT NULL_P %prec IS
         {
             NullTest *n;
 
@@ -2463,16 +3108,16 @@ a_expr:
 
             $$ = (Node *)n;
         }
-    | '-' a_expr %prec UNARY_MINUS
+    | '-' cypher_a_expr %prec UNARY_MINUS
         {
             $$ = do_negate($2, @1);
         
         }
-    | '~' a_expr %prec UNARY_MINUS
+    | '~' cypher_a_expr %prec UNARY_MINUS
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~", NULL, $2, @1);
         }
-    | a_expr STARTS WITH a_expr %prec STARTS
+    | cypher_a_expr STARTS WITH cypher_a_expr %prec STARTS
         {
             cypher_string_match *n;
 
@@ -2484,7 +3129,7 @@ a_expr:
 
             $$ = (Node *)n;
         }
-    | a_expr ENDS WITH a_expr %prec ENDS
+    | cypher_a_expr ENDS WITH cypher_a_expr %prec ENDS
         {
             cypher_string_match *n;
 
@@ -2496,7 +3141,7 @@ a_expr:
 
             $$ = (Node *)n;
         }
-    | a_expr CONTAINS a_expr
+    | cypher_a_expr CONTAINS cypher_a_expr
         {
             cypher_string_match *n;
 
@@ -2508,11 +3153,11 @@ a_expr:
 
             $$ = (Node *)n;
         }
-    | a_expr '~' a_expr
+    | cypher_a_expr '~' cypher_a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~", $1, $3, @2);
         }
-    | a_expr '[' a_expr ']'  %prec '.'
+    | cypher_a_expr '[' cypher_a_expr ']'  %prec '.'
         {
             A_Indices *i;
 
@@ -2523,7 +3168,7 @@ a_expr:
 
             $$ = append_indirection($1, (Node *)i);
         }
-    | a_expr '[' expr_opt DOT_DOT expr_opt ']'
+    | cypher_a_expr '[' expr_opt DOT_DOT expr_opt ']'
         {
             A_Indices *i;
 
@@ -2534,19 +3179,19 @@ a_expr:
 
             $$ = append_indirection($1, (Node *)i);
         }
-    | a_expr '.' a_expr
+    | cypher_a_expr '.' cypher_a_expr
         {
             $$ = append_indirection($1, $3);
         }
-    | a_expr TYPECAST schema_name
+    | cypher_a_expr TYPECAST schema_name
         {
             $$ = make_typecast_expr($1, $3, @2);
         }
-    | temporal_cast a_expr %prec TYPECAST
+    | temporal_cast cypher_a_expr %prec TYPECAST
         {
             $$ = make_typecast_expr($2, $1, @1);
         }
-    | a_expr all_op ALL in_expr //%prec OPERATOR
+    | cypher_a_expr all_op ALL in_expr //%prec OPERATOR
         {
             cypher_sub_pattern *sub = $4;
             sub->kind = CSP_ALL;
@@ -2561,7 +3206,7 @@ a_expr:
             $$ = (Node *) n;
 
         }
-    | a_expr all_op ANY in_expr //%prec OPERATOR
+    | cypher_a_expr all_op ANY in_expr //%prec OPERATOR
         {
             cypher_sub_pattern *sub = $4;
 
@@ -2575,7 +3220,7 @@ a_expr:
             $$ = (Node *) n;
 
         }
-    | a_expr all_op SOME in_expr //%prec OPERATOR
+    | cypher_a_expr all_op SOME in_expr //%prec OPERATOR
         {
             cypher_sub_pattern *sub = $4;
 
@@ -2660,15 +3305,15 @@ expr_opt:
         {
             $$ = NULL;
         }
-    | a_expr
+    | cypher_a_expr
     ;
 
 expr_list:
-    a_expr
+    cypher_a_expr
         {
             $$ = list_make1($1);
         }
-    | expr_list ',' a_expr
+    | expr_list ',' cypher_a_expr
         {
             $$ = lappend($1, $3);
         }
@@ -2729,7 +3374,7 @@ within_group_clause:
 ; 
 
 filter_clause:
-     FILTER '(' WHERE a_expr ')' { $$ = $4; }
+     FILTER '(' WHERE cypher_a_expr ')' { $$ = $4; }
      | /*EMPTY*/               { $$ = NULL; }
      ;      
 
@@ -2910,7 +3555,7 @@ frame_bound:
               n->endOffset = NULL;
               $$ = n;
           }
-     | a_expr PRECEDING
+     | cypher_a_expr PRECEDING
           {
               WindowDef *n = makeNode(WindowDef);
               n->frameOptions = FRAMEOPTION_START_OFFSET_PRECEDING;
@@ -2918,7 +3563,7 @@ frame_bound:
               n->endOffset = NULL;
               $$ = n;
           }
-     | a_expr FOLLOWING
+     | cypher_a_expr FOLLOWING
           {
               WindowDef *n = makeNode(WindowDef);
               n->frameOptions = FRAMEOPTION_START_OFFSET_FOLLOWING;
@@ -3018,13 +3663,13 @@ expr_func_subexpr:
         {
             $$ = makeSQLValueFunction(SVFOP_LOCALTIMESTAMP, $3, @1);
         }
-    | EXTRACT '(' IDENTIFIER FROM a_expr ')'
+    | EXTRACT '(' IDENTIFIER FROM cypher_a_expr ')'
         {
             $$ = (Node *)makeFuncCall(list_make1(makeString($1)),
                                       list_make2(make_string_const($3, @3), $5),
                                       COERCE_SQL_SYNTAX, @1);
         }
-    | '(' a_expr ',' a_expr ')' OVERLAPS '(' a_expr ',' a_expr ')'
+    | '(' cypher_a_expr ',' cypher_a_expr ')' OVERLAPS '(' cypher_a_expr ',' cypher_a_expr ')'
         {
             $$ = makeFuncCall(list_make1(makeString("overlaps")), list_make4($2, $4, $8, $10), COERCE_SQL_SYNTAX, @6);
         }
@@ -3091,7 +3736,7 @@ expr_atom:
 
             $$ = (Node *)n;
         }
-    | '(' a_expr ')'
+    | '(' cypher_a_expr ')'
         {
             $$ = $2;
         }
@@ -3202,11 +3847,11 @@ map_keyval_list_opt:
     ;
 
 map_keyval_list:
-    property_key_name ':' a_expr
+    property_key_name ':' cypher_a_expr
         {
             $$ = list_make2(makeString($1), $3);
         }
-    | map_keyval_list ',' property_key_name ':' a_expr
+    | map_keyval_list ',' property_key_name ':' cypher_a_expr
         {
             $$ = lappend(lappend($1, makeString($3)), $5);
         }
@@ -3225,7 +3870,7 @@ list:
     ;
 
 expr_case:
-    CASE a_expr expr_case_when_list expr_case_default END_P
+    CASE cypher_a_expr expr_case_when_list expr_case_default END_P
         {
             CaseExpr *n;
 
@@ -3262,7 +3907,7 @@ expr_case_when_list:
     ;
 
 expr_case_when:
-    WHEN a_expr THEN a_expr
+    WHEN cypher_a_expr THEN cypher_a_expr
         {
             CaseWhen   *n;
 
@@ -3275,7 +3920,7 @@ expr_case_when:
     ;
 
 expr_case_default:
-    ELSE a_expr
+    ELSE cypher_a_expr
         {
             $$ = $2;
         }
@@ -3685,4 +4330,79 @@ doNegateFloat(Value *v)
 		v->val.str = oldval+1;	/* just strip the '-' */
 	else
 		v->val.str = psprintf("-%s", oldval);
+}
+
+
+static Node *
+makeColumnRef(char *colname, List *indirection,
+			  int location, ag_scanner_t yyscanner)
+{
+	/*
+	 * Generate a ColumnRef node, with an A_Indirection node added if there
+	 * is any subscripting in the specified indirection list.  However,
+	 * any field selection at the start of the indirection list must be
+	 * transposed into the "fields" part of the ColumnRef node.
+	 */
+	ColumnRef  *c = makeNode(ColumnRef);
+	int		nfields = 0;
+	ListCell *l;
+
+	c->location = location;
+	foreach(l, indirection)
+	{
+		if (IsA(lfirst(l), A_Indices))
+		{
+			A_Indirection *i = makeNode(A_Indirection);
+
+			if (nfields == 0)
+			{
+				/* easy case - all indirection goes to A_Indirection */
+				c->fields = list_make1(makeString(colname));
+				i->indirection = check_indirection(indirection, yyscanner);
+			}
+			else
+			{
+				/* got to split the list in two */
+				i->indirection = check_indirection(list_copy_tail(indirection,
+																  nfields),
+												   yyscanner);
+				indirection = list_truncate(indirection, nfields);
+				c->fields = lcons(makeString(colname), indirection);
+			}
+			i->arg = (Node *) c;
+			return (Node *) i;
+		}
+		else if (IsA(lfirst(l), A_Star))
+		{
+			/* We only allow '*' at the end of a ColumnRef */
+			if (lnext(indirection, l) != NULL)
+				parser_yyerror("improper use of \"*\"");
+		}
+		nfields++;
+	}
+	/* No subscripting, so all indirection gets added to field list */
+	c->fields = lcons(makeString(colname), indirection);
+	return (Node *) c;
+}
+
+
+/* check_indirection --- check the result of indirection production
+ *
+ * We only allow '*' at the end of the list, but it's hard to enforce that
+ * in the grammar, so do it here.
+ */
+static List *
+check_indirection(List *indirection, ag_scanner_t yyscanner)
+{
+	ListCell *l;
+
+	foreach(l, indirection)
+	{
+		if (IsA(lfirst(l), A_Star))
+		{
+			if (lnext(indirection, l) != NULL)
+				parser_yyerror("improper use of \"*\"");
+		}
+	}
+	return indirection;
 }

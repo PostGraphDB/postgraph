@@ -67,6 +67,14 @@ SELECT ALL;
 
 SELECT *;
 SELECT * FROM tst;
+SELECT tst.i FROM tst;
+
+SELECT a.i FROM tst AS a;
+SELECT a.i FROM tst a;
+
+SELECT a.j FROM tst AS a(j);
+--SELECT a.j FROM tst a(j);
+
 
 DROP GRAPH new_cypher CASCADE;
 DROP GRAPH new_cypher_2 CASCADE;

@@ -123,6 +123,26 @@ SELECT * FROM tst;
 ---
 (0 rows)
 
+SELECT tst.i FROM tst;
+ i 
+---
+(0 rows)
+
+SELECT a.i FROM tst AS a;
+ i 
+---
+(0 rows)
+
+SELECT a.i FROM tst a;
+ i 
+---
+(0 rows)
+
+SELECT a.j FROM tst AS a(j);
+ERROR:  syntax error at or near "("
+LINE 1: SELECT a.j FROM tst AS a(j);
+                                ^
+--SELECT a.j FROM tst a(j);
 DROP GRAPH new_cypher CASCADE;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table new_cypher._ag_label_vertex
