@@ -85,6 +85,7 @@ SELECT a.* FROM tst as a;
 
 SELECT a.i as j FROM tst a GROUP BY a.i;
 
+SELECT a.i as j FROM tst a GROUP BY a.i HAVING a.i = a.i;
 
 DROP GRAPH new_cypher CASCADE;
 DROP GRAPH new_cypher_2 CASCADE;

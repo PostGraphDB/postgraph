@@ -144,7 +144,7 @@ typedef struct GroupClause
 
 %type <node> where_clause
              a_expr b_expr c_expr indirection_el
-             columnref 
+             columnref having_clause
 
 %type <integer> set_quantifier
 %type <target>	target_el 
@@ -530,7 +530,7 @@ simple_select:
 			SELECT opt_all_clause opt_target_list
 			//into_clause 
             from_clause where_clause group_clause
-			group_clause //having_clause window_clause
+			 having_clause //window_clause
 				{
 					SelectStmt *n = makeNode(SelectStmt);
 					/*n->targetList = $3;
@@ -547,7 +547,7 @@ simple_select:
 					n->whereClause = $5;
 					n->groupClause = ($6)->list;
 					n->groupDistinct = ($6)->distinct;
-					n->havingClause = NULL;
+					n->havingClause = $7;
 					n->windowClause = NULL;
 					$$ = (Node *)n;
 				}
@@ -1294,6 +1294,12 @@ empty_grouping_set:
         $$ = (Node *) makeGroupingSet(GROUPING_SET_EMPTY, NIL, @1);
     }
 ;
+
+having_clause:
+			HAVING a_expr							{ $$ = $2; }
+			| /*EMPTY*/								{ $$ = NULL; }
+		;
+
 
 return:
     RETURN DISTINCT return_item_list group_by_opt having_opt window_clause order_by_opt skip_opt limit_opt

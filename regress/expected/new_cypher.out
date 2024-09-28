@@ -168,6 +168,11 @@ SELECT a.i as j FROM tst a GROUP BY a.i;
 ---
 (0 rows)
 
+SELECT a.i as j FROM tst a GROUP BY a.i HAVING a.i = a.i;
+ j 
+---
+(0 rows)
+
 DROP GRAPH new_cypher CASCADE;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table new_cypher._ag_label_vertex
