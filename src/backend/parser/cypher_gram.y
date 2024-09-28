@@ -1838,11 +1838,11 @@ indirection_el:
 				{
 					$$ = (Node *) makeString($2);
 				}
-			/*| '.' '*'
+			| '.' '*'
 				{
 					$$ = (Node *) makeNode(A_Star);
 				}
-			| '[' cypher_a_expr ']'
+			/*| '[' a_expr ']'
 				{
 					A_Indices *ai = makeNode(A_Indices);
 					ai->is_slice = false;
