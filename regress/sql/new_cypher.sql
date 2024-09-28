@@ -110,5 +110,11 @@ SELECT * FROM tst;
 
 SELECT '"Hello"'::gtype = '"Hello"'::gtype;
 
+SELECT '{"Hello": "World"}'::gtype <@ '"Hello"'::gtype;
+
+SELECT true AND false;
+SELECT true OR false;
+SELECT NOT false;
+
 DROP GRAPH new_cypher CASCADE;
 DROP GRAPH new_cypher_2 CASCADE;

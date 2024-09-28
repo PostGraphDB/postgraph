@@ -95,6 +95,9 @@ static Node *makeFloatConst(char *str, int location);
 static Node *makeBoolAConst(bool state, int location);
 static Node *makeNullAConst(int location);
 static Node *makeTypeCast(Node *arg, TypeName *typename, int location);
+static Node *makeAndExpr(Node *lexpr, Node *rexpr, int location);
+static Node *makeOrExpr(Node *lexpr, Node *rexpr, int location);
+static Node *makeNotExpr(Node *expr, int location);
 %}
 
 %locations
@@ -2178,27 +2181,25 @@ a_expr:		c_expr									{ $$ = $1; }
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, ">", $1, $3, @2); }
 			| a_expr '=' a_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "=", $1, $3, @2); }
-			/*| a_expr LESS_EQUALS a_expr
+			| a_expr LT_EQ a_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "<=", $1, $3, @2); }
-			| a_expr GREATER_EQUALS a_expr
+			| a_expr GT_EQ a_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, ">=", $1, $3, @2); }
-			| a_expr NOT_EQUALS a_expr
+			| a_expr NOT_EQ a_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "<>", $1, $3, @2); }
-
-			| a_expr qual_Op a_expr			//	%prec Op
+/*
+			| a_expr OPERATOR a_expr			//	%prec Op
 				{ $$ = (Node *) makeA_Expr(AEXPR_OP, $2, $1, $3, @2); }
-			| qual_Op a_expr				//	%prec Op
+			| OPERATOR a_expr				//	%prec Op
 				{ $$ = (Node *) makeA_Expr(AEXPR_OP, $1, NULL, $2, @1); }
-
+*/
 			| a_expr AND a_expr
 				{ $$ = makeAndExpr($1, $3, @2); }
 			| a_expr OR a_expr
 				{ $$ = makeOrExpr($1, $3, @2); }
 			| NOT a_expr
 				{ $$ = makeNotExpr($2, @1); }
-			| NOT_LA a_expr						%prec NOT
-				{ $$ = makeNotExpr($2, @1); }
-
+			/*
 			| a_expr LIKE a_expr
 				{
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_LIKE, "~~",
@@ -4957,4 +4958,45 @@ makeNullAConst(int location)
 	n->location = location;
 
 	return (Node *)n;
+}
+
+
+static Node *
+makeAndExpr(Node *lexpr, Node *rexpr, int location)
+{
+	/* Flatten "a AND b AND c ..." to a single BoolExpr on sight */
+	if (IsA(lexpr, BoolExpr))
+	{
+		BoolExpr *blexpr = (BoolExpr *) lexpr;
+
+		if (blexpr->boolop == AND_EXPR)
+		{
+			blexpr->args = lappend(blexpr->args, rexpr);
+			return (Node *) blexpr;
+		}
+	}
+	return (Node *) makeBoolExpr(AND_EXPR, list_make2(lexpr, rexpr), location);
+}
+
+static Node *
+makeOrExpr(Node *lexpr, Node *rexpr, int location)
+{
+	/* Flatten "a OR b OR c ..." to a single BoolExpr on sight */
+	if (IsA(lexpr, BoolExpr))
+	{
+		BoolExpr *blexpr = (BoolExpr *) lexpr;
+
+		if (blexpr->boolop == OR_EXPR)
+		{
+			blexpr->args = lappend(blexpr->args, rexpr);
+			return (Node *) blexpr;
+		}
+	}
+	return (Node *) makeBoolExpr(OR_EXPR, list_make2(lexpr, rexpr), location);
+}
+
+static Node *
+makeNotExpr(Node *expr, int location)
+{
+	return (Node *) makeBoolExpr(NOT_EXPR, list_make1(expr), location);
 }

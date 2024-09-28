@@ -219,6 +219,28 @@ SELECT '"Hello"'::gtype = '"Hello"'::gtype;
  t
 (1 row)
 
+SELECT '{"Hello": "World"}'::gtype <@ '"Hello"'::gtype;
+ERROR:  syntax error at or near "<@"
+LINE 1: SELECT '{"Hello": "World"}'::gtype <@ '"Hello"'::gtype;
+                                           ^
+SELECT true AND false;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT true OR false;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT NOT false;
+ ?column? 
+----------
+ t
+(1 row)
+
 DROP GRAPH new_cypher CASCADE;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table new_cypher._ag_label_vertex
