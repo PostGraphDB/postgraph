@@ -51,6 +51,14 @@
 
 #define parser_yyerror(msg)  scanner_yyerror(msg, yyscanner)
 #define parser_errposition(pos)  scanner_errposition(pos, yyscanner)
+
+/* Private struct for the result of group_clause production */
+typedef struct GroupClause
+{
+	bool	distinct;
+	List   *list;
+} GroupClause;
+
 %}
 
 %locations
@@ -82,6 +90,7 @@
     struct Value *value;
     struct ResTarget *target;
     struct Alias *alias;
+    struct GroupClause  *groupclause;
 }
 
 %token <integer> INTEGER
@@ -136,12 +145,18 @@
 %type <node> where_clause
              a_expr b_expr c_expr indirection_el
              columnref 
+
+%type <integer> set_quantifier
 %type <target>	target_el 
 %type <node>	table_ref
 %type <range>	relation_expr
 %type <range>	relation_expr_opt_alias
 %type <alias>	alias_clause opt_alias_clause 
 %type <node> clause
+%type <groupclause> group_clause
+%type <list>	group_by_list
+%type <node>	group_by_item 
+%type <node>	grouping_sets_clause
 
 /* RETURN and WITH clause */
 %type <node> empty_grouping_set cube_clause rollup_clause group_item having_opt return return_item sort_item skip_opt limit_opt with
@@ -514,8 +529,8 @@ select_clause:
 simple_select:
 			SELECT opt_all_clause opt_target_list
 			//into_clause 
-            from_clause where_clause
-			//group_clause having_clause window_clause
+            from_clause where_clause group_clause
+			group_clause //having_clause window_clause
 				{
 					SelectStmt *n = makeNode(SelectStmt);
 					/*n->targetList = $3;
@@ -529,9 +544,9 @@ simple_select:
                     n->targetList = $3;
 					n->intoClause = NULL;
 					n->fromClause = $4;
-					n->whereClause = NULL;
-					n->groupClause = NULL;
-					n->groupDistinct = NULL;
+					n->whereClause = $5;
+					n->groupClause = ($6)->list;
+					n->groupDistinct = ($6)->distinct;
 					n->havingClause = NULL;
 					n->windowClause = NULL;
 					$$ = (Node *)n;
@@ -1176,6 +1191,48 @@ having_opt:
         }
 ;
 
+/*
+ * This syntax for group_clause tries to follow the spec quite closely.
+ * However, the spec allows only column references, not expressions,
+ * which introduces an ambiguity between implicit row constructors
+ * (a,b) and lists of column references.
+ *
+ * We handle this by using the a_expr production for what the spec calls
+ * <ordinary grouping set>, which in the spec represents either one column
+ * reference or a parenthesized list of column references. Then, we check the
+ * top node of the a_expr to see if it's an implicit RowExpr, and if so, just
+ * grab and use the list, discarding the node. (this is done in parse analysis,
+ * not here)
+ *
+ * (we abuse the row_format field of RowExpr to distinguish implicit and
+ * explicit row constructors; it's debatable if anyone sanely wants to use them
+ * in a group clause, but if they have a reason to, we make it possible.)
+ *
+ * Each item in the group_clause list is either an expression tree or a
+ * GroupingSet node of some type.
+ */
+group_clause:
+			GROUP BY set_quantifier group_by_list
+				{
+					GroupClause *n = (GroupClause *) palloc(sizeof(GroupClause));
+					n->distinct = $3 == SET_QUANTIFIER_DISTINCT;
+					n->list = $4;
+					$$ = n;
+				}
+			| /*EMPTY*/
+				{
+					GroupClause *n = (GroupClause *) palloc(sizeof(GroupClause));
+					n->distinct = false;
+					n->list = NIL;
+					$$ = n;
+				}
+		;
+
+set_quantifier:
+			ALL										{ $$ = SET_QUANTIFIER_ALL; }
+			| DISTINCT								{ $$ = SET_QUANTIFIER_DISTINCT; }
+			| /*EMPTY*/								{ $$ = SET_QUANTIFIER_DEFAULT; }
+		;
 
 group_by_opt:
     /* empty */
@@ -1187,7 +1244,24 @@ group_by_opt:
             $$ = $3;
         }
 ;
+group_by_list:
+			group_by_item							{ $$ = list_make1($1); }
+			| group_by_list ',' group_by_item		{ $$ = lappend($1,$3); }
+		;
 
+group_by_item:
+			a_expr									{ $$ = $1; }
+			| empty_grouping_set					{ $$ = $1; }
+			| cube_clause							{ $$ = $1; }
+			| rollup_clause							{ $$ = $1; }
+			| grouping_sets_clause					{ $$ = $1; }
+		;
+grouping_sets_clause:
+			GROUPING SETS '(' group_by_list ')'
+				{
+					$$ = (Node *) makeGroupingSet(GROUPING_SET_SETS, $4, @1);
+				}
+		;
 group_item_list:
     group_item { $$ = list_make1($1); }
         | group_item_list ',' group_item { $$ = lappend($1, $3); }

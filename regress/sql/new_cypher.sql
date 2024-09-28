@@ -82,5 +82,9 @@ SELECT i FROM tst WHERE i > i;
 --SELECT a.j FROM tst a(j);
 SELECT a.* FROM tst as a;
 
+
+SELECT a.i as j FROM tst a GROUP BY a.i;
+
+
 DROP GRAPH new_cypher CASCADE;
 DROP GRAPH new_cypher_2 CASCADE;
