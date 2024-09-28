@@ -82,6 +82,7 @@ typedef struct GroupClause
 	List   *list;
 } GroupClause;
 
+static Node *makeSetOp(SetOperation op, bool all, Node *larg, Node *rarg);
 static void insertSelectOptions(SelectStmt *stmt,
 								List *sortClause, List *lockingClause,
 								SelectLimit *limitClause,
@@ -615,7 +616,7 @@ simple_select:
 					n->targetList = list_make1(rt);
 					n->fromClause = list_make1($2);
 					$$ = (Node *)n;
-				}
+				}*/
 			| select_clause UNION set_quantifier select_clause
 				{
 					$$ = makeSetOp(SETOP_UNION, $3 == SET_QUANTIFIER_ALL, $1, $4);
@@ -627,7 +628,7 @@ simple_select:
 			| select_clause EXCEPT set_quantifier select_clause
 				{
 					$$ = makeSetOp(SETOP_EXCEPT, $3 == SET_QUANTIFIER_ALL, $1, $4);
-				}*/
+				}
 		;
 
 
@@ -4695,4 +4696,16 @@ insertSelectOptions(SelectStmt *stmt,
 					 parser_errposition(exprLocation((Node *) withClause))));
 		stmt->withClause = withClause;
 	}
+}
+
+static Node *
+makeSetOp(SetOperation op, bool all, Node *larg, Node *rarg)
+{
+	SelectStmt *n = makeNode(SelectStmt);
+
+	n->op = op;
+	n->all = all;
+	n->larg = (SelectStmt *) larg;
+	n->rarg = (SelectStmt *) rarg;
+	return (Node *) n;
 }

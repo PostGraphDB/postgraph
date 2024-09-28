@@ -184,6 +184,27 @@ SELECT sum(salary) OVER w, avg(salary) OVER w
 ERROR:  syntax error at or near "("
 LINE 1: SELECT sum(salary) OVER w, avg(salary) OVER w
                   ^
+SELECT a.i FROM tst a
+UNION
+SELECT a.i FROM tst a;
+ i 
+---
+(0 rows)
+
+SELECT a.i FROM tst a
+EXCEPT
+SELECT a.i FROM tst a;
+ i 
+---
+(0 rows)
+
+SELECT a.i FROM tst a
+INTERSECT
+SELECT a.i FROM tst a;
+ i 
+---
+(0 rows)
+
 DROP GRAPH new_cypher CASCADE;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table new_cypher._ag_label_vertex
