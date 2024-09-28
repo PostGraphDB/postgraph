@@ -219,7 +219,7 @@
              any_name attrs opt_class
 %type <defelt>	def_elem reloption_elem
 %type <string> Sconst 
-%type <string> ColId  ColLabel
+%type <string> ColId  ColLabel BareColLabel
 %type <string> NonReservedWord_or_Sconst name
 %type <list> create_extension_opt_list
 %type <defelt> create_extension_opt_item
@@ -611,7 +611,7 @@ target_list:
 			| target_list ',' target_el				{ $$ = lappend($1, $3); }
 		;
 
-target_el:	/*a_expr AS ColLabel
+target_el:	a_expr AS ColLabel
 				{
 					$$ = makeNode(ResTarget);
 					$$->name = $3;
@@ -627,7 +627,7 @@ target_el:	/*a_expr AS ColLabel
 					$$->val = (Node *)$1;
 					$$->location = @1;
 				}
-			| */a_expr
+			| a_expr
 				{
 					$$ = makeNode(ResTarget);
 					$$->name = NULL;
@@ -1827,6 +1827,14 @@ ColLabel:	IDENTIFIER									{ $$ = $1; }
 			| type_func_name_keyword				{ $$ = pstrdup($1); }
 			| reserved_keyword						{ $$ = pstrdup($1); }
 		*/;
+
+
+/* Bare column label --- names that can be column labels without writing "AS".
+ * This classification is orthogonal to the other keyword categories.
+ */
+BareColLabel:	IDENTIFIER								{ $$ = $1; }
+			//| bare_label_keyword					{ $$ = pstrdup($1); }
+		;
 
 indirection:
 			indirection_el							{ $$ = list_make1($1); }

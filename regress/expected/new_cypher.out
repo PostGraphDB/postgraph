@@ -138,6 +138,11 @@ SELECT a.i FROM tst a;
 ---
 (0 rows)
 
+SELECT a.i as j FROM tst a;
+ j 
+---
+(0 rows)
+
 SELECT a.j FROM tst AS a(j);
 ERROR:  syntax error at or near "("
 LINE 1: SELECT a.j FROM tst AS a(j);

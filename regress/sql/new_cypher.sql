@@ -72,6 +72,9 @@ SELECT tst.i FROM tst;
 SELECT a.i FROM tst AS a;
 SELECT a.i FROM tst a;
 
+SELECT a.i as j FROM tst a;
+
+
 SELECT a.j FROM tst AS a(j);
 
 SELECT i FROM tst WHERE i = i;
