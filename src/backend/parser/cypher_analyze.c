@@ -1176,6 +1176,23 @@ CypherCreateCommandTag(Node *parsetree)
                     } else if (IsA(n, DeleteStmt)) {
                         tag = CMDTAG_DELETE;
                         break;
+                    } else if (IsA(n, VariableSetStmt)) {
+                        switch (((VariableSetStmt *) parsetree)->kind)
+                        {
+                            case VAR_SET_VALUE:
+                            case VAR_SET_CURRENT:
+                            case VAR_SET_DEFAULT:
+                            case VAR_SET_MULTI:
+                                tag = CMDTAG_SET;
+                                break;
+                            case VAR_RESET:
+                            case VAR_RESET_ALL:
+                                tag = CMDTAG_RESET;
+                                break;
+                            default:
+                                tag = CMDTAG_UNKNOWN;
+                        }
+                        break;
                     }
                 }
             }
@@ -1404,7 +1421,7 @@ cypher_parse_analyze(RawStmt *parseTree, const char *sourceText,
       Node *n = linitial(parseTree->stmt);
 
       if (IsA(n, CreateExtensionStmt) || IsA(n,CreateStmt) || IsA(n, SelectStmt) || IsA(n, InsertStmt)
-      || IsA(n, UpdateStmt) || IsA(n, DeleteStmt)) {
+      || IsA(n, UpdateStmt) || IsA(n, DeleteStmt) || IsA(n, VariableSetStmt)) {
 	        query = parse_analyze((makeRawStmt(n, 0)), sourceText, paramTypes, numParams,
 						  queryEnv);
 

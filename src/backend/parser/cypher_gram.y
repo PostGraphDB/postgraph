@@ -98,6 +98,7 @@ static Node *makeTypeCast(Node *arg, TypeName *typename, int location);
 static Node *makeAndExpr(Node *lexpr, Node *rexpr, int location);
 static Node *makeOrExpr(Node *lexpr, Node *rexpr, int location);
 static Node *makeNotExpr(Node *expr, int location);
+static Node *makeAConst(Value *v, int location);
 %}
 
 %locations
@@ -132,6 +133,7 @@ static Node *makeNotExpr(Node *expr, int location);
     struct GroupClause  *groupclause;
     struct SortBy *sortby;
     struct InsertStmt *istmt;
+    struct VariableSetStmt *vsetstmt;
 }
 
 %token <integer> INTEGER
@@ -180,6 +182,7 @@ static Node *makeNotExpr(Node *expr, int location);
              UseGraphStmt
              SelectStmt
              UpdateStmt
+             VariableSetStmt
 
 %type <node> select_no_parens select_with_parens select_clause
              simple_select
@@ -202,8 +205,10 @@ static Node *makeNotExpr(Node *expr, int location);
 
 %type <node> cypher_query_start
 %type <list> cypher_query_body
-
-
+%type <vsetstmt> generic_set set_rest set_rest_more 
+%type <string> var_name
+%type <node>	var_value 
+%type <string>	 opt_boolean_or_string
 /* RETURN and WITH clause */
 %type <node> empty_grouping_set cube_clause rollup_clause group_item having_opt return return_item sort_item skip_opt limit_opt with
 %type <list> group_item_list return_item_list order_by_opt sort_item_list group_by_opt within_group_clause
@@ -264,7 +269,7 @@ static Node *makeNotExpr(Node *expr, int location);
 %type <integer>    opt_window_exclusion_clause
 %type <string> all_op
 /* names */
-%type <string> property_key_name var_name var_name_opt label_name
+%type <string> property_key_name cypher_var_name var_name_opt label_name
 %type <string> symbolic_name schema_name temporal_cast attr_name table_access_method_clause
 %type <keyword> reserved_keyword safe_keywords conflicted_keywords
 %type <list> func_name expr_list
@@ -281,6 +286,7 @@ static Node *makeNotExpr(Node *expr, int location);
              using_clause
              indirection opt_indirection
              any_name attrs opt_class
+             var_list
 %type <defelt>	def_elem reloption_elem
 %type <string> Sconst 
 %type <string> ColId  ColLabel BareColLabel
@@ -397,6 +403,7 @@ stmt:
     | SelectStmt semicolon_opt          { extra->result = list_make1($1); }
     | UseGraphStmt semicolon_opt        { extra->result = list_make1($1); }
     | UpdateStmt semicolon_opt          { extra->result = list_make1($1); }
+    | VariableSetStmt semicolon_opt     { extra->result = list_make1($1); }
 
     ;
 
@@ -1249,7 +1256,7 @@ CreateTableStmt:
     ;
 
 call_stmt:
-    CALL expr_func_norm AS var_name cypher_where_opt
+    CALL expr_func_norm AS cypher_var_name cypher_where_opt
         {
             cypher_call *call = make_ag_node(cypher_call);
             call->cck = CCK_FUNCTION;
@@ -1304,7 +1311,7 @@ yield_item_list:
     ;
 
 yield_item:
-    cypher_a_expr AS var_name
+    cypher_a_expr AS cypher_var_name
         {
             ResTarget *n;
 
@@ -1632,6 +1639,208 @@ having_clause:
 			| /*EMPTY*/								{ $$ = NULL; }
 		;
 
+
+
+/*****************************************************************************
+ *
+ * Set PG internal variable
+ *	  SET name TO 'var_value'
+ * Include SQL syntax (thomas 1997-10-22):
+ *	  SET TIME ZONE 'var_value'
+ *
+ *****************************************************************************/
+
+VariableSetStmt:
+			SET set_rest
+				{
+					VariableSetStmt *n = $2;
+					n->is_local = false;
+					$$ = (Node *) n;
+				}
+		/*	| SET LOCAL set_rest
+				{
+					VariableSetStmt *n = $3;
+					n->is_local = true;
+					$$ = (Node *) n;
+				}
+			| SET SESSION set_rest
+				{
+					VariableSetStmt *n = $3;
+					n->is_local = false;
+					$$ = (Node *) n;
+				}
+		*/;
+
+set_rest:/*
+			TRANSACTION transaction_mode_list
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->kind = VAR_SET_MULTI;
+					n->name = "TRANSACTION";
+					n->args = $2;
+					$$ = n;
+				}
+			| SESSION CHARACTERISTICS AS TRANSACTION transaction_mode_list
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->kind = VAR_SET_MULTI;
+					n->name = "SESSION CHARACTERISTICS";
+					n->args = $5;
+					$$ = n;
+				}
+			| */set_rest_more
+			;
+
+generic_set:
+			var_name TO var_list
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->kind = VAR_SET_VALUE;
+					n->name = $1;
+					n->args = $3;
+					$$ = n;
+				}
+			| var_name '=' var_list
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->kind = VAR_SET_VALUE;
+					n->name = $1;
+					n->args = $3;
+					$$ = n;
+				}
+			/*| var_name TO DEFAULT
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->kind = VAR_SET_DEFAULT;
+					n->name = $1;
+					$$ = n;
+				}
+			| var_name '=' DEFAULT
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->kind = VAR_SET_DEFAULT;
+					n->name = $1;
+					$$ = n;
+				}*/
+		;
+
+set_rest_more:	/* Generic SET syntaxes: */
+			generic_set							{$$ = $1;}
+			/*| var_name FROM CURRENT_P
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->kind = VAR_SET_CURRENT;
+					n->name = $1;
+					$$ = n;
+				}
+			// Special syntaxes mandated by SQL standard:
+			| TIME ZONE zone_value
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->kind = VAR_SET_VALUE;
+					n->name = "timezone";
+					if ($3 != NULL)
+						n->args = list_make1($3);
+					else
+						n->kind = VAR_SET_DEFAULT;
+					$$ = n;
+				}
+			| CATALOG_P Sconst
+				{
+					ereport(ERROR,
+							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+							 errmsg("current database cannot be changed"),
+							 parser_errposition(@2)));
+					$$ = NULL; 
+				}
+			| SCHEMA Sconst
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->kind = VAR_SET_VALUE;
+					n->name = "search_path";
+					n->args = list_make1(makeStringConst($2, @2));
+					$$ = n;
+				}
+			| NAMES opt_encoding
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->kind = VAR_SET_VALUE;
+					n->name = "client_encoding";
+					if ($2 != NULL)
+						n->args = list_make1(makeStringConst($2, @2));
+					else
+						n->kind = VAR_SET_DEFAULT;
+					$$ = n;
+				}
+			| ROLE NonReservedWord_or_Sconst
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->kind = VAR_SET_VALUE;
+					n->name = "role";
+					n->args = list_make1(makeStringConst($2, @2));
+					$$ = n;
+				}
+			| SESSION AUTHORIZATION NonReservedWord_or_Sconst
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->kind = VAR_SET_VALUE;
+					n->name = "session_authorization";
+					n->args = list_make1(makeStringConst($3, @3));
+					$$ = n;
+				}
+			| SESSION AUTHORIZATION DEFAULT
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->kind = VAR_SET_DEFAULT;
+					n->name = "session_authorization";
+					$$ = n;
+				}
+			| XML_P OPTION document_or_content
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->kind = VAR_SET_VALUE;
+					n->name = "xmloption";
+					n->args = list_make1(makeStringConst($3 == XMLOPTION_DOCUMENT ? "DOCUMENT" : "CONTENT", @3));
+					$$ = n;
+				}
+			// Special syntaxes invented by PostgreSQL:
+			| TRANSACTION SNAPSHOT Sconst
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->kind = VAR_SET_MULTI;
+					n->name = "TRANSACTION SNAPSHOT";
+					n->args = list_make1(makeStringConst($3, @3));
+					$$ = n;
+				}*/
+		;
+
+
+var_name:	ColId								{ $$ = $1; }
+			| var_name '.' ColId
+				{ $$ = psprintf("%s.%s", $1, $3); }
+		;
+
+var_list:	var_value								{ $$ = list_make1($1); }
+			| var_list ',' var_value				{ $$ = lappend($1, $3); }
+		;
+
+var_value:	opt_boolean_or_string
+				{ $$ = makeStringConst($1, @1); }
+			| NumericOnly
+				{ $$ = makeAConst($1, @1); }
+		;
+
+opt_boolean_or_string:
+			TRUE_P									{ $$ = "true"; }
+			| FALSE_P								{ $$ = "false"; }
+			//| ON									{ $$ = "on"; }
+			/*
+			 * OFF is also accepted as a boolean value, but is handled by
+			 * the NonReservedWord rule.  The action for booleans and strings
+			 * is the same, so we don't need to distinguish them here.
+			 */
+			| NonReservedWord_or_Sconst				{ $$ = $1; }
+		;
 /*
  * We should allow ROW '(' expr_list ')' too, but that seems to require
  * making VALUES a fully reserved word, which will probably break more apps
@@ -1713,7 +1922,7 @@ return_item_list:
     ;
 
 return_item:
-    cypher_a_expr AS var_name
+    cypher_a_expr AS cypher_var_name
         {
             ResTarget *n;
 
@@ -1969,7 +2178,7 @@ optional_opt:
 
 
 unwind:
-    UNWIND cypher_a_expr AS var_name
+    UNWIND cypher_a_expr AS cypher_var_name
         {
             ResTarget  *res;
             cypher_unwind *n;
@@ -3394,7 +3603,7 @@ pattern:
 /* path is a series of connected nodes and relationships */
 path:
     anonymous_path
-    | var_name '=' anonymous_path /* named path */
+    | cypher_var_name '=' anonymous_path /* named path */
         {
             cypher_path *p;
 
@@ -4297,7 +4506,7 @@ expr_atom:
             $$ = $2;
         }
     | expr_case
-    | var_name
+    | cypher_var_name
         {
             ColumnRef *n;
             
@@ -4524,7 +4733,7 @@ property_key_name:
     schema_name
     ;
 
-var_name:
+cypher_var_name:
     symbolic_name
     ;
 
@@ -4533,7 +4742,7 @@ var_name_opt:
         {
             $$ = NULL;
         }
-    | var_name
+    | cypher_var_name
     ;
 
 label_name:
@@ -5206,4 +5415,28 @@ static Node *
 makeNotExpr(Node *expr, int location)
 {
 	return (Node *) makeBoolExpr(NOT_EXPR, list_make1(expr), location);
+}
+
+static Node *
+makeAConst(Value *v, int location)
+{
+	Node *n;
+
+	switch (v->type)
+	{
+		case T_Float:
+			n = makeFloatConst(v->val.str, location);
+			break;
+
+		case T_Integer:
+			n = makeIntConst(v->val.ival, location);
+			break;
+
+		case T_String:
+		default:
+			n = makeStringConst(v->val.str, location);
+			break;
+	}
+
+	return n;
 }

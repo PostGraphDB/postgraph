@@ -15,8 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */ 
 -- Regression tests don't preload extensions, gotta load it first
-SET search_path TO postgraph;
+
 LOAD 'postgraph';
+
+SET search_path TO 'postgraph';
 
 CREATE EXTENSION postgraph;
 CREATE EXTENSION hstore CASCADE SCHEMA public;

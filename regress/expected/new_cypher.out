@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */ 
 -- Regression tests don't preload extensions, gotta load it first
-SET search_path TO postgraph;
 LOAD 'postgraph';
+SET search_path TO 'postgraph';
 CREATE EXTENSION postgraph;
 ERROR:  extension "postgraph" already exists
 CREATE EXTENSION hstore CASCADE SCHEMA public;
@@ -36,26 +36,6 @@ USE GRAPH new_cypher;
  use_graph 
 -----------
  
-(1 row)
-
-CREATE TABLE tbl (i int4);
-INSERT INTO tbl VALUES (1), (2), (3), (4);
-ERROR:  syntax error at or near "VALUES"
-LINE 1: INSERT INTO tbl VALUES (1), (2), (3), (4);
-                        ^
-CREATE (:vertex);
---
-(0 rows)
-
-SELECT * FROM tbl;
- i 
----
-(0 rows)
-
-MATCH (n) RETURN n;
-                              n                               
---------------------------------------------------------------
- {"id": 844424930131969, "label": "vertex", "properties": {}}
 (1 row)
 
 -- Reuse Name, should throw error
@@ -106,20 +86,18 @@ CREATE (n) RETURN n;
 
 --CREATE (n) RETURN *;
 MATCH (n) RETURN n;
-                              n                               
---------------------------------------------------------------
+                           n                            
+--------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {}}
  {"id": 281474976710658, "label": "", "properties": {}}
- {"id": 844424930131969, "label": "vertex", "properties": {}}
-(3 rows)
+(2 rows)
 
 MATCH (n) RETURN *;
-                              n                               
---------------------------------------------------------------
+                           n                            
+--------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {}}
  {"id": 281474976710658, "label": "", "properties": {}}
- {"id": 844424930131969, "label": "vertex", "properties": {}}
-(3 rows)
+(2 rows)
 
 CREATE TABLE tst (i text);
 CREATE TABLE tst3 () INHERITS (tst);
@@ -229,6 +207,12 @@ SELECT a.i FROM tst a;
 (0 rows)
 
 INSERT INTO tst SELECT 'Hello';
+TABLE tst;
+   i   
+-------
+ Hello
+(1 row)
+
 SELECT * FROM tst;
    i   
 -------
@@ -318,10 +302,9 @@ SELECT a.i FROM ONLY tst a;
 (0 rows)
 
 DROP GRAPH new_cypher CASCADE;
-NOTICE:  drop cascades to 3 other objects
+NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table new_cypher._ag_label_vertex
 drop cascades to table new_cypher._ag_label_edge
-drop cascades to table new_cypher.vertex
 NOTICE:  graph "new_cypher" has been dropped
  drop_graph 
 ------------
