@@ -118,9 +118,11 @@
 /* query */
 %type <node> stmt
 %type <list> single_query  cypher_stmt
-             use drop
+             
 
-%type <node> util_stmt
+%type <node> CreateExtensionStmt CreateGraphStmt CreateTableStmt
+             DropGraphStmt
+             UseGraphStmt
 %type <node> clause
 
 /* RETURN and WITH clause */
@@ -282,28 +284,17 @@ doNegateFloat(Value *v);
 stmt:
     cypher_stmt semicolon_opt
         {
-            /*
-             * If there is no transition for the lookahead token and the
-             * clauses can be reduced to single_query, the parsing is
-             * considered successful although it actually isn't.
-             *
-             * For example, when `MATCH ... CREATE ... MATCH ... ;` query is
-             * being parsed, there is no transition for the second `MATCH ...`
-             * because the query is wrong but `MATCH .. CREATE ...` is correct
-             * so it will be reduced to query_part_last anyway even if there
-             * are more tokens to read.
-             *
-             * Throw syntax error in this case.
-             */
+
             //if (yychar != YYEOF)
                 //yyerror(&yylloc, scanner, extra, "syntax error");
 
             extra->result = $1;
         }
-    | util_stmt semicolon_opt
-        {
-            extra->result = list_make1($1);
-        } 
+    | CreateGraphStmt semicolon_opt     { extra->result = list_make1($1); }
+    | CreateExtensionStmt semicolon_opt { extra->result = list_make1($1); }
+    | CreateTableStmt semicolon_opt     { extra->result = list_make1($1); }
+    | DropGraphStmt semicolon_opt       { extra->result = list_make1($1); }
+    | UseGraphStmt semicolon_opt        { extra->result = list_make1($1); }
     ;
 
 cypher_stmt:
@@ -329,7 +320,7 @@ cypher_stmt:
         }
     ;
 
-util_stmt:
+CreateGraphStmt:
     CREATE GRAPH IDENTIFIER
         {
 
@@ -338,8 +329,11 @@ util_stmt:
             n->graph_name = $3;
 
             $$ = (Node *)n;
-        } 
-    | CREATE EXTENSION IDENTIFIER create_extension_opt_list
+        }
+        ;
+
+CreateExtensionStmt:
+    CREATE EXTENSION IDENTIFIER create_extension_opt_list
         {
             CreateExtensionStmt *n = makeNode(CreateExtensionStmt);
             
@@ -359,7 +353,10 @@ util_stmt:
 		
         	$$ = (Node *) n;
 		}
-    | CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
+    ;
+
+CreateTableStmt:
+    CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 			OptInherit OptPartitionSpec table_access_method_clause OptWith
 			//OnCommitOption  OptTableSpace
 				{
@@ -392,10 +389,9 @@ util_stmt:
 					n->if_not_exists = false;
 
 					$$ = (Node *)n;
-				} 
-                | use { $$ = linitial($1); }
-                | drop { $$ = linitial($1); }
-                ;
+				}
+
+
 call_stmt:
     CALL expr_func_norm AS var_name where_opt
         {
@@ -544,16 +540,17 @@ clause:
     | unwind
     ;
 
-use:
+
+UseGraphStmt:
     USE GRAPH IDENTIFIER
     {
         cypher_use_graph *n = make_ag_node(cypher_use_graph);
         n->graph_name = $3;
 
-        $$ = list_make1(n);
+        $$ = n;
     };
 
-drop:
+DropGraphStmt:
     DROP GRAPH IDENTIFIER CASCADE
     {
 
@@ -561,8 +558,8 @@ drop:
         n->graph_name = $3;
         n->cascade = true;
 
-        $$ = list_make1(n);
-    }
+        $$ = n;
+    };
 
 cypher_varlen_opt:
     '*' cypher_range_opt

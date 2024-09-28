@@ -244,14 +244,11 @@ ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 -- Property Constraint in EXISTS
 MATCH (u) WHERE EXISTS((u)-[]->({id: "middle"})) RETURN u;
-ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+ERROR:  MATCH cannot be the last clause in a cypher statement
 MATCH (u) WHERE EXISTS((u)-[]->({id: "not a valid id"})) RETURN u;
-ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+ERROR:  MATCH cannot be the last clause in a cypher statement
 MATCH (u) WHERE EXISTS((u)-[]->({id: NULL})) RETURN u;
-ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+ERROR:  MATCH cannot be the last clause in a cypher statement
 -- Exists checks for a loop. There shouldn't be any.
 MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) RETURN u, e, v;
 ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
@@ -331,8 +328,7 @@ MATCH (u) RETURN case WHEN EXISTS(MATCH (u)-[]->() RETURN 1) THEN 1 ELSE 2 END;
 ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 MATCH (u) RETURN case WHEN EXISTS((u)-[]->()) THEN 1 ELSE 2 END;
-ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+ERROR:  MATCH cannot be the last clause in a cypher statement
 /*
 EXPLAIN
 SELECT *
@@ -446,12 +442,13 @@ LINE 1: ORDER BY n, p, m, q;
 MATCH (n:opt_match_v), (m:opt_match_v)
 WHERE id(n) <> id(m)
 OPTIONAL MATCH (n)-[r]->(p), (m)-[s]->(q)
-RETURN n.name AS n, type(r)
+RETURN n.name AS n, type(r),
            m.name AS m, type(s)
 ORDER BY n, p, m, q;
-ERROR:  syntax error at or near "m"
-LINE 5:            m.name AS m, type(s)
-                   ^
+ERROR:  operator is not unique: postgraph.gtype <> postgraph.gtype
+LINE 2: WHERE id(n) <> id(m)
+                    ^
+HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
 CREATE (u {name: "orphan"}) CREATE (u1 {name: "F"})-[u2:e1]->(u3 {name: "T"}) RETURN u1, u2, u3;
                                 u1                                 |                                                        u2                                                         |                                u3                                 
 -------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------
@@ -460,12 +457,10 @@ CREATE (u {name: "orphan"}) CREATE (u1 {name: "F"})-[u2:e1]->(u3 {name: "T"}) RE
 
 -- Querying NOT EXISTS syntax
 MATCH (f),(t) WHERE NOT EXISTS((f)-[]->(t)) RETURN f.name, t.name;
-ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+ERROR:  MATCH cannot be the last clause in a cypher statement
 -- Querying EXISTS syntax
 MATCH (f),(t) WHERE EXISTS((f)-[]->(t)) RETURN f.name, t.name;
-ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+ERROR:  MATCH cannot be the last clause in a cypher statement
 --
 -- Constraints and WHERE clause together
 --
@@ -485,9 +480,7 @@ HINT:  No operator matches the given name and argument types. You might need to 
 --
 -- need a following RETURN clause
 MATCH (n:v);
-ERROR:  syntax error at or near ";"
-LINE 1: MATCH (n:v);
-                   ^
+ERROR:  MATCH cannot be the last clause in a cypher statement
 --Invalid Variables
 MATCH (a)-[]-()-[]-(a:v1) RETURN a;
 ERROR:  variable a already exists
