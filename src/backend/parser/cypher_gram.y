@@ -162,7 +162,7 @@ static Node *makeNotExpr(Node *expr, int location);
                  RANGE REMOVE REPLACE RETURN ROLLUP ROW ROWS
                  SCHEMA SELECT SET SETS SKIP SOME STARTS
                  TABLE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRUE_P
-                 UNBOUNDED UNION UNLOGGED UNWIND USE USING
+                 UNBOUNDED UNION UNLOGGED UPDATE UNWIND USE USING
                  VERSION_P
                  WHEN WHERE WINDOW WITH WITHIN WITHOUT
                  XOR
@@ -179,6 +179,7 @@ static Node *makeNotExpr(Node *expr, int location);
              InsertStmt
              UseGraphStmt
              SelectStmt
+             UpdateStmt
 
 %type <node> select_no_parens select_with_parens select_clause
              simple_select
@@ -188,7 +189,7 @@ static Node *makeNotExpr(Node *expr, int location);
              columnref having_clause
 
 %type <integer> set_quantifier
-%type <target>	target_el 
+%type <target>	target_el set_target
 %type <node>	table_ref
 %type <range>	relation_expr
 %type <range>	relation_expr_opt_alias
@@ -198,6 +199,10 @@ static Node *makeNotExpr(Node *expr, int location);
 %type <list>	group_by_list
 %type <node>	group_by_item 
 %type <node>	grouping_sets_clause
+
+%type <node> cypher_query_start
+%type <list> cypher_query_body
+
 
 /* RETURN and WITH clause */
 %type <node> empty_grouping_set cube_clause rollup_clause group_item having_opt return return_item sort_item skip_opt limit_opt with
@@ -270,9 +275,10 @@ static Node *makeNotExpr(Node *expr, int location);
              reloption_list
              sort_clause opt_sort_clause sortby_list
              from_clause from_list
-             target_list opt_target_list
+             target_list opt_target_list set_target_list
+             set_clause_list set_clause
              opt_collate
-             indirection
+             indirection opt_indirection
              any_name attrs opt_class
 %type <defelt>	def_elem reloption_elem
 %type <string> Sconst 
@@ -314,6 +320,7 @@ static Node *makeNotExpr(Node *expr, int location);
 %nonassoc IN IS
 %right UNARY_MINUS
 %nonassoc CONTAINS ENDS EQ_TILDE STARTS LIKE ILIKE SIMILAR
+%nonassoc ESCAPE
 %left '[' ']' '(' ')'
 %left '.'
 %left TYPECAST
@@ -387,6 +394,8 @@ stmt:
     | InsertStmt semicolon_opt          { extra->result = list_make1($1); }
     | UseGraphStmt semicolon_opt        { extra->result = list_make1($1); }
     | SelectStmt semicolon_opt          { extra->result = list_make1($1); }
+    | UpdateStmt semicolon_opt          { extra->result = list_make1($1); }
+
     ;
 
 cypher_stmt:
@@ -869,6 +878,36 @@ relation_expr:
 		;
 
 
+
+/*
+ * Given "UPDATE foo set set ...", we have to decide without looking any
+ * further ahead whether the first "set" is an alias or the UPDATE's SET
+ * keyword.  Since "set" is allowed as a column name both interpretations
+ * are feasible.  We resolve the shift/reduce conflict by giving the first
+ * relation_expr_opt_alias production a higher precedence than the SET token
+ * has, causing the parser to prefer to reduce, in effect assuming that the
+ * SET is not an alias.
+ */
+relation_expr_opt_alias: relation_expr					%prec UMINUS
+				{
+					$$ = $1;
+				}
+			| relation_expr ColId
+				{
+					Alias *alias = makeNode(Alias);
+					alias->aliasname = $2;
+					$1->alias = alias;
+					$$ = $1;
+				}
+			| relation_expr AS ColId
+				{
+					Alias *alias = makeNode(Alias);
+					alias->aliasname = $3;
+					$1->alias = alias;
+					$$ = $1;
+				}
+		;
+
 columnref:	ColId
 				{
 					$$ = makeColumnRef($1, NIL, @1, scanner);
@@ -1033,6 +1072,84 @@ insert_rest:
 					$$->selectStmt = NULL;
 				}*/
 		;        
+
+
+
+/*****************************************************************************
+ *
+ *		QUERY:
+ *				UpdateStmt (UPDATE)
+ *
+ *****************************************************************************/
+
+UpdateStmt: //opt_with_clause
+            UPDATE relation_expr_opt_alias
+			SET set_clause_list
+			from_clause
+			//where_or_current_clause
+			//returning_clause
+				{
+					UpdateStmt *n = makeNode(UpdateStmt);
+					n->relation = $2;
+					n->targetList = $4;
+					n->fromClause = $5;
+					n->whereClause = NULL;//$7;
+					n->returningList = NULL;//$8;
+					n->withClause = NULL;//$1;
+					$$ = (Node *)n;
+				}
+		;
+
+set_clause_list:
+			set_clause							{ $$ = $1; }
+			| set_clause_list ',' set_clause	{ $$ = list_concat($1,$3); }
+		;
+
+set_clause:
+			set_target '=' a_expr
+				{
+					$1->val = (Node *) $3;
+					$$ = list_make1($1);
+				}
+			| '(' set_target_list ')' '=' a_expr
+				{
+					int ncolumns = list_length($2);
+					int i = 1;
+					ListCell *col_cell;
+
+					/* Create a MultiAssignRef source for each target */
+					foreach(col_cell, $2)
+					{
+						ResTarget *res_col = (ResTarget *) lfirst(col_cell);
+						MultiAssignRef *r = makeNode(MultiAssignRef);
+
+						r->source = (Node *) $5;
+						r->colno = i;
+						r->ncolumns = ncolumns;
+						res_col->val = (Node *) r;
+						i++;
+					}
+
+					$$ = $2;
+				}
+		;
+
+set_target:
+			ColId opt_indirection
+				{
+					$$ = makeNode(ResTarget);
+					$$->name = $1;
+					$$->indirection = check_indirection($2, scanner);
+					$$->val = NULL;	/* upper production sets this */
+					$$->location = @1;
+				}
+		;
+
+set_target_list:
+			set_target								{ $$ = list_make1($1); }
+			| set_target_list ',' set_target		{ $$ = lappend($1,$3); }
+		;
+
 
 CreateGraphStmt:
     CREATE GRAPH IDENTIFIER
@@ -1229,14 +1346,41 @@ all_or_distinct:
  * reading_clause* ( updating_clause+ | updating_clause* return )
  */
 single_query:
-    clause {
+    cypher_query_start 
+    {
         $$ = list_make1($1);
     }
-    | single_query clause {
-        $$ = lappend($1, $2);
+    | cypher_query_start cypher_query_body
+    {
+        $$ = lcons($1, $2);
     }
     ;
     
+cypher_query_start:
+    create
+    | match
+    | with
+    | merge
+    | call_stmt
+    | return
+    | unwind
+;
+
+cypher_query_body:
+    clause 
+    {
+        $$ = list_make1($1);
+    }
+    | cypher_query_body clause
+    {
+        $$ = lappend($1, $2);
+    }
+    | // Empty 
+    { 
+        $$ = NIL; 
+    }
+    ;
+
 clause:
     create
     | set
@@ -2079,6 +2223,11 @@ ColLabel:	IDENTIFIER									{ $$ = $1; }
  */
 BareColLabel:	IDENTIFIER								{ $$ = $1; }
 			//| bare_label_keyword					{ $$ = pstrdup($1); }
+		;
+
+opt_indirection:
+			/*EMPTY*/								{ $$ = NIL; }
+			| opt_indirection indirection_el		{ $$ = lappend($1, $2); }
 		;
 
 indirection:

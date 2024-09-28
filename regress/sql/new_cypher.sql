@@ -128,5 +128,8 @@ SELECT true AND false;
 SELECT true OR false;
 SELECT NOT false;
 
+UPDATE tst SET i = 'World';
+SELECT a.i FROM tst a;
+
 DROP GRAPH new_cypher CASCADE;
 DROP GRAPH new_cypher_2 CASCADE;

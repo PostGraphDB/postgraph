@@ -1400,7 +1400,8 @@ cypher_parse_analyze(RawStmt *parseTree, const char *sourceText,
     if (list_length(parseTree->stmt) == 1) {
       Node *n = linitial(parseTree->stmt);
 
-      if (IsA(n, CreateExtensionStmt) || IsA(n,CreateStmt) || IsA(n, SelectStmt) || IsA(n, InsertStmt)) {
+      if (IsA(n, CreateExtensionStmt) || IsA(n,CreateStmt) || IsA(n, SelectStmt) || IsA(n, InsertStmt)
+      || IsA(n, UpdateStmt)) {
 	        query = parse_analyze((makeRawStmt(n, 0)), sourceText, paramTypes, numParams,
 						  queryEnv);
 

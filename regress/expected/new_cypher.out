@@ -277,6 +277,13 @@ SELECT NOT false;
  t
 (1 row)
 
+UPDATE tst SET i = 'World';
+SELECT a.i FROM tst a;
+   i   
+-------
+ World
+(1 row)
+
 DROP GRAPH new_cypher CASCADE;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table new_cypher._ag_label_vertex
