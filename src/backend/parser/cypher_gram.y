@@ -412,7 +412,6 @@ stmt:
     | UseGraphStmt semicolon_opt        { extra->result = list_make1($1); }
     | UpdateStmt semicolon_opt          { extra->result = list_make1($1); }
     | VariableSetStmt semicolon_opt     { extra->result = list_make1($1); }
-
     ;
 
 cypher_stmt:
@@ -1080,23 +1079,23 @@ name_list:	name
 
 
 alias_clause:
-			/*AS ColId '(' name_list ')'
+			AS ColId '(' name_list ')'
 				{
 					$$ = makeNode(Alias);
 					$$->aliasname = $2;
 					$$->colnames = $4;
 				}
-			| */AS ColId
+			| AS ColId
 				{
 					$$ = makeNode(Alias);
 					$$->aliasname = $2;
 				}
-			/*| ColId '(' name_list ')'
+			| ColId '(' name_list ')'
 				{
 					$$ = makeNode(Alias);
 					$$->aliasname = $1;
 					$$->colnames = $3;
-				}*/
+				}
 			| ColId
 				{
 					$$ = makeNode(Alias);
