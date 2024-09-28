@@ -140,5 +140,16 @@ SELECT a.i FROM tst a;
 
 SELECT a.i FROM ONLY tst a;
 
+CREATE TABLE tbl1 (i int4) USING heap;
+CREATE TABLE tbl2 (j int4) USING heap;
+
+INSERT INTO tbl1 VALUES (1), (2);
+INSERT INTO tbl2 VALUES (3), (2);
+
+SELECT * FROM tbl1 AS t1 JOIN tbl2 AS t2 ON t1.i = t2.j;
+SELECT * FROM tbl1 AS t1 LEFT JOIN tbl2 AS t2 ON t1.i = t2.j;
+SELECT * FROM tbl1 AS t1 RIGHT JOIN tbl2 AS t2 ON t1.i = t2.j;
+SELECT * FROM tbl1 AS t1 FULL JOIN tbl2 AS t2 ON t1.i = t2.j;
+
 DROP GRAPH new_cypher CASCADE;
 DROP GRAPH new_cypher_2 CASCADE;

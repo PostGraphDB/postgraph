@@ -134,6 +134,7 @@ static Node *makeAConst(Value *v, int location);
     struct SortBy *sortby;
     struct InsertStmt *istmt;
     struct VariableSetStmt *vsetstmt;
+	struct JoinExpr *jexpr;
 }
 
 %token <integer> INTEGER
@@ -149,19 +150,20 @@ static Node *makeAConst(Value *v, int location);
 /* keywords in alphabetical order */
 %token <keyword> ALL AND ANY AS ASC ASCENDING
                  BETWEEN BY
-                 CALL CASE CASCADE COALESCE COLLATE CONTAINS CREATE CUBE CURRENT CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
+                 CALL CASE CASCADE CROSS COALESCE COLLATE CONTAINS CREATE CUBE CURRENT CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
                  DATE DECADE DELETE DESC DESCENDING DETACH DISTINCT DROP
                  ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXISTS EXTENSION EXTRACT
                  GLOBAL GRAPH GROUP GROUPS GROUPING
-                 FALSE_P FILTER FIRST_P FOLLOWING FROM
+                 FALSE_P FILTER FIRST_P FOLLOWING FROM FULL
                  HAVING
-                 IF ILIKE IN INHERITS INTERSECT INSERT INTERVAL INTO IS
-                 LAST_P LIKE LIMIT LOCAL LOCALTIME LOCALTIMESTAMP
+                 IF ILIKE IN INHERITS INNER INTERSECT INSERT INTERVAL INTO IS
+                 JOIN
+                 LAST_P LEFT LIKE LIMIT LOCAL LOCALTIME LOCALTIMESTAMP
                  MATCH MERGE 
-                 NO NOT NULL_P NULLS_LA
-                 ONLY OPTIONAL OTHERS OR ORDER OVER OVERLAPS
+                 NATURAL NO NOT NULL_P NULLS_LA
+                 ON ONLY OPTIONAL OTHERS OR ORDER OUTER OVER OVERLAPS
                  PARTITION PRECEDING
-                 RANGE REMOVE REPLACE RETURN ROLLUP ROW ROWS
+                 RANGE RIGHT REMOVE REPLACE RETURN ROLLUP ROW ROWS
                  SCHEMA SELECT SET SETS SKIP SOME STARTS
                  TABLE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRUE_P
                  UNBOUNDED UNION UNLOGGED UPDATE UNWIND USE USING
@@ -193,15 +195,20 @@ static Node *makeAConst(Value *v, int location);
 
 %type <integer> set_quantifier
 %type <target>	target_el set_target
-%type <node>	table_ref
 %type <range>	relation_expr
 %type <range>	relation_expr_opt_alias
-%type <alias>	alias_clause opt_alias_clause 
+%type <alias>	alias_clause opt_alias_clause opt_alias_clause_for_join_using
 %type <node> clause
 %type <groupclause> group_clause
 %type <list>	group_by_list
 %type <node>	group_by_item 
 %type <node>	grouping_sets_clause
+
+%type <node>	table_ref
+%type <jexpr>	joined_table
+
+%type <node>	join_qual
+%type <integer>	join_type
 
 %type <node> cypher_query_start
 %type <list> cypher_query_body
@@ -275,6 +282,7 @@ static Node *makeAConst(Value *v, int location);
 %type <list> func_name expr_list
              TableElementList OptTableElementList OptInherit
              reloptions 
+             name_list
              OptWith
              qualified_name_list
              reloption_list
@@ -843,7 +851,7 @@ table_ref:	relation_expr opt_alias_clause
 									 parser_errposition(@2)));
 					}
 					$$ = (Node *) n;
-				}
+				}*/
 			| joined_table
 				{
 					$$ = (Node *) $1;
@@ -852,7 +860,143 @@ table_ref:	relation_expr opt_alias_clause
 				{
 					$2->alias = $4;
 					$$ = (Node *) $2;
-				}*/
+				}
+		;
+
+
+/*
+ * It may seem silly to separate joined_table from table_ref, but there is
+ * method in SQL's madness: if you don't do it this way you get reduce-
+ * reduce conflicts, because it's not clear to the parser generator whether
+ * to expect alias_clause after ')' or not.  For the same reason we must
+ * treat 'JOIN' and 'join_type JOIN' separately, rather than allowing
+ * join_type to expand to empty; if we try it, the parser generator can't
+ * figure out when to reduce an empty join_type right after table_ref.
+ *
+ * Note that a CROSS JOIN is the same as an unqualified
+ * INNER JOIN, and an INNER JOIN/ON has the same shape
+ * but a qualification expression to limit membership.
+ * A NATURAL JOIN implicitly matches column names between
+ * tables and the shape is determined by which columns are
+ * in common. We'll collect columns during the later transformations.
+ */
+
+joined_table:
+			'(' joined_table ')'
+				{
+					$$ = $2;
+				}
+			| table_ref CROSS JOIN table_ref
+				{
+					// CROSS JOIN is same as unqualified inner join 
+					JoinExpr *n = makeNode(JoinExpr);
+					n->jointype = JOIN_INNER;
+					n->isNatural = false;
+					n->larg = $1;
+					n->rarg = $4;
+					n->usingClause = NIL;
+					n->join_using_alias = NULL;
+					n->quals = NULL;
+					$$ = n;
+				}
+			| table_ref join_type JOIN table_ref join_qual
+				{
+					JoinExpr *n = makeNode(JoinExpr);
+					n->jointype = $2;
+					n->isNatural = false;
+					n->larg = $1;
+					n->rarg = $4;
+					if ($5 != NULL && IsA($5, List))
+					{
+						 // USING clause
+						n->usingClause = linitial_node(List, castNode(List, $5));
+						n->join_using_alias = lsecond_node(Alias, castNode(List, $5));
+					}
+					else
+					{
+						// ON clause 
+						n->quals = $5;
+					}
+					$$ = n;
+				}
+			| table_ref JOIN table_ref join_qual
+				{
+					// letting join_type reduce to empty doesn't work 
+					JoinExpr *n = makeNode(JoinExpr);
+					n->jointype = JOIN_INNER;
+					n->isNatural = false;
+					n->larg = $1;
+					n->rarg = $3;
+					if ($4 != NULL && IsA($4, List))
+					{
+						// USING clause 
+						n->usingClause = linitial_node(List, castNode(List, $4));
+						n->join_using_alias = lsecond_node(Alias, castNode(List, $4));
+					}
+					else
+					{
+						// ON clause
+						n->quals = $4;
+					}
+					$$ = n;
+				}
+			| table_ref NATURAL join_type JOIN table_ref
+				{
+					JoinExpr *n = makeNode(JoinExpr);
+					n->jointype = $3;
+					n->isNatural = true;
+					n->larg = $1;
+					n->rarg = $5;
+					n->usingClause = NIL; 
+					n->join_using_alias = NULL;
+					n->quals = NULL; 
+					$$ = n;
+				}
+			| table_ref NATURAL JOIN table_ref
+				{
+					JoinExpr *n = makeNode(JoinExpr);
+					n->jointype = JOIN_INNER;
+					n->isNatural = true;
+					n->larg = $1;
+					n->rarg = $4;
+					n->usingClause = NIL; 
+					n->join_using_alias = NULL;
+					n->quals = NULL;
+					$$ = n;
+				}
+		;
+
+join_type:	FULL opt_outer							{ $$ = JOIN_FULL; }
+			| LEFT opt_outer						{ $$ = JOIN_LEFT; }
+			| RIGHT opt_outer						{ $$ = JOIN_RIGHT; }
+			| INNER								{ $$ = JOIN_INNER; }
+		;
+
+/* OUTER is just noise... */
+opt_outer: OUTER
+			| /*EMPTY*/
+		;
+
+/* JOIN qualification clauses
+ * Possibilities are:
+ *	USING ( column list ) [ AS alias ]
+ *						  allows only unqualified column names,
+ *						  which must match between tables.
+ *	ON expr allows more general qualifications.
+ *
+ * We return USING as a two-element List (the first item being a sub-List
+ * of the common column names, and the second either an Alias item or NULL).
+ * An ON-expr will not be a List, so it can be told apart that way.
+ */
+
+join_qual: USING '(' name_list ')' opt_alias_clause_for_join_using
+				{
+					$$ = (Node *) list_make2($3, $5);
+				}
+			| ON a_expr
+				{
+					$$ = $2;
+				}
 		;
 
 
@@ -928,6 +1072,11 @@ columnref:	ColId
 				}
 		;
 
+name_list:	name
+					{ $$ = list_make1(makeString($1)); }
+			| name_list ',' name
+					{ $$ = lappend($1, makeString($3)); }
+		;
 
 
 alias_clause:
@@ -956,6 +1105,22 @@ alias_clause:
 		;
 
 opt_alias_clause: alias_clause						{ $$ = $1; }
+			| /*EMPTY*/								{ $$ = NULL; }
+		;
+        
+/*
+ * The alias clause after JOIN ... USING only accepts the AS ColId spelling,
+ * per SQL standard.  (The grammar could parse the other variants, but they
+ * don't seem to be useful, and it might lead to parser problems in the
+ * future.)
+ */
+opt_alias_clause_for_join_using:
+			AS ColId
+				{
+					$$ = makeNode(Alias);
+					$$->aliasname = $2;
+					/* the column name list will be inserted later */
+				}
 			| /*EMPTY*/								{ $$ = NULL; }
 		;
 
