@@ -77,6 +77,8 @@
 	struct PartitionSpec *partspec;
 	struct PartitionBoundSpec *partboundspec;
     struct Value *value;
+    struct ResTarget *target;
+    struct Alias *alias;
 }
 
 %token <integer> INTEGER
@@ -106,7 +108,7 @@
                  OPTIONAL OTHERS OR ORDER OVER OVERLAPS
                  PARTITION PRECEDING
                  RANGE REMOVE REPLACE RETURN ROLLUP ROW ROWS
-                 SCHEMA SET SETS SKIP SOME STARTS
+                 SCHEMA SELECT SET SETS SKIP SOME STARTS
                  TABLE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TRUE_P
                  UNBOUNDED UNION UNLOGGED UNWIND USE USING
                  VERSION_P
@@ -123,6 +125,16 @@
 %type <node> CreateExtensionStmt CreateGraphStmt CreateTableStmt
              DropGraphStmt
              UseGraphStmt
+             SelectStmt
+
+%type <node> select_no_parens select_with_parens select_clause
+             simple_select
+
+%type <target>	target_el 
+%type <node>	table_ref
+%type <range>	relation_expr
+%type <range>	relation_expr_opt_alias
+%type <alias>	alias_clause opt_alias_clause 
 %type <node> clause
 
 /* RETURN and WITH clause */
@@ -194,6 +206,8 @@
              OptWith
              qualified_name_list
              reloption_list
+             from_clause from_list
+             target_list opt_target_list
              opt_collate
              any_name attrs opt_class
 %type <defelt>	def_elem reloption_elem
@@ -295,6 +309,7 @@ stmt:
     | CreateTableStmt semicolon_opt     { extra->result = list_make1($1); }
     | DropGraphStmt semicolon_opt       { extra->result = list_make1($1); }
     | UseGraphStmt semicolon_opt        { extra->result = list_make1($1); }
+    | SelectStmt semicolon_opt          { extra->result = list_make1($1); }
     ;
 
 cypher_stmt:
@@ -319,6 +334,495 @@ cypher_stmt:
             $$ = list_make1(make_set_op(SETOP_EXCEPT, $3, $1, $4));
         }
     ;
+/*****************************************************************************
+ *
+ *		QUERY:
+ *				SELECT STATEMENTS
+ *
+ *****************************************************************************/
+
+/* A complete SELECT statement looks like this.
+ *
+ * The rule returns either a single SelectStmt node or a tree of them,
+ * representing a set-operation tree.
+ *
+ * There is an ambiguity when a sub-SELECT is within an a_expr and there
+ * are excess parentheses: do the parentheses belong to the sub-SELECT or
+ * to the surrounding a_expr?  We don't really care, but bison wants to know.
+ * To resolve the ambiguity, we are careful to define the grammar so that
+ * the decision is staved off as long as possible: as long as we can keep
+ * absorbing parentheses into the sub-SELECT, we will do so, and only when
+ * it's no longer possible to do that will we decide that parens belong to
+ * the expression.	For example, in "SELECT (((SELECT 2)) + 3)" the extra
+ * parentheses are treated as part of the sub-select.  The necessity of doing
+ * it that way is shown by "SELECT (((SELECT 2)) UNION SELECT 2)".	Had we
+ * parsed "((SELECT 2))" as an a_expr, it'd be too late to go back to the
+ * SELECT viewpoint when we see the UNION.
+ *
+ * This approach is implemented by defining a nonterminal select_with_parens,
+ * which represents a SELECT with at least one outer layer of parentheses,
+ * and being careful to use select_with_parens, never '(' SelectStmt ')',
+ * in the expression grammar.  We will then have shift-reduce conflicts
+ * which we can resolve in favor of always treating '(' <select> ')' as
+ * a select_with_parens.  To resolve the conflicts, the productions that
+ * conflict with the select_with_parens productions are manually given
+ * precedences lower than the precedence of ')', thereby ensuring that we
+ * shift ')' (and then reduce to select_with_parens) rather than trying to
+ * reduce the inner <select> nonterminal to something else.  We use UMINUS
+ * precedence for this, which is a fairly arbitrary choice.
+ *
+ * To be able to define select_with_parens itself without ambiguity, we need
+ * a nonterminal select_no_parens that represents a SELECT structure with no
+ * outermost parentheses.  This is a little bit tedious, but it works.
+ *
+ * In non-expression contexts, we use SelectStmt which can represent a SELECT
+ * with or without outer parentheses.
+ */
+
+SelectStmt: select_no_parens			%prec '.'
+			| select_with_parens		%prec '.'
+		;
+
+select_with_parens:
+			'(' select_no_parens ')'				{ $$ = $2; }
+			| '(' select_with_parens ')'			{ $$ = $2; }
+		;
+
+
+/*
+ * This rule parses the equivalent of the standard's <query expression>.
+ * The duplicative productions are annoying, but hard to get rid of without
+ * creating shift/reduce conflicts.
+ *
+ *	The locking clause (FOR UPDATE etc) may be before or after LIMIT/OFFSET.
+ *	In <=7.2.X, LIMIT/OFFSET had to be after FOR UPDATE
+ *	We now support both orderings, but prefer LIMIT/OFFSET before the locking
+ * clause.
+ *	2002-08-28 bjm
+ */
+select_no_parens:
+			simple_select						{ $$ = $1; }
+		/*	| select_clause sort_clause
+				{
+					insertSelectOptions((SelectStmt *) $1, $2, NIL,
+										NULL, NULL,
+										yyscanner);
+					$$ = $1;
+				}
+			| select_clause opt_sort_clause for_locking_clause opt_select_limit
+				{
+					insertSelectOptions((SelectStmt *) $1, $2, $3,
+										$4,
+										NULL,
+										yyscanner);
+					$$ = $1;
+				}
+			| select_clause opt_sort_clause select_limit opt_for_locking_clause
+				{
+					insertSelectOptions((SelectStmt *) $1, $2, $4,
+										$3,
+										NULL,
+										yyscanner);
+					$$ = $1;
+				}
+			| with_clause select_clause
+				{
+					insertSelectOptions((SelectStmt *) $2, NULL, NIL,
+										NULL,
+										$1,
+										yyscanner);
+					$$ = $2;
+				}
+			| with_clause select_clause sort_clause
+				{
+					insertSelectOptions((SelectStmt *) $2, $3, NIL,
+										NULL,
+										$1,
+										yyscanner);
+					$$ = $2;
+				}
+			| with_clause select_clause opt_sort_clause for_locking_clause opt_select_limit
+				{
+					insertSelectOptions((SelectStmt *) $2, $3, $4,
+										$5,
+										$1,
+										yyscanner);
+					$$ = $2;
+				}
+			| with_clause select_clause opt_sort_clause select_limit opt_for_locking_clause
+				{
+					insertSelectOptions((SelectStmt *) $2, $3, $5,
+										$4,
+										$1,
+										yyscanner);
+					$$ = $2;
+				}*/
+		;
+
+select_clause:
+			simple_select							{ $$ = $1; }
+			| select_with_parens					{ $$ = $1; }
+		;
+
+/*
+ * This rule parses SELECT statements that can appear within set operations,
+ * including UNION, INTERSECT and EXCEPT.  '(' and ')' can be used to specify
+ * the ordering of the set operations.	Without '(' and ')' we want the
+ * operations to be ordered per the precedence specs at the head of this file.
+ *
+ * As with select_no_parens, simple_select cannot have outer parentheses,
+ * but can have parenthesized subclauses.
+ *
+ * It might appear that we could fold the first two alternatives into one
+ * by using opt_distinct_clause.  However, that causes a shift/reduce conflict
+ * against INSERT ... SELECT ... ON CONFLICT.  We avoid the ambiguity by
+ * requiring SELECT DISTINCT [ON] to be followed by a non-empty target_list.
+ *
+ * Note that sort clauses cannot be included at this level --- SQL requires
+ *		SELECT foo UNION SELECT bar ORDER BY baz
+ * to be parsed as
+ *		(SELECT foo UNION SELECT bar) ORDER BY baz
+ * not
+ *		SELECT foo UNION (SELECT bar ORDER BY baz)
+ * Likewise for WITH, FOR UPDATE and LIMIT.  Therefore, those clauses are
+ * described as part of the select_no_parens production, not simple_select.
+ * This does not limit functionality, because you can reintroduce these
+ * clauses inside parentheses.
+ *
+ * NOTE: only the leftmost component SelectStmt should have INTO.
+ * However, this is not checked by the grammar; parse analysis must check it.
+ */
+simple_select:
+			SELECT opt_all_clause opt_target_list
+			//into_clause 
+            from_clause //where_clause
+			//group_clause having_clause window_clause
+				{
+					SelectStmt *n = makeNode(SelectStmt);
+					/*n->targetList = $3;
+					n->intoClause = $4;
+					n->fromClause = $5;
+					n->whereClause = $6;
+					n->groupClause = ($7)->list;
+					n->groupDistinct = ($7)->distinct;
+					n->havingClause = $8;
+					n->windowClause = $9;*/
+                    n->targetList = $3;
+					n->intoClause = NULL;
+					n->fromClause = $4;
+					n->whereClause = NULL;
+					n->groupClause = NULL;
+					n->groupDistinct = NULL;
+					n->havingClause = NULL;
+					n->windowClause = NULL;
+					$$ = (Node *)n;
+				}
+			/*| SELECT distinct_clause target_list
+			into_clause from_clause where_clause
+			group_clause having_clause window_clause
+				{
+					SelectStmt *n = makeNode(SelectStmt);
+					n->distinctClause = $2;
+					n->targetList = $3;
+					n->intoClause = $4;
+					n->fromClause = $5;
+					n->whereClause = $6;
+					n->groupClause = ($7)->list;
+					n->groupDistinct = ($7)->distinct;
+					n->havingClause = $8;
+					n->windowClause = $9;
+					$$ = (Node *)n;
+				}
+			| values_clause							{ $$ = $1; }
+			| TABLE relation_expr
+				{
+					// same as SELECT * FROM relation_expr 
+					ColumnRef *cr = makeNode(ColumnRef);
+					ResTarget *rt = makeNode(ResTarget);
+					SelectStmt *n = makeNode(SelectStmt);
+
+					cr->fields = list_make1(makeNode(A_Star));
+					cr->location = -1;
+
+					rt->name = NULL;
+					rt->indirection = NIL;
+					rt->val = (Node *)cr;
+					rt->location = -1;
+
+					n->targetList = list_make1(rt);
+					n->fromClause = list_make1($2);
+					$$ = (Node *)n;
+				}
+			| select_clause UNION set_quantifier select_clause
+				{
+					$$ = makeSetOp(SETOP_UNION, $3 == SET_QUANTIFIER_ALL, $1, $4);
+				}
+			| select_clause INTERSECT set_quantifier select_clause
+				{
+					$$ = makeSetOp(SETOP_INTERSECT, $3 == SET_QUANTIFIER_ALL, $1, $4);
+				}
+			| select_clause EXCEPT set_quantifier select_clause
+				{
+					$$ = makeSetOp(SETOP_EXCEPT, $3 == SET_QUANTIFIER_ALL, $1, $4);
+				}*/
+		;
+
+
+
+
+opt_all_clause:
+			ALL
+			| /*EMPTY*/
+		;
+
+
+
+/*****************************************************************************
+ *
+ *	target list for SELECT
+ *
+ *****************************************************************************/
+
+opt_target_list: target_list						{ $$ = $1; }
+			| /* EMPTY */							{ $$ = NIL; }
+		;
+
+target_list:
+			target_el								{ $$ = list_make1($1); }
+			| target_list ',' target_el				{ $$ = lappend($1, $3); }
+		;
+
+target_el:	/*a_expr AS ColLabel
+				{
+					$$ = makeNode(ResTarget);
+					$$->name = $3;
+					$$->indirection = NIL;
+					$$->val = (Node *)$1;
+					$$->location = @1;
+				}
+			| a_expr BareColLabel
+				{
+					$$ = makeNode(ResTarget);
+					$$->name = $2;
+					$$->indirection = NIL;
+					$$->val = (Node *)$1;
+					$$->location = @1;
+				}
+			| a_expr
+				{
+					$$ = makeNode(ResTarget);
+					$$->name = NULL;
+					$$->indirection = NIL;
+					$$->val = (Node *)$1;
+					$$->location = @1;
+				}
+			| */'*'
+				{
+					ColumnRef *n = makeNode(ColumnRef);
+					n->fields = list_make1(makeNode(A_Star));
+					n->location = @1;
+
+					$$ = makeNode(ResTarget);
+					$$->name = NULL;
+					$$->indirection = NIL;
+					$$->val = (Node *)n;
+					$$->location = @1;
+				}
+		;
+
+/*****************************************************************************
+ *
+ *	clauses common to all Optimizable Stmts:
+ *		from_clause		- allow list of both JOIN expressions and table names
+ *		where_clause	- qualifications for joins or restrictions
+ *
+ *****************************************************************************/
+from_clause:
+			FROM from_list							{ $$ = $2; }
+			| /*EMPTY*/								{ $$ = NIL; }
+		;
+
+from_list:
+			table_ref								{ $$ = list_make1($1); }
+			| from_list ',' table_ref				{ $$ = lappend($1, $3); }
+		;
+
+/*
+ * table_ref is where an alias clause can be attached.
+ */
+table_ref:	relation_expr opt_alias_clause
+				{
+					$1->alias = $2;
+					$$ = (Node *) $1;
+				}
+			/*| relation_expr opt_alias_clause tablesample_clause
+				{
+					RangeTableSample *n = (RangeTableSample *) $3;
+					$1->alias = $2;
+					// relation_expr goes inside the RangeTableSample node 
+					n->relation = (Node *) $1;
+					$$ = (Node *) n;
+				}
+			| func_table func_alias_clause
+				{
+					RangeFunction *n = (RangeFunction *) $1;
+					n->alias = linitial($2);
+					n->coldeflist = lsecond($2);
+					$$ = (Node *) n;
+				}
+			| LATERAL_P func_table func_alias_clause
+				{
+					RangeFunction *n = (RangeFunction *) $2;
+					n->lateral = true;
+					n->alias = linitial($3);
+					n->coldeflist = lsecond($3);
+					$$ = (Node *) n;
+				}
+			| xmltable opt_alias_clause
+				{
+					RangeTableFunc *n = (RangeTableFunc *) $1;
+					n->alias = $2;
+					$$ = (Node *) n;
+				}
+			| LATERAL_P xmltable opt_alias_clause
+				{
+					RangeTableFunc *n = (RangeTableFunc *) $2;
+					n->lateral = true;
+					n->alias = $3;
+					$$ = (Node *) n;
+				}
+			| select_with_parens opt_alias_clause
+				{
+					RangeSubselect *n = makeNode(RangeSubselect);
+					n->lateral = false;
+					n->subquery = $1;
+					n->alias = $2;
+					 // The SQL spec does not permit a subselect
+					 // (<derived_table>) without an alias clause,
+					 // so we don't either.  This avoids the problem
+					 // of needing to invent a unique refname for it.
+					 // That could be surmounted if there's sufficient
+					 // popular demand, but for now let's just implement
+					 // the spec and see if anyone complains.
+					 // However, it does seem like a good idea to emit
+					 // an error message that's better than "syntax error".
+					 
+					if ($2 == NULL)
+					{
+						if (IsA($1, SelectStmt) &&
+							((SelectStmt *) $1)->valuesLists)
+							ereport(ERROR,
+									(errcode(ERRCODE_SYNTAX_ERROR),
+									 errmsg("VALUES in FROM must have an alias"),
+									 errhint("For example, FROM (VALUES ...) [AS] foo."),
+									 parser_errposition(@1)));
+						else
+							ereport(ERROR,
+									(errcode(ERRCODE_SYNTAX_ERROR),
+									 errmsg("subquery in FROM must have an alias"),
+									 errhint("For example, FROM (SELECT ...) [AS] foo."),
+									 parser_errposition(@1)));
+					}
+					$$ = (Node *) n;
+				}
+			| LATERAL_P select_with_parens opt_alias_clause
+				{
+					RangeSubselect *n = makeNode(RangeSubselect);
+					n->lateral = true;
+					n->subquery = $2;
+					n->alias = $3;
+					// same comment as above 
+					if ($3 == NULL)
+					{
+						if (IsA($2, SelectStmt) &&
+							((SelectStmt *) $2)->valuesLists)
+							ereport(ERROR,
+									(errcode(ERRCODE_SYNTAX_ERROR),
+									 errmsg("VALUES in FROM must have an alias"),
+									 errhint("For example, FROM (VALUES ...) [AS] foo."),
+									 parser_errposition(@2)));
+						else
+							ereport(ERROR,
+									(errcode(ERRCODE_SYNTAX_ERROR),
+									 errmsg("subquery in FROM must have an alias"),
+									 errhint("For example, FROM (SELECT ...) [AS] foo."),
+									 parser_errposition(@2)));
+					}
+					$$ = (Node *) n;
+				}
+			| joined_table
+				{
+					$$ = (Node *) $1;
+				}
+			| '(' joined_table ')' alias_clause
+				{
+					$2->alias = $4;
+					$$ = (Node *) $2;
+				}*/
+		;
+
+
+relation_expr:
+			qualified_name
+				{
+					// inheritance query, implicitly
+					$$ = $1;
+					$$->inh = true;
+					$$->alias = NULL;
+				}
+		/*	| qualified_name '*'
+				{
+					// inheritance query, explicitly
+					$$ = $1;
+					$$->inh = true;
+					$$->alias = NULL;
+				}
+			| ONLY qualified_name
+				{
+					// no inheritance 
+					$$ = $2;
+					$$->inh = false;
+					$$->alias = NULL;
+				}
+			| ONLY '(' qualified_name ')'
+				{
+					// no inheritance, SQL99-style syntax
+					$$ = $3;
+					$$->inh = false;
+					$$->alias = NULL;
+				}*/
+		;
+
+
+alias_clause:
+			/*AS ColId '(' name_list ')'
+				{
+					$$ = makeNode(Alias);
+					$$->aliasname = $2;
+					$$->colnames = $4;
+				}
+			| */AS ColId
+				{
+					$$ = makeNode(Alias);
+					$$->aliasname = $2;
+				}
+			/*| ColId '(' name_list ')'
+				{
+					$$ = makeNode(Alias);
+					$$->aliasname = $1;
+					$$->colnames = $3;
+				}*/
+			| ColId
+				{
+					$$ = makeNode(Alias);
+					$$->aliasname = $1;
+				}
+		;
+
+opt_alias_clause: alias_clause						{ $$ = $1; }
+			| /*EMPTY*/								{ $$ = NULL; }
+		;
+
 
 CreateGraphStmt:
     CREATE GRAPH IDENTIFIER
@@ -355,42 +859,38 @@ CreateExtensionStmt:
 		}
     ;
 
+/*****************************************************************************
+ *
+ *		QUERY :
+ *				CREATE TABLE relname
+ *
+ *****************************************************************************/
 CreateTableStmt:
     CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 			OptInherit OptPartitionSpec table_access_method_clause OptWith
 			//OnCommitOption  OptTableSpace
-				{
-					CreateStmt *n = makeNode(CreateStmt);
-					/*
-                    $4->relpersistence = $2;
-					n->relation = $4;
-					n->tableElts = $6;
-					n->inhRelations = $8;
-					n->partspec = $9;
-					n->ofTypename = NULL;
-					n->constraints = NIL;
-					n->accessMethod = $10;
-					n->options = $11;
-					n->oncommit = $12;
-					n->tablespacename = $13;
-					n->if_not_exists = false;
-                    */
-                    $4->relpersistence = $2;
-					n->relation = $4;
-					n->tableElts = $6;
-					n->inhRelations = $8;
-					n->partspec = $9;
-					n->ofTypename = NULL;
-					n->constraints = NIL;
-					n->accessMethod = $10;
-					n->options = $11;
-					n->oncommit = ONCOMMIT_NOOP;
-					n->tablespacename = NULL;
-					n->if_not_exists = false;
+		{
+			CreateStmt *n = makeNode(CreateStmt);
+			/*
+			 n->oncommit = $12;
+			 n->tablespacename = $13;
+            */
+            $4->relpersistence = $2;
+			n->relation = $4;
+			n->tableElts = $6;
+			n->inhRelations = $8;
+			n->partspec = $9;
+			n->ofTypename = NULL;
+			n->constraints = NIL;
+			n->accessMethod = $10;
+			n->options = $11;
+			n->oncommit = ONCOMMIT_NOOP;
+			n->tablespacename = NULL;
+			n->if_not_exists = false;
 
-					$$ = (Node *)n;
-				}
-
+			$$ = (Node *)n;
+		}
+    ;
 
 call_stmt:
     CALL expr_func_norm AS var_name where_opt

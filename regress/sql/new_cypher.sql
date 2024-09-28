@@ -62,5 +62,11 @@ CREATE TABLE tst6 (i text) PARTITION BY LIST (i COLLATE de_DE text_ops);
 CREATE TABLE tst7 (i text) USING heap;
 CREATE TABLE tst8 (i text) WITH (fillfactor=70);
 
+SELECT;
+SELECT ALL;
+
+SELECT *;
+SELECT * FROM tst;
+
 DROP GRAPH new_cypher CASCADE;
 DROP GRAPH new_cypher_2 CASCADE;

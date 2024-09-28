@@ -106,6 +106,23 @@ CREATE TABLE tst5 (i text) PARTITION BY LIST (i COLLATE de_DE);
 CREATE TABLE tst6 (i text) PARTITION BY LIST (i COLLATE de_DE text_ops);
 CREATE TABLE tst7 (i text) USING heap;
 CREATE TABLE tst8 (i text) WITH (fillfactor=70);
+SELECT;
+--
+(1 row)
+
+SELECT ALL;
+--
+(1 row)
+
+SELECT *;
+ERROR:  SELECT * with no tables specified is not valid
+LINE 1: SELECT *;
+               ^
+SELECT * FROM tst;
+ i 
+---
+(0 rows)
+
 DROP GRAPH new_cypher CASCADE;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table new_cypher._ag_label_vertex

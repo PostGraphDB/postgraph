@@ -1397,7 +1397,7 @@ cypher_parse_analyze(RawStmt *parseTree, const char *sourceText,
     if (list_length(parseTree->stmt) == 1) {
       Node *n = linitial(parseTree->stmt);
 
-      if (IsA(n, CreateExtensionStmt) || IsA(n,CreateStmt)) {
+      if (IsA(n, CreateExtensionStmt) || IsA(n,CreateStmt) || IsA(n, SelectStmt)) {
 	        query = parse_analyze((makeRawStmt(n, 0)), sourceText, paramTypes, numParams,
 						  queryEnv);
 
@@ -1452,6 +1452,8 @@ cypher_parse_analyze(RawStmt *parseTree, const char *sourceText,
         
       }
     }
+
+
     Oid graph_oid = get_session_graph_oid();
     graph_cache_data *gcd = search_graph_namespace_cache(graph_oid);
 
