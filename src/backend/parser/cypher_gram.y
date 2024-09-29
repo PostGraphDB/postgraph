@@ -151,28 +151,53 @@ static Node *makeAConst(Value *v, int location);
 
 /* keywords in alphabetical order */
 %token <keyword> ALL AND ANY ARRAY AS ASC ASCENDING ASYMMETRIC
-                 BETWEEN BY
-                 CALL CASE CASCADE CROSS COALESCE COLLATE CONTAINS CREATE CUBE CURRENT CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
+
+                 BETWEEN BOTH BY
+
+                 CALL CASE CAST CASCADE CROSS COALESCE COLLATE COLLATION CONTAINS CREATE 
+                 CUBE CURRENT 
+                 CURRENT_CATALOG CURRENT_DATE CURRENT_ROLE CURRENT_SCHEMA CURRENT_TIME 
+                 CURRENT_TIMESTAMP CURRENT_USER
+
                  DATE DECADE DEFAULT DELETE DESC DESCENDING DETACH DISTINCT DROP
+
                  ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXISTS EXTENSION EXTRACT
-                 GLOBAL GRAPH GROUP GROUPS GROUPING
-                 FALSE_P FILTER FIRST_P FOLLOWING FROM FULL
+
+                 GLOBAL GRAPH GREATEST GROUP GROUPS GROUPING
+
+                 FALSE_P FILTER FIRST_P FOLLOWING FOR FROM FULL
+
                  HAVING
+
                  IF ILIKE IN INHERITS INNER INTERSECT INSERT INTERVAL INTO IS ISNULL
                  JOIN
-                 LAST_P LATERAL_P LEFT LIKE LIMIT LOCAL LOCALTIME LOCALTIMESTAMP
+
+                 LAST_P LATERAL_P LEADING LEAST LEFT LIKE LIMIT LOCAL LOCALTIME LOCALTIMESTAMP
+
                  MATCH MERGE 
-                 NATURAL NO NOT NOTNULL NULL_P NULLS_LA
-                 ON ONLY OPTIONAL OTHERS OR ORDER OUTER OVER OVERLAPS
-                 PARTITION PRECEDING
+
+                 NATURAL NFC NFD NFKC NFKD NO NORMALIZE NOT NOTNULL NULL_P NULLIF NULLS_LA
+
+                 ON ONLY OPTIONAL OTHERS OR ORDER OUTER OVER OVERLAPS OVERLAY
+
+                 PARTITION PLACING POSITION PRECEDING
+
                  RANGE RIGHT REMOVE REPLACE RETURN ROLLUP ROW ROWS
-                 SCHEMA SELECT SESSION SET SETS SKIP SOME STARTS SYMMETRIC
-                 TABLE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRUE_P
-                 UNBOUNDED UNION UNKNOWN UNLOGGED UPDATE UNWIND USE USING
+
+                 SCHEMA SELECT SESSION SESSION_USER SET SETS SKIP SOME STARTS SUBSTRING SYMMETRIC
+
+                 TABLE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRAILING TREAT TRIM TRUE_P
+
+                 UNBOUNDED UNION UNKNOWN UNLOGGED UPDATE UNWIND USE USER USING
+
                  VALUES VARIADIC VERSION_P
+
                  WHEN WHERE WINDOW WITH WITHIN WITHOUT
+
                  XOR
+
                  YIELD
+
                  ZONE
 
 /* query */
@@ -218,6 +243,9 @@ static Node *makeAConst(Value *v, int location);
 
 %type <node>	join_qual
 %type <integer>	join_type
+
+%type <string>		unicode_normal_form
+
 
 %type <node> cypher_query_start
 %type <list> cypher_query_body
@@ -322,6 +350,9 @@ static Node *makeAConst(Value *v, int location);
 %type <istmt>	insert_rest
 %type <node>	TableElement 
 %type <node>	columnDef 
+%type <list>	extract_list overlay_list position_list
+%type <list>	substr_list trim_list
+%type <string>	extract_arg
 
 /*set operations*/
 %type <boolean> all_or_distinct
@@ -3489,14 +3520,14 @@ func_expr_windowless:
  * Special expressions that are considered to be functions.
  */
 func_expr_common_subexpr:
-			/*COLLATION FOR '(' a_expr ')'
+			COLLATION FOR '(' a_expr ')'
 				{
 					$$ = (Node *) makeFuncCall(SystemFuncName("pg_collation_for"),
 											   list_make1($4),
 											   COERCE_SQL_SYNTAX,
 											   @1);
 				}
-			| */CURRENT_DATE
+			| CURRENT_DATE
 				{
 					$$ = makeSQLValueFunction(SVFOP_CURRENT_DATE, -1, @1);
 				}
@@ -3532,7 +3563,7 @@ func_expr_common_subexpr:
 				{
 					$$ = makeSQLValueFunction(SVFOP_LOCALTIMESTAMP_N, $3, @1);
 				}
-			/*| CURRENT_ROLE
+			| CURRENT_ROLE
 				{
 					$$ = makeSQLValueFunction(SVFOP_CURRENT_ROLE, -1, @1);
 				}
@@ -3676,7 +3707,7 @@ func_expr_common_subexpr:
 					v->op = IS_LEAST;
 					v->location = @1;
 					$$ = (Node *)v;
-				}
+				}/*
 			| XMLCONCAT '(' expr_list ')'
 				{
 					$$ = makeXmlExpr(IS_XMLCONCAT, NULL, NIL, $3, @1);
@@ -3755,6 +3786,10 @@ func_arg_list:  func_arg_expr
 				}
 		;
 
+func_arg_list_opt:	func_arg_list					{ $$ = $1; }
+			| /*EMPTY*/								{ $$ = NIL; }
+		;
+
 /*
  * Ideally param_name should be ColId, but that causes too many conflicts.
  */
@@ -3786,6 +3821,122 @@ func_arg_expr:  a_expr
 				}
 		;
 
+extract_list:
+			extract_arg FROM a_expr
+				{
+					$$ = list_make2(makeStringConst($1, @1), $3);
+				}
+		;
+
+
+
+/* Allow delimited string Sconst in extract_arg as an SQL extension.
+ * - thomas 2001-04-12
+ */
+extract_arg:
+			IDENTIFIER									{ $$ = $1; }
+			/*| YEAR_P								{ $$ = "year"; }
+			| MONTH_P								{ $$ = "month"; }
+			| DAY_P									{ $$ = "day"; }
+			| HOUR_P								{ $$ = "hour"; }
+			| MINUTE_P								{ $$ = "minute"; }
+			| SECOND_P								{ $$ = "second"; }*/
+			| Sconst								{ $$ = $1; }
+		;
+
+unicode_normal_form:
+			NFC										{ $$ = "NFC"; }
+			| NFD									{ $$ = "NFD"; }
+			| NFKC									{ $$ = "NFKC"; }
+			| NFKD									{ $$ = "NFKD"; }
+		;
+
+/* OVERLAY() arguments */
+overlay_list:
+			a_expr PLACING a_expr FROM a_expr FOR a_expr
+				{
+					/* overlay(A PLACING B FROM C FOR D) is converted to overlay(A, B, C, D) */
+					$$ = list_make4($1, $3, $5, $7);
+				}
+			| a_expr PLACING a_expr FROM a_expr
+				{
+					/* overlay(A PLACING B FROM C) is converted to overlay(A, B, C) */
+					$$ = list_make3($1, $3, $5);
+				}
+		;
+
+
+/* position_list uses b_expr not a_expr to avoid conflict with general IN */
+position_list:
+			b_expr IN b_expr						{ $$ = list_make2($3, $1); }
+		;
+
+
+/*
+ * SUBSTRING() arguments
+ *
+ * Note that SQL:1999 has both
+ *     text FROM int FOR int
+ * and
+ *     text FROM pattern FOR escape
+ *
+ * In the parser we map them both to a call to the substring() function and
+ * rely on type resolution to pick the right one.
+ *
+ * In SQL:2003, the second variant was changed to
+ *     text SIMILAR pattern ESCAPE escape
+ * We could in theory map that to a different function internally, but
+ * since we still support the SQL:1999 version, we don't.  However,
+ * ruleutils.c will reverse-list the call in the newer style.
+ */
+substr_list:
+			a_expr FROM a_expr FOR a_expr
+				{
+					$$ = list_make3($1, $3, $5);
+				}
+			| a_expr FOR a_expr FROM a_expr
+				{
+					/* not legal per SQL, but might as well allow it */
+					$$ = list_make3($1, $5, $3);
+				}
+			| a_expr FROM a_expr
+				{
+					/*
+					 * Because we aren't restricting data types here, this
+					 * syntax can end up resolving to textregexsubstr().
+					 * We've historically allowed that to happen, so continue
+					 * to accept it.  However, ruleutils.c will reverse-list
+					 * such a call in regular function call syntax.
+					 */
+					$$ = list_make2($1, $3);
+				}
+			| a_expr FOR a_expr
+				{
+					/* not legal per SQL */
+
+					/*
+					 * Since there are no cases where this syntax allows
+					 * a textual FOR value, we forcibly cast the argument
+					 * to int4.  The possible matches in pg_proc are
+					 * substring(text,int4) and substring(text,text),
+					 * and we don't want the parser to choose the latter,
+					 * which it is likely to do if the second argument
+					 * is unknown or doesn't have an implicit cast to int4.
+					 */
+					$$ = list_make3($1, makeIntConst(1, -1),
+									makeTypeCast($3,
+												 SystemTypeName("int4"), -1));
+				}
+			| a_expr SIMILAR a_expr ESCAPE a_expr
+				{
+					$$ = list_make3($1, $3, $5);
+				}
+		;
+
+trim_list:	a_expr FROM expr_list					{ $$ = lappend($3, $1); }
+			| FROM expr_list						{ $$ = $2; }
+			| expr_list								{ $$ = $1; }
+		;
 
 /*
  * Define SQL-style CASE clause.
