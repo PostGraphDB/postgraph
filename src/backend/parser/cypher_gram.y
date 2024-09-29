@@ -192,7 +192,7 @@ static Node *makeAConst(Value *v, int location);
              simple_select
 
 %type <node> where_clause
-             a_expr b_expr c_expr AexprConst indirection_el
+             a_expr b_expr c_expr AexprConst indirection_el opt_slice_bound
              columnref in_expr having_clause
 
 %type <integer> set_quantifier
@@ -2699,7 +2699,7 @@ indirection_el:
 				{
 					$$ = (Node *) makeNode(A_Star);
 				}
-			/*| '[' a_expr ']'
+			| '[' a_expr ']'
 				{
 					A_Indices *ai = makeNode(A_Indices);
 					ai->is_slice = false;
@@ -2714,7 +2714,12 @@ indirection_el:
 					ai->lidx = $2;
 					ai->uidx = $4;
 					$$ = (Node *) ai;
-				}*/
+				}
+		;
+
+opt_slice_bound:
+			a_expr									{ $$ = $1; }
+			| /*EMPTY*/								{ $$ = NULL; }
 		;
 
 /*****************************************************************************
