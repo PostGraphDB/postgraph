@@ -187,5 +187,7 @@ SELECT false AND (true AND false);
 SELECT CASE WHEN true THEN true ELSE false END;
 SELECT CASE WHEN false THEN true ELSE false END;
 
+SELECT sin(1);
+
 DROP GRAPH new_cypher CASCADE;
 DROP GRAPH new_cypher_2 CASCADE;

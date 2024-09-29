@@ -49,8 +49,7 @@
 #define YYMALLOC palloc
 #define YYFREE pfree
 
-#define parser_yyerror(msg)  scanner_yyerror(msg, yyscanner)
-#define parser_errposition(pos)  scanner_errposition(pos, yyscanner)
+
 
 /* Private struct for the result of privilege_target production */
 typedef struct PrivTarget
@@ -99,6 +98,9 @@ static Node *makeAndExpr(Node *lexpr, Node *rexpr, int location);
 static Node *makeOrExpr(Node *lexpr, Node *rexpr, int location);
 static Node *makeNotExpr(Node *expr, int location);
 static Node *makeAConst(Value *v, int location);
+
+#define parser_yyerror(msg)  scanner_yyerror(msg, yyscanner)
+#define parser_errposition(pos)  scanner_errposition(pos, yyscanner)
 %}
 
 %locations
@@ -167,7 +169,7 @@ static Node *makeAConst(Value *v, int location);
                  SCHEMA SELECT SESSION SET SETS SKIP SOME STARTS SYMMETRIC
                  TABLE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRUE_P
                  UNBOUNDED UNION UNKNOWN UNLOGGED UPDATE UNWIND USE USING
-                 VALUES VERSION_P
+                 VALUES VARIADIC VERSION_P
                  WHEN WHERE WINDOW WITH WITHIN WITHOUT
                  XOR
                  YIELD
@@ -206,6 +208,11 @@ static Node *makeAConst(Value *v, int location);
 %type <node>	group_by_item 
 %type <node>	grouping_sets_clause
 
+%type <node>	func_application func_expr_common_subexpr
+%type <node>	func_expr 
+%type <list>	func_arg_list func_arg_list_opt
+%type <node>	func_arg_expr
+
 %type <node>	table_ref
 %type <jexpr>	joined_table
 
@@ -215,7 +222,7 @@ static Node *makeAConst(Value *v, int location);
 %type <node> cypher_query_start
 %type <list> cypher_query_body
 %type <vsetstmt> generic_set set_rest set_rest_more 
-%type <string> var_name
+%type <string> var_name type_function_name param_name
 %type <node>	var_value 
 %type <string>	 opt_boolean_or_string
 /* RETURN and WITH clause */
@@ -258,7 +265,7 @@ static Node *makeAConst(Value *v, int location);
 %type <node> path anonymous_path
              path_node path_relationship path_relationship_body
              properties_opt
-%type <string> label_opt type_function_name
+%type <string> label_opt 
 
 /* expression */
 %type <node> cypher_a_expr expr_opt expr_atom expr_literal map list cypher_in_expr
@@ -267,7 +274,7 @@ static Node *makeAConst(Value *v, int location);
 %type <node> expr_case expr_case_when expr_case_default values_clause
 %type <list> expr_case_when_list
 
-%type <node> expr_func expr_func_norm expr_func_subexpr
+%type <node> cypher_expr_func cypher_expr_func_norm cypher_expr_func_subexpr
 %type <list> cypher_expr_list cypher_expr_list_opt map_keyval_list_opt map_keyval_list
         
 
@@ -281,7 +288,7 @@ static Node *makeAConst(Value *v, int location);
 %type <string> property_key_name cypher_var_name var_name_opt label_name
 %type <string> symbolic_name schema_name temporal_cast attr_name table_access_method_clause
 %type <keyword> reserved_keyword safe_keywords conflicted_keywords
-%type <list> func_name expr_list
+%type <list> cypher_func_name expr_list
              TableElementList OptTableElementList OptInherit
              reloptions 
              name_list
@@ -297,6 +304,9 @@ static Node *makeAConst(Value *v, int location);
              indirection opt_indirection
              any_name attrs opt_class
              var_list
+
+%type <list>	func_name 
+
 %type <defelt>	def_elem reloption_elem
 %type <string> Sconst 
 %type <string> ColId  ColLabel BareColLabel
@@ -386,7 +396,8 @@ check_indirection(List *indirection, ag_scanner_t yyscanner);
 
 static Node *
 doNegate(Node *n, int location);
-
+static List *
+check_func_name(List *names, ag_scanner_t yyscanner);
 
 %}
 %%
@@ -1436,7 +1447,7 @@ CreateTableStmt:
     ;
 
 call_stmt:
-    CALL expr_func_norm AS cypher_var_name cypher_where_opt
+    CALL cypher_expr_func_norm AS cypher_var_name cypher_where_opt
         {
             cypher_call *call = make_ag_node(cypher_call);
             call->cck = CCK_FUNCTION;
@@ -1448,7 +1459,7 @@ call_stmt:
             call->query_tree = NULL;
             $$ = call;
        }
-    | CALL expr_func_norm YIELD yield_item_list cypher_where_opt
+    | CALL cypher_expr_func_norm YIELD yield_item_list cypher_where_opt
         {
             cypher_call *call = make_ag_node(cypher_call);
             call->cck = CCK_FUNCTION;
@@ -3240,12 +3251,12 @@ c_expr:		columnref								{ $$ = $1; }
 					}
 					else
 						$$ = $2;
-				}
+				} 
 			| case_expr
 				{ $$ = $1; }
-			/*| func_expr
-				{ $$ = $1; }*/
-			| select_with_parens			//%prec UMINUS
+			| func_expr 
+				{ $$ = $1; }
+			| select_with_parens			%prec '-'
 				{
 					SubLink *n = makeNode(SubLink);
 					n->subLinkType = EXPR_SUBLINK;
@@ -3339,6 +3350,429 @@ in_expr:	select_with_parens
 			| '(' expr_list ')'						{ $$ = (Node *)$2; }
 		;
 
+
+func_application: func_name '(' ')'
+				{
+					$$ = (Node *) makeFuncCall($1, NIL,
+											   COERCE_EXPLICIT_CALL,
+											   @1);
+				}
+			| func_name '(' func_arg_list opt_sort_clause ')'
+				{
+					FuncCall *n = makeFuncCall($1, $3,
+											   COERCE_EXPLICIT_CALL,
+											   @1);
+					n->agg_order = $4;
+					$$ = (Node *)n;
+				}
+			| func_name '(' VARIADIC func_arg_expr opt_sort_clause ')'
+				{
+					FuncCall *n = makeFuncCall($1, list_make1($4),
+											   COERCE_EXPLICIT_CALL,
+											   @1);
+					n->func_variadic = true;
+					n->agg_order = $5;
+					$$ = (Node *)n;
+				}
+			| func_name '(' func_arg_list ',' VARIADIC func_arg_expr opt_sort_clause ')'
+				{
+					FuncCall *n = makeFuncCall($1, lappend($3, $6),
+											   COERCE_EXPLICIT_CALL,
+											   @1);
+					n->func_variadic = true;
+					n->agg_order = $7;
+					$$ = (Node *)n;
+				}
+			| func_name '(' ALL func_arg_list opt_sort_clause ')'
+				{
+					FuncCall *n = makeFuncCall($1, $4,
+											   COERCE_EXPLICIT_CALL,
+											   @1);
+					n->agg_order = $5;
+					/* Ideally we'd mark the FuncCall node to indicate
+					 * "must be an aggregate", but there's no provision
+					 * for that in FuncCall at the moment.
+					 */
+					$$ = (Node *)n;
+				}
+			| func_name '(' DISTINCT func_arg_list opt_sort_clause ')'
+				{
+					FuncCall *n = makeFuncCall($1, $4,
+											   COERCE_EXPLICIT_CALL,
+											   @1);
+					n->agg_order = $5;
+					n->agg_distinct = true;
+					$$ = (Node *)n;
+				}
+			| func_name '(' '*' ')'
+				{
+					/*
+					 * We consider AGGREGATE(*) to invoke a parameterless
+					 * aggregate.  This does the right thing for COUNT(*),
+					 * and there are no other aggregates in SQL that accept
+					 * '*' as parameter.
+					 *
+					 * The FuncCall node is also marked agg_star = true,
+					 * so that later processing can detect what the argument
+					 * really was.
+					 */
+					FuncCall *n = makeFuncCall($1, NIL,
+											   COERCE_EXPLICIT_CALL,
+											   @1);
+					n->agg_star = true;
+					$$ = (Node *)n;
+				}
+		;
+
+
+/*
+ * func_expr and its cousin func_expr_windowless are split out from c_expr just
+ * so that we have classifications for "everything that is a function call or
+ * looks like one".  This isn't very important, but it saves us having to
+ * document which variants are legal in places like "FROM function()" or the
+ * backwards-compatible functional-index syntax for CREATE INDEX.
+ * (Note that many of the special SQL functions wouldn't actually make any
+ * sense as functional index entries, but we ignore that consideration here.)
+ */
+func_expr: func_application within_group_clause filter_clause over_clause
+				{
+					FuncCall *n = (FuncCall *) $1;
+					
+					 // The order clause for WITHIN GROUP and the one for
+					 // plain-aggregate ORDER BY share a field, so we have to
+					 // check here that at most one is present.  We also check
+					 // for DISTINCT and VARIADIC here to give a better error
+					 // location.  Other consistency checks are deferred to
+					 // parse analysis.
+					 
+					if ($2 != NIL)
+					{
+						if (n->agg_order != NIL)
+							ereport(ERROR,
+									(errcode(ERRCODE_SYNTAX_ERROR),
+									 errmsg("cannot use multiple ORDER BY clauses with WITHIN GROUP")));
+						if (n->agg_distinct)
+							ereport(ERROR,
+									(errcode(ERRCODE_SYNTAX_ERROR),
+									 errmsg("cannot use DISTINCT with WITHIN GROUP")));
+						if (n->func_variadic)
+							ereport(ERROR,
+									(errcode(ERRCODE_SYNTAX_ERROR),
+									 errmsg("cannot use VARIADIC with WITHIN GROUP")));
+						n->agg_order = $2;
+						n->agg_within_group = true;
+					}
+					n->agg_filter = $3;
+					n->over = $4;
+					$$ = (Node *) n;
+				}
+			| func_expr_common_subexpr
+				{ $$ = $1; }
+		;
+
+
+/*
+ * Special expressions that are considered to be functions.
+ */
+func_expr_common_subexpr:
+			/*COLLATION FOR '(' a_expr ')'
+				{
+					$$ = (Node *) makeFuncCall(SystemFuncName("pg_collation_for"),
+											   list_make1($4),
+											   COERCE_SQL_SYNTAX,
+											   @1);
+				}
+			| */CURRENT_DATE
+				{
+					$$ = makeSQLValueFunction(SVFOP_CURRENT_DATE, -1, @1);
+				}
+			| CURRENT_TIME
+				{
+					$$ = makeSQLValueFunction(SVFOP_CURRENT_TIME, -1, @1);
+				}
+			| CURRENT_TIME '(' Iconst ')'
+				{
+					$$ = makeSQLValueFunction(SVFOP_CURRENT_TIME_N, $3, @1);
+				}
+			| CURRENT_TIMESTAMP
+				{
+					$$ = makeSQLValueFunction(SVFOP_CURRENT_TIMESTAMP, -1, @1);
+				}
+			| CURRENT_TIMESTAMP '(' Iconst ')'
+				{
+					$$ = makeSQLValueFunction(SVFOP_CURRENT_TIMESTAMP_N, $3, @1);
+				}
+			| LOCALTIME
+				{
+					$$ = makeSQLValueFunction(SVFOP_LOCALTIME, -1, @1);
+				}
+			| LOCALTIME '(' Iconst ')'
+				{
+					$$ = makeSQLValueFunction(SVFOP_LOCALTIME_N, $3, @1);
+				}
+			| LOCALTIMESTAMP
+				{
+					$$ = makeSQLValueFunction(SVFOP_LOCALTIMESTAMP, -1, @1);
+				}
+			| LOCALTIMESTAMP '(' Iconst ')'
+				{
+					$$ = makeSQLValueFunction(SVFOP_LOCALTIMESTAMP_N, $3, @1);
+				}
+			/*| CURRENT_ROLE
+				{
+					$$ = makeSQLValueFunction(SVFOP_CURRENT_ROLE, -1, @1);
+				}
+			| CURRENT_USER
+				{
+					$$ = makeSQLValueFunction(SVFOP_CURRENT_USER, -1, @1);
+				}
+			| SESSION_USER
+				{
+					$$ = makeSQLValueFunction(SVFOP_SESSION_USER, -1, @1);
+				}
+			| USER
+				{
+					$$ = makeSQLValueFunction(SVFOP_USER, -1, @1);
+				}
+			| CURRENT_CATALOG
+				{
+					$$ = makeSQLValueFunction(SVFOP_CURRENT_CATALOG, -1, @1);
+				}
+			| CURRENT_SCHEMA
+				{
+					$$ = makeSQLValueFunction(SVFOP_CURRENT_SCHEMA, -1, @1);
+				}
+			| CAST '(' a_expr AS Typename ')'
+				{ $$ = makeTypeCast($3, $5, @1); }
+			| EXTRACT '(' extract_list ')'
+				{
+					$$ = (Node *) makeFuncCall(SystemFuncName("extract"),
+											   $3,
+											   COERCE_SQL_SYNTAX,
+											   @1);
+				}
+			| NORMALIZE '(' a_expr ')'
+				{
+					$$ = (Node *) makeFuncCall(SystemFuncName("normalize"),
+											   list_make1($3),
+											   COERCE_SQL_SYNTAX,
+											   @1);
+				}
+			| NORMALIZE '(' a_expr ',' unicode_normal_form ')'
+				{
+					$$ = (Node *) makeFuncCall(SystemFuncName("normalize"),
+											   list_make2($3, makeStringConst($5, @5)),
+											   COERCE_SQL_SYNTAX,
+											   @1);
+				}
+			| OVERLAY '(' overlay_list ')'
+				{
+					$$ = (Node *) makeFuncCall(SystemFuncName("overlay"),
+											   $3,
+											   COERCE_SQL_SYNTAX,
+											   @1);
+				}
+			| OVERLAY '(' func_arg_list_opt ')'
+				{
+
+					$$ = (Node *) makeFuncCall(list_make1(makeString("overlay")),
+											   $3,
+											   COERCE_EXPLICIT_CALL,
+											   @1);
+				}
+			| POSITION '(' position_list ')'
+				{
+					$$ = (Node *) makeFuncCall(SystemFuncName("position"),
+											   $3,
+											   COERCE_SQL_SYNTAX,
+											   @1);
+				}
+			| SUBSTRING '(' substr_list ')'
+				{
+					$$ = (Node *) makeFuncCall(SystemFuncName("substring"),
+											   $3,
+											   COERCE_SQL_SYNTAX,
+											   @1);
+				}
+			| SUBSTRING '(' func_arg_list_opt ')'
+				{
+					$$ = (Node *) makeFuncCall(list_make1(makeString("substring")),
+											   $3,
+											   COERCE_EXPLICIT_CALL,
+											   @1);
+				}
+			| TREAT '(' a_expr AS Typename ')'
+				{
+					$$ = (Node *) makeFuncCall(SystemFuncName(strVal(llast($5->names))),
+											   list_make1($3),
+											   COERCE_EXPLICIT_CALL,
+											   @1);
+				}
+			| TRIM '(' BOTH trim_list ')'
+				{
+					$$ = (Node *) makeFuncCall(SystemFuncName("btrim"),
+											   $4,
+											   COERCE_SQL_SYNTAX,
+											   @1);
+				}
+			| TRIM '(' LEADING trim_list ')'
+				{
+					$$ = (Node *) makeFuncCall(SystemFuncName("ltrim"),
+											   $4,
+											   COERCE_SQL_SYNTAX,
+											   @1);
+				}
+			| TRIM '(' TRAILING trim_list ')'
+				{
+					$$ = (Node *) makeFuncCall(SystemFuncName("rtrim"),
+											   $4,
+											   COERCE_SQL_SYNTAX,
+											   @1);
+				}
+			| TRIM '(' trim_list ')'
+				{
+					$$ = (Node *) makeFuncCall(SystemFuncName("btrim"),
+											   $3,
+											   COERCE_SQL_SYNTAX,
+											   @1);
+				}
+			| NULLIF '(' a_expr ',' a_expr ')'
+				{
+					$$ = (Node *) makeSimpleA_Expr(AEXPR_NULLIF, "=", $3, $5, @1);
+				}
+			| COALESCE '(' expr_list ')'
+				{
+					CoalesceExpr *c = makeNode(CoalesceExpr);
+					c->args = $3;
+					c->location = @1;
+					$$ = (Node *)c;
+				}
+			| GREATEST '(' expr_list ')'
+				{
+					MinMaxExpr *v = makeNode(MinMaxExpr);
+					v->args = $3;
+					v->op = IS_GREATEST;
+					v->location = @1;
+					$$ = (Node *)v;
+				}
+			| LEAST '(' expr_list ')'
+				{
+					MinMaxExpr *v = makeNode(MinMaxExpr);
+					v->args = $3;
+					v->op = IS_LEAST;
+					v->location = @1;
+					$$ = (Node *)v;
+				}
+			| XMLCONCAT '(' expr_list ')'
+				{
+					$$ = makeXmlExpr(IS_XMLCONCAT, NULL, NIL, $3, @1);
+				}
+			| XMLELEMENT '(' NAME_P ColLabel ')'
+				{
+					$$ = makeXmlExpr(IS_XMLELEMENT, $4, NIL, NIL, @1);
+				}
+			| XMLELEMENT '(' NAME_P ColLabel ',' xml_attributes ')'
+				{
+					$$ = makeXmlExpr(IS_XMLELEMENT, $4, $6, NIL, @1);
+				}
+			| XMLELEMENT '(' NAME_P ColLabel ',' expr_list ')'
+				{
+					$$ = makeXmlExpr(IS_XMLELEMENT, $4, NIL, $6, @1);
+				}
+			| XMLELEMENT '(' NAME_P ColLabel ',' xml_attributes ',' expr_list ')'
+				{
+					$$ = makeXmlExpr(IS_XMLELEMENT, $4, $6, $8, @1);
+				}
+			| XMLEXISTS '(' c_expr xmlexists_argument ')'
+				{
+					// xmlexists(A PASSING [BY REF] B [BY REF]) is
+					// converted to xmlexists(A, B)
+					$$ = (Node *) makeFuncCall(SystemFuncName("xmlexists"),
+											   list_make2($3, $4),
+											   COERCE_SQL_SYNTAX,
+											   @1);
+				}
+			| XMLFOREST '(' xml_attribute_list ')'
+				{
+					$$ = makeXmlExpr(IS_XMLFOREST, NULL, $3, NIL, @1);
+				}
+			| XMLPARSE '(' document_or_content a_expr xml_whitespace_option ')'
+				{
+					XmlExpr *x = (XmlExpr *)
+						makeXmlExpr(IS_XMLPARSE, NULL, NIL,
+									list_make2($4, makeBoolAConst($5, -1)),
+									@1);
+					x->xmloption = $3;
+					$$ = (Node *)x;
+				}
+			| XMLPI '(' NAME_P ColLabel ')'
+				{
+					$$ = makeXmlExpr(IS_XMLPI, $4, NULL, NIL, @1);
+				}
+			| XMLPI '(' NAME_P ColLabel ',' a_expr ')'
+				{
+					$$ = makeXmlExpr(IS_XMLPI, $4, NULL, list_make1($6), @1);
+				}
+			| XMLROOT '(' a_expr ',' xml_root_version opt_xml_root_standalone ')'
+				{
+					$$ = makeXmlExpr(IS_XMLROOT, NULL, NIL,
+									 list_make3($3, $5, $6), @1);
+				}
+			| XMLSERIALIZE '(' document_or_content a_expr AS SimpleTypename ')'
+				{
+					XmlSerialize *n = makeNode(XmlSerialize);
+					n->xmloption = $3;
+					n->expr = $4;
+					n->typeName = $6;
+					n->location = @1;
+					$$ = (Node *)n;
+				}*/
+		;
+
+
+/* function arguments can have names */
+func_arg_list:  func_arg_expr
+				{
+					$$ = list_make1($1);
+				}
+			| func_arg_list ',' func_arg_expr
+				{
+					$$ = lappend($1, $3);
+				}
+		;
+
+/*
+ * Ideally param_name should be ColId, but that causes too many conflicts.
+ */
+param_name:	type_function_name
+		;
+
+
+func_arg_expr:  a_expr
+				{
+					$$ = $1;
+				}
+			| param_name ':' '=' a_expr
+				{
+					NamedArgExpr *na = makeNode(NamedArgExpr);
+					na->name = $1;
+					na->arg = (Expr *) $4;
+					na->argnumber = -1;		/* until determined */
+					na->location = @1;
+					$$ = (Node *) na;
+				}
+			| param_name GT_EQ a_expr
+				{
+					NamedArgExpr *na = makeNode(NamedArgExpr);
+					na->name = $1;
+					na->arg = (Expr *) $3;
+					na->argnumber = -1;		/* until determined */
+					na->location = @1;
+					$$ = (Node *) na;
+				}
+		;
+
+
 /*
  * Define SQL-style CASE clause.
  * - Full specification
@@ -3383,6 +3817,23 @@ case_default:
 case_arg:	a_expr									{ $$ = $1; }
 			| /*EMPTY*/								{ $$ = NULL; }
 		; 
+
+/*
+ * The production for a qualified func_name has to exactly match the
+ * production for a qualified columnref, because we cannot tell which we
+ * are parsing until we see what comes after it ('(' or Sconst for a func_name,
+ * anything else for a columnref).  Therefore we allow 'indirection' which
+ * may contain subscripts, and reject that case in the C code.  (If we
+ * ever implement SQL99-like methods, such syntax may actually become legal!)
+ */
+func_name:	type_function_name
+					{ $$ = list_make1(makeString($1)); }
+			| ColId indirection
+					{
+						$$ = check_func_name(lcons(makeString($1), $2),
+											 scanner);
+					}
+		;
 
 /*
  * Constants
@@ -3604,12 +4055,7 @@ GenericType:
 					$$->location = @1;
 				}*/
 		;
-/* Type/function identifier --- names that can be type or function names.
- */
-type_function_name:	IDENTIFIER							{ $$ = $1; }
-			/*| unreserved_keyword					{ $$ = pstrdup($1); }
-			| type_func_name_keyword				{ $$ = pstrdup($1); }
-		*/;
+
 
 create_extension_opt_list:
 	create_extension_opt_list create_extension_opt_item
@@ -3656,6 +4102,12 @@ ColId:		IDENTIFIER									{ $$ = $1; }
 			| col_name_keyword						{ $$ = pstrdup($1); }
 		*/;
 
+/* Type/function identifier --- names that can be type or function names.
+ */
+type_function_name:	IDENTIFIER							{ $$ = $1; }
+			//| unreserved_keyword					{ $$ = pstrdup($1); }
+			//| type_func_name_keyword				{ $$ = pstrdup($1); }
+		;
 NonReservedWord_or_Sconst:
 			/*NonReservedWord							{ $$ = $1; } //TODO
 			| */Sconst								{ $$ = $1; }
@@ -4328,8 +4780,8 @@ cypher_expr_list_opt:
     | cypher_expr_list
     ;
 
-expr_func:
-    expr_func_norm within_group_clause filter_clause over_clause 
+cypher_expr_func:
+    cypher_expr_func_norm within_group_clause filter_clause over_clause 
     {
         FuncCall *fc = $1;
         /*
@@ -4363,7 +4815,7 @@ expr_func:
         fc->agg_filter = $3;
         $$ = fc;
     }
-    | expr_func_subexpr
+    | cypher_expr_func_subexpr
     ;
 
 /*
@@ -4583,17 +5035,16 @@ opt_window_exclusion_clause:
 ;
 
 
-expr_func_norm:
-    func_name '(' ')'
+cypher_expr_func_norm:
+    cypher_func_name '(' ')'
         {
             $$ = (Node *)makeFuncCall($1, NIL, COERCE_SQL_SYNTAX, @1);
         }
-    | func_name '(' expr_list ')'
+    | cypher_func_name '(' expr_list ')'
         {
             $$ = (Node *)makeFuncCall($1, $3, COERCE_SQL_SYNTAX, @1);
         }
-    /* borrowed from PG's grammar */
-    | func_name '(' '*' ')'
+    | cypher_func_name '(' '*' ')'
         {
             /*
              * We consider AGGREGATE(*) to invoke a parameterless
@@ -4609,7 +5060,7 @@ expr_func_norm:
              n->agg_star = true;
              $$ = (Node *)n;
          }
-    | func_name '(' DISTINCT  expr_list ')'
+    | cypher_func_name '(' DISTINCT  expr_list ')'
         {
             FuncCall *n = (FuncCall *)makeFuncCall($1, $4, COERCE_SQL_SYNTAX, @1);
             n->agg_order = NIL;
@@ -4618,7 +5069,7 @@ expr_func_norm:
         }
     ;
 
-expr_func_subexpr:
+cypher_expr_func_subexpr:
     CURRENT_DATE
         {
             $$ = makeSQLValueFunction(SVFOP_CURRENT_DATE, -1, @1);
@@ -4752,7 +5203,7 @@ expr_atom:
             
             $$ = (Node *)n;
         }   
-    | expr_func
+    | cypher_expr_func
     | EXISTS '(' anonymous_path ')'
         {
             cypher_sub_pattern *sub;
@@ -4948,7 +5399,7 @@ expr_var:
 /*
  * names
  */
-func_name:
+cypher_func_name:
     symbolic_name
         {
             $$ = list_make1(makeString($1));
@@ -4958,6 +5409,7 @@ func_name:
      * rule expr '.' expr above. This rule is to allow most reserved
      * keywords to be used as well. So, it essentially makes the
      * rule schema_name '.' symbolic_name for func_name
+     * NOTE: This rule is incredibly stupid and needs to go
      */
     | safe_keywords '.' symbolic_name
         {
@@ -5525,8 +5977,7 @@ insertSelectOptions(SelectStmt *stmt,
 		if (stmt->withClause)
 			ereport(ERROR,
 					(errcode(ERRCODE_SYNTAX_ERROR),
-					 errmsg("multiple WITH clauses not allowed"),
-					 parser_errposition(exprLocation((Node *) withClause))));
+					 errmsg("multiple WITH clauses not allowed")));
 		stmt->withClause = withClause;
 	}
 }
@@ -5675,4 +6126,23 @@ makeAConst(Value *v, int location)
 	}
 
 	return n;
+}
+
+
+/* check_func_name --- check the result of func_name production
+ *
+ * It's easiest to let the grammar production for func_name allow subscripts
+ * and '*', which we then must reject here.
+ */
+static List *
+check_func_name(List *names, ag_scanner_t yyscanner)
+{
+	ListCell   *i;
+
+	foreach(i, names)
+	{
+		if (!IsA(lfirst(i), String))
+			parser_yyerror("syntax error");
+	}
+	return names;
 }
