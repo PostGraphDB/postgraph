@@ -148,7 +148,7 @@ static Node *makeAConst(Value *v, int location);
 %token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ
 
 /* keywords in alphabetical order */
-%token <keyword> ALL AND ANY AS ASC ASCENDING
+%token <keyword> ALL AND ANY ARRAY AS ASC ASCENDING
                  BETWEEN BY
                  CALL CASE CASCADE CROSS COALESCE COLLATE CONTAINS CREATE CUBE CURRENT CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
                  DATE DECADE DEFAULT DELETE DESC DESCENDING DETACH DISTINCT DROP
@@ -3275,7 +3275,7 @@ c_expr:		columnref								{ $$ = $1; }
 					n->location = @1;
 					$$ = (Node *)n;
 				}
-			/*| ARRAY select_with_parens
+			| ARRAY select_with_parens
 				{
 					SubLink *n = makeNode(SubLink);
 					n->subLinkType = ARRAY_SUBLINK;
@@ -3286,7 +3286,7 @@ c_expr:		columnref								{ $$ = $1; }
 					n->location = @1;
 					$$ = (Node *)n;
 				}
-			| ARRAY array_expr
+			/*| ARRAY array_expr
 				{
 					A_ArrayExpr *n = castNode(A_ArrayExpr, $2);
 				
