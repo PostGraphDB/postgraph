@@ -160,6 +160,9 @@ SELECT true is not false;
 SELECT NULL is unknown;
 SELECT NULL is not unknown;
 
+SELECT 1 IS DISTINCT FROM 2;
+SELECT 1 IS NOT DISTINCT FROM 2;
+
 SELECT * FROM tbl1 AS t1 JOIN tbl2 AS t2 ON t1.i = t2.j;
 SELECT * FROM tbl1 AS t1 LEFT JOIN tbl2 AS t2 ON t1.i = t2.j;
 SELECT * FROM tbl1 AS t1 RIGHT JOIN tbl2 AS t2 ON t1.i = t2.j;

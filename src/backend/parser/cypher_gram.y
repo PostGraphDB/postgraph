@@ -2983,7 +2983,7 @@ a_expr:		c_expr									{ $$ = $1; }
 					b->booltesttype = IS_NOT_UNKNOWN;
 					b->location = @2;
 					$$ = (Node *)b;
-				}/*
+				}
 			| a_expr IS DISTINCT FROM a_expr			%prec IS
 				{
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_DISTINCT, "=", $1, $5, @2);
@@ -2991,7 +2991,7 @@ a_expr:		c_expr									{ $$ = $1; }
 			| a_expr IS NOT DISTINCT FROM a_expr		%prec IS
 				{
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_NOT_DISTINCT, "=", $1, $6, @2);
-				}
+				}/*
 			| a_expr BETWEEN opt_asymmetric b_expr AND a_expr		%prec BETWEEN
 				{
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_BETWEEN,
