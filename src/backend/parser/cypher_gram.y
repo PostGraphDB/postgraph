@@ -191,7 +191,7 @@ static Node *makeAConst(Value *v, int location);
 
 %type <node> where_clause
              a_expr b_expr c_expr AexprConst indirection_el
-             columnref having_clause
+             columnref in_expr having_clause
 
 %type <integer> set_quantifier
 %type <target>	target_el set_target
@@ -259,7 +259,7 @@ static Node *makeAConst(Value *v, int location);
 %type <string> label_opt type_function_name
 
 /* expression */
-%type <node> cypher_a_expr expr_opt expr_atom expr_literal map list in_expr
+%type <node> cypher_a_expr expr_opt expr_atom expr_literal map list cypher_in_expr
              
 
 %type <node> expr_case expr_case_when expr_case_default values_clause
@@ -3023,8 +3023,8 @@ a_expr:		c_expr									{ $$ = $1; }
 												   $1,
 												   (Node *) list_make2($5, $7),
 												   @2);
-				}
-			| a_expr IN_P in_expr
+				}*/
+			| a_expr IN in_expr
 				{
 					if (IsA($3, SubLink))
 					{
@@ -3041,7 +3041,7 @@ a_expr:		c_expr									{ $$ = $1; }
 						$$ = (Node *) makeSimpleA_Expr(AEXPR_IN, "=", $1, $3, @2);
 					}
 				}
-			| a_expr NOT IN_P in_expr						%prec NOT
+			| a_expr NOT IN in_expr						%prec NOT
 				{
 					if (IsA($4, SubLink))
 					{
@@ -3057,7 +3057,7 @@ a_expr:		c_expr									{ $$ = $1; }
 					{
 						$$ = (Node *) makeSimpleA_Expr(AEXPR_IN, "<>", $1, $4, @2);
 					}
-				}
+				}/*
 			| a_expr subquery_Op sub_type select_with_parens	%prec Op
 				{
 					SubLink *n = makeNode(SubLink);
@@ -3324,6 +3324,15 @@ c_expr:		columnref								{ $$ = $1; }
 			  }*/
 		;
 
+in_expr:	select_with_parens
+				{
+					SubLink *n = makeNode(SubLink);
+					n->subselect = $1;
+					/* other fields will be filled later */
+					$$ = (Node *)n;
+				}
+			| '(' expr_list ')'						{ $$ = (Node *)$2; }
+		;
 
 /*
  * Constants
@@ -4134,7 +4143,7 @@ cypher_a_expr:
         {
             $$ = make_typecast_expr($2, $1, @1);
         }
-    | cypher_a_expr all_op ALL in_expr //%prec OPERATOR
+    | cypher_a_expr all_op ALL cypher_in_expr //%prec OPERATOR
         {
             cypher_sub_pattern *sub = $4;
             sub->kind = CSP_ALL;
@@ -4149,7 +4158,7 @@ cypher_a_expr:
             $$ = (Node *) n;
 
         }
-    | cypher_a_expr all_op ANY in_expr //%prec OPERATOR
+    | cypher_a_expr all_op ANY cypher_in_expr //%prec OPERATOR
         {
             cypher_sub_pattern *sub = $4;
 
@@ -4163,7 +4172,7 @@ cypher_a_expr:
             $$ = (Node *) n;
 
         }
-    | cypher_a_expr all_op SOME in_expr //%prec OPERATOR
+    | cypher_a_expr all_op SOME cypher_in_expr //%prec OPERATOR
         {
             cypher_sub_pattern *sub = $4;
 
@@ -4654,7 +4663,7 @@ temporal_cast:
     ;
 
                                         
-in_expr:
+cypher_in_expr:
     '(' cypher_stmt ')'
         {               
             cypher_sub_pattern *sub;
