@@ -134,6 +134,11 @@ SELECT true AND false;
 SELECT true OR false;
 SELECT NOT false;
 
+SELECT 1 IS NULL;
+SELECT 1 IS NOT NULL;
+SELECT 1 ISNULL;
+SELECT 1 NOTNULL;
+
 UPDATE tst SET i = 'World';
 SELECT a.i FROM tst a;
 

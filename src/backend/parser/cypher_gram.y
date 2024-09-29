@@ -156,15 +156,15 @@ static Node *makeAConst(Value *v, int location);
                  GLOBAL GRAPH GROUP GROUPS GROUPING
                  FALSE_P FILTER FIRST_P FOLLOWING FROM FULL
                  HAVING
-                 IF ILIKE IN INHERITS INNER INTERSECT INSERT INTERVAL INTO IS
+                 IF ILIKE IN INHERITS INNER INTERSECT INSERT INTERVAL INTO IS ISNULL
                  JOIN
                  LAST_P LEFT LIKE LIMIT LOCAL LOCALTIME LOCALTIMESTAMP
                  MATCH MERGE 
-                 NATURAL NO NOT NULL_P NULLS_LA
+                 NATURAL NO NOT NOTNULL NULL_P NULLS_LA
                  ON ONLY OPTIONAL OTHERS OR ORDER OUTER OVER OVERLAPS
                  PARTITION PRECEDING
                  RANGE RIGHT REMOVE REPLACE RETURN ROLLUP ROW ROWS
-                 SCHEMA SELECT SET SETS SKIP SOME STARTS
+                 SCHEMA SELECT SESSION SET SETS SKIP SOME STARTS
                  TABLE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRUE_P
                  UNBOUNDED UNION UNLOGGED UPDATE UNWIND USE USING
                  VALUES VERSION_P
@@ -1836,7 +1836,7 @@ VariableSetStmt:
 					n->is_local = false;
 					$$ = (Node *) n;
 				}
-		/*	| SET LOCAL set_rest
+			| SET LOCAL set_rest
 				{
 					VariableSetStmt *n = $3;
 					n->is_local = true;
@@ -1848,7 +1848,7 @@ VariableSetStmt:
 					n->is_local = false;
 					$$ = (Node *) n;
 				}
-		*/;
+		;
 
 set_rest:/*
 			TRANSACTION transaction_mode_list
@@ -2887,7 +2887,6 @@ a_expr:		c_expr									{ $$ = $1; }
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_SIMILAR, "!~",
 												   $1, (Node *) n, @2);
 				}
-                /*
 			| a_expr IS NULL_P							%prec IS
 				{
 					NullTest *n = makeNode(NullTest);
@@ -2920,7 +2919,7 @@ a_expr:		c_expr									{ $$ = $1; }
 					n->location = @2;
 					$$ = (Node *)n;
 				}
-			| row OVERLAPS row
+			 /*| row OVERLAPS row
 				{
 					if (list_length($1) != 2)
 						ereport(ERROR,

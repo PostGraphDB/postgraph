@@ -286,6 +286,30 @@ SELECT NOT false;
  t
 (1 row)
 
+SELECT 1 IS NULL;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT 1 IS NOT NULL;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT 1 ISNULL;
+ ?column? 
+----------
+ f
+(1 row)
+
+SELECT 1 NOTNULL;
+ ?column? 
+----------
+ t
+(1 row)
+
 UPDATE tst SET i = 'World';
 SELECT a.i FROM tst a;
    i   
