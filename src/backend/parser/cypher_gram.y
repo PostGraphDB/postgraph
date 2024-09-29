@@ -21,6 +21,7 @@
 
 #include "postgraph.h"
 
+#include "catalog/index.h"
 #include "catalog/pg_class.h"
 #include "nodes/makefuncs.h"
 #include "nodes/nodes.h"
@@ -81,6 +82,14 @@ typedef struct GroupClause
 	List   *list;
 } GroupClause;
 
+/* ConstraintAttributeSpec yields an integer bitmask of these flags: */
+#define CAS_NOT_DEFERRABLE			0x01
+#define CAS_DEFERRABLE				0x02
+#define CAS_INITIALLY_IMMEDIATE		0x04
+#define CAS_INITIALLY_DEFERRED		0x08
+#define CAS_NOT_VALID				0x10
+#define CAS_NO_INHERIT				0x20
+
 static Node *makeSetOp(SetOperation op, bool all, Node *larg, Node *rarg);
 static void insertSelectOptions(SelectStmt *stmt,
 								List *sortClause, List *lockingClause,
@@ -100,6 +109,10 @@ static Node *makeNotExpr(Node *expr, int location);
 static Node *makeAConst(Value *v, int location);
 static Node *makeAArrayExpr(List *elements, int location);
 static Node *makeXmlExpr(XmlExprOp op, char *name, List *named_args, List *args, int location);
+
+static void processCASbits(int cas_bits, int location, const char *constrType,
+			   bool *deferrable, bool *initdeferred, bool *not_valid,
+			   bool *no_inherit, ag_scanner_t yyscanner);
 
 #define parser_yyerror(msg)  scanner_yyerror(msg, yyscanner)
 #define parser_errposition(pos)  scanner_errposition(pos, yyscanner)
@@ -139,6 +152,7 @@ static Node *makeXmlExpr(XmlExprOp op, char *name, List *named_args, List *args,
     struct InsertStmt *istmt;
     struct VariableSetStmt *vsetstmt;
 	struct JoinExpr *jexpr;
+	struct IndexElem *ielem;
 }
 
 %token <integer> INTEGER
@@ -152,27 +166,32 @@ static Node *makeXmlExpr(XmlExprOp op, char *name, List *named_args, List *args,
 %token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ
 
 /* keywords in alphabetical order */
-%token <keyword> ALL AND ANY ARRAY AS ASC ASCENDING ASYMMETRIC AT
+%token <keyword> ACTION ALL AND ANY ARRAY AS ASC ASCENDING ASYMMETRIC AT
 
                  BETWEEN BOTH BY
 
-                 CALL CASE CAST CASCADE CROSS COALESCE COLLATE COLLATION CONTAINS CREATE 
-                 CUBE CURRENT 
+                 CALL CASE CAST CASCADE CHECK CROSS COALESCE COLLATE COLLATION COMMENTS COMPRESSION
+				 CONTAINS CONSTRAINT CONSTRAINTS CREATE CUBE CURRENT 
                  CURRENT_CATALOG CURRENT_DATE CURRENT_ROLE CURRENT_SCHEMA CURRENT_TIME 
                  CURRENT_TIMESTAMP CURRENT_USER
 
-                 DATE DECADE DEFAULT DELETE DESC DESCENDING DETACH DISTINCT DOCUMENT_P DROP
+                 DATE DECADE DEFAULT DEFAULTS DEFERRABLE DEFERRED DELETE DESC DESCENDING DETACH DISTINCT 
+				 DOCUMENT_P DROP
 
-                 ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXISTS EXTENSION EXTRACT
+                 ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXCLUDING EXISTS EXTENSION EXTRACT
 
-                 GLOBAL GRAPH GREATEST GROUP GROUPS GROUPING
+                 GENERATED GLOBAL GRAPH GREATEST GROUP GROUPS GROUPING
 
-                 FALSE_P FILTER FIRST_P FOLLOWING FOR FROM FULL
+                 FALSE_P FILTER FIRST_P FOLLOWING FOR FOREIGN FROM FULL
 
                  HAVING
 
-                 IF ILIKE IN INHERITS INNER INTERSECT INSERT INTERVAL INTO IS ISNULL
+                 IDENTITY_P IF ILIKE IN INCLUDING INDEX INDEXES IMMEDIATE INCLUDE INHERIT INHERITS INITIALLY INNER 
+				 INTERSECT INSERT INTERVAL INTO IS ISNULL
+
                  JOIN
+
+                 KEY
 
                  LAST_P LATERAL_P LEADING LEAST LEFT LIKE LIMIT LOCAL LOCALTIME LOCALTIMESTAMP
 
@@ -182,17 +201,18 @@ static Node *makeXmlExpr(XmlExprOp op, char *name, List *named_args, List *args,
 
                  ON ONLY OPTIONAL OTHERS OR ORDER OUTER OVER OVERLAPS OVERLAY
 
-                 PARTITION PLACING POSITION PRECEDING
+                 PARTIAL PARTITION PLACING POSITION PRECEDING PRIMARY
 
-                 RANGE RIGHT REMOVE REPLACE RETURN ROLLUP ROW ROWS
+                 RANGE RIGHT REFERENCES REMOVE RESTRICT REPLACE RETURN ROLLUP ROW ROWS
 
-                 SCHEMA SELECT SESSION SESSION_USER SET SETS SKIP SOME STARTS SUBSTRING SYMMETRIC
+                 SCHEMA SELECT SESSION SESSION_USER SET SETS SIMPLE SKIP SOME STARTS STATEMENTS STATISTICS
+				 STORAGE SUBSTRING SYMMETRIC
 
-                 TABLE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRAILING TREAT TRIM TRUE_P
+                 TABLE TABLESPACE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRAILING TREAT TRIM TRUE_P
 
                  UNBOUNDED UNION UNIQUE UNKNOWN UNLOGGED UPDATE UNWIND USE USER USING
 
-                 VALUES VARIADIC VERSION_P
+                 VALID VALUES VARIADIC VERSION_P
 
                  WHEN WHERE WINDOW WITH WITHIN WITHOUT
 
@@ -221,6 +241,7 @@ static Node *makeXmlExpr(XmlExprOp op, char *name, List *named_args, List *args,
 %type <node> where_clause
              a_expr b_expr c_expr AexprConst indirection_el opt_slice_bound
              columnref in_expr having_clause array_expr
+             OptWhereClause
 
 %type <integer> set_quantifier
 %type <target>	target_el set_target
@@ -235,19 +256,28 @@ static Node *makeXmlExpr(XmlExprOp op, char *name, List *named_args, List *args,
 %type <node>	group_by_item 
 %type <node>	grouping_sets_clause
 
+%type <node>	TableConstraint TableLikeClause ConstraintElem
+%type <integer>	TableLikeOptionList TableLikeOption
+%type <integer>	key_actions key_delete key_match key_update key_action
+%type <integer>	ConstraintAttributeSpec ConstraintAttributeElem
+%type <string>	ExistingIndex
+
 %type <node>	func_application func_expr_common_subexpr
 %type <node>	func_expr func_expr_windowless
+
+%type <list>	ExclusionConstraintList ExclusionConstraintElem
 %type <list>	func_arg_list func_arg_list_opt
 %type <node>	func_arg_expr
 %type <list>	row explicit_row implicit_row array_expr_list
 %type <node>	table_ref
 %type <jexpr>	joined_table
-
+%type <ielem>	index_elem index_elem_options
 %type <node>	join_qual
 %type <integer>	join_type
 
 %type <string>		unicode_normal_form
 
+%type <string>	access_method_clause
 
 %type <node> cypher_query_start
 %type <list> cypher_query_body
@@ -319,16 +349,21 @@ static Node *makeXmlExpr(XmlExprOp op, char *name, List *named_args, List *args,
 %type <string> symbolic_name schema_name temporal_cast attr_name table_access_method_clause
 %type <keyword> reserved_keyword safe_keywords conflicted_keywords
 %type <list> cypher_func_name expr_list
-             TableElementList OptTableElementList OptInherit
+             TableElementList OptTableElementList OptInherit definition
              reloptions 
              name_list
-             OptWith
+             OptWith opt_definition
+			 opt_column_list
+			 opt_c_include
              qualified_name_list
+			 any_operator
              reloption_list
+			 columnList
              sort_clause opt_sort_clause sortby_list
              from_clause from_list
              target_list opt_target_list set_target_list
              set_clause_list set_clause
+			 def_list
              opt_collate
              using_clause
              indirection opt_indirection
@@ -337,7 +372,7 @@ static Node *makeXmlExpr(XmlExprOp op, char *name, List *named_args, List *args,
 
 %type <list>	func_name qual_Op qual_all_Op subquery_Op
 %type <string>		all_Op MathOp
-
+%type <string>	 OptConsTableSpace
 %type <integer>	sub_type 
 
 %type <defelt>	def_elem reloption_elem
@@ -363,7 +398,7 @@ static Node *makeXmlExpr(XmlExprOp op, char *name, List *named_args, List *args,
 %type <boolean> all_or_distinct
 
 %type <integer> SignedIconst
-%type <node>	def_arg 
+%type <node>	def_arg columnElem
 %type <partspec> PartitionSpec OptPartitionSpec
 %type <partelem> part_elem
 %type <list> part_params
@@ -2504,6 +2539,9 @@ create:
     
     ;
 
+table_access_method_clause:
+			USING name							{ $$ = $2; }
+			| /*EMPTY*/					{ $$ = NULL; }
 
 /* WITHOUT OIDS is legacy only */
 OptWith:
@@ -2511,6 +2549,15 @@ OptWith:
 			/*| WITHOUT OIDS				{ $$ = NIL; }*/
 			| /*EMPTY*/					{ $$ = NIL; }
 		;
+
+OptConsTableSpace:   USING INDEX TABLESPACE name	{ $$ = $4; }
+			| /*EMPTY*/								{ $$ = NULL; }
+		;
+
+
+ExistingIndex:   USING INDEX name					{ $$ = $3; }
+		;		
+
 reloptions:
 			'(' reloption_list ')'					{ $$ = $2; }
 		;
@@ -2732,8 +2779,8 @@ TableElementList:
 
 TableElement:
 			columnDef							{ $$ = $1; }
-			/*| TableLikeClause					{ $$ = $1; }
-			| TableConstraint					{ $$ = $1; }*/
+			| TableLikeClause					{ $$ = $1; }
+			| TableConstraint					{ $$ = $1; }
 		;
 
 
@@ -2770,6 +2817,390 @@ columnDef:	ColId Typename //opt_column_compression create_generic_options ColQua
 					$$ = (Node *)n;
 				}
 		;
+
+
+/* ConstraintElem specifies constraint syntax which is not embedded into
+ *	a column definition. ColConstraintElem specifies the embedded form.
+ * - thomas 1997-12-03
+ */
+TableConstraint:
+			CONSTRAINT name ConstraintElem
+				{
+					Constraint *n = castNode(Constraint, $3);
+					n->conname = $2;
+					n->location = @1;
+					$$ = (Node *) n;
+				}
+			| ConstraintElem						{ $$ = $1; }
+		;
+
+ConstraintElem:
+			CHECK '(' a_expr ')' ConstraintAttributeSpec
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_CHECK;
+					n->location = @1;
+					n->raw_expr = $3;
+					n->cooked_expr = NULL;
+					processCASbits($5, @5, "CHECK",
+								   NULL, NULL, &n->skip_validation,
+								   &n->is_no_inherit, scanner);
+					n->initially_valid = !n->skip_validation;
+					$$ = (Node *)n;
+				}
+			| UNIQUE '(' columnList ')' opt_c_include opt_definition OptConsTableSpace
+				ConstraintAttributeSpec
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_UNIQUE;
+					n->location = @1;
+					n->keys = $3;
+					n->including = $5;
+					n->options = $6;
+					n->indexname = NULL;
+					n->indexspace = $7;
+					processCASbits($8, @8, "UNIQUE",
+								   &n->deferrable, &n->initdeferred, NULL,
+								   NULL, scanner);
+					$$ = (Node *)n;
+				}
+			| UNIQUE ExistingIndex ConstraintAttributeSpec
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_UNIQUE;
+					n->location = @1;
+					n->keys = NIL;
+					n->including = NIL;
+					n->options = NIL;
+					n->indexname = $2;
+					n->indexspace = NULL;
+					processCASbits($3, @3, "UNIQUE",
+								   &n->deferrable, &n->initdeferred, NULL,
+								   NULL, scanner);
+					$$ = (Node *)n;
+				}
+			| PRIMARY KEY '(' columnList ')' opt_c_include opt_definition OptConsTableSpace
+				ConstraintAttributeSpec
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_PRIMARY;
+					n->location = @1;
+					n->keys = $4;
+					n->including = $6;
+					n->options = $7;
+					n->indexname = NULL;
+					n->indexspace = $8;
+					processCASbits($9, @9, "PRIMARY KEY",
+								   &n->deferrable, &n->initdeferred, NULL,
+								   NULL, scanner);
+					$$ = (Node *)n;
+				}
+			| PRIMARY KEY ExistingIndex ConstraintAttributeSpec
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_PRIMARY;
+					n->location = @1;
+					n->keys = NIL;
+					n->including = NIL;
+					n->options = NIL;
+					n->indexname = $3;
+					n->indexspace = NULL;
+					processCASbits($4, @4, "PRIMARY KEY",
+								   &n->deferrable, &n->initdeferred, NULL,
+								   NULL, scanner);
+					$$ = (Node *)n;
+				}
+			| EXCLUDE access_method_clause '(' ExclusionConstraintList ')'
+				opt_c_include opt_definition OptConsTableSpace OptWhereClause
+				ConstraintAttributeSpec
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_EXCLUSION;
+					n->location = @1;
+					n->access_method	= $2;
+					n->exclusions		= $4;
+					n->including		= $6;
+					n->options			= $7;
+					n->indexname		= NULL;
+					n->indexspace		= $8;
+					n->where_clause		= $9;
+					processCASbits($10, @10, "EXCLUDE",
+								   &n->deferrable, &n->initdeferred, NULL,
+								   NULL, scanner);
+					$$ = (Node *)n;
+				}
+			| FOREIGN KEY '(' columnList ')' REFERENCES qualified_name
+				opt_column_list key_match key_actions ConstraintAttributeSpec
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_FOREIGN;
+					n->location = @1;
+					n->pktable			= $7;
+					n->fk_attrs			= $4;
+					n->pk_attrs			= $8;
+					n->fk_matchtype		= $9;
+					n->fk_upd_action	= (char) ($10 >> 8);
+					n->fk_del_action	= (char) ($10 & 0xFF);
+					processCASbits($11, @11, "FOREIGN KEY",
+								   &n->deferrable, &n->initdeferred,
+								   &n->skip_validation, NULL,
+								   scanner);
+					n->initially_valid = !n->skip_validation;
+					$$ = (Node *)n;
+				}
+		;
+
+
+opt_column_list:
+			'(' columnList ')'						{ $$ = $2; }
+			| /*EMPTY*/								{ $$ = NIL; }
+		;
+
+
+columnList:
+			columnElem								{ $$ = list_make1($1); }
+			| columnList ',' columnElem				{ $$ = lappend($1, $3); }
+		;
+
+columnElem: ColId
+				{
+					$$ = (Node *) makeString($1);
+				}
+		;
+
+opt_c_include:	INCLUDE '(' columnList ')'			{ $$ = $3; }
+			 |		/* EMPTY */						{ $$ = NIL; }
+		;
+
+key_match:  MATCH FULL
+			{
+				$$ = FKCONSTR_MATCH_FULL;
+			}
+		| MATCH PARTIAL
+			{
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("MATCH PARTIAL not yet implemented")));
+				$$ = FKCONSTR_MATCH_PARTIAL;
+			}
+		| MATCH SIMPLE
+			{
+				$$ = FKCONSTR_MATCH_SIMPLE;
+			}
+		| /*EMPTY*/
+			{
+				$$ = FKCONSTR_MATCH_SIMPLE;
+			}
+		;
+
+
+ExclusionConstraintList:
+			ExclusionConstraintElem					{ $$ = list_make1($1); }
+			| ExclusionConstraintList ',' ExclusionConstraintElem
+													{ $$ = lappend($1, $3); }
+		;
+
+ExclusionConstraintElem: index_elem WITH any_operator
+			{
+				$$ = list_make2($1, $3);
+			}
+			/* allow OPERATOR() decoration for the benefit of ruleutils.c */
+			/*| index_elem WITH OPERATOR '(' any_operator ')'
+			{
+				$$ = list_make2($1, $5);
+			}*/
+		;
+
+OptWhereClause:
+			WHERE '(' a_expr ')'					{ $$ = $3; }
+			| /*EMPTY*/								{ $$ = NULL; }
+		;
+
+
+/*
+ * We combine the update and delete actions into one value temporarily
+ * for simplicity of parsing, and then break them down again in the
+ * calling production.  update is in the left 8 bits, delete in the right.
+ * Note that NOACTION is the default.
+ */
+key_actions:
+			key_update
+				{ $$ = ($1 << 8) | (FKCONSTR_ACTION_NOACTION & 0xFF); }
+			| key_delete
+				{ $$ = (FKCONSTR_ACTION_NOACTION << 8) | ($1 & 0xFF); }
+			| key_update key_delete
+				{ $$ = ($1 << 8) | ($2 & 0xFF); }
+			| key_delete key_update
+				{ $$ = ($2 << 8) | ($1 & 0xFF); }
+			| /*EMPTY*/
+				{ $$ = (FKCONSTR_ACTION_NOACTION << 8) | (FKCONSTR_ACTION_NOACTION & 0xFF); }
+		;
+
+key_update: ON UPDATE key_action		{ $$ = $3; }
+		;
+
+key_delete: ON DELETE key_action		{ $$ = $3; }
+		;
+
+key_action:
+			NO ACTION					{ $$ = FKCONSTR_ACTION_NOACTION; }
+			| RESTRICT					{ $$ = FKCONSTR_ACTION_RESTRICT; }
+			| CASCADE					{ $$ = FKCONSTR_ACTION_CASCADE; }
+			| SET NULL_P				{ $$ = FKCONSTR_ACTION_SETNULL; }
+			| SET DEFAULT				{ $$ = FKCONSTR_ACTION_SETDEFAULT; }
+
+ConstraintAttributeSpec:
+			/*EMPTY*/
+				{ $$ = 0; }
+			| ConstraintAttributeSpec ConstraintAttributeElem
+				{
+					/*
+					 * We must complain about conflicting options.
+					 * We could, but choose not to, complain about redundant
+					 * options (ie, where $2's bit is already set in $1).
+					 */
+					int		newspec = $1 | $2;
+
+					/* special message for this case */
+					if ((newspec & (CAS_NOT_DEFERRABLE | CAS_INITIALLY_DEFERRED)) == (CAS_NOT_DEFERRABLE | CAS_INITIALLY_DEFERRED))
+						ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+								 errmsg("constraint declared INITIALLY DEFERRED must be DEFERRABLE")));
+					/* generic message for other conflicts */
+					if ((newspec & (CAS_NOT_DEFERRABLE | CAS_DEFERRABLE)) == (CAS_NOT_DEFERRABLE | CAS_DEFERRABLE) ||
+						(newspec & (CAS_INITIALLY_IMMEDIATE | CAS_INITIALLY_DEFERRED)) == (CAS_INITIALLY_IMMEDIATE | CAS_INITIALLY_DEFERRED))
+						ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+								 errmsg("conflicting constraint properties")));
+					$$ = newspec;
+				}
+		;
+
+ConstraintAttributeElem:
+			NOT DEFERRABLE					{ $$ = CAS_NOT_DEFERRABLE; }
+			| DEFERRABLE					{ $$ = CAS_DEFERRABLE; }
+			| INITIALLY IMMEDIATE			{ $$ = CAS_INITIALLY_IMMEDIATE; }
+			| INITIALLY DEFERRED			{ $$ = CAS_INITIALLY_DEFERRED; }
+			| NOT VALID						{ $$ = CAS_NOT_VALID; }
+			| NO INHERIT					{ $$ = CAS_NO_INHERIT; }
+		;
+
+
+TableLikeClause:
+			LIKE qualified_name TableLikeOptionList
+				{
+					TableLikeClause *n = makeNode(TableLikeClause);
+					n->relation = $2;
+					n->options = $3;
+					n->relationOid = InvalidOid;
+					$$ = (Node *)n;
+				}
+		;
+
+TableLikeOptionList:
+				TableLikeOptionList INCLUDING TableLikeOption	{ $$ = $1 | $3; }
+				| TableLikeOptionList EXCLUDING TableLikeOption	{ $$ = $1 & ~$3; }
+				| /* EMPTY */						{ $$ = 0; }
+		;
+
+TableLikeOption:
+				COMMENTS			{ $$ = CREATE_TABLE_LIKE_COMMENTS; }
+				| COMPRESSION		{ $$ = CREATE_TABLE_LIKE_COMPRESSION; }
+				| CONSTRAINTS		{ $$ = CREATE_TABLE_LIKE_CONSTRAINTS; }
+				| DEFAULTS			{ $$ = CREATE_TABLE_LIKE_DEFAULTS; }
+				| IDENTITY_P		{ $$ = CREATE_TABLE_LIKE_IDENTITY; }
+				| GENERATED			{ $$ = CREATE_TABLE_LIKE_GENERATED; }
+				| INDEXES			{ $$ = CREATE_TABLE_LIKE_INDEXES; }
+				| STATISTICS		{ $$ = CREATE_TABLE_LIKE_STATISTICS; }
+				| STORAGE			{ $$ = CREATE_TABLE_LIKE_STORAGE; }
+				| ALL				{ $$ = CREATE_TABLE_LIKE_ALL; }
+		;
+
+access_method_clause:
+			USING name								{ $$ = $2; }
+			| /*EMPTY*/								{ $$ = DEFAULT_INDEX_TYPE; }
+		;
+
+index_elem_options:
+	opt_collate opt_class opt_asc_desc opt_nulls_order
+		{
+			$$ = makeNode(IndexElem);
+			$$->name = NULL;
+			$$->expr = NULL;
+			$$->indexcolname = NULL;
+			$$->collation = $1;
+			$$->opclass = $2;
+			$$->opclassopts = NIL;
+			$$->ordering = $3;
+			$$->nulls_ordering = $4;
+		}
+	| opt_collate any_name reloptions opt_asc_desc opt_nulls_order
+		{
+			$$ = makeNode(IndexElem);
+			$$->name = NULL;
+			$$->expr = NULL;
+			$$->indexcolname = NULL;
+			$$->collation = $1;
+			$$->opclass = $2;
+			$$->opclassopts = $3;
+			$$->ordering = $4;
+			$$->nulls_ordering = $5;
+		}
+	;
+
+/*
+ * Index attributes can be either simple column references, or arbitrary
+ * expressions in parens.  For backwards-compatibility reasons, we allow
+ * an expression that's just a function call to be written without parens.
+ */
+index_elem: ColId index_elem_options
+				{
+					$$ = $2;
+					$$->name = $1;
+				}
+			| func_expr_windowless index_elem_options
+				{
+					$$ = $2;
+					$$->expr = $1;
+				}
+			| '(' a_expr ')' index_elem_options
+				{
+					$$ = $4;
+					$$->expr = $2;
+				}
+		;
+
+any_operator:
+			all_Op
+					{ $$ = list_make1(makeString($1)); }
+			| ColId '.' any_operator
+					{ $$ = lcons(makeString($1), $3); }
+		;
+
+
+opt_definition:
+			WITH definition							{ $$ = $2; }
+			| /*EMPTY*/								{ $$ = NIL; }
+		;
+
+
+definition: '(' def_list ')'						{ $$ = $2; }
+		;
+
+def_list:	def_elem								{ $$ = list_make1($1); }
+			| def_list ',' def_elem					{ $$ = lappend($1, $3); }
+		;
+
+def_elem:	ColLabel '=' def_arg
+				{
+					$$ = makeDefElem($1, (Node *) $3, @1);
+				}
+			| ColLabel
+				{
+					$$ = makeDefElem($1, NULL, @1);
+				}
+		;
+
 
 /* Column label --- allowed labels in "AS" clauses.
  * This presently includes *all* Postgres keywords.
@@ -6430,4 +6861,76 @@ makeXmlExpr(XmlExprOp op, char *name, List *named_args, List *args,
 	x->type = InvalidOid;			/* marks the node as not analyzed */
 	x->location = location;
 	return (Node *) x;
+}
+
+
+/*
+ * Process result of ConstraintAttributeSpec, and set appropriate bool flags
+ * in the output command node.  Pass NULL for any flags the particular
+ * command doesn't support.
+ */
+static void
+processCASbits(int cas_bits, int location, const char *constrType,
+			   bool *deferrable, bool *initdeferred, bool *not_valid,
+			   bool *no_inherit, ag_scanner_t yyscanner)
+{
+	/* defaults */
+	if (deferrable)
+		*deferrable = false;
+	if (initdeferred)
+		*initdeferred = false;
+	if (not_valid)
+		*not_valid = false;
+
+	if (cas_bits & (CAS_DEFERRABLE | CAS_INITIALLY_DEFERRED))
+	{
+		if (deferrable)
+			*deferrable = true;
+		else
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 /* translator: %s is CHECK, UNIQUE, or similar */
+					 errmsg("%s constraints cannot be marked DEFERRABLE",
+							constrType),
+					 parser_errposition(location)));
+	}
+
+	if (cas_bits & CAS_INITIALLY_DEFERRED)
+	{
+		if (initdeferred)
+			*initdeferred = true;
+		else
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 /* translator: %s is CHECK, UNIQUE, or similar */
+					 errmsg("%s constraints cannot be marked DEFERRABLE",
+							constrType),
+					 parser_errposition(location)));
+	}
+
+	if (cas_bits & CAS_NOT_VALID)
+	{
+		if (not_valid)
+			*not_valid = true;
+		else
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 /* translator: %s is CHECK, UNIQUE, or similar */
+					 errmsg("%s constraints cannot be marked NOT VALID",
+							constrType),
+					 parser_errposition(location)));
+	}
+
+	if (cas_bits & CAS_NO_INHERIT)
+	{
+		if (no_inherit)
+			*no_inherit = true;
+		else
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 /* translator: %s is CHECK, UNIQUE, or similar */
+					 errmsg("%s constraints cannot be marked NO INHERIT",
+							constrType),
+					 parser_errposition(location)));
+	}
 }

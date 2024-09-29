@@ -86,7 +86,8 @@ EXTENSION = postgraph
 
 DATA = postgraph--0.1.0.sql
 
-REGRESS = new_cypher \
+REGRESS = create_table \
+          new_cypher \
           expr \
           cypher_create \
           cypher_match \
