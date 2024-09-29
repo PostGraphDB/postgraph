@@ -166,7 +166,7 @@ static Node *makeAConst(Value *v, int location);
                  RANGE RIGHT REMOVE REPLACE RETURN ROLLUP ROW ROWS
                  SCHEMA SELECT SESSION SET SETS SKIP SOME STARTS
                  TABLE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRUE_P
-                 UNBOUNDED UNION UNLOGGED UPDATE UNWIND USE USING
+                 UNBOUNDED UNION UNKNOWN UNLOGGED UPDATE UNWIND USE USING
                  VALUES VERSION_P
                  WHEN WHERE WINDOW WITH WITHIN WITHOUT
                  XOR
@@ -2935,7 +2935,7 @@ a_expr:		c_expr									{ $$ = $1; }
 											   list_concat($1, $3),
 											   COERCE_SQL_SYNTAX,
 											   @2);
-				}
+				}*/
 			| a_expr IS TRUE_P							%prec IS
 				{
 					BooleanTest *b = makeNode(BooleanTest);
@@ -2983,7 +2983,7 @@ a_expr:		c_expr									{ $$ = $1; }
 					b->booltesttype = IS_NOT_UNKNOWN;
 					b->location = @2;
 					$$ = (Node *)b;
-				}
+				}/*
 			| a_expr IS DISTINCT FROM a_expr			%prec IS
 				{
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_DISTINCT, "=", $1, $5, @2);

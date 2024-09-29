@@ -153,6 +153,13 @@ CREATE TABLE tbl2 (j int4) USING heap;
 INSERT INTO tbl1 VALUES (1), (2);
 INSERT INTO tbl2 VALUES (3), (2);
 
+SELECT true is TRUE;
+SELECT true is not TRUE;
+SELECT true is false;
+SELECT true is not false;
+SELECT NULL is unknown;
+SELECT NULL is not unknown;
+
 SELECT * FROM tbl1 AS t1 JOIN tbl2 AS t2 ON t1.i = t2.j;
 SELECT * FROM tbl1 AS t1 LEFT JOIN tbl2 AS t2 ON t1.i = t2.j;
 SELECT * FROM tbl1 AS t1 RIGHT JOIN tbl2 AS t2 ON t1.i = t2.j;
