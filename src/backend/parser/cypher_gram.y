@@ -1028,8 +1028,6 @@ relation_expr:
 				}
 		;
 
-
-
 /*
  * Given "UPDATE foo set set ...", we have to decide without looking any
  * further ahead whether the first "set" is an alias or the UPDATE's SET
@@ -3239,7 +3237,7 @@ c_expr:		columnref								{ $$ = $1; }
 			| case_expr
 				{ $$ = $1; }
 			| func_expr
-				{ $$ = $1; }
+				{ $$ = $1; }*/
 			| select_with_parens			%prec UMINUS
 				{
 					SubLink *n = makeNode(SubLink);
@@ -3263,9 +3261,9 @@ c_expr:		columnref								{ $$ = $1; }
 					n->subselect = $1;
 					n->location = @1;
 					a->arg = (Node *)n;
-					a->indirection = check_indirection($2, yyscanner);
+					a->indirection = check_indirection($2, scanner);
 					$$ = (Node *)a;
-				}
+				}/*
 			| EXISTS select_with_parens
 				{
 					SubLink *n = makeNode(SubLink);
