@@ -148,7 +148,7 @@ static Node *makeAConst(Value *v, int location);
 %token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ
 
 /* keywords in alphabetical order */
-%token <keyword> ALL AND ANY ARRAY AS ASC ASCENDING
+%token <keyword> ALL AND ANY ARRAY AS ASC ASCENDING ASYMMETRIC
                  BETWEEN BY
                  CALL CASE CASCADE CROSS COALESCE COLLATE CONTAINS CREATE CUBE CURRENT CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
                  DATE DECADE DEFAULT DELETE DESC DESCENDING DETACH DISTINCT DROP
@@ -164,7 +164,7 @@ static Node *makeAConst(Value *v, int location);
                  ON ONLY OPTIONAL OTHERS OR ORDER OUTER OVER OVERLAPS
                  PARTITION PRECEDING
                  RANGE RIGHT REMOVE REPLACE RETURN ROLLUP ROW ROWS
-                 SCHEMA SELECT SESSION SET SETS SKIP SOME STARTS
+                 SCHEMA SELECT SESSION SET SETS SKIP SOME STARTS SYMMETRIC
                  TABLE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRUE_P
                  UNBOUNDED UNION UNKNOWN UNLOGGED UPDATE UNWIND USE USING
                  VALUES VERSION_P
@@ -620,7 +620,7 @@ simple_select:
 					n->windowClause = NULL;
 					$$ = (Node *)n;
 				}
-			| values_clause							{ $$ = $1; }
+
 			/*| SELECT distinct_clause target_list
 			into_clause from_clause where_clause
 			group_clause having_clause window_clause
@@ -638,6 +638,7 @@ simple_select:
 					$$ = (Node *)n;
 				}
 */
+			| values_clause							{ $$ = $1; }
 			| TABLE relation_expr
 				{
 					// same as SELECT * FROM relation_expr 
@@ -1037,7 +1038,7 @@ relation_expr:
  * has, causing the parser to prefer to reduce, in effect assuming that the
  * SET is not an alias.
  */
-relation_expr_opt_alias: relation_expr					%prec UMINUS
+relation_expr_opt_alias: relation_expr					//%prec UMINUS
 				{
 					$$ = $1;
 				}
@@ -2989,8 +2990,8 @@ a_expr:		c_expr									{ $$ = $1; }
 			| a_expr IS NOT DISTINCT FROM a_expr		%prec IS
 				{
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_NOT_DISTINCT, "=", $1, $6, @2);
-				}/*
-			| a_expr BETWEEN opt_asymmetric b_expr AND a_expr		%prec BETWEEN
+				}
+			| a_expr BETWEEN opt_asymmetric b_expr AND a_expr		//%prec BETWEEN
 				{
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_BETWEEN,
 												   "BETWEEN",
@@ -2998,7 +2999,7 @@ a_expr:		c_expr									{ $$ = $1; }
 												   (Node *) list_make2($4, $6),
 												   @2);
 				}
-			| a_expr NOT_LA BETWEEN opt_asymmetric b_expr AND a_expr %prec NOT_LA
+			| a_expr NOT BETWEEN opt_asymmetric b_expr AND a_expr //%prec NOT_LA
 				{
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_NOT_BETWEEN,
 												   "NOT BETWEEN",
@@ -3006,7 +3007,7 @@ a_expr:		c_expr									{ $$ = $1; }
 												   (Node *) list_make2($5, $7),
 												   @2);
 				}
-			| a_expr BETWEEN SYMMETRIC b_expr AND a_expr			%prec BETWEEN
+			| a_expr BETWEEN SYMMETRIC b_expr AND a_expr			//%prec BETWEEN
 				{
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_BETWEEN_SYM,
 												   "BETWEEN SYMMETRIC",
@@ -3014,14 +3015,14 @@ a_expr:		c_expr									{ $$ = $1; }
 												   (Node *) list_make2($4, $6),
 												   @2);
 				}
-			| a_expr NOT_LA BETWEEN SYMMETRIC b_expr AND a_expr		%prec NOT_LA
+			| a_expr NOT BETWEEN SYMMETRIC b_expr AND a_expr		//%prec NOT_LA
 				{
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_NOT_BETWEEN_SYM,
 												   "NOT BETWEEN SYMMETRIC",
 												   $1,
 												   (Node *) list_make2($5, $7),
 												   @2);
-				}*/
+				}
 			| a_expr IN in_expr
 				{
 					if (IsA($3, SubLink))
@@ -3131,6 +3132,10 @@ a_expr:		c_expr									{ $$ = $1; }
 				}*/
 		;
 
+
+opt_asymmetric: ASYMMETRIC
+			| /*EMPTY*/
+		;
 /*
  * Restricted expressions
  *
@@ -3142,11 +3147,11 @@ a_expr:		c_expr									{ $$ = $1; }
  */
 b_expr:		c_expr
 				{ $$ = $1; }
-			/*| b_expr TYPECAST Typename
+			| b_expr TYPECAST Typename
 				{ $$ = makeTypeCast($1, $3, @2); }
-			| '+' b_expr					%prec UMINUS
+			| '+' b_expr					//%prec UMINUS
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "+", NULL, $2, @1); }
-			| '-' b_expr					%prec UMINUS
+			| '-' b_expr					//%prec UMINUS
 				{ $$ = doNegate($2, @1); }
 			| b_expr '+' b_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "+", $1, $3, @2); }
@@ -3166,16 +3171,16 @@ b_expr:		c_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, ">", $1, $3, @2); }
 			| b_expr '=' b_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "=", $1, $3, @2); }
-			| b_expr LESS_EQUALS b_expr
+			| b_expr LT_EQ b_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "<=", $1, $3, @2); }
-			| b_expr GREATER_EQUALS b_expr
+			| b_expr GT_EQ b_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, ">=", $1, $3, @2); }
-			| b_expr NOT_EQUALS b_expr
+			| b_expr NOT_EQ b_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "<>", $1, $3, @2); }
-			| b_expr qual_Op b_expr				%prec Op
+			/*| b_expr qual_Op b_expr				%prec Op
 				{ $$ = (Node *) makeA_Expr(AEXPR_OP, $2, $1, $3, @2); }
 			| qual_Op b_expr					%prec Op
-				{ $$ = (Node *) makeA_Expr(AEXPR_OP, $1, NULL, $2, @1); }
+				{ $$ = (Node *) makeA_Expr(AEXPR_OP, $1, NULL, $2, @1); }*/
 			| b_expr IS DISTINCT FROM b_expr		%prec IS
 				{
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_DISTINCT, "=", $1, $5, @2);
@@ -3184,7 +3189,7 @@ b_expr:		c_expr
 				{
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_NOT_DISTINCT, "=", $1, $6, @2);
 				}
-			| b_expr IS DOCUMENT_P					%prec IS
+			/*| b_expr IS DOCUMENT_P					%prec IS
 				{
 					$$ = makeXmlExpr(IS_DOCUMENT, NULL, NIL,
 									 list_make1($1), @2);
@@ -3238,7 +3243,7 @@ c_expr:		columnref								{ $$ = $1; }
 				{ $$ = $1; }
 			| func_expr
 				{ $$ = $1; }*/
-			| select_with_parens			%prec UMINUS
+			| select_with_parens			//%prec UMINUS
 				{
 					SubLink *n = makeNode(SubLink);
 					n->subLinkType = EXPR_SUBLINK;
@@ -3417,7 +3422,6 @@ AexprConst: Iconst
 					$$ = makeNullAConst(@1);
 				}
 		;
-
 
 /*****************************************************************************
  *

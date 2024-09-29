@@ -438,6 +438,24 @@ SELECT ARRAY (SELECT * FROM tbl1);
  {1,2}
 (1 row)
 
+SELECT 1 BETWEEN SYMMETRIC 0 AND 2;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT 1 BETWEEN 0 AND 2;
+ ?column? 
+----------
+ t
+(1 row)
+
+SELECT 1 BETWEEN ASYMMETRIC 0 AND 2;
+ ?column? 
+----------
+ t
+(1 row)
+
 DROP GRAPH new_cypher CASCADE;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table new_cypher._ag_label_vertex
