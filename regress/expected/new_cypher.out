@@ -426,6 +426,12 @@ SELECT (SELECT * FROM tbl1 WHERE i = 1);
  1
 (1 row)
 
+SELECT * FROM tbl1 AS t1 WHERE EXISTS (SELECT j FROM tbl2 AS t2 WHERE t1.i = t2.j);
+ i 
+---
+ 2
+(1 row)
+
 DROP GRAPH new_cypher CASCADE;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table new_cypher._ag_label_vertex

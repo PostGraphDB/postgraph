@@ -3263,7 +3263,7 @@ c_expr:		columnref								{ $$ = $1; }
 					a->arg = (Node *)n;
 					a->indirection = check_indirection($2, scanner);
 					$$ = (Node *)a;
-				}/*
+				}
 			| EXISTS select_with_parens
 				{
 					SubLink *n = makeNode(SubLink);
@@ -3275,7 +3275,7 @@ c_expr:		columnref								{ $$ = $1; }
 					n->location = @1;
 					$$ = (Node *)n;
 				}
-			| ARRAY select_with_parens
+			/*| ARRAY select_with_parens
 				{
 					SubLink *n = makeNode(SubLink);
 					n->subLinkType = ARRAY_SUBLINK;
