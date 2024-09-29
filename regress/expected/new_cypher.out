@@ -510,6 +510,18 @@ SELECT ARRAY [1, 2, 3, 4];
  {1,2,3,4}
 (1 row)
 
+SELECT (1, 2, 3, 4);
+    row    
+-----------
+ (1,2,3,4)
+(1 row)
+
+SELECT ROW (1, 2, 3, 4);
+    row    
+-----------
+ (1,2,3,4)
+(1 row)
+
 DROP GRAPH new_cypher CASCADE;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table new_cypher._ag_label_vertex

@@ -199,5 +199,8 @@ SELECT * FROM LATERAL (
 
 SELECT ARRAY [1, 2, 3, 4];
 
+SELECT (1, 2, 3, 4);
+SELECT ROW (1, 2, 3, 4);
+
 DROP GRAPH new_cypher CASCADE;
 DROP GRAPH new_cypher_2 CASCADE;

@@ -226,7 +226,7 @@ static Node *makeAArrayExpr(List *elements, int location);
 %type <range>	relation_expr
 %type <range>	relation_expr_opt_alias
 %type <node>	case_expr case_arg when_clause case_default
-%type <list>	when_clause_list array_expr_list
+%type <list>	when_clause_list 
 %type <alias>	alias_clause opt_alias_clause opt_alias_clause_for_join_using
 %type <node> clause
 %type <groupclause> group_clause
@@ -238,7 +238,7 @@ static Node *makeAArrayExpr(List *elements, int location);
 %type <node>	func_expr func_expr_windowless
 %type <list>	func_arg_list func_arg_list_opt
 %type <node>	func_arg_expr
-
+%type <list>	row explicit_row implicit_row array_expr_list
 %type <node>	table_ref
 %type <jexpr>	joined_table
 
@@ -1201,6 +1201,28 @@ sortby:		a_expr USING all_op opt_nulls_order
 				}
 		;
 
+
+/*
+ * Supporting nonterminals for expressions.
+ */
+
+/* Explicit row production.
+ *
+ * SQL99 allows an optional ROW keyword, so we can now do single-element rows
+ * without conflicting with the parenthesized a_expr production.  Without the
+ * ROW keyword, there must be more than one a_expr inside the parens.
+ */
+row:		ROW '(' expr_list ')'					{ $$ = $3; }
+			| ROW '(' ')'							{ $$ = NIL; }
+			| '(' expr_list ',' a_expr ')'			{ $$ = lappend($2, $4); }
+		;
+
+explicit_row:	ROW '(' expr_list ')'				{ $$ = $3; }
+			| ROW '(' ')'							{ $$ = NIL; }
+		;
+
+implicit_row:	'(' expr_list ',' a_expr ')'		{ $$ = lappend($2, $4); }
+		;
 
 /*****************************************************************************
  *
@@ -3345,7 +3367,7 @@ c_expr:		columnref								{ $$ = $1; }
 					n->location = @1;
 					$$ = (Node *)n;
 				}
-			/*| explicit_row
+			| explicit_row
 				{
 					RowExpr *r = makeNode(RowExpr);
 					r->args = $1;
@@ -3364,7 +3386,7 @@ c_expr:		columnref								{ $$ = $1; }
 					r->row_format = COERCE_IMPLICIT_CAST; 
 					r->location = @1;
 					$$ = (Node *)r;
-				}*/
+				}
 			| GROUPING '(' expr_list ')'
 			  {
 				  GroupingFunc *g = makeNode(GroupingFunc);
