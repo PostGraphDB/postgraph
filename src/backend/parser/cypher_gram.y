@@ -3281,7 +3281,7 @@ b_expr:		c_expr
  */
 c_expr:		columnref								{ $$ = $1; }
 			| AexprConst							{ $$ = $1; }
-			/*| PARAM opt_indirection
+			| PARAMETER opt_indirection
 				{
 					ParamRef *p = makeNode(ParamRef);
 					p->number = $1;
@@ -3295,7 +3295,7 @@ c_expr:		columnref								{ $$ = $1; }
 					}
 					else
 						$$ = (Node *) p;
-				}*/
+				}
 			| '(' a_expr ')' opt_indirection
 				{
 					if ($4)
