@@ -99,6 +99,7 @@ static Node *makeOrExpr(Node *lexpr, Node *rexpr, int location);
 static Node *makeNotExpr(Node *expr, int location);
 static Node *makeAConst(Value *v, int location);
 static Node *makeAArrayExpr(List *elements, int location);
+static Node *makeXmlExpr(XmlExprOp op, char *name, List *named_args, List *args, int location);
 
 #define parser_yyerror(msg)  scanner_yyerror(msg, yyscanner)
 #define parser_errposition(pos)  scanner_errposition(pos, yyscanner)
@@ -151,7 +152,7 @@ static Node *makeAArrayExpr(List *elements, int location);
 %token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ
 
 /* keywords in alphabetical order */
-%token <keyword> ALL AND ANY ARRAY AS ASC ASCENDING ASYMMETRIC
+%token <keyword> ALL AND ANY ARRAY AS ASC ASCENDING ASYMMETRIC AT
 
                  BETWEEN BOTH BY
 
@@ -160,7 +161,7 @@ static Node *makeAArrayExpr(List *elements, int location);
                  CURRENT_CATALOG CURRENT_DATE CURRENT_ROLE CURRENT_SCHEMA CURRENT_TIME 
                  CURRENT_TIMESTAMP CURRENT_USER
 
-                 DATE DECADE DEFAULT DELETE DESC DESCENDING DETACH DISTINCT DROP
+                 DATE DECADE DEFAULT DELETE DESC DESCENDING DETACH DISTINCT DOCUMENT_P DROP
 
                  ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXISTS EXTENSION EXTRACT
 
@@ -177,7 +178,7 @@ static Node *makeAArrayExpr(List *elements, int location);
 
                  MATCH MERGE 
 
-                 NATURAL NFC NFD NFKC NFKD NO NORMALIZE NOT NOTNULL NULL_P NULLIF NULLS_LA
+                 NATURAL NFC NFD NFKC NFKD NO NORMALIZE NORMALIZED NOT NOTNULL NULL_P NULLIF NULLS_LA
 
                  ON ONLY OPTIONAL OTHERS OR ORDER OUTER OVER OVERLAPS OVERLAY
 
@@ -189,7 +190,7 @@ static Node *makeAArrayExpr(List *elements, int location);
 
                  TABLE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRAILING TREAT TRIM TRUE_P
 
-                 UNBOUNDED UNION UNKNOWN UNLOGGED UPDATE UNWIND USE USER USING
+                 UNBOUNDED UNION UNIQUE UNKNOWN UNLOGGED UPDATE UNWIND USE USER USING
 
                  VALUES VARIADIC VERSION_P
 
@@ -334,7 +335,10 @@ static Node *makeAArrayExpr(List *elements, int location);
              any_name attrs opt_class
              var_list
 
-%type <list>	func_name 
+%type <list>	func_name qual_Op qual_all_Op subquery_Op
+%type <string>		all_Op MathOp
+
+%type <integer>	sub_type 
 
 %type <defelt>	def_elem reloption_elem
 %type <string> Sconst 
@@ -1223,6 +1227,56 @@ explicit_row:	ROW '(' expr_list ')'				{ $$ = $3; }
 
 implicit_row:	'(' expr_list ',' a_expr ')'		{ $$ = lappend($2, $4); }
 		;
+
+sub_type:	ANY										{ $$ = ANY_SUBLINK; }
+			| SOME									{ $$ = ANY_SUBLINK; }
+			| ALL									{ $$ = ALL_SUBLINK; }
+		;
+
+all_Op:		OPERATOR										{ $$ = $1; }
+			| MathOp								{ $$ = $1; }
+		;
+
+MathOp:		 '+'									{ $$ = "+"; }
+			| '-'									{ $$ = "-"; }
+			| '*'									{ $$ = "*"; }
+			| '/'									{ $$ = "/"; }
+			| '%'									{ $$ = "%"; }
+			| '^'									{ $$ = "^"; }
+			| '<'									{ $$ = "<"; }
+			| '>'									{ $$ = ">"; }
+			| '='									{ $$ = "="; }
+			| LT_EQ							{ $$ = "<="; }
+			| GT_EQ						{ $$ = ">="; }
+			| NOT_EQ							{ $$ = "<>"; }
+		;
+
+qual_Op:	OPERATOR
+					{ $$ = list_make1(makeString($1)); }
+			//| OPERATOR '(' any_operator ')'
+			//		{ $$ = $3; }
+		;
+
+qual_all_Op:
+			all_Op
+					{ $$ = list_make1(makeString($1)); }
+			//| OPERATOR '(' any_operator ')'
+			//		{ $$ = $3; }
+		;
+
+subquery_Op:
+			all_Op
+					{ $$ = list_make1(makeString($1)); }
+			//| OPERATOR '(' any_operator ')'
+			//		{ $$ = $3; }
+			| LIKE
+					{ $$ = list_make1(makeString("~~")); }
+			| NOT LIKE
+					{ $$ = list_make1(makeString("!~~")); }
+			| ILIKE
+					{ $$ = list_make1(makeString("~~*")); }
+			| NOT ILIKE
+					{ $$ = list_make1(makeString("!~~*")); }    
 
 /*****************************************************************************
  *
@@ -2808,7 +2862,7 @@ opt_slice_bound:
 a_expr:		c_expr									{ $$ = $1; }
 			| a_expr TYPECAST Typename
 					{ $$ = makeTypeCast($1, $3, @2); }
-			/*| a_expr COLLATE any_name
+			| a_expr COLLATE any_name
 				{
 					CollateClause *n = makeNode(CollateClause);
 					n->arg = $1;
@@ -2816,13 +2870,13 @@ a_expr:		c_expr									{ $$ = $1; }
 					n->location = @2;
 					$$ = (Node *) n;
 				}
-			| a_expr AT TIME ZONE a_expr			%prec AT
+			| a_expr AT TIME ZONE a_expr			//%prec AT
 				{
 					$$ = (Node *) makeFuncCall(SystemFuncName("timezone"),
 											   list_make2($5, $1),
 											   COERCE_SQL_SYNTAX,
 											   @2);
-				}*/
+				}
 			| '+' a_expr				//	%prec ;
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "+", NULL, $2, @1); }
 			| '-' a_expr				//	%prec UMINUS
@@ -2851,12 +2905,10 @@ a_expr:		c_expr									{ $$ = $1; }
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, ">=", $1, $3, @2); }
 			| a_expr NOT_EQ a_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "<>", $1, $3, @2); }
-/*
-			| a_expr OPERATOR a_expr			//	%prec Op
+			| a_expr qual_Op a_expr				%prec OPERATOR
 				{ $$ = (Node *) makeA_Expr(AEXPR_OP, $2, $1, $3, @2); }
-			| OPERATOR a_expr				//	%prec Op
+			| qual_Op a_expr					%prec OPERATOR
 				{ $$ = (Node *) makeA_Expr(AEXPR_OP, $1, NULL, $2, @1); }
-*/
 			| a_expr AND a_expr
 				{ $$ = makeAndExpr($1, $3, @2); }
 			| a_expr OR a_expr
@@ -2987,23 +3039,21 @@ a_expr:		c_expr									{ $$ = $1; }
 					n->location = @2;
 					$$ = (Node *)n;
 				}
-			 /*| row OVERLAPS row
+			 | row OVERLAPS row
 				{
 					if (list_length($1) != 2)
 						ereport(ERROR,
 								(errcode(ERRCODE_SYNTAX_ERROR),
-								 errmsg("wrong number of parameters on left side of OVERLAPS expression"),
-								 parser_errposition(@1)));
+								 errmsg("wrong number of parameters on left side of OVERLAPS expression")));
 					if (list_length($3) != 2)
 						ereport(ERROR,
 								(errcode(ERRCODE_SYNTAX_ERROR),
-								 errmsg("wrong number of parameters on right side of OVERLAPS expression"),
-								 parser_errposition(@3)));
+								 errmsg("wrong number of parameters on right side of OVERLAPS expression")));
 					$$ = (Node *) makeFuncCall(SystemFuncName("overlaps"),
 											   list_concat($1, $3),
 											   COERCE_SQL_SYNTAX,
 											   @2);
-				}*/
+				}
 			| a_expr IS TRUE_P							%prec IS
 				{
 					BooleanTest *b = makeNode(BooleanTest);
@@ -3125,8 +3175,8 @@ a_expr:		c_expr									{ $$ = $1; }
 					{
 						$$ = (Node *) makeSimpleA_Expr(AEXPR_IN, "<>", $1, $4, @2);
 					}
-				}/*
-			| a_expr subquery_Op sub_type select_with_parens	%prec Op
+				}
+			| a_expr subquery_Op sub_type select_with_parens	%prec OPERATOR
 				{
 					SubLink *n = makeNode(SubLink);
 					n->subLinkType = $3;
@@ -3137,7 +3187,7 @@ a_expr:		c_expr									{ $$ = $1; }
 					n->location = @2;
 					$$ = (Node *)n;
 				}
-			| a_expr subquery_Op sub_type '(' a_expr ')'		%prec Op
+			| a_expr subquery_Op sub_type '(' a_expr ')'		%prec OPERATOR
 				{
 					if ($3 == ANY_SUBLINK)
 						$$ = (Node *) makeA_Expr(AEXPR_OP_ANY, $2, $1, $5, @2);
@@ -3148,8 +3198,7 @@ a_expr:		c_expr									{ $$ = $1; }
 				{
 					ereport(ERROR,
 							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-							 errmsg("UNIQUE predicate is not yet implemented"),
-							 parser_errposition(@1)));
+							 errmsg("UNIQUE predicate is not yet implemented")));
 				}
 			| a_expr IS DOCUMENT_P					%prec IS
 				{
@@ -3198,7 +3247,7 @@ a_expr:		c_expr									{ $$ = $1; }
 					SetToDefault *n = makeNode(SetToDefault);
 					n->location = @1;
 					$$ = (Node *)n;
-				}*/
+				}
 		;
 
 
@@ -3246,10 +3295,10 @@ b_expr:		c_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, ">=", $1, $3, @2); }
 			| b_expr NOT_EQ b_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "<>", $1, $3, @2); }
-			/*| b_expr qual_Op b_expr				%prec Op
+			| b_expr qual_Op b_expr				%prec OPERATOR
 				{ $$ = (Node *) makeA_Expr(AEXPR_OP, $2, $1, $3, @2); }
-			| qual_Op b_expr					%prec Op
-				{ $$ = (Node *) makeA_Expr(AEXPR_OP, $1, NULL, $2, @1); }*/
+			| qual_Op b_expr					%prec OPERATOR
+				{ $$ = (Node *) makeA_Expr(AEXPR_OP, $1, NULL, $2, @1); }
 			| b_expr IS DISTINCT FROM b_expr		%prec IS
 				{
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_DISTINCT, "=", $1, $5, @2);
@@ -3258,7 +3307,7 @@ b_expr:		c_expr
 				{
 					$$ = (Node *) makeSimpleA_Expr(AEXPR_NOT_DISTINCT, "=", $1, $6, @2);
 				}
-			/*| b_expr IS DOCUMENT_P					%prec IS
+			| b_expr IS DOCUMENT_P					%prec IS
 				{
 					$$ = makeXmlExpr(IS_DOCUMENT, NULL, NIL,
 									 list_make1($1), @2);
@@ -3268,7 +3317,7 @@ b_expr:		c_expr
 					$$ = makeNotExpr(makeXmlExpr(IS_DOCUMENT, NULL, NIL,
 												 list_make1($1), @2),
 									 @2);
-				}*/
+				}
 		;
 
 /*
@@ -6127,8 +6176,7 @@ insertSelectOptions(SelectStmt *stmt,
 		if (stmt->sortClause)
 			ereport(ERROR,
 					(errcode(ERRCODE_SYNTAX_ERROR),
-					 errmsg("multiple ORDER BY clauses not allowed"),
-					 parser_errposition(exprLocation((Node *) sortClause))));
+					 errmsg("multiple ORDER BY clauses not allowed")));
 		stmt->sortClause = sortClause;
 	}
 	/* We can handle multiple locking clauses, though */
@@ -6138,8 +6186,7 @@ insertSelectOptions(SelectStmt *stmt,
 		if (stmt->limitOffset)
 			ereport(ERROR,
 					(errcode(ERRCODE_SYNTAX_ERROR),
-					 errmsg("multiple OFFSET clauses not allowed"),
-					 parser_errposition(exprLocation(limitClause->limitOffset))));
+					 errmsg("multiple OFFSET clauses not allowed")));
 		stmt->limitOffset = limitClause->limitOffset;
 	}
 	if (limitClause && limitClause->limitCount)
@@ -6147,8 +6194,7 @@ insertSelectOptions(SelectStmt *stmt,
 		if (stmt->limitCount)
 			ereport(ERROR,
 					(errcode(ERRCODE_SYNTAX_ERROR),
-					 errmsg("multiple LIMIT clauses not allowed"),
-					 parser_errposition(exprLocation(limitClause->limitCount))));
+					 errmsg("multiple LIMIT clauses not allowed")));
 		stmt->limitCount = limitClause->limitCount;
 	}
 	if (limitClause && limitClause->limitOption != LIMIT_OPTION_DEFAULT)
@@ -6361,4 +6407,27 @@ makeAArrayExpr(List *elements, int location)
 	n->elements = elements;
 	n->location = location;
 	return (Node *) n;
+}
+
+
+static Node *
+makeXmlExpr(XmlExprOp op, char *name, List *named_args, List *args,
+			int location)
+{
+	XmlExpr		*x = makeNode(XmlExpr);
+
+	x->op = op;
+	x->name = name;
+	/*
+	 * named_args is a list of ResTarget; it'll be split apart into separate
+	 * expression and name lists in transformXmlExpr().
+	 */
+	x->named_args = named_args;
+	x->arg_names = NIL;
+	x->args = args;
+	/* xmloption, if relevant, must be filled in by caller */
+	/* type and typmod will be filled in during parse analysis */
+	x->type = InvalidOid;			/* marks the node as not analyzed */
+	x->location = location;
+	return (Node *) x;
 }

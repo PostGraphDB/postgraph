@@ -229,9 +229,11 @@ SELECT '"Hello"'::gtype = '"Hello"'::gtype;
 (1 row)
 
 SELECT '{"Hello": "World"}'::gtype <@ '"Hello"'::gtype;
-ERROR:  syntax error at or near "<@"
-LINE 1: SELECT '{"Hello": "World"}'::gtype <@ '"Hello"'::gtype;
-                                           ^
+ ?column? 
+----------
+ f
+(1 row)
+
 SELECT 'Hello' LIKE 'Hello';
  ?column? 
 ----------
@@ -520,6 +522,14 @@ SELECT ROW (1, 2, 3, 4);
     row    
 -----------
  (1,2,3,4)
+(1 row)
+
+SELECT *
+FROM tbl1
+WHERE i = SOME (SELECT j FROM tbl2);
+ i 
+---
+ 2
 (1 row)
 
 DROP GRAPH new_cypher CASCADE;
