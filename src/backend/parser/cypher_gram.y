@@ -197,6 +197,8 @@ static Node *makeAConst(Value *v, int location);
 %type <target>	target_el set_target
 %type <range>	relation_expr
 %type <range>	relation_expr_opt_alias
+%type <node>	case_expr case_arg when_clause case_default
+%type <list>	when_clause_list
 %type <alias>	alias_clause opt_alias_clause opt_alias_clause_for_join_using
 %type <node> clause
 %type <groupclause> group_clause
@@ -3239,9 +3241,9 @@ c_expr:		columnref								{ $$ = $1; }
 					else
 						$$ = $2;
 				}
-			/*| case_expr
+			| case_expr
 				{ $$ = $1; }
-			| func_expr
+			/*| func_expr
 				{ $$ = $1; }*/
 			| select_with_parens			//%prec UMINUS
 				{
@@ -3336,6 +3338,51 @@ in_expr:	select_with_parens
 				}
 			| '(' expr_list ')'						{ $$ = (Node *)$2; }
 		;
+
+/*
+ * Define SQL-style CASE clause.
+ * - Full specification
+ *	CASE WHEN a = b THEN c ... ELSE d END
+ * - Implicit argument
+ *	CASE a WHEN b THEN c ... ELSE d END
+ */
+case_expr:	CASE case_arg when_clause_list case_default END_P
+				{
+					CaseExpr *c = makeNode(CaseExpr);
+					c->casetype = InvalidOid; /* not analyzed yet */
+					c->arg = (Expr *) $2;
+					c->args = $3;
+					c->defresult = (Expr *) $4;
+					c->location = @1;
+					$$ = (Node *)c;
+				}
+		;
+
+when_clause_list:
+			/* There must be at least one */
+			when_clause								{ $$ = list_make1($1); }
+			| when_clause_list when_clause			{ $$ = lappend($1, $2); }
+		;
+
+when_clause:
+			WHEN a_expr THEN a_expr
+				{
+					CaseWhen *w = makeNode(CaseWhen);
+					w->expr = (Expr *) $2;
+					w->result = (Expr *) $4;
+					w->location = @1;
+					$$ = (Node *)w;
+				}
+		;
+
+case_default:
+			ELSE a_expr								{ $$ = $2; }
+			| /*EMPTY*/								{ $$ = NULL; }
+		;
+
+case_arg:	a_expr									{ $$ = $1; }
+			| /*EMPTY*/								{ $$ = NULL; }
+		; 
 
 /*
  * Constants

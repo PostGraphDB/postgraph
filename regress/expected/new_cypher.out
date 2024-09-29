@@ -468,6 +468,18 @@ SELECT false AND (true AND false);
  f
 (1 row)
 
+SELECT CASE WHEN true THEN true ELSE false END;
+ case 
+------
+ t
+(1 row)
+
+SELECT CASE WHEN false THEN true ELSE false END;
+ case 
+------
+ f
+(1 row)
+
 DROP GRAPH new_cypher CASCADE;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table new_cypher._ag_label_vertex
