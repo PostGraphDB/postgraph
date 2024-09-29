@@ -19,6 +19,8 @@
 LOAD 'postgraph';
 
 SET search_path TO 'postgraph';
+SET search_path TO DEFAULT;
+SET search_path TO 'postgraph';
 
 CREATE EXTENSION postgraph;
 CREATE EXTENSION hstore CASCADE SCHEMA public;

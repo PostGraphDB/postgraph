@@ -151,7 +151,7 @@ static Node *makeAConst(Value *v, int location);
 %token <keyword> ALL AND ANY AS ASC ASCENDING
                  BETWEEN BY
                  CALL CASE CASCADE CROSS COALESCE COLLATE CONTAINS CREATE CUBE CURRENT CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP
-                 DATE DECADE DELETE DESC DESCENDING DETACH DISTINCT DROP
+                 DATE DECADE DEFAULT DELETE DESC DESCENDING DETACH DISTINCT DROP
                  ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXISTS EXTENSION EXTRACT
                  GLOBAL GRAPH GROUP GROUPS GROUPING
                  FALSE_P FILTER FIRST_P FOLLOWING FROM FULL
@@ -675,8 +675,6 @@ opt_all_clause:
 			ALL
 			| /*EMPTY*/
 		;
-
-
 
 /*****************************************************************************
  *
@@ -1272,6 +1270,23 @@ UpdateStmt: //opt_with_clause
 					n->withClause = NULL;//$1;
 					$$ = (Node *)n;
 				}
+/*
+ * It may seem silly to separate joined_table from table_ref, but there is
+ * method in SQL's madness: if you don't do it this way you get reduce-
+ * reduce conflicts, because it's not clear to the parser generator whether
+ * to expect alias_clause after ')' or not.  For the same reason we must
+ * treat 'JOIN' and 'join_type JOIN' separately, rather than allowing
+ * join_type to expand to empty; if we try it, the parser generator can't
+ * figure out when to reduce an empty join_type right after table_ref.
+ *
+ * Note that a CROSS JOIN is the same as an unqualified
+ * INNER JOIN, and an INNER JOIN/ON has the same shape
+ * but a qualification expression to limit membership.
+ * A NATURAL JOIN implicitly matches column names between
+ * tables and the shape is determined by which columns are
+ * in common. We'll collect columns during the later transformations.
+ */
+
 		;
 
 set_clause_list:
@@ -1872,7 +1887,7 @@ generic_set:
 					n->args = $3;
 					$$ = n;
 				}
-			/*| var_name TO DEFAULT
+			| var_name TO DEFAULT
 				{
 					VariableSetStmt *n = makeNode(VariableSetStmt);
 					n->kind = VAR_SET_DEFAULT;
@@ -1885,7 +1900,7 @@ generic_set:
 					n->kind = VAR_SET_DEFAULT;
 					n->name = $1;
 					$$ = n;
-				}*/
+				}
 		;
 
 set_rest_more:	/* Generic SET syntaxes: */

@@ -17,6 +17,8 @@
 -- Regression tests don't preload extensions, gotta load it first
 LOAD 'postgraph';
 SET search_path TO 'postgraph';
+SET search_path TO DEFAULT;
+SET search_path TO 'postgraph';
 CREATE EXTENSION postgraph;
 ERROR:  extension "postgraph" already exists
 CREATE EXTENSION hstore CASCADE SCHEMA public;
