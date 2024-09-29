@@ -3226,20 +3226,20 @@ c_expr:		columnref								{ $$ = $1; }
 					}
 					else
 						$$ = (Node *) p;
-				}
+				}*/
 			| '(' a_expr ')' opt_indirection
 				{
 					if ($4)
 					{
 						A_Indirection *n = makeNode(A_Indirection);
 						n->arg = $2;
-						n->indirection = check_indirection($4, yyscanner);
+						n->indirection = check_indirection($4, scanner);
 						$$ = (Node *)n;
 					}
 					else
 						$$ = $2;
 				}
-			| case_expr
+			/*| case_expr
 				{ $$ = $1; }
 			| func_expr
 				{ $$ = $1; }*/
