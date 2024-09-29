@@ -209,7 +209,7 @@ static Node *makeAConst(Value *v, int location);
 %type <node>	grouping_sets_clause
 
 %type <node>	func_application func_expr_common_subexpr
-%type <node>	func_expr 
+%type <node>	func_expr func_expr_windowless
 %type <list>	func_arg_list func_arg_list_opt
 %type <node>	func_arg_expr
 
@@ -2442,6 +2442,7 @@ NumericOnly:
 				}
 			| SignedIconst						{ $$ = makeInteger($1); }
 		;
+
  SignedIconst: Iconst								{ $$ = $1; }
 			| '+' Iconst							{ $$ = + $2; }
 			| '-' Iconst							{ $$ = - $2; }
@@ -2498,7 +2499,7 @@ part_elem: ColId opt_collate opt_class
 
 					$$ = n;
 				}
-			/*| func_expr_windowless opt_collate opt_class
+			| func_expr_windowless opt_collate opt_class
 				{
 					PartitionElem *n = makeNode(PartitionElem);
 
@@ -2509,7 +2510,7 @@ part_elem: ColId opt_collate opt_class
 					n->location = @1;
 					$$ = n;
 				}
-			| '(' cypher_a_expr ')' opt_collate opt_class
+			| '(' a_expr ')' opt_collate opt_class
 				{
 					PartitionElem *n = makeNode(PartitionElem);
 
@@ -2519,7 +2520,7 @@ part_elem: ColId opt_collate opt_class
 					n->opclass = $5;
 					n->location = @1;
 					$$ = n;
-				}*/
+				}
 		;       
 
 
@@ -3469,6 +3470,18 @@ func_expr: func_application within_group_clause filter_clause over_clause
 				}
 			| func_expr_common_subexpr
 				{ $$ = $1; }
+		;
+
+
+/*
+ * As func_expr but does not accept WINDOW functions directly
+ * (but they can still be contained in arguments for functions etc).
+ * Use this when window expressions are not allowed, where needed to
+ * disambiguate the grammar (e.g. in CREATE INDEX).
+ */
+func_expr_windowless:
+			func_application						{ $$ = $1; }
+			| func_expr_common_subexpr				{ $$ = $1; }
 		;
 
 
