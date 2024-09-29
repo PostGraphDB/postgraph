@@ -185,9 +185,9 @@ SELECT a.i as j FROM tst a GROUP BY a.i HAVING a.i = a.i;
 SELECT sum(salary) OVER w, avg(salary) OVER w
   FROM empsalary
   WINDOW w AS (PARTITION BY i ORDER BY i DESC);
-ERROR:  syntax error at or near "("
-LINE 1: SELECT sum(salary) OVER w, avg(salary) OVER w
-                  ^
+ERROR:  syntax error at or near "WINDOW"
+LINE 3:   WINDOW w AS (PARTITION BY i ORDER BY i DESC);
+          ^
 SELECT a.i FROM tst a
 UNION
 SELECT a.i FROM tst a;
@@ -479,6 +479,30 @@ SELECT CASE WHEN false THEN true ELSE false END;
 ------
  f
 (1 row)
+
+SELECT sin(1);
+        sin         
+--------------------
+ 0.8414709848078965
+(1 row)
+
+SELECT * FROM (
+    SELECT * FROM tbl1
+) as a;
+ i 
+---
+ 1
+ 2
+(2 rows)
+
+SELECT * FROM LATERAL (
+    SELECT * FROM tbl1
+) as a;
+ i 
+---
+ 1
+ 2
+(2 rows)
 
 DROP GRAPH new_cypher CASCADE;
 NOTICE:  drop cascades to 2 other objects

@@ -189,5 +189,14 @@ SELECT CASE WHEN false THEN true ELSE false END;
 
 SELECT sin(1);
 
+SELECT * FROM (
+    SELECT * FROM tbl1
+) as a;
+
+SELECT * FROM LATERAL (
+    SELECT * FROM tbl1
+) as a;
+
+
 DROP GRAPH new_cypher CASCADE;
 DROP GRAPH new_cypher_2 CASCADE;

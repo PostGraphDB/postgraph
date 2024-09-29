@@ -160,7 +160,7 @@ static Node *makeAConst(Value *v, int location);
                  HAVING
                  IF ILIKE IN INHERITS INNER INTERSECT INSERT INTERVAL INTO IS ISNULL
                  JOIN
-                 LAST_P LEFT LIKE LIMIT LOCAL LOCALTIME LOCALTIMESTAMP
+                 LAST_P LATERAL_P LEFT LIKE LIMIT LOCAL LOCALTIME LOCALTIMESTAMP
                  MATCH MERGE 
                  NATURAL NO NOT NOTNULL NULL_P NULLS_LA
                  ON ONLY OPTIONAL OTHERS OR ORDER OUTER OVER OVERLAPS
@@ -803,7 +803,7 @@ table_ref:	relation_expr opt_alias_clause
 					n->lateral = true;
 					n->alias = $3;
 					$$ = (Node *) n;
-				}
+				}*/
 			| select_with_parens opt_alias_clause
 				{
 					RangeSubselect *n = makeNode(RangeSubselect);
@@ -827,14 +827,12 @@ table_ref:	relation_expr opt_alias_clause
 							ereport(ERROR,
 									(errcode(ERRCODE_SYNTAX_ERROR),
 									 errmsg("VALUES in FROM must have an alias"),
-									 errhint("For example, FROM (VALUES ...) [AS] foo."),
-									 parser_errposition(@1)));
+									 errhint("For example, FROM (VALUES ...) [AS] foo.")));
 						else
 							ereport(ERROR,
 									(errcode(ERRCODE_SYNTAX_ERROR),
 									 errmsg("subquery in FROM must have an alias"),
-									 errhint("For example, FROM (SELECT ...) [AS] foo."),
-									 parser_errposition(@1)));
+									 errhint("For example, FROM (SELECT ...) [AS] foo.")));
 					}
 					$$ = (Node *) n;
 				}
@@ -852,17 +850,15 @@ table_ref:	relation_expr opt_alias_clause
 							ereport(ERROR,
 									(errcode(ERRCODE_SYNTAX_ERROR),
 									 errmsg("VALUES in FROM must have an alias"),
-									 errhint("For example, FROM (VALUES ...) [AS] foo."),
-									 parser_errposition(@2)));
+									 errhint("For example, FROM (VALUES ...) [AS] foo.")));
 						else
 							ereport(ERROR,
 									(errcode(ERRCODE_SYNTAX_ERROR),
 									 errmsg("subquery in FROM must have an alias"),
-									 errhint("For example, FROM (SELECT ...) [AS] foo."),
-									 parser_errposition(@2)));
+									 errhint("For example, FROM (SELECT ...) [AS] foo.")));
 					}
 					$$ = (Node *) n;
-				}*/
+				}
 			| joined_table
 				{
 					$$ = (Node *) $1;
