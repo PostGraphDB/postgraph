@@ -197,6 +197,7 @@ SELECT * FROM LATERAL (
     SELECT * FROM tbl1
 ) as a;
 
+SELECT ARRAY [1, 2, 3, 4];
 
 DROP GRAPH new_cypher CASCADE;
 DROP GRAPH new_cypher_2 CASCADE;

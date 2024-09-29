@@ -98,6 +98,7 @@ static Node *makeAndExpr(Node *lexpr, Node *rexpr, int location);
 static Node *makeOrExpr(Node *lexpr, Node *rexpr, int location);
 static Node *makeNotExpr(Node *expr, int location);
 static Node *makeAConst(Value *v, int location);
+static Node *makeAArrayExpr(List *elements, int location);
 
 #define parser_yyerror(msg)  scanner_yyerror(msg, yyscanner)
 #define parser_errposition(pos)  scanner_errposition(pos, yyscanner)
@@ -218,14 +219,14 @@ static Node *makeAConst(Value *v, int location);
 
 %type <node> where_clause
              a_expr b_expr c_expr AexprConst indirection_el opt_slice_bound
-             columnref in_expr having_clause
+             columnref in_expr having_clause array_expr
 
 %type <integer> set_quantifier
 %type <target>	target_el set_target
 %type <range>	relation_expr
 %type <range>	relation_expr_opt_alias
 %type <node>	case_expr case_arg when_clause case_default
-%type <list>	when_clause_list
+%type <list>	when_clause_list array_expr_list
 %type <alias>	alias_clause opt_alias_clause opt_alias_clause_for_join_using
 %type <node> clause
 %type <groupclause> group_clause
@@ -3267,7 +3268,7 @@ c_expr:		columnref								{ $$ = $1; }
 					{
 						A_Indirection *n = makeNode(A_Indirection);
 						n->arg = (Node *) p;
-						n->indirection = check_indirection($2, yyscanner);
+						n->indirection = check_indirection($2, scanner);
 						$$ = (Node *) n;
 					}
 					else
@@ -3337,14 +3338,14 @@ c_expr:		columnref								{ $$ = $1; }
 					n->location = @1;
 					$$ = (Node *)n;
 				}
-			/*| ARRAY array_expr
+			| ARRAY array_expr
 				{
 					A_ArrayExpr *n = castNode(A_ArrayExpr, $2);
 				
 					n->location = @1;
 					$$ = (Node *)n;
 				}
-			| explicit_row
+			/*| explicit_row
 				{
 					RowExpr *r = makeNode(RowExpr);
 					r->args = $1;
@@ -3363,14 +3364,14 @@ c_expr:		columnref								{ $$ = $1; }
 					r->row_format = COERCE_IMPLICIT_CAST; 
 					r->location = @1;
 					$$ = (Node *)r;
-				}
+				}*/
 			| GROUPING '(' expr_list ')'
 			  {
 				  GroupingFunc *g = makeNode(GroupingFunc);
 				  g->args = $3;
 				  g->location = @1;
 				  $$ = (Node *)g;
-			  }*/
+			  }
 		;
 
 in_expr:	select_with_parens
@@ -3819,6 +3820,24 @@ func_arg_expr:  a_expr
 					na->location = @1;
 					$$ = (Node *) na;
 				}
+		;
+
+array_expr: '[' expr_list ']'
+				{
+					$$ = makeAArrayExpr($2, @1);
+				}
+			| '[' array_expr_list ']'
+				{
+					$$ = makeAArrayExpr($2, @1);
+				}
+			| '[' ']'
+				{
+					$$ = makeAArrayExpr(NIL, @1);
+				}
+		;
+
+array_expr_list: array_expr							{ $$ = list_make1($1); }
+			| array_expr_list ',' array_expr		{ $$ = lappend($1, $3); }
 		;
 
 extract_list:
@@ -6310,4 +6329,14 @@ check_func_name(List *names, ag_scanner_t yyscanner)
 			parser_yyerror("syntax error");
 	}
 	return names;
+}
+
+static Node *
+makeAArrayExpr(List *elements, int location)
+{
+	A_ArrayExpr *n = makeNode(A_ArrayExpr);
+
+	n->elements = elements;
+	n->location = location;
+	return (Node *) n;
 }
