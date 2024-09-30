@@ -172,14 +172,14 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ
 
 /* keywords in alphabetical order */
-%token <keyword> ACCESS ACTION ADMIN ALL AND ANY ARRAY AS ASC ASCENDING ASYMMETRIC AT ATOMIC AUTHORIZATION
+%token <keyword> ACCESS ACTION ADMIN ALL AND ANY ALWAYS ARRAY AS ASC ASCENDING ASYMMETRIC AT ATOMIC AUTHORIZATION
 
                  BIGINT BEGIN_P BETWEEN BOOLEAN_P BOTH BY
 
-                 CALL CALLED CASE CAST CASCADE CHECK CROSS COALESCE COLLATE COLLATION COMMENTS COMPRESSION CONNECTION
+                 CACHE CALL CALLED CASE CAST CASCADE CHECK CROSS COALESCE COLLATE COLLATION COMMENTS COMPRESSION CONNECTION
 				 CONCURRENTLY CONTAINS CONSTRAINT CONSTRAINTS COST CREATE CUBE CURRENT 
                  CURRENT_CATALOG CURRENT_DATE CURRENT_ROLE CURRENT_SCHEMA CURRENT_TIME 
-                 CURRENT_TIMESTAMP CURRENT_USER
+                 CURRENT_TIMESTAMP CURRENT_USER CYCLE
 
                  DATA_P DATABASE DATE DECADE DEC DECIMAL_P DEFAULT DEFAULTS DEFERRABLE DEFERRED DEFINER DELETE DESC DESCENDING DETACH DISTINCT 
 				 DOMAIN_P DOCUMENT_P DOUBLE_P DROP
@@ -193,7 +193,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  HAVING
 
-                 IDENTITY_P IF ILIKE IN INCLUDING INDEX INDEXES IMMEDIATE IMMUTABLE INCLUDE INHERIT INHERITS INITIALLY INNER 
+                 IDENTITY_P IF ILIKE IN INCLUDING INDEX INDEXES IMMEDIATE IMMUTABLE INCLUDE INCREMENT INHERIT INHERITS INITIALLY INNER 
 				 INOUT INPUT_P INT_P INTEGER_P INTERSECT INSERT INTERVAL INTO INVOKER IS ISNULL
 
                  JOIN
@@ -202,18 +202,19 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  LANGUAGE LARGE_P LAST_P LATERAL_P LEADING LEAKPROOF LEAST LEFT LIKE LIMIT LOCAL LOCALTIME LOCALTIMESTAMP
 
-                 MATCH MERGE METHOD
+                 MATCH MAXVALUE MERGE METHOD MINVALUE
 
-                 NATURAL NFC NFD NFKC NFKD NO NORMALIZE NORMALIZED NOT NOTNULL NULL_P NULLIF NULLS_LA NUMERIC
+                 NAME_P NATURAL NFC NFD NFKC NFKD NO NORMALIZE NORMALIZED NOT NOTNULL NULL_P NULLIF NULLS_LA NUMERIC
 
-                 OBJECT_P ON ONLY OPTION OPTIONAL OTHERS OR ORDER OUT_P OUTER OVER OVERLAPS OVERLAY
+                 OBJECT_P ON ONLY OPTION OPTIONS OPTIONAL OTHERS OR ORDER OUT_P OUTER OVER OVERLAPS OVERLAY OWNED
 
                  PARALLEL PARTIAL PARTITION PASSWORD PLACING POLICY POSITION PUBLICATION PRECEDING PRECISION PRIMARY PRIVILEGES PROCEDURAL PROCEDURE PROCEDURES
 
-                 RANGE RIGHT REAL REFERENCES REMOVE RESTRICT REPLACE RETURN RETURNS RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
+                 RANGE RIGHT REAL REFERENCES REMOVE RESTART RESTRICT REPLACE RETURN RETURNS RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
 
-                 SCHEMA SECURITY SERVER SELECT SEQUENCE SEQUENCES SESSION SESSION_USER SET SETOF SETS SIMPLE SKIP SMALLINT SOME STABLE STARTS STATEMENTS STATISTICS
-				 STORAGE STRICT_P SUBSCRIPTION SUBSTRING SUPPORT SYMMETRIC SYSID
+                 SCHEMA SECURITY SERVER SELECT SEQUENCE SEQUENCES SESSION SESSION_USER SET SETOF SETS
+				 SIMPLE SKIP SMALLINT SOME STABLE START STARTS STATEMENTS STATISTICS
+				 STORED STORAGE STRICT_P SUBSCRIPTION SUBSTRING SUPPORT SYMMETRIC SYSID
 
                  TABLE TABLES TABLESPACE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRAILING TRANSFORM TREAT TRIGGER TRIM TRUE_P
 				 TYPE_P
@@ -271,12 +272,21 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
 %type <node>	TableConstraint TableLikeClause ConstraintElem
 %type <integer>	TableLikeOptionList TableLikeOption
+%type <string>		column_compression opt_column_compression
+%type <list>	ColQualList
+%type <node>	ColConstraint ColConstraintElem ConstraintAttr
 %type <integer>	key_actions key_delete key_match key_update key_action
 %type <integer>	ConstraintAttributeSpec ConstraintAttributeElem
 %type <string>	ExistingIndex
-
+%type <integer>	generated_when 
 %type <node>	func_application func_expr_common_subexpr
 %type <node>	func_expr func_expr_windowless
+
+%type <list>	OptSeqOptList SeqOptList OptParenthesizedSeqOptList
+%type <defelt>	SeqOptElem
+
+%type <node>	TableElement 
+%type <node>	columnDef columnOptions
 
 %type <list>	ExclusionConstraintList ExclusionConstraintElem
 %type <list>	func_arg_list func_arg_list_opt
@@ -287,6 +297,12 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <ielem>	index_elem index_elem_options
 %type <node>	join_qual
 %type <integer>	join_type
+
+%type <string>		generic_option_name
+%type <node>	generic_option_arg
+%type <defelt>	generic_option_elem 
+%type <list>	generic_option_list 
+
 
 %type <integer>	opt_drop_behavior
 
@@ -408,6 +424,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              indirection opt_indirection
 			 attrs opt_class
              var_list
+			 create_generic_options
 			 transform_type_list
 
 %type <node>	opt_routine_body
@@ -432,7 +449,8 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <typnam>	Typename SimpleTypename 
                 GenericType Numeric opt_float
 				ConstDatetime
-%type <boolean>  opt_timezone 
+%type <boolean> opt_timezone opt_no_inherit
+
 
 %type <defelt>	createfunc_opt_item common_func_opt_item 
 %type <fun_param> func_arg func_arg_with_default 
@@ -441,8 +459,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
 %type <range>	qualified_name insert_target
 %type <istmt>	insert_rest
-%type <node>	TableElement 
-%type <node>	columnDef 
+
 %type <list>	extract_list overlay_list position_list
 %type <list>	substr_list trim_list
 %type <string>	extract_arg
@@ -2732,6 +2749,78 @@ reloption_elem:
 				}
 		;  
 
+
+OptParenthesizedSeqOptList: '(' SeqOptList ')'		{ $$ = $2; }
+			| /*EMPTY*/								{ $$ = NIL; }
+		;
+
+SeqOptList: SeqOptElem								{ $$ = list_make1($1); }
+			| SeqOptList SeqOptElem					{ $$ = lappend($1, $2); }
+		;
+
+SeqOptElem: AS SimpleTypename
+				{
+					$$ = makeDefElem("as", (Node *)$2, @1);
+				}
+			| CACHE NumericOnly
+				{
+					$$ = makeDefElem("cache", (Node *)$2, @1);
+				}
+			| CYCLE
+				{
+					$$ = makeDefElem("cycle", (Node *)makeInteger(true), @1);
+				}
+			| NO CYCLE
+				{
+					$$ = makeDefElem("cycle", (Node *)makeInteger(false), @1);
+				}
+			| INCREMENT opt_by NumericOnly
+				{
+					$$ = makeDefElem("increment", (Node *)$3, @1);
+				}
+			| MAXVALUE NumericOnly
+				{
+					$$ = makeDefElem("maxvalue", (Node *)$2, @1);
+				}
+			| MINVALUE NumericOnly
+				{
+					$$ = makeDefElem("minvalue", (Node *)$2, @1);
+				}
+			| NO MAXVALUE
+				{
+					$$ = makeDefElem("maxvalue", NULL, @1);
+				}
+			| NO MINVALUE
+				{
+					$$ = makeDefElem("minvalue", NULL, @1);
+				}
+			| OWNED BY any_name
+				{
+					$$ = makeDefElem("owned_by", (Node *)$3, @1);
+				}
+			| SEQUENCE NAME_P any_name
+				{
+					/* not documented, only used by pg_dump */
+					$$ = makeDefElem("sequence_name", (Node *)$3, @1);
+				}
+			| START opt_with NumericOnly
+				{
+					$$ = makeDefElem("start", (Node *)$3, @1);
+				}
+			| RESTART
+				{
+					$$ = makeDefElem("restart", NULL, @1);
+				}
+			| RESTART opt_with NumericOnly
+				{
+					$$ = makeDefElem("restart", (Node *)$3, @1);
+				}
+		;
+
+opt_by:		BY
+			| /* EMPTY */
+	  ;
+
 NumericOnly:
 			DECIMAL								{ $$ = makeFloat($1); }
 			| '+' DECIMAL						{ $$ = makeFloat($2); }
@@ -3552,7 +3641,7 @@ TableElement:
 
 
 
-columnDef:	ColId Typename //opt_column_compression create_generic_options ColQualList
+columnDef:	ColId Typename opt_column_compression create_generic_options ColQualList
 				{
 					ColumnDef *n = makeNode(ColumnDef);
 					n->colname = $1;
@@ -3585,6 +3674,256 @@ columnDef:	ColId Typename //opt_column_compression create_generic_options ColQua
 				}
 		;
 
+
+columnOptions:	ColId ColQualList
+				{
+					ColumnDef *n = makeNode(ColumnDef);
+					n->colname = $1;
+					n->typeName = NULL;
+					n->inhcount = 0;
+					n->is_local = true;
+					n->is_not_null = false;
+					n->is_from_type = false;
+					n->storage = 0;
+					n->raw_default = NULL;
+					n->cooked_default = NULL;
+					n->collOid = InvalidOid;
+					SplitColQualList($2, &n->constraints, &n->collClause,
+									 yyscanner);
+					n->location = @1;
+					$$ = (Node *)n;
+				}
+				| ColId WITH OPTIONS ColQualList
+				{
+					ColumnDef *n = makeNode(ColumnDef);
+					n->colname = $1;
+					n->typeName = NULL;
+					n->inhcount = 0;
+					n->is_local = true;
+					n->is_not_null = false;
+					n->is_from_type = false;
+					n->storage = 0;
+					n->raw_default = NULL;
+					n->cooked_default = NULL;
+					n->collOid = InvalidOid;
+					SplitColQualList($4, &n->constraints, &n->collClause,
+									 yyscanner);
+					n->location = @1;
+					$$ = (Node *)n;
+				}
+		;
+
+column_compression:
+			COMPRESSION ColId						{ $$ = $2; }
+			| COMPRESSION DEFAULT					{ $$ = pstrdup("default"); }
+		;
+
+opt_column_compression:
+			column_compression						{ $$ = $1; }
+			| /*EMPTY*/								{ $$ = NULL; }
+		;
+
+ColQualList:
+			ColQualList ColConstraint				{ $$ = lappend($1, $2); }
+			| /*EMPTY*/								{ $$ = NIL; }
+		;
+
+ColConstraint:
+			CONSTRAINT name ColConstraintElem
+				{
+					Constraint *n = castNode(Constraint, $3);
+					n->conname = $2;
+					n->location = @1;
+					$$ = (Node *) n;
+				}
+			| ColConstraintElem						{ $$ = $1; }
+			| ConstraintAttr						{ $$ = $1; }
+			| COLLATE any_name
+				{
+					/*
+					 * Note: the CollateClause is momentarily included in
+					 * the list built by ColQualList, but we split it out
+					 * again in SplitColQualList.
+					 */
+					CollateClause *n = makeNode(CollateClause);
+					n->arg = NULL;
+					n->collname = $2;
+					n->location = @1;
+					$$ = (Node *) n;
+				}
+		;
+
+/* DEFAULT NULL is already the default for Postgres.
+ * But define it here and carry it forward into the system
+ * to make it explicit.
+ * - thomas 1998-09-13
+ *
+ * WITH NULL and NULL are not SQL-standard syntax elements,
+ * so leave them out. Use DEFAULT NULL to explicitly indicate
+ * that a column may have that value. WITH NULL leads to
+ * shift/reduce conflicts with WITH TIME ZONE anyway.
+ * - thomas 1999-01-08
+ *
+ * DEFAULT expression must be b_expr not a_expr to prevent shift/reduce
+ * conflict on NOT (since NOT might start a subsequent NOT NULL constraint,
+ * or be part of a_expr NOT LIKE or similar constructs).
+ */
+ColConstraintElem:
+			NOT NULL_P
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_NOTNULL;
+					n->location = @1;
+					$$ = (Node *)n;
+				}
+			| NULL_P
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_NULL;
+					n->location = @1;
+					$$ = (Node *)n;
+				}
+			| UNIQUE opt_definition OptConsTableSpace
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_UNIQUE;
+					n->location = @1;
+					n->keys = NULL;
+					n->options = $2;
+					n->indexname = NULL;
+					n->indexspace = $3;
+					$$ = (Node *)n;
+				}
+			| PRIMARY KEY opt_definition OptConsTableSpace
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_PRIMARY;
+					n->location = @1;
+					n->keys = NULL;
+					n->options = $3;
+					n->indexname = NULL;
+					n->indexspace = $4;
+					$$ = (Node *)n;
+				}
+			| CHECK '(' a_expr ')' opt_no_inherit
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_CHECK;
+					n->location = @1;
+					n->is_no_inherit = $5;
+					n->raw_expr = $3;
+					n->cooked_expr = NULL;
+					n->skip_validation = false;
+					n->initially_valid = true;
+					$$ = (Node *)n;
+				}
+			| DEFAULT b_expr
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_DEFAULT;
+					n->location = @1;
+					n->raw_expr = $2;
+					n->cooked_expr = NULL;
+					$$ = (Node *)n;
+				}
+			| GENERATED generated_when AS IDENTITY_P OptParenthesizedSeqOptList
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_IDENTITY;
+					n->generated_when = $2;
+					n->options = $5;
+					n->location = @1;
+					$$ = (Node *)n;
+				}
+			| GENERATED generated_when AS '(' a_expr ')' STORED
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_GENERATED;
+					n->generated_when = $2;
+					n->raw_expr = $5;
+					n->cooked_expr = NULL;
+					n->location = @1;
+
+					/*
+					 * Can't do this in the grammar because of shift/reduce
+					 * conflicts.  (IDENTITY allows both ALWAYS and BY
+					 * DEFAULT, but generated columns only allow ALWAYS.)  We
+					 * can also give a more useful error message and location.
+					 */
+					if ($2 != ATTRIBUTE_IDENTITY_ALWAYS)
+						ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+								 errmsg("for a generated column, GENERATED ALWAYS must be specified")));
+
+					$$ = (Node *)n;
+				}
+			| REFERENCES qualified_name opt_column_list key_match key_actions
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_FOREIGN;
+					n->location = @1;
+					n->pktable			= $2;
+					n->fk_attrs			= NIL;
+					n->pk_attrs			= $3;
+					n->fk_matchtype		= $4;
+					n->fk_upd_action	= (char) ($5 >> 8);
+					n->fk_del_action	= (char) ($5 & 0xFF);
+					n->skip_validation  = false;
+					n->initially_valid  = true;
+					$$ = (Node *)n;
+				}
+		;
+
+generated_when:
+			ALWAYS			{ $$ = ATTRIBUTE_IDENTITY_ALWAYS; }
+			| BY DEFAULT	{ $$ = ATTRIBUTE_IDENTITY_BY_DEFAULT; }
+		;
+
+/*
+ * ConstraintAttr represents constraint attributes, which we parse as if
+ * they were independent constraint clauses, in order to avoid shift/reduce
+ * conflicts (since NOT might start either an independent NOT NULL clause
+ * or an attribute).  parse_utilcmd.c is responsible for attaching the
+ * attribute information to the preceding "real" constraint node, and for
+ * complaining if attribute clauses appear in the wrong place or wrong
+ * combinations.
+ *
+ * See also ConstraintAttributeSpec, which can be used in places where
+ * there is no parsing conflict.  (Note: currently, NOT VALID and NO INHERIT
+ * are allowed clauses in ConstraintAttributeSpec, but not here.  Someday we
+ * might need to allow them here too, but for the moment it doesn't seem
+ * useful in the statements that use ConstraintAttr.)
+ */
+ConstraintAttr:
+			DEFERRABLE
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_ATTR_DEFERRABLE;
+					n->location = @1;
+					$$ = (Node *)n;
+				}
+			| NOT DEFERRABLE
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_ATTR_NOT_DEFERRABLE;
+					n->location = @1;
+					$$ = (Node *)n;
+				}
+			| INITIALLY DEFERRED
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_ATTR_DEFERRED;
+					n->location = @1;
+					$$ = (Node *)n;
+				}
+			| INITIALLY IMMEDIATE
+				{
+					Constraint *n = makeNode(Constraint);
+					n->contype = CONSTR_ATTR_IMMEDIATE;
+					n->location = @1;
+					$$ = (Node *)n;
+				}
+		;
 
 /* ConstraintElem specifies constraint syntax which is not embedded into
  *	a column definition. ColConstraintElem specifies the embedded form.
@@ -3717,6 +4056,9 @@ ConstraintElem:
 				}
 		;
 
+opt_no_inherit:	NO INHERIT							{  $$ = true; }
+			| /* EMPTY */							{  $$ = false; }
+		;
 
 opt_column_list:
 			'(' columnList ')'						{ $$ = $2; }
@@ -4361,6 +4703,39 @@ CreateOptRoleElem:
 				{
 					$$ = makeDefElem("addroleto", (Node *)$3, @1);
 				}
+		;
+
+/* Options definition for CREATE FDW, SERVER and USER MAPPING */
+create_generic_options:
+			OPTIONS '(' generic_option_list ')'			{ $$ = $3; }
+			| /*EMPTY*/									{ $$ = NIL; }
+		;
+
+generic_option_list:
+			generic_option_elem
+				{
+					$$ = list_make1($1);
+				}
+			| generic_option_list ',' generic_option_elem
+				{
+					$$ = lappend($1, $3);
+				}
+		;
+
+generic_option_elem:
+			generic_option_name generic_option_arg
+				{
+					$$ = makeDefElem($1, $2, @1);
+				}
+		;
+
+generic_option_name:
+				ColLabel			{ $$ = $1; }
+		;
+
+/* We could use def_arg here, but the spec only requires string literals */
+generic_option_arg:
+				Sconst				{ $$ = (Node *) makeString($1); }
 		;
 
 
