@@ -115,6 +115,19 @@
  *     \xE1\xA0\x8E
  *         U+180E MONGOLIAN VOWEL SEPARATOR -- not a whitespace anymore
  */
+%x xb
+%x xc
+%x xd
+%x xh
+%x xq
+%x xqs
+%x xe
+%x xdolq
+%x xui
+%x xus
+%x xeu
+
+
 whitespace [\t\n\v\f\r ]+
 
 /*
@@ -202,16 +215,21 @@ decimalscifail2 ({digitseq}|{decimal})[Ee][+-]
 dquote        \"
 dqchars       [^"\\]+
 squote        '
+
 sqchars       [^'\\]+
 esascii       \\["'/\\bfnrt]
 esasciifail   \\[^Uu]?
 esunicode     \\(U{hexdigit}{8}|u{hexdigit}{4})
 esunicodefail \\(U{hexdigit}{0,7}|u{hexdigit}{0,3})
+doublequote {squote}{squote}
 escapecode     \\{digit}{3}
 escapecodefail     \\{digit}{0,2}
 hexcode     \\(x{hexdigit}+|X{hexdigit}+)
 hexcodefail \\(X|x)
 any           (?s:.)
+
+
+
 
 /* id pattern is for UnescapedSymbolicName rule in Cypher. */
 id      {idstart}{idcont}*
@@ -454,6 +472,23 @@ ag_token token;
     BEGIN(sqstr);
 }
 
+{squote} {
+    update_location();
+    strbuf_reset(&yyextra.literal_buf);
+    BEGIN(sqstr);
+
+    /*
+     * In quoted strings, only Unicode escape sequences need to be verified,
+     * and the actions for <dqstr,sqstr>{esunicode} and <qstru>{esunicode}
+     * rules verify the code point values. So, quoted strings are always valid.
+     */
+
+    token.type = AG_TOKEN_STRING;
+    token.value.s = strbuf_get_str(&yyextra.literal_buf);
+    token.location = get_location();
+    return token;
+}
+
 <dqstr>{dqchars} |
 <sqstr>{sqchars} {
     strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
@@ -506,6 +541,9 @@ ag_token token;
                  errdetail("Valid escape sequences are \\\", \\', \\/, \\\\, \\b, \\f, \\n, \\r, \\t, \\uXXXX, and \\UXXXXXXXX."),
                  scan_errposition()));
     }
+}
+<dqstr,sqstr>{doublequote} {
+    strbuf_append_char(&yyextra.literal_buf, '\'');
 }
 
 <dqstr,sqstr>{esunicode} {
