@@ -171,7 +171,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ
 
 /* keywords in alphabetical order */
-%token <keyword> ACTION ADMIN ALL AND ANY ARRAY AS ASC ASCENDING ASYMMETRIC AT ATOMIC
+%token <keyword> ACTION ADMIN ALL AND ANY ARRAY AS ASC ASCENDING ASYMMETRIC AT ATOMIC AUTHORIZATION
 
                  BIGINT BEGIN_P BETWEEN BOOLEAN_P BOTH BY
 
@@ -232,7 +232,8 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <node> stmt
 %type <list> single_query  cypher_stmt
 
-%type <node> routine_body_stmt
+%type <node> schema_stmt routine_body_stmt
+             CreateSchemaStmt
              CreateExtensionStmt CreateFunctionStmt CreateGraphStmt CreateTableStmt
 			 CreateUserStmt
              DefineStmt DeleteStmt DropGraphStmt
@@ -285,6 +286,9 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
 %type <list>	OptRoleList 
 %type <defelt>	CreateOptRoleElem AlterOptRoleElem
+
+%type <string>		OptSchemaName
+%type <list>	OptSchemaEltList
 
 %type <string>		RoleId 
 %type <string>		unicode_normal_form
@@ -518,6 +522,7 @@ stmt:
     | CreateGraphStmt semicolon_opt     { extra->result = $1; }
     | CreateExtensionStmt semicolon_opt { extra->result = $1; }
 	| CreateFunctionStmt semicolon_opt  { extra->result = $1; }
+	| CreateSchemaStmt semicolon_opt    { extra->result = $1; }
     | CreateTableStmt semicolon_opt     { extra->result = $1; }
 	| CreateUserStmt semicolon_opt      { extra->result = $1; }
     | DefineStmt semicolon_opt          { extra->result = $1; }
@@ -2002,6 +2007,92 @@ having_clause:
 		;
 
 
+
+/*****************************************************************************
+ *
+ * Manipulate a schema
+ *
+ *****************************************************************************/
+
+CreateSchemaStmt:
+			CREATE SCHEMA OptSchemaName AUTHORIZATION RoleSpec OptSchemaEltList
+				{
+					CreateSchemaStmt *n = makeNode(CreateSchemaStmt);
+					/* One can omit the schema name or the authorization id. */
+					n->schemaname = $3;
+					n->authrole = $5;
+					n->schemaElts = $6;
+					n->if_not_exists = false;
+					$$ = (Node *)n;
+				}
+			| CREATE SCHEMA ColId OptSchemaEltList
+				{
+					CreateSchemaStmt *n = makeNode(CreateSchemaStmt);
+					/* ...but not both */
+					n->schemaname = $3;
+					n->authrole = NULL;
+					n->schemaElts = $4;
+					n->if_not_exists = false;
+					$$ = (Node *)n;
+				}
+			| CREATE SCHEMA IF NOT EXISTS OptSchemaName AUTHORIZATION RoleSpec OptSchemaEltList
+				{
+					CreateSchemaStmt *n = makeNode(CreateSchemaStmt);
+					/* schema name can be omitted here, too */
+					n->schemaname = $6;
+					n->authrole = $8;
+					if ($9 != NIL)
+						ereport(ERROR,
+								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+								 errmsg("CREATE SCHEMA IF NOT EXISTS cannot include schema elements")));
+					n->schemaElts = $9;
+					n->if_not_exists = true;
+					$$ = (Node *)n;
+				}
+			| CREATE SCHEMA IF NOT EXISTS ColId OptSchemaEltList
+				{
+					CreateSchemaStmt *n = makeNode(CreateSchemaStmt);
+					/* ...but not here */
+					n->schemaname = $6;
+					n->authrole = NULL;
+					if ($7 != NIL)
+						ereport(ERROR,
+								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+								 errmsg("CREATE SCHEMA IF NOT EXISTS cannot include schema elements")));
+					n->schemaElts = $7;
+					n->if_not_exists = true;
+					$$ = (Node *)n;
+				}
+		;
+
+OptSchemaName:
+			ColId									{ $$ = $1; }
+			| /* EMPTY */							{ $$ = NULL; }
+		;
+
+OptSchemaEltList:
+			OptSchemaEltList schema_stmt
+				{
+					if (@$ < 0)			
+						@$ = @2;
+					$$ = lappend($1, $2);
+				}
+			| /* EMPTY */
+				{ $$ = NIL; }
+		;
+
+/*
+ *	schema_stmt are the ones that can show up inside a CREATE SCHEMA
+ *	statement (in addition to by themselves).
+ */
+schema_stmt:
+			CreateTableStmt
+			/*| IndexStmt
+			| CreateSeqStmt
+			| CreateTrigStmt
+			| GrantStmt
+			| ViewStmt*/
+		;
 
 /*****************************************************************************
  *

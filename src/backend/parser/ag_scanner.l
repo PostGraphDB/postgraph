@@ -252,7 +252,7 @@ esbquote {bquote}{bquote}
  * So, a modified version of Parameter rule that follows the above explanation
  * has been used.
  */
-param \${id}
+param (\${id})|(\${digitseq})
 
 /*
  * These are tokens that are used as operators and language constructs in
