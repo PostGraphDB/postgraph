@@ -172,12 +172,12 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ
 
 /* keywords in alphabetical order */
-%token <keyword> ACTION ADMIN ALL AND ANY ARRAY AS ASC ASCENDING ASYMMETRIC AT ATOMIC AUTHORIZATION
+%token <keyword> ACCESS ACTION ADMIN ALL AND ANY ARRAY AS ASC ASCENDING ASYMMETRIC AT ATOMIC AUTHORIZATION
 
                  BIGINT BEGIN_P BETWEEN BOOLEAN_P BOTH BY
 
                  CALL CALLED CASE CAST CASCADE CHECK CROSS COALESCE COLLATE COLLATION COMMENTS COMPRESSION CONNECTION
-				 CONTAINS CONSTRAINT CONSTRAINTS COST CREATE CUBE CURRENT 
+				 CONCURRENTLY CONTAINS CONSTRAINT CONSTRAINTS COST CREATE CUBE CURRENT 
                  CURRENT_CATALOG CURRENT_DATE CURRENT_ROLE CURRENT_SCHEMA CURRENT_TIME 
                  CURRENT_TIMESTAMP CURRENT_USER
 
@@ -185,6 +185,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 				 DOMAIN_P DOCUMENT_P DOUBLE_P DROP
 
                  ENCRYPTED ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXCLUDING EXISTS EXTENSION EXTRACT EXTERNAL
+                 EVENT
 
                  GENERATED GLOBAL GRANT GRANTED GRAPH GREATEST GROUP GROUPS GROUPING
 
@@ -201,20 +202,20 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  LANGUAGE LARGE_P LAST_P LATERAL_P LEADING LEAKPROOF LEAST LEFT LIKE LIMIT LOCAL LOCALTIME LOCALTIMESTAMP
 
-                 MATCH MERGE 
+                 MATCH MERGE METHOD
 
                  NATURAL NFC NFD NFKC NFKD NO NORMALIZE NORMALIZED NOT NOTNULL NULL_P NULLIF NULLS_LA NUMERIC
 
                  OBJECT_P ON ONLY OPTION OPTIONAL OTHERS OR ORDER OUT_P OUTER OVER OVERLAPS OVERLAY
 
-                 PARALLEL PARTIAL PARTITION PASSWORD PLACING POSITION PRECEDING PRECISION PRIMARY PRIVILEGES PROCEDURE PROCEDURES
+                 PARALLEL PARTIAL PARTITION PASSWORD PLACING POLICY POSITION PUBLICATION PRECEDING PRECISION PRIMARY PRIVILEGES PROCEDURAL PROCEDURE PROCEDURES
 
-                 RANGE RIGHT REAL REFERENCES REMOVE RESTRICT REPLACE RETURN RETURNS ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
+                 RANGE RIGHT REAL REFERENCES REMOVE RESTRICT REPLACE RETURN RETURNS RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
 
                  SCHEMA SECURITY SERVER SELECT SEQUENCE SEQUENCES SESSION SESSION_USER SET SETOF SETS SIMPLE SKIP SMALLINT SOME STABLE STARTS STATEMENTS STATISTICS
-				 STORAGE STRICT_P SUBSTRING SUPPORT SYMMETRIC SYSID
+				 STORAGE STRICT_P SUBSCRIPTION SUBSTRING SUPPORT SYMMETRIC SYSID
 
-                 TABLE TABLES TABLESPACE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRAILING TRANSFORM TREAT TRIM TRUE_P
+                 TABLE TABLES TABLESPACE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRAILING TRANSFORM TREAT TRIGGER TRIM TRUE_P
 				 TYPE_P
 
                  UNBOUNDED UNENCRYPTED UNION UNIQUE UNKNOWN UNLOGGED UNTIL UPDATE UNWIND USE USER USING
@@ -238,6 +239,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              CreateExtensionStmt CreateFunctionStmt CreateGraphStmt CreateTableStmt
 			 CreateUserStmt
              DefineStmt DeleteStmt DropGraphStmt
+			 DropStmt
              GrantStmt
 			 InsertStmt
              UseGraphStmt
@@ -285,6 +287,11 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <ielem>	index_elem index_elem_options
 %type <node>	join_qual
 %type <integer>	join_type
+
+%type <integer>	opt_drop_behavior
+
+%type <integer>	object_type_any_name object_type_name object_type_name_on_any_name
+				drop_type_name
 
 %type <list>	OptRoleList 
 %type <defelt>	CreateOptRoleElem AlterOptRoleElem
@@ -386,7 +393,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 			 func_as createfunc_opt_list opt_createfunc_opt_list
 			 opt_column_list
 			 opt_c_include
-             qualified_name_list
+             qualified_name_list any_name any_name_list type_name_list
 			 any_operator
              reloption_list
 			 columnList
@@ -399,7 +406,6 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              opt_collate
              using_clause
              indirection opt_indirection
-             any_name any_name_list
 			 attrs opt_class
              var_list
 			 transform_type_list
@@ -542,6 +548,7 @@ stmt:
     | DefineStmt semicolon_opt          { extra->result = $1; }
     | DeleteStmt semicolon_opt          { extra->result = $1; }
     | DropGraphStmt semicolon_opt       { extra->result = $1; }
+	| DropStmt semicolon_opt            { extra->result = $1; }
 	| GrantStmt semicolon_opt           { extra->result = $1; }
     | InsertStmt semicolon_opt          { extra->result = $1; }
     | SelectStmt semicolon_opt          { extra->result = $1; }
@@ -3282,6 +3289,189 @@ opt_collate: COLLATE any_name						{ $$ = $2; }
 			| /*EMPTY*/								{ $$ = NIL; }
 		;
 
+
+
+/*****************************************************************************
+ *
+ *		QUERY:
+ *
+ *		DROP itemtype [ IF EXISTS ] itemname [, itemname ...]
+ *           [ RESTRICT | CASCADE ]
+ *
+ *****************************************************************************/
+
+DropStmt:	DROP object_type_any_name IF EXISTS any_name_list opt_drop_behavior
+				{
+					DropStmt *n = makeNode(DropStmt);
+					n->removeType = $2;
+					n->missing_ok = true;
+					n->objects = $5;
+					n->behavior = $6;
+					n->concurrent = false;
+					$$ = (Node *)n;
+				}
+			| DROP object_type_any_name any_name_list opt_drop_behavior
+				{
+					DropStmt *n = makeNode(DropStmt);
+					n->removeType = $2;
+					n->missing_ok = false;
+					n->objects = $3;
+					n->behavior = $4;
+					n->concurrent = false;
+					$$ = (Node *)n;
+				}
+			| DROP drop_type_name IF EXISTS name_list opt_drop_behavior
+				{
+					DropStmt *n = makeNode(DropStmt);
+					n->removeType = $2;
+					n->missing_ok = true;
+					n->objects = $5;
+					n->behavior = $6;
+					n->concurrent = false;
+					$$ = (Node *)n;
+				}
+			| DROP drop_type_name name_list opt_drop_behavior
+				{
+					DropStmt *n = makeNode(DropStmt);
+					n->removeType = $2;
+					n->missing_ok = false;
+					n->objects = $3;
+					n->behavior = $4;
+					n->concurrent = false;
+					$$ = (Node *)n;
+				}
+			| DROP object_type_name_on_any_name name ON any_name opt_drop_behavior
+				{
+					DropStmt *n = makeNode(DropStmt);
+					n->removeType = $2;
+					n->objects = list_make1(lappend($5, makeString($3)));
+					n->behavior = $6;
+					n->missing_ok = false;
+					n->concurrent = false;
+					$$ = (Node *) n;
+				}
+			| DROP object_type_name_on_any_name IF EXISTS name ON any_name opt_drop_behavior
+				{
+					DropStmt *n = makeNode(DropStmt);
+					n->removeType = $2;
+					n->objects = list_make1(lappend($7, makeString($5)));
+					n->behavior = $8;
+					n->missing_ok = true;
+					n->concurrent = false;
+					$$ = (Node *) n;
+				}
+			| DROP TYPE_P type_name_list opt_drop_behavior
+				{
+					DropStmt *n = makeNode(DropStmt);
+					n->removeType = OBJECT_TYPE;
+					n->missing_ok = false;
+					n->objects = $3;
+					n->behavior = $4;
+					n->concurrent = false;
+					$$ = (Node *) n;
+				}
+			| DROP TYPE_P IF EXISTS type_name_list opt_drop_behavior
+				{
+					DropStmt *n = makeNode(DropStmt);
+					n->removeType = OBJECT_TYPE;
+					n->missing_ok = true;
+					n->objects = $5;
+					n->behavior = $6;
+					n->concurrent = false;
+					$$ = (Node *) n;
+				}
+			| DROP DOMAIN_P type_name_list opt_drop_behavior
+				{
+					DropStmt *n = makeNode(DropStmt);
+					n->removeType = OBJECT_DOMAIN;
+					n->missing_ok = false;
+					n->objects = $3;
+					n->behavior = $4;
+					n->concurrent = false;
+					$$ = (Node *) n;
+				}
+			| DROP DOMAIN_P IF EXISTS type_name_list opt_drop_behavior
+				{
+					DropStmt *n = makeNode(DropStmt);
+					n->removeType = OBJECT_DOMAIN;
+					n->missing_ok = true;
+					n->objects = $5;
+					n->behavior = $6;
+					n->concurrent = false;
+					$$ = (Node *) n;
+				}
+			| DROP INDEX CONCURRENTLY any_name_list opt_drop_behavior
+				{
+					DropStmt *n = makeNode(DropStmt);
+					n->removeType = OBJECT_INDEX;
+					n->missing_ok = false;
+					n->objects = $4;
+					n->behavior = $5;
+					n->concurrent = true;
+					$$ = (Node *)n;
+				}
+			| DROP INDEX CONCURRENTLY IF EXISTS any_name_list opt_drop_behavior
+				{
+					DropStmt *n = makeNode(DropStmt);
+					n->removeType = OBJECT_INDEX;
+					n->missing_ok = true;
+					n->objects = $6;
+					n->behavior = $7;
+					n->concurrent = true;
+					$$ = (Node *)n;
+				}
+		;
+
+/* object types taking any_name/any_name_list */
+object_type_any_name:
+			TABLE									{ $$ = OBJECT_TABLE; }
+			/*| SEQUENCE								{ $$ = OBJECT_SEQUENCE; }
+			| VIEW									{ $$ = OBJECT_VIEW; }
+			| MATERIALIZED VIEW						{ $$ = OBJECT_MATVIEW; }
+			| INDEX									{ $$ = OBJECT_INDEX; }
+			| FOREIGN TABLE							{ $$ = OBJECT_FOREIGN_TABLE; }
+			| COLLATION								{ $$ = OBJECT_COLLATION; }
+			| CONVERSION_P							{ $$ = OBJECT_CONVERSION; }
+			| STATISTICS							{ $$ = OBJECT_STATISTIC_EXT; }
+			| TEXT_P SEARCH PARSER					{ $$ = OBJECT_TSPARSER; }
+			| TEXT_P SEARCH DICTIONARY				{ $$ = OBJECT_TSDICTIONARY; }
+			| TEXT_P SEARCH TEMPLATE				{ $$ = OBJECT_TSTEMPLATE; }
+			| TEXT_P SEARCH CONFIGURATION			{ $$ = OBJECT_TSCONFIGURATION; }*/
+		;
+
+/*
+ * object types taking name/name_list
+ *
+ * DROP handles some of them separately
+ */
+
+object_type_name:
+			drop_type_name							{ $$ = $1; }
+			| DATABASE								{ $$ = OBJECT_DATABASE; }
+			| ROLE									{ $$ = OBJECT_ROLE; }
+			| SUBSCRIPTION							{ $$ = OBJECT_SUBSCRIPTION; }
+			| TABLESPACE							{ $$ = OBJECT_TABLESPACE; }
+		;
+
+drop_type_name:
+			ACCESS METHOD							{ $$ = OBJECT_ACCESS_METHOD; }
+			| EVENT TRIGGER							{ $$ = OBJECT_EVENT_TRIGGER; }
+			| EXTENSION								{ $$ = OBJECT_EXTENSION; }
+			| FOREIGN DATA_P WRAPPER				{ $$ = OBJECT_FDW; }
+			| opt_procedural LANGUAGE				{ $$ = OBJECT_LANGUAGE; }
+			| PUBLICATION							{ $$ = OBJECT_PUBLICATION; }
+			| SCHEMA								{ $$ = OBJECT_SCHEMA; }
+			| SERVER								{ $$ = OBJECT_FOREIGN_SERVER; }
+		;
+
+/* object types attached to a table */
+object_type_name_on_any_name:
+			POLICY									{ $$ = OBJECT_POLICY; }
+			| RULE									{ $$ = OBJECT_RULE; }
+			| TRIGGER								{ $$ = OBJECT_TRIGGER; }
+		;
+
+
 any_name_list:
 			any_name								{ $$ = list_make1($1); }
 			| any_name_list ',' any_name			{ $$ = lappend($1, $3); }
@@ -3295,6 +3485,16 @@ attrs:		'.' attr_name
 					{ $$ = list_make1(makeString($2)); }
 			| attrs '.' attr_name
 					{ $$ = lappend($1, makeString($3)); }
+		;
+
+type_name_list:
+			Typename								{ $$ = list_make1($1); }
+			| type_name_list ',' Typename			{ $$ = lappend($1, $3); }
+		;
+
+opt_procedural:
+			PROCEDURAL
+			| /*EMPTY*/
 		;
 
 /*
@@ -4437,6 +4637,14 @@ grantee:
 opt_grant_grant_option:
 			WITH GRANT OPTION { $$ = true; }
 			| /*EMPTY*/ { $$ = false; }
+		;
+
+
+
+opt_drop_behavior:
+			CASCADE						{ $$ = DROP_CASCADE; }
+			| RESTRICT					{ $$ = DROP_RESTRICT; }
+			| /* EMPTY */				{ $$ = DROP_RESTRICT; /* default */ }
 		;
 
 
