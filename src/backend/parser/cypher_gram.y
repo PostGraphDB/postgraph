@@ -335,6 +335,9 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
 %type <rolespec> opt_granted_by
 
+%type <string> unreserved_keyword 
+%type <string> bare_label_keyword
+
 /* RETURN and WITH clause */
 %type <node> empty_grouping_set cube_clause rollup_clause group_item having_opt return return_item sort_item skip_opt limit_opt with
 %type <list> group_item_list return_item_list order_by_opt sort_item_list group_by_opt within_group_clause
@@ -5026,7 +5029,7 @@ opt_drop_behavior:
 /* Any not-fully-reserved word --- these names can be, eg, role names.
  */
 NonReservedWord:	IDENTIFIER							{ $$ = $1; }
-			//| unreserved_keyword					{ $$ = pstrdup($1); }
+			| unreserved_keyword					{ $$ = pstrdup($1); }
 			//| col_name_keyword						{ $$ = pstrdup($1); }
 			//| type_func_name_keyword				{ $$ = pstrdup($1); }
 		;
@@ -5035,8 +5038,8 @@ NonReservedWord:	IDENTIFIER							{ $$ = $1; }
  * This presently includes *all* Postgres keywords.
  */
 ColLabel:	IDENTIFIER									{ $$ = $1; }
-			/*| unreserved_keyword					{ $$ = pstrdup($1); }
-			| col_name_keyword						{ $$ = pstrdup($1); }
+			| unreserved_keyword					{ $$ = pstrdup($1); }
+			/*| col_name_keyword						{ $$ = pstrdup($1); }
 			| type_func_name_keyword				{ $$ = pstrdup($1); }
 			| reserved_keyword						{ $$ = pstrdup($1); }
 		*/;
@@ -5046,7 +5049,7 @@ ColLabel:	IDENTIFIER									{ $$ = $1; }
  * This classification is orthogonal to the other keyword categories.
  */
 BareColLabel:	IDENTIFIER								{ $$ = $1; }
-			//| bare_label_keyword					{ $$ = pstrdup($1); }
+			| bare_label_keyword					{ $$ = pstrdup($1); }
 		;
 
 opt_indirection:
@@ -6765,20 +6768,51 @@ Sconst:		STRING									{ $$ = $1; };
 attr_name:	ColLabel								{ $$ = $1; };
 name:		ColId									{ $$ = $1; };
 ColId:		IDENTIFIER									{ $$ = $1; }
-			/*| unreserved_keyword					{ $$ = pstrdup($1); }
-			| col_name_keyword						{ $$ = pstrdup($1); }
+			| unreserved_keyword					{ $$ = pstrdup($1); }
+			/*| col_name_keyword						{ $$ = pstrdup($1); }
 		*/;
 
 /* Type/function identifier --- names that can be type or function names.
  */
 type_function_name:	IDENTIFIER							{ $$ = $1; }
-			//| unreserved_keyword					{ $$ = pstrdup($1); }
+			| unreserved_keyword					{ $$ = pstrdup($1); }
 			//| type_func_name_keyword				{ $$ = pstrdup($1); }
 		;
 NonReservedWord_or_Sconst:
 			NonReservedWord							{ $$ = $1; } 
 			| Sconst								{ $$ = $1; }
 		;
+
+/*
+ * Keyword category lists.  Generally, every keyword present in
+ * the Postgres grammar should appear in exactly one of these lists.
+ *
+ * Put a new keyword into the first list that it can go into without causing
+ * shift or reduce conflicts.  The earlier lists define "less reserved"
+ * categories of keywords.
+ *
+ * Make sure that each keyword's category in kwlist.h matches where
+ * it is listed here.  (Someday we may be able to generate these lists and
+ * kwlist.h's table from one source of truth.)
+ */
+
+/* "Unreserved" keywords --- available for use as any kind of name.
+ */
+unreserved_keyword:
+			INPUT_P
+
+
+/*
+ * While all keywords can be used as column labels when preceded by AS,
+ * not all of them can be used as a "bare" column label without AS.
+ * Those that can be used as a bare label must be listed here,
+ * in addition to appearing in one of the category lists above.
+ *
+ * Always add a new keyword to this list if possible.  Mark it BARE_LABEL
+ * in kwlist.h if it is included here, or AS_LABEL if it is not.
+ */
+bare_label_keyword:
+		INPUT_P
 
 
 /*
