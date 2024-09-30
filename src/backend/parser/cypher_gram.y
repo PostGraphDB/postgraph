@@ -498,7 +498,6 @@ check_func_name(List *names, ag_scanner_t yyscanner);
 /*
  * query
  */
-
 stmt:
     cypher_stmt semicolon_opt
         {
@@ -508,18 +507,18 @@ stmt:
 
             extra->result = $1;
         }
-    | CreateGraphStmt semicolon_opt     { extra->result = list_make1($1); }
-    | CreateExtensionStmt semicolon_opt { extra->result = list_make1($1); }
-	| CreateFunctionStmt semicolon_opt  { extra->result = list_make1($1); }
-    | CreateTableStmt semicolon_opt     { extra->result = list_make1($1); }
-    | DefineStmt semicolon_opt          { extra->result = list_make1($1); }
-    | DeleteStmt semicolon_opt          { extra->result = list_make1($1); }
-    | DropGraphStmt semicolon_opt       { extra->result = list_make1($1); }
-    | InsertStmt semicolon_opt          { extra->result = list_make1($1); }
-    | SelectStmt semicolon_opt          { extra->result = list_make1($1); }
-    | UseGraphStmt semicolon_opt        { extra->result = list_make1($1); }
-    | UpdateStmt semicolon_opt          { extra->result = list_make1($1); }
-    | VariableSetStmt semicolon_opt     { extra->result = list_make1($1); }
+    | CreateGraphStmt semicolon_opt     { extra->result = $1; }
+    | CreateExtensionStmt semicolon_opt { extra->result = $1; }
+	| CreateFunctionStmt semicolon_opt  { extra->result = $1; }
+    | CreateTableStmt semicolon_opt     { extra->result = $1; }
+    | DefineStmt semicolon_opt          { extra->result = $1; }
+    | DeleteStmt semicolon_opt          { extra->result = $1; }
+    | DropGraphStmt semicolon_opt       { extra->result = $1; }
+    | InsertStmt semicolon_opt          { extra->result = $1; }
+    | SelectStmt semicolon_opt          { extra->result = $1; }
+    | UseGraphStmt semicolon_opt        { extra->result = $1; }
+    | UpdateStmt semicolon_opt          { extra->result = $1; }
+    | VariableSetStmt semicolon_opt     { extra->result = $1; }
     ;
 
 cypher_stmt:

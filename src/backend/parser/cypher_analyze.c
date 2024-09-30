@@ -70,7 +70,19 @@ static List *cypher_parse(char *string);
 static List * cypher_parse_analyze_hook (RawStmt *parsetree, const char *query_string,
                                          Oid *paramTypes, int numParams,
                                          QueryEnvironment *queryEnv);
-
+static FuncExpr *make_utility_func_expr(char *graph_name, char *function_name);
+static Query *cypher_graph_utility(ParseState *pstate, const char *graph_name, char *function_name);
+static FuncExpr *make_clause_drop_graph_func_expr(char *graph_name);
+static Query *cypher_drop_graph_utility(ParseState *pstate, const char *graph_name);
+static FuncExpr *make_clause_create_graph_func_expr(char *graph_name);
+static Query *cypher_create_graph_utility(ParseState *pstate, const char *graph_name);
+static FuncExpr *make_clause_use_graph_func_expr(char *graph_name);
+static Query *cypher_use_graph_utility(ParseState *pstate, const char *graph_name);
+static Oid get_session_graph_oid();
+static CommandTag
+CypherCreateCommandTag(Node *parsetree);
+static CommandTag
+AlterObjectTypeCommandTag(ObjectType objtype);
 
 void parse_init(void){
    parse_hook = cypher_parse;
@@ -78,6 +90,16 @@ void parse_init(void){
 
 void parse_fini(void){
    parse_hook = NULL;
+}
+
+void parse_analyze_init(void){
+   parse_analyze_hook = cypher_parse_analyze_hook;
+   create_command_tag_hook = CypherCreateCommandTag;
+}
+
+void parse_analyze_fini(void){
+   parse_analyze_hook = NULL;
+   create_command_tag_hook = NULL;
 }
 
 static RawStmt *
@@ -99,16 +121,11 @@ static List *cypher_parse(char *string){
     //if (log_parser_stats)
         //ResetUsage();
 /*
-    raw_parsetree_list = raw_parser(string, RAW_PARSE_DEFAULT);
-
     if (list_length(raw_parsetree_list) != 1)
         ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
                         errmsg("cypher can only handle one parse tree at a time")));
     else {
     */
-        //RawStmt *rawStmt = linitial(raw_parsetree_list);
-        //raw_parsetree_list = list_make1(makeRawStmt(rawStmt->stmt, 0));
-
         List *stmt = parse_cypher(string);
         raw_parsetree_list = list_make1(makeRawStmt(stmt, 0));
 
@@ -1148,87 +1165,6 @@ CypherCreateCommandTag(Node *parsetree)
 
         default:
         {
-            if (IsA(parsetree, List)) {
-
-                List *lst = parsetree;
-                if (list_length(lst) == 1) {
-                    Node *n = linitial(lst);
-
-                    if (IsA(n, CreateExtensionStmt)) {
-	                    tag = CMDTAG_CREATE_EXTENSION;
-                        break;
-                    } else if (IsA(n, CreateStmt)) {
-	                    tag = CMDTAG_CREATE_TABLE;
-                        break;
-                    } else if (IsA(n, InsertStmt)) {
-                        tag = CMDTAG_INSERT;
-                        break;
-                    } else if (IsA(n, DeleteStmt)) {
-                        tag = CMDTAG_DELETE;
-                        break;
-                    } else if (IsA(n, CreateFunctionStmt)) {
-            if (((CreateFunctionStmt *) parsetree)->is_procedure)
-                tag = CMDTAG_CREATE_PROCEDURE;
-            else
-                tag = CMDTAG_CREATE_FUNCTION;
-            break;
-
-                    } else if (IsA(n, DefineStmt)) {
-            switch (((DefineStmt *) parsetree)->kind)
-            {
-                case OBJECT_AGGREGATE:
-                    tag = CMDTAG_CREATE_AGGREGATE;
-                    break;
-                case OBJECT_OPERATOR:
-                    tag = CMDTAG_CREATE_OPERATOR;
-                    break;
-                case OBJECT_TYPE:
-                    tag = CMDTAG_CREATE_TYPE;
-                    break;
-                case OBJECT_TSPARSER:
-                    tag = CMDTAG_CREATE_TEXT_SEARCH_PARSER;
-                    break;
-                case OBJECT_TSDICTIONARY:
-                    tag = CMDTAG_CREATE_TEXT_SEARCH_DICTIONARY;
-                    break;
-                case OBJECT_TSTEMPLATE:
-                    tag = CMDTAG_CREATE_TEXT_SEARCH_TEMPLATE;
-                    break;
-                case OBJECT_TSCONFIGURATION:
-                    tag = CMDTAG_CREATE_TEXT_SEARCH_CONFIGURATION;
-                    break;
-                case OBJECT_COLLATION:
-                    tag = CMDTAG_CREATE_COLLATION;
-                    break;
-                case OBJECT_ACCESS_METHOD:
-                    tag = CMDTAG_CREATE_ACCESS_METHOD;
-                    break;
-                default:
-                    tag = CMDTAG_UNKNOWN;
-            }
-            break;
-
-                    } else if (IsA(n, VariableSetStmt)) {
-                        switch (((VariableSetStmt *) parsetree)->kind)
-                        {
-                            case VAR_SET_VALUE:
-                            case VAR_SET_CURRENT:
-                            case VAR_SET_DEFAULT:
-                            case VAR_SET_MULTI:
-                                tag = CMDTAG_SET;
-                                break;
-                            case VAR_RESET:
-                            case VAR_RESET_ALL:
-                                tag = CMDTAG_RESET;
-                                break;
-                            default:
-                                tag = CMDTAG_UNKNOWN;
-                        }
-                        break;
-                    }
-                }
-            }
-
             tag = CMDTAG_SELECT;
             break;
         }
@@ -1237,15 +1173,161 @@ CypherCreateCommandTag(Node *parsetree)
     return tag;
 }
 
-void parse_analyze_init(void){
-   parse_analyze_hook = cypher_parse_analyze_hook;
-   create_command_tag_hook = CypherCreateCommandTag;
+
+
+/*
+ * cypher_parse_analyze
+ *        Analyze a raw parse tree and transform it to Query form.
+ *
+ * Optionally, information about $n parameter types can be supplied.
+ * References to $n indexes not defined by paramTypes[] are disallowed.
+ *
+ * The result is a Query node.  Optimizable statements require considerable
+ * transformation, while utility-type statements are simply hung off
+ * a dummy CMD_UTILITY Query node.
+ */
+Query *
+cypher_parse_analyze(RawStmt *parseTree, const char *sourceText,
+              Oid *paramTypes, int numParams,
+              QueryEnvironment *queryEnv)
+{
+    ParseState *pstate = make_cypher_parsestate(NULL);
+    Query *query;
+    JumbleState *jstate = NULL;
+
+    Assert(sourceText != NULL); /* required as of 8.4 */
+
+    pstate->p_sourcetext = sourceText;
+
+    if (numParams > 0)
+        parse_fixed_parameters(pstate, paramTypes, numParams);
+
+    pstate->p_queryEnv = queryEnv;
+
+    Node *n = parseTree->stmt;
+    // TODO: Cypher should be an ExtensibleNode, not a List
+    if  (IsA(n, List)) {
+        cypher_parsestate *cpstate = pstate;
+        Oid graph_oid = get_session_graph_oid();
+        graph_cache_data *gcd = search_graph_namespace_cache(graph_oid);
+
+        cpstate->graph_name = gcd->name.data;
+        cpstate->graph_oid = graph_oid;
+
+        query = analyze_cypher(parseTree->stmt, pstate, sourceText, 0, gcd->name.data, graph_oid, NULL);
+    } else if (is_ag_node(n, cypher_create_graph)) {
+        cypher_create_graph *ccg = n;
+
+        query = cypher_create_graph_utility(pstate, ccg->graph_name);
+    } else if (is_ag_node(n, cypher_use_graph)) {
+        cypher_use_graph *ccg = n;
+
+        query = cypher_use_graph_utility(pstate, ccg->graph_name);
+    } else if (is_ag_node(n, cypher_drop_graph)) {
+        cypher_drop_graph *ccg = n;
+
+        query = cypher_drop_graph_utility(pstate, ccg->graph_name);
+    } else {
+        query = parse_analyze((makeRawStmt(n, 0)), sourceText, paramTypes, numParams, queryEnv);
+
+        return query;
+    }
+
+    query->canSetTag = true;
+
+    if (IsQueryIdEnabled())
+        jstate = JumbleQuery(query, sourceText);
+
+    if (post_parse_analyze_hook)
+        (*post_parse_analyze_hook) (pstate, query, jstate);
+
+    free_parsestate(pstate);
+
+    pgstat_report_query_id(query->queryId, false);
+
+    return query;     
 }
 
-void parse_analyze_fini(void){
-   parse_analyze_hook = NULL;
-   create_command_tag_hook = NULL;
+
+static List * cypher_parse_analyze_hook (RawStmt *parsetree, const char *query_string,
+                                         Oid *paramTypes, int numParams,
+                                         QueryEnvironment *queryEnv) {
+    Query       *query;
+    List       *querytree_list;
+
+    TRACE_POSTGRESQL_QUERY_REWRITE_START(query_string);
+
+    /*
+     * (1) Perform parse analysis.
+     */
+    if (log_parser_stats)
+        ResetUsage();
+
+    query = cypher_parse_analyze(parsetree, query_string, paramTypes, numParams,
+                          queryEnv);
+    //query = analyze_cypher(parsetree->stmt, pstate, query_string, 0, NULL, CurrentGraphOid, NULL);
+
+    if (log_parser_stats)
+        ShowUsage("PARSE ANALYSIS STATISTICS");
+
+    /*
+     * (2) Rewrite the queries, as necessary
+     */
+    querytree_list = pg_rewrite_query(query);
+
+    TRACE_POSTGRESQL_QUERY_REWRITE_DONE(query_string);
+
+    return querytree_list;
 }
+
+
+static Query *
+analyze_cypher(List *stmt, ParseState *parent_pstate, const char *query_str, int query_loc, char *graph_name, uint32 graph_oid, Param *params) {
+    // Since the first clause in stmt is the innermost subquery, the order of the clauses is inverted.
+    cypher_clause *clause = NULL;
+    ListCell *lc;
+    foreach (lc, stmt) {
+        cypher_clause *next;
+
+        next = palloc(sizeof(*next));
+        next->next = NULL;
+        next->self = lfirst(lc);
+        next->prev = clause;
+
+        if (clause != NULL)
+            clause->next = next;
+        clause = next;
+    }
+
+    // convert ParseState into cypher_parsestate temporarily to pass it to make_cypher_parsestate()
+    cypher_parsestate parent_cpstate;
+    parent_cpstate.pstate = *parent_pstate;
+    parent_cpstate.graph_name = NULL;
+    parent_cpstate.params = NULL;
+
+    cypher_parsestate *cpstate = make_cypher_parsestate(&parent_cpstate);
+
+    ParseState *pstate = (ParseState *)cpstate;
+
+    // we don't want functions that go up the pstate parent chain to access the * original SQL query pstate.
+    pstate->parentParseState = NULL;
+    
+    // override p_sourcetext with query_str to make parser_errposition() work correctly with errpos_ecb()
+    pstate->p_sourcetext = query_str;
+
+    cpstate->graph_name = graph_name;
+    cpstate->graph_oid = graph_oid;
+    cpstate->params = params;
+    cpstate->default_alias_num = 0;
+    cpstate->entities = NIL;
+
+    Query *query = transform_cypher_clause(cpstate, clause);
+
+    free_cypher_parsestate(cpstate);
+
+    return query;
+}
+
 
 
 static FuncExpr *make_utility_func_expr(char *graph_name, char *function_name) {
@@ -1374,9 +1456,6 @@ cypher_use_graph_utility(ParseState *pstate, const char *graph_name) {
     return query;
 }
 
-
-
-// Function updates graph name in ag_graph table.
 Oid get_session_graph_oid()
 {
     ScanKeyData scan_keys[1];
@@ -1409,196 +1488,4 @@ Oid get_session_graph_oid()
     table_close(ag_graph, RowExclusiveLock);
 
     return graph_oid;
-}
-
-/*
- * parse_analyze
- *        Analyze a raw parse tree and transform it to Query form.
- *
- * Optionally, information about $n parameter types can be supplied.
- * References to $n indexes not defined by paramTypes[] are disallowed.
- *
- * The result is a Query node.  Optimizable statements require considerable
- * transformation, while utility-type statements are simply hung off
- * a dummy CMD_UTILITY Query node.
- */
-Query *
-cypher_parse_analyze(RawStmt *parseTree, const char *sourceText,
-              Oid *paramTypes, int numParams,
-              QueryEnvironment *queryEnv)
-{
-    ParseState *pstate = make_cypher_parsestate(NULL);
-    cypher_parsestate *cpstate = pstate;
-    Query       *query;
-    JumbleState *jstate = NULL;
-
-    Assert(sourceText != NULL); /* required as of 8.4 */
-
-    pstate->p_sourcetext = sourceText;
-
-    if (numParams > 0)
-        parse_fixed_parameters(pstate, paramTypes, numParams);
-
-    pstate->p_queryEnv = queryEnv;
-
-    //query = transformTopLevelStmt(pstate, parseTree);
-    if (list_length(parseTree->stmt) == 1) {
-      Node *n = linitial(parseTree->stmt);
-
-      if (IsA(n, CreateExtensionStmt) || IsA(n,CreateStmt) || IsA(n, SelectStmt) || IsA(n, InsertStmt) ||
-          IsA(n, UpdateStmt) || IsA(n, DeleteStmt) || IsA(n, VariableSetStmt) || IsA(n, DefineStmt) ||
-          IsA(n, CreateFunctionStmt)) {
-	        query = parse_analyze((makeRawStmt(n, 0)), sourceText, paramTypes, numParams, queryEnv);
-
-            return query;
-      } else if (is_ag_node(n, cypher_create_graph)) {
-        cypher_create_graph *ccg = n;
-
-        query = cypher_create_graph_utility(pstate, ccg->graph_name);
-
-        query->canSetTag = true;
-
-        if (IsQueryIdEnabled())
-          jstate = JumbleQuery(query, sourceText);
-
-        free_parsestate(pstate);
-
-        pgstat_report_query_id(query->queryId, false);
-
-        return query;
-
-      } else if (is_ag_node(n, cypher_use_graph)) {
-        cypher_use_graph *ccg = n;
-
-        query = cypher_use_graph_utility(pstate, ccg->graph_name);
-
-        query->canSetTag = true;
-
-        if (IsQueryIdEnabled())
-          jstate = JumbleQuery(query, sourceText);
-
-        free_parsestate(pstate);
-
-        pgstat_report_query_id(query->queryId, false);
-
-        return query;
-      } else if (is_ag_node(n, cypher_drop_graph)) {
-        cypher_drop_graph *ccg = n;
-
-        query = cypher_drop_graph_utility(pstate, ccg->graph_name);
-
-        query->canSetTag = true;
-
-        if (IsQueryIdEnabled())
-          jstate = JumbleQuery(query, sourceText);
-
-        free_parsestate(pstate);
-
-        pgstat_report_query_id(query->queryId, false);
-
-        return query;
-        
-      }
-    }
-
-
-    Oid graph_oid = get_session_graph_oid();
-    graph_cache_data *gcd = search_graph_namespace_cache(graph_oid);
-
-cpstate->graph_name = gcd->name.data;
-cpstate->graph_oid = graph_oid;
-
-    query = analyze_cypher(parseTree->stmt, pstate, sourceText, 0, gcd->name.data, graph_oid, NULL);
-    //PushActiveSnapshot(GetTransactionSnapshot());
-    if (IsQueryIdEnabled())
-        jstate = JumbleQuery(query, sourceText);
-
-    if (post_parse_analyze_hook)
-        (*post_parse_analyze_hook) (pstate, query, jstate);
-
-    free_parsestate(pstate);
-
-    pgstat_report_query_id(query->queryId, false);
-
-    return query;
-}
-
-
-static List * cypher_parse_analyze_hook (RawStmt *parsetree, const char *query_string,
-                                         Oid *paramTypes, int numParams,
-                                         QueryEnvironment *queryEnv) {
-    Query       *query;
-    List       *querytree_list;
-
-    TRACE_POSTGRESQL_QUERY_REWRITE_START(query_string);
-
-    /*
-     * (1) Perform parse analysis.
-     */
-    if (log_parser_stats)
-        ResetUsage();
-
-    query = cypher_parse_analyze(parsetree, query_string, paramTypes, numParams,
-                          queryEnv);
-    //query = analyze_cypher(parsetree->stmt, pstate, query_string, 0, NULL, CurrentGraphOid, NULL);
-
-    if (log_parser_stats)
-        ShowUsage("PARSE ANALYSIS STATISTICS");
-
-    /*
-     * (2) Rewrite the queries, as necessary
-     */
-    querytree_list = pg_rewrite_query(query);
-
-    TRACE_POSTGRESQL_QUERY_REWRITE_DONE(query_string);
-
-    return querytree_list;
-}
-
-
-static Query *
-analyze_cypher(List *stmt, ParseState *parent_pstate, const char *query_str, int query_loc, char *graph_name, uint32 graph_oid, Param *params) {
-    // Since the first clause in stmt is the innermost subquery, the order of the clauses is inverted.
-    cypher_clause *clause = NULL;
-    ListCell *lc;
-    foreach (lc, stmt) {
-        cypher_clause *next;
-
-        next = palloc(sizeof(*next));
-        next->next = NULL;
-        next->self = lfirst(lc);
-        next->prev = clause;
-
-        if (clause != NULL)
-            clause->next = next;
-        clause = next;
-    }
-
-    // convert ParseState into cypher_parsestate temporarily to pass it to make_cypher_parsestate()
-    cypher_parsestate parent_cpstate;
-    parent_cpstate.pstate = *parent_pstate;
-    parent_cpstate.graph_name = NULL;
-    parent_cpstate.params = NULL;
-
-    cypher_parsestate *cpstate = make_cypher_parsestate(&parent_cpstate);
-
-    ParseState *pstate = (ParseState *)cpstate;
-
-    // we don't want functions that go up the pstate parent chain to access the * original SQL query pstate.
-    pstate->parentParseState = NULL;
-    
-    // override p_sourcetext with query_str to make parser_errposition() work correctly with errpos_ecb()
-    pstate->p_sourcetext = query_str;
-
-    cpstate->graph_name = graph_name;
-    cpstate->graph_oid = graph_oid;
-    cpstate->params = params;
-    cpstate->default_alias_num = 0;
-    cpstate->entities = NIL;
-
-    Query *query = transform_cypher_clause(cpstate, clause);
-
-    free_cypher_parsestate(cpstate);
-
-    return query;
 }
