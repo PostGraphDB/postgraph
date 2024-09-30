@@ -110,7 +110,7 @@ static Node *makeAConst(Value *v, int location);
 static RoleSpec *makeRoleSpec(RoleSpecType type, int location);
 static Node *makeAArrayExpr(List *elements, int location);
 static Node *makeXmlExpr(XmlExprOp op, char *name, List *named_args, List *args, int location);
-
+static List *extractArgTypes(List *parameters);
 static void processCASbits(int cas_bits, int location, const char *constrType,
 			   bool *deferrable, bool *initdeferred, bool *not_valid,
 			   bool *no_inherit, ag_scanner_t yyscanner);
@@ -150,7 +150,8 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
     struct Value *value;
     struct ResTarget *target;
     struct Alias *alias;
-
+	struct PrivTarget	*privtarget;
+	struct AccessPriv			*accesspriv;
     struct SortBy *sortby;
     struct InsertStmt *istmt;
     struct VariableSetStmt *vsetstmt;
@@ -180,14 +181,14 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
                  CURRENT_CATALOG CURRENT_DATE CURRENT_ROLE CURRENT_SCHEMA CURRENT_TIME 
                  CURRENT_TIMESTAMP CURRENT_USER
 
-                 DATE DECADE DEC DECIMAL_P DEFAULT DEFAULTS DEFERRABLE DEFERRED DEFINER DELETE DESC DESCENDING DETACH DISTINCT 
-				 DOCUMENT_P DOUBLE_P DROP
+                 DATA_P DATABASE DATE DECADE DEC DECIMAL_P DEFAULT DEFAULTS DEFERRABLE DEFERRED DEFINER DELETE DESC DESCENDING DETACH DISTINCT 
+				 DOMAIN_P DOCUMENT_P DOUBLE_P DROP
 
                  ENCRYPTED ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXCLUDING EXISTS EXTENSION EXTRACT EXTERNAL
 
-                 GENERATED GLOBAL GRAPH GREATEST GROUP GROUPS GROUPING
+                 GENERATED GLOBAL GRANT GRANTED GRAPH GREATEST GROUP GROUPS GROUPING
 
-                 FALSE_P FILTER FIRST_P FLOAT_P FOLLOWING FOR FOREIGN FROM FULL FUNCTION
+                 FALSE_P FILTER FIRST_P FLOAT_P FOLLOWING FOR FOREIGN FROM FULL FUNCTION FUNCTIONS
 
                  HAVING
 
@@ -198,29 +199,29 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  KEY
 
-                 LANGUAGE LAST_P LATERAL_P LEADING LEAKPROOF LEAST LEFT LIKE LIMIT LOCAL LOCALTIME LOCALTIMESTAMP
+                 LANGUAGE LARGE_P LAST_P LATERAL_P LEADING LEAKPROOF LEAST LEFT LIKE LIMIT LOCAL LOCALTIME LOCALTIMESTAMP
 
                  MATCH MERGE 
 
                  NATURAL NFC NFD NFKC NFKD NO NORMALIZE NORMALIZED NOT NOTNULL NULL_P NULLIF NULLS_LA NUMERIC
 
-                 ON ONLY OPTIONAL OTHERS OR ORDER OUT_P OUTER OVER OVERLAPS OVERLAY
+                 OBJECT_P ON ONLY OPTION OPTIONAL OTHERS OR ORDER OUT_P OUTER OVER OVERLAPS OVERLAY
 
-                 PARALLEL PARTIAL PARTITION PASSWORD PLACING POSITION PRECEDING PRECISION PRIMARY
+                 PARALLEL PARTIAL PARTITION PASSWORD PLACING POSITION PRECEDING PRECISION PRIMARY PRIVILEGES PROCEDURE PROCEDURES
 
-                 RANGE RIGHT REAL REFERENCES REMOVE RESTRICT REPLACE RETURN RETURNS ROLE ROLLUP ROW ROWS
+                 RANGE RIGHT REAL REFERENCES REMOVE RESTRICT REPLACE RETURN RETURNS ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
 
-                 SCHEMA SECURITY SELECT SESSION SESSION_USER SET SETOF SETS SIMPLE SKIP SMALLINT SOME STABLE STARTS STATEMENTS STATISTICS
+                 SCHEMA SECURITY SERVER SELECT SEQUENCE SEQUENCES SESSION SESSION_USER SET SETOF SETS SIMPLE SKIP SMALLINT SOME STABLE STARTS STATEMENTS STATISTICS
 				 STORAGE STRICT_P SUBSTRING SUPPORT SYMMETRIC SYSID
 
-                 TABLE TABLESPACE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRAILING TRANSFORM TREAT TRIM TRUE_P
+                 TABLE TABLES TABLESPACE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRAILING TRANSFORM TREAT TRIM TRUE_P
 				 TYPE_P
 
                  UNBOUNDED UNENCRYPTED UNION UNIQUE UNKNOWN UNLOGGED UNTIL UPDATE UNWIND USE USER USING
 
                  VALID VALUES VARIADIC VERSION_P VOLATILE
 
-                 WHEN WHERE WINDOW WITH WITHIN WITHOUT
+                 WHEN WHERE WINDOW WITH WITHIN WITHOUT WRAPPER
 
                  XOR
 
@@ -237,7 +238,8 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              CreateExtensionStmt CreateFunctionStmt CreateGraphStmt CreateTableStmt
 			 CreateUserStmt
              DefineStmt DeleteStmt DropGraphStmt
-             InsertStmt
+             GrantStmt
+			 InsertStmt
              UseGraphStmt
 			 ReturnStmt
              SelectStmt
@@ -301,6 +303,15 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <string> var_name type_function_name param_name
 %type <node>	var_value 
 %type <string>	 opt_boolean_or_string
+
+%type <rolespec> grantee
+%type <list>	grantee_list
+%type <accesspriv> privilege
+%type <list>	privileges privilege_list
+%type <privtarget> privilege_target
+
+%type <rolespec> opt_granted_by
+
 /* RETURN and WITH clause */
 %type <node> empty_grouping_set cube_clause rollup_clause group_item having_opt return return_item sort_item skip_opt limit_opt with
 %type <list> group_item_list return_item_list order_by_opt sort_item_list group_by_opt within_group_clause
@@ -311,6 +322,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              cypher_range_idx_opt
 %type <integer> Iconst
 %type <boolean> optional_opt opt_or_replace
+                opt_grant_grant_option 
 
 /* CREATE clause */
 %type <node> create
@@ -387,7 +399,8 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              opt_collate
              using_clause
              indirection opt_indirection
-             any_name attrs opt_class
+             any_name any_name_list
+			 attrs opt_class
              var_list
 			 transform_type_list
 
@@ -437,6 +450,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <partelem> part_elem
 %type <list> part_params
 %type <value>	NumericOnly
+%type <list>	NumericOnly_list
 
 /* precedence: lowest to highest */
 %left UNION INTERSECT EXCEPT
@@ -528,6 +542,7 @@ stmt:
     | DefineStmt semicolon_opt          { extra->result = $1; }
     | DeleteStmt semicolon_opt          { extra->result = $1; }
     | DropGraphStmt semicolon_opt       { extra->result = $1; }
+	| GrantStmt semicolon_opt           { extra->result = $1; }
     | InsertStmt semicolon_opt          { extra->result = $1; }
     | SelectStmt semicolon_opt          { extra->result = $1; }
     | UseGraphStmt semicolon_opt        { extra->result = $1; }
@@ -2077,7 +2092,7 @@ OptSchemaEltList:
 						@$ = @2;
 					$$ = lappend($1, $2);
 				}
-			| /* EMPTY */
+			| /* EMPTY */ 
 				{ $$ = NIL; }
 		;
 
@@ -2721,6 +2736,10 @@ NumericOnly:
 			| SignedIconst						{ $$ = makeInteger($1); }
 		;
 
+NumericOnly_list:	NumericOnly						{ $$ = list_make1($1); }
+				| NumericOnly_list ',' NumericOnly	{ $$ = lappend($1, $3); }
+		;
+
  SignedIconst: Iconst								{ $$ = $1; }
 			| '+' Iconst							{ $$ = + $2; }
 			| '-' Iconst							{ $$ = - $2; }
@@ -2929,7 +2948,7 @@ function_with_argtypes:
 				{
 					ObjectWithArgs *n = makeNode(ObjectWithArgs);
 					n->objname = check_func_name(lcons(makeString($1), $2),
-												  yyscanner);
+												  scanner);
 					n->args_unspecified = true;
 					$$ = n;
 				}
@@ -3259,14 +3278,18 @@ table_access_method_clause:
 			| /*EMPTY*/							{ $$ = NULL; }
 		;
 
-any_name:	ColId						{ $$ = list_make1(makeString($1)); }
-			| ColId attrs				{ $$ = lcons(makeString($1), $2); }
-		;
-
 opt_collate: COLLATE any_name						{ $$ = $2; }
 			| /*EMPTY*/								{ $$ = NIL; }
 		;
 
+any_name_list:
+			any_name								{ $$ = list_make1($1); }
+			| any_name_list ',' any_name			{ $$ = lappend($1, $3); }
+		;
+
+any_name:	ColId						{ $$ = list_make1(makeString($1)); }
+			| ColId attrs				{ $$ = lcons(makeString($1), $2); }
+		;
 
 attrs:		'.' attr_name
 					{ $$ = list_make1(makeString($2)); }
@@ -4141,6 +4164,280 @@ CreateOptRoleElem:
 		;
 
 
+/*****************************************************************************
+ *
+ * GRANT and REVOKE statements
+ *
+ *****************************************************************************/
+
+GrantStmt:	GRANT privileges ON privilege_target TO grantee_list
+			opt_grant_grant_option opt_granted_by
+				{
+					GrantStmt *n = makeNode(GrantStmt);
+					n->is_grant = true;
+					n->privileges = $2;
+					n->targtype = ($4)->targtype;
+					n->objtype = ($4)->objtype;
+					n->objects = ($4)->objs;
+					n->grantees = $6;
+					n->grant_option = $7;
+					n->grantor = $8;
+					$$ = (Node*)n;
+				}
+		;
+
+
+opt_granted_by: GRANTED BY RoleSpec						{ $$ = $3; }
+			| /*EMPTY*/									{ $$ = NULL; }
+		;
+
+/*
+ * Privilege names are represented as strings; the validity of the privilege
+ * names gets checked at execution.  This is a bit annoying but we have little
+ * choice because of the syntactic conflict with lists of role names in
+ * GRANT/REVOKE.  What's more, we have to call out in the "privilege"
+ * production any reserved keywords that need to be usable as privilege names.
+ */
+
+/* either ALL [PRIVILEGES] or a list of individual privileges */
+privileges: privilege_list
+				{ $$ = $1; }
+			| ALL
+				{ $$ = NIL; }
+			| ALL PRIVILEGES
+				{ $$ = NIL; }
+			| ALL '(' columnList ')'
+				{
+					AccessPriv *n = makeNode(AccessPriv);
+					n->priv_name = NULL;
+					n->cols = $3;
+					$$ = list_make1(n);
+				}
+			| ALL PRIVILEGES '(' columnList ')'
+				{
+					AccessPriv *n = makeNode(AccessPriv);
+					n->priv_name = NULL;
+					n->cols = $4;
+					$$ = list_make1(n);
+				}
+		;
+
+privilege_list:	privilege							{ $$ = list_make1($1); }
+			| privilege_list ',' privilege			{ $$ = lappend($1, $3); }
+		;
+
+privilege:	SELECT opt_column_list
+			{
+				AccessPriv *n = makeNode(AccessPriv);
+				n->priv_name = pstrdup($1);
+				n->cols = $2;
+				$$ = n;
+			}
+		| REFERENCES opt_column_list
+			{
+				AccessPriv *n = makeNode(AccessPriv);
+				n->priv_name = pstrdup($1);
+				n->cols = $2;
+				$$ = n;
+			}
+		| CREATE opt_column_list
+			{
+				AccessPriv *n = makeNode(AccessPriv);
+				n->priv_name = pstrdup($1);
+				n->cols = $2;
+				$$ = n;
+			}
+		| ColId opt_column_list
+			{
+				AccessPriv *n = makeNode(AccessPriv);
+				n->priv_name = $1;
+				n->cols = $2;
+				$$ = n;
+			}
+		;
+
+
+/* Don't bother trying to fold the first two rules into one using
+ * opt_table.  You're going to get conflicts.
+ */
+privilege_target:
+			qualified_name_list
+				{
+					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
+					n->targtype = ACL_TARGET_OBJECT;
+					n->objtype = OBJECT_TABLE;
+					n->objs = $1;
+					$$ = n;
+				}
+			| TABLE qualified_name_list
+				{
+					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
+					n->targtype = ACL_TARGET_OBJECT;
+					n->objtype = OBJECT_TABLE;
+					n->objs = $2;
+					$$ = n;
+				}
+			| SEQUENCE qualified_name_list
+				{
+					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
+					n->targtype = ACL_TARGET_OBJECT;
+					n->objtype = OBJECT_SEQUENCE;
+					n->objs = $2;
+					$$ = n;
+				}
+			| FOREIGN DATA_P WRAPPER name_list
+				{
+					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
+					n->targtype = ACL_TARGET_OBJECT;
+					n->objtype = OBJECT_FDW;
+					n->objs = $4;
+					$$ = n;
+				}
+			| FOREIGN SERVER name_list
+				{
+					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
+					n->targtype = ACL_TARGET_OBJECT;
+					n->objtype = OBJECT_FOREIGN_SERVER;
+					n->objs = $3;
+					$$ = n;
+				}
+			| FUNCTION function_with_argtypes_list
+				{
+					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
+					n->targtype = ACL_TARGET_OBJECT;
+					n->objtype = OBJECT_FUNCTION;
+					n->objs = $2;
+					$$ = n;
+				}
+			| PROCEDURE function_with_argtypes_list
+				{
+					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
+					n->targtype = ACL_TARGET_OBJECT;
+					n->objtype = OBJECT_PROCEDURE;
+					n->objs = $2;
+					$$ = n;
+				}
+			| ROUTINE function_with_argtypes_list
+				{
+					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
+					n->targtype = ACL_TARGET_OBJECT;
+					n->objtype = OBJECT_ROUTINE;
+					n->objs = $2;
+					$$ = n;
+				}
+			| DATABASE name_list
+				{
+					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
+					n->targtype = ACL_TARGET_OBJECT;
+					n->objtype = OBJECT_DATABASE;
+					n->objs = $2;
+					$$ = n;
+				}
+			| DOMAIN_P any_name_list
+				{
+					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
+					n->targtype = ACL_TARGET_OBJECT;
+					n->objtype = OBJECT_DOMAIN;
+					n->objs = $2;
+					$$ = n;
+				}
+			| LANGUAGE name_list
+				{
+					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
+					n->targtype = ACL_TARGET_OBJECT;
+					n->objtype = OBJECT_LANGUAGE;
+					n->objs = $2;
+					$$ = n;
+				}
+			| LARGE_P OBJECT_P NumericOnly_list
+				{
+					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
+					n->targtype = ACL_TARGET_OBJECT;
+					n->objtype = OBJECT_LARGEOBJECT;
+					n->objs = $3;
+					$$ = n;
+				}
+			| SCHEMA name_list
+				{
+					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
+					n->targtype = ACL_TARGET_OBJECT;
+					n->objtype = OBJECT_SCHEMA;
+					n->objs = $2;
+					$$ = n;
+				}
+			| TABLESPACE name_list
+				{
+					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
+					n->targtype = ACL_TARGET_OBJECT;
+					n->objtype = OBJECT_TABLESPACE;
+					n->objs = $2;
+					$$ = n;
+				}
+			| TYPE_P any_name_list
+				{
+					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
+					n->targtype = ACL_TARGET_OBJECT;
+					n->objtype = OBJECT_TYPE;
+					n->objs = $2;
+					$$ = n;
+				}
+			| ALL TABLES IN SCHEMA name_list
+				{
+					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
+					n->targtype = ACL_TARGET_ALL_IN_SCHEMA;
+					n->objtype = OBJECT_TABLE;
+					n->objs = $5;
+					$$ = n;
+				}
+			| ALL SEQUENCES IN SCHEMA name_list
+				{
+					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
+					n->targtype = ACL_TARGET_ALL_IN_SCHEMA;
+					n->objtype = OBJECT_SEQUENCE;
+					n->objs = $5;
+					$$ = n;
+				}
+			| ALL FUNCTIONS IN SCHEMA name_list
+				{
+					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
+					n->targtype = ACL_TARGET_ALL_IN_SCHEMA;
+					n->objtype = OBJECT_FUNCTION;
+					n->objs = $5;
+					$$ = n;
+				}
+			| ALL PROCEDURES IN SCHEMA name_list
+				{
+					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
+					n->targtype = ACL_TARGET_ALL_IN_SCHEMA;
+					n->objtype = OBJECT_PROCEDURE;
+					n->objs = $5;
+					$$ = n;
+				}
+			| ALL ROUTINES IN SCHEMA name_list
+				{
+					PrivTarget *n = (PrivTarget *) palloc(sizeof(PrivTarget));
+					n->targtype = ACL_TARGET_ALL_IN_SCHEMA;
+					n->objtype = OBJECT_ROUTINE;
+					n->objs = $5;
+					$$ = n;
+				}
+		;
+
+
+grantee_list:
+			grantee									{ $$ = list_make1($1); }
+			| grantee_list ',' grantee				{ $$ = lappend($1, $3); }
+		;
+
+grantee:
+			RoleSpec								{ $$ = $1; }
+			| GROUP RoleSpec						{ $$ = $2; }
+		;
+
+opt_grant_grant_option:
+			WITH GRANT OPTION { $$ = true; }
+			| /*EMPTY*/ { $$ = false; }
+		;
 
 
 /* Any not-fully-reserved word --- these names can be, eg, role names.
@@ -5896,8 +6193,8 @@ type_function_name:	IDENTIFIER							{ $$ = $1; }
 			//| type_func_name_keyword				{ $$ = pstrdup($1); }
 		;
 NonReservedWord_or_Sconst:
-			/*NonReservedWord							{ $$ = $1; } //TODO
-			| */Sconst								{ $$ = $1; }
+			NonReservedWord							{ $$ = $1; } 
+			| Sconst								{ $$ = $1; }
 		;
 
 
@@ -8044,4 +8341,27 @@ makeRoleSpec(RoleSpecType type, int location)
 	spec->location = location;
 
 	return spec;
+}
+
+
+/* extractArgTypes()
+ * Given a list of FunctionParameter nodes, extract a list of just the
+ * argument types (TypeNames) for input parameters only.  This is what
+ * is needed to look up an existing function, which is what is wanted by
+ * the productions that use this call.
+ */
+static List *
+extractArgTypes(List *parameters)
+{
+	List	   *result = NIL;
+	ListCell   *i;
+
+	foreach(i, parameters)
+	{
+		FunctionParameter *p = (FunctionParameter *) lfirst(i);
+
+		if (p->mode != FUNC_PARAM_OUT && p->mode != FUNC_PARAM_TABLE)
+			result = lappend(result, p->argType);
+	}
+	return result;
 }
