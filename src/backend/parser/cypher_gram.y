@@ -207,7 +207,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  RANGE RIGHT REAL REFERENCES REMOVE RESTRICT REPLACE RETURN RETURNS ROLLUP ROW ROWS
 
-                 SCHEMA SECURITY SELECT SESSION SESSION_USER SET SETS SIMPLE SKIP SMALLINT SOME STABLE STARTS STATEMENTS STATISTICS
+                 SCHEMA SECURITY SELECT SESSION SESSION_USER SET SETOF SETS SIMPLE SKIP SMALLINT SOME STABLE STARTS STATEMENTS STATISTICS
 				 STORAGE STRICT_P SUBSTRING SUPPORT SYMMETRIC
 
                  TABLE TABLESPACE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRAILING TRANSFORM TREAT TRIM TRUE_P
@@ -400,6 +400,8 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
 %type <typnam>	Typename SimpleTypename 
                 GenericType Numeric opt_float
+				ConstDatetime
+%type <boolean>  opt_timezone 
 
 %type <defelt>	createfunc_opt_item common_func_opt_item 
 %type <fun_param> func_arg func_arg_with_default 
@@ -5275,7 +5277,7 @@ Typename:	SimpleTypename opt_array_bounds
 					$$ = $1;
 					$$->arrayBounds = $2;
 				}
-			/*| SETOF SimpleTypename opt_array_bounds
+			| SETOF SimpleTypename opt_array_bounds
 				{
 					$$ = $2;
 					$$->arrayBounds = $3;
@@ -5303,7 +5305,7 @@ Typename:	SimpleTypename opt_array_bounds
 					$$ = $2;
 					$$->arrayBounds = list_make1(makeInteger(-1));
 					$$->setof = true;
-				}*/
+				}
 		;
 
 opt_array_bounds:
@@ -5320,9 +5322,9 @@ SimpleTypename:
 			GenericType								{ $$ = $1; }
 			| Numeric								{ $$ = $1; }
 			/*| Bit									{ $$ = $1; }
-			| Character								{ $$ = $1; }
+			| Character								{ $$ = $1; }*/
 			| ConstDatetime							{ $$ = $1; }
-			| ConstInterval opt_interval
+			/*| ConstInterval opt_interval
 				{
 					$$ = $1;
 					$$->typmods = $2;
@@ -5446,6 +5448,57 @@ opt_float:	'(' Iconst ')'
 				{
 					$$ = SystemTypeName("float8");
 				}
+		;
+
+
+/*
+ * SQL date/time types
+ */
+ConstDatetime:
+			TIMESTAMP '(' Iconst ')' opt_timezone
+				{
+					if ($5)
+						$$ = SystemTypeName("timestamptz");
+					else
+						$$ = SystemTypeName("timestamp");
+					$$->typmods = list_make1(makeIntConst($3, @3));
+					$$->location = @1;
+				}
+			| TIMESTAMP opt_timezone
+				{
+					if ($2)
+						$$ = SystemTypeName("timestamptz");
+					else
+						$$ = SystemTypeName("timestamp");
+					$$->location = @1;
+				}
+			| TIME '(' Iconst ')' opt_timezone
+				{
+					if ($5)
+						$$ = SystemTypeName("timetz");
+					else
+						$$ = SystemTypeName("time");
+					$$->typmods = list_make1(makeIntConst($3, @3));
+					$$->location = @1;
+				}
+			| TIME opt_timezone
+				{
+					if ($2)
+						$$ = SystemTypeName("timetz");
+					else
+						$$ = SystemTypeName("time");
+					$$->location = @1;
+				}
+			| DATE
+			{
+				$$ = SystemTypeName("date");
+			}
+		;
+
+opt_timezone:
+			WITH TIME ZONE						{ $$ = true; }
+			| WITHOUT TIME ZONE						{ $$ = false; }
+			| /*EMPTY*/								{ $$ = false; }
 		;
 
 create_extension_opt_list:
