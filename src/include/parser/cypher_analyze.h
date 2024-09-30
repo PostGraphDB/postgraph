@@ -22,9 +22,6 @@
 
 #include "parser/cypher_parse_node.h"
 
-void post_parse_analyze_init(void);
-void post_parse_analyze_fini(void);
-
 void parse_init(void);
 void parse_fini(void);
 
