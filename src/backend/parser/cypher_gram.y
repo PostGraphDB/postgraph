@@ -107,6 +107,7 @@ static Node *makeAndExpr(Node *lexpr, Node *rexpr, int location);
 static Node *makeOrExpr(Node *lexpr, Node *rexpr, int location);
 static Node *makeNotExpr(Node *expr, int location);
 static Node *makeAConst(Value *v, int location);
+static RoleSpec *makeRoleSpec(RoleSpecType type, int location);
 static Node *makeAArrayExpr(List *elements, int location);
 static Node *makeXmlExpr(XmlExprOp op, char *name, List *named_args, List *args, int location);
 
@@ -149,12 +150,14 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
     struct Value *value;
     struct ResTarget *target;
     struct Alias *alias;
-    struct GroupClause  *groupclause;
+
     struct SortBy *sortby;
     struct InsertStmt *istmt;
     struct VariableSetStmt *vsetstmt;
 	struct JoinExpr *jexpr;
 	struct IndexElem *ielem;
+	struct RoleSpec *rolespec;
+    struct GroupClause  *groupclause;
 }
 
 %token <integer> INTEGER
@@ -168,11 +171,11 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ
 
 /* keywords in alphabetical order */
-%token <keyword> ACTION ALL AND ANY ARRAY AS ASC ASCENDING ASYMMETRIC AT ATOMIC
+%token <keyword> ACTION ADMIN ALL AND ANY ARRAY AS ASC ASCENDING ASYMMETRIC AT ATOMIC
 
                  BIGINT BEGIN_P BETWEEN BOOLEAN_P BOTH BY
 
-                 CALL CALLED CASE CAST CASCADE CHECK CROSS COALESCE COLLATE COLLATION COMMENTS COMPRESSION
+                 CALL CALLED CASE CAST CASCADE CHECK CROSS COALESCE COLLATE COLLATION COMMENTS COMPRESSION CONNECTION
 				 CONTAINS CONSTRAINT CONSTRAINTS COST CREATE CUBE CURRENT 
                  CURRENT_CATALOG CURRENT_DATE CURRENT_ROLE CURRENT_SCHEMA CURRENT_TIME 
                  CURRENT_TIMESTAMP CURRENT_USER
@@ -180,7 +183,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
                  DATE DECADE DEC DECIMAL_P DEFAULT DEFAULTS DEFERRABLE DEFERRED DEFINER DELETE DESC DESCENDING DETACH DISTINCT 
 				 DOCUMENT_P DOUBLE_P DROP
 
-                 ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXCLUDING EXISTS EXTENSION EXTRACT EXTERNAL
+                 ENCRYPTED ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXCLUDING EXISTS EXTENSION EXTRACT EXTERNAL
 
                  GENERATED GLOBAL GRAPH GREATEST GROUP GROUPS GROUPING
 
@@ -203,17 +206,17 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  ON ONLY OPTIONAL OTHERS OR ORDER OUT_P OUTER OVER OVERLAPS OVERLAY
 
-                 PARALLEL PARTIAL PARTITION PLACING POSITION PRECEDING PRECISION PRIMARY
+                 PARALLEL PARTIAL PARTITION PASSWORD PLACING POSITION PRECEDING PRECISION PRIMARY
 
-                 RANGE RIGHT REAL REFERENCES REMOVE RESTRICT REPLACE RETURN RETURNS ROLLUP ROW ROWS
+                 RANGE RIGHT REAL REFERENCES REMOVE RESTRICT REPLACE RETURN RETURNS ROLE ROLLUP ROW ROWS
 
                  SCHEMA SECURITY SELECT SESSION SESSION_USER SET SETOF SETS SIMPLE SKIP SMALLINT SOME STABLE STARTS STATEMENTS STATISTICS
-				 STORAGE STRICT_P SUBSTRING SUPPORT SYMMETRIC
+				 STORAGE STRICT_P SUBSTRING SUPPORT SYMMETRIC SYSID
 
                  TABLE TABLESPACE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRAILING TRANSFORM TREAT TRIM TRUE_P
 				 TYPE_P
 
-                 UNBOUNDED UNION UNIQUE UNKNOWN UNLOGGED UPDATE UNWIND USE USER USING
+                 UNBOUNDED UNENCRYPTED UNION UNIQUE UNKNOWN UNLOGGED UNTIL UPDATE UNWIND USE USER USING
 
                  VALID VALUES VARIADIC VERSION_P VOLATILE
 
@@ -231,6 +234,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
 %type <node> routine_body_stmt
              CreateExtensionStmt CreateFunctionStmt CreateGraphStmt CreateTableStmt
+			 CreateUserStmt
              DefineStmt DeleteStmt DropGraphStmt
              InsertStmt
              UseGraphStmt
@@ -279,8 +283,12 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <node>	join_qual
 %type <integer>	join_type
 
-%type <string>		unicode_normal_form
+%type <list>	OptRoleList 
+%type <defelt>	CreateOptRoleElem AlterOptRoleElem
 
+%type <string>		RoleId 
+%type <string>		unicode_normal_form
+%type <rolespec> RoleSpec 
 %type <string>	access_method_clause
 
 %type <node> cypher_query_start
@@ -356,7 +364,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              cypher_func_name expr_list
              TableElementList OptTableElementList OptInherit definition
              reloptions 
-             name_list opt_array_bounds
+             name_list role_list opt_array_bounds
              OptWith opt_definition func_args func_args_list
 			 func_args_with_defaults func_args_with_defaults_list
 			 func_as createfunc_opt_list opt_createfunc_opt_list
@@ -392,7 +400,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <defelt>	def_elem reloption_elem
 %type <string> Sconst 
 %type <string> ColId  ColLabel BareColLabel
-%type <string> NonReservedWord_or_Sconst name
+%type <string> NonReservedWord NonReservedWord_or_Sconst name
 %type <list> create_extension_opt_list
 %type <defelt> create_extension_opt_item
 %type <sortby>	sortby
@@ -511,6 +519,7 @@ stmt:
     | CreateExtensionStmt semicolon_opt { extra->result = $1; }
 	| CreateFunctionStmt semicolon_opt  { extra->result = $1; }
     | CreateTableStmt semicolon_opt     { extra->result = $1; }
+	| CreateUserStmt semicolon_opt      { extra->result = $1; }
     | DefineStmt semicolon_opt          { extra->result = $1; }
     | DeleteStmt semicolon_opt          { extra->result = $1; }
     | DropGraphStmt semicolon_opt       { extra->result = $1; }
@@ -3806,6 +3815,250 @@ def_elem:	ColLabel '=' def_arg
 				}
 		;
 
+
+
+/* Role specifications */
+RoleId:		RoleSpec
+				{
+					RoleSpec *spc = (RoleSpec *) $1;
+					switch (spc->roletype)
+					{
+						case ROLESPEC_CSTRING:
+							$$ = spc->rolename;
+							break;
+						case ROLESPEC_PUBLIC:
+							ereport(ERROR,
+									(errcode(ERRCODE_RESERVED_NAME),
+									 errmsg("role name \"%s\" is reserved",
+											"public")));
+							break;
+						case ROLESPEC_SESSION_USER:
+							ereport(ERROR,
+									(errcode(ERRCODE_RESERVED_NAME),
+									 errmsg("%s cannot be used as a role name here",
+											"SESSION_USER")));
+							break;
+						case ROLESPEC_CURRENT_USER:
+							ereport(ERROR,
+									(errcode(ERRCODE_RESERVED_NAME),
+									 errmsg("%s cannot be used as a role name here",
+											"CURRENT_USER")));
+							break;
+						case ROLESPEC_CURRENT_ROLE:
+							ereport(ERROR,
+									(errcode(ERRCODE_RESERVED_NAME),
+									 errmsg("%s cannot be used as a role name here",
+											"CURRENT_ROLE")));
+							break;
+					}
+				}
+			;
+
+RoleSpec:	NonReservedWord
+					{
+						/*
+						 * "public" and "none" are not keywords, but they must
+						 * be treated specially here.
+						 */
+						RoleSpec *n;
+						if (strcmp($1, "public") == 0)
+						{
+							n = (RoleSpec *) makeRoleSpec(ROLESPEC_PUBLIC, @1);
+							n->roletype = ROLESPEC_PUBLIC;
+						}
+						else if (strcmp($1, "none") == 0)
+						{
+							ereport(ERROR,
+									(errcode(ERRCODE_RESERVED_NAME),
+									 errmsg("role name \"%s\" is reserved",
+											"none")));
+						}
+						else
+						{
+							n = makeRoleSpec(ROLESPEC_CSTRING, @1);
+							n->rolename = pstrdup($1);
+						}
+						$$ = n;
+					}
+			| CURRENT_ROLE
+					{
+						$$ = makeRoleSpec(ROLESPEC_CURRENT_ROLE, @1);
+					}
+			| CURRENT_USER
+					{
+						$$ = makeRoleSpec(ROLESPEC_CURRENT_USER, @1);
+					}
+			| SESSION_USER
+					{
+						$$ = makeRoleSpec(ROLESPEC_SESSION_USER, @1);
+					}
+		;
+
+role_list:	RoleSpec
+					{ $$ = list_make1($1); }
+			| role_list ',' RoleSpec
+					{ $$ = lappend($1, $3); }
+		;
+
+/*****************************************************************************
+ *
+ * Create a new Postgres DBMS user (role with implied login ability)
+ *
+ *****************************************************************************/
+
+CreateUserStmt:
+			CREATE USER RoleId opt_with OptRoleList
+				{
+					CreateRoleStmt *n = makeNode(CreateRoleStmt);
+					n->stmt_type = ROLESTMT_USER;
+					n->role = $3;
+					n->options = $5;
+					$$ = (Node *)n;
+				}
+		;
+
+opt_with:	WITH
+			| /*EMPTY*/
+		;
+
+
+/*
+ * Options for CREATE ROLE and ALTER ROLE (also used by CREATE/ALTER USER
+ * for backwards compatibility).  Note: the only option required by SQL99
+ * is "WITH ADMIN name".
+ */
+OptRoleList:
+			OptRoleList CreateOptRoleElem			{ $$ = lappend($1, $2); }
+			| /* EMPTY */							{ $$ = NIL; }
+		;
+
+
+
+AlterOptRoleElem:
+			PASSWORD Sconst
+				{
+					$$ = makeDefElem("password",
+									 (Node *)makeString($2), @1);
+				}
+			| PASSWORD NULL_P
+				{
+					$$ = makeDefElem("password", NULL, @1);
+				}
+			| ENCRYPTED PASSWORD Sconst
+				{
+					/*
+					 * These days, passwords are always stored in encrypted
+					 * form, so there is no difference between PASSWORD and
+					 * ENCRYPTED PASSWORD.
+					 */
+					$$ = makeDefElem("password",
+									 (Node *)makeString($3), @1);
+				}
+			| UNENCRYPTED PASSWORD Sconst
+				{
+					ereport(ERROR,
+							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+							 errmsg("UNENCRYPTED PASSWORD is no longer supported"),
+							 errhint("Remove UNENCRYPTED to store the password in encrypted form instead.")));
+				}
+			| INHERIT
+				{
+					$$ = makeDefElem("inherit", (Node *)makeInteger(true), @1);
+				}
+			| CONNECTION LIMIT SignedIconst
+				{
+					$$ = makeDefElem("connectionlimit", (Node *)makeInteger($3), @1);
+				}
+			| VALID UNTIL Sconst
+				{
+					$$ = makeDefElem("validUntil", (Node *)makeString($3), @1);
+				}
+		/*	Supported but not documented for roles, for use by ALTER GROUP. */
+			| USER role_list
+				{
+					$$ = makeDefElem("rolemembers", (Node *)$2, @1);
+				}
+			| IDENTIFIER
+				{
+					/*
+					 * We handle identifiers that aren't parser keywords with
+					 * the following special-case codes, to avoid bloating the
+					 * size of the main parser.
+					 */
+					if (strcmp($1, "superuser") == 0)
+						$$ = makeDefElem("superuser", (Node *)makeInteger(true), @1);
+					else if (strcmp($1, "nosuperuser") == 0)
+						$$ = makeDefElem("superuser", (Node *)makeInteger(false), @1);
+					else if (strcmp($1, "createrole") == 0)
+						$$ = makeDefElem("createrole", (Node *)makeInteger(true), @1);
+					else if (strcmp($1, "nocreaterole") == 0)
+						$$ = makeDefElem("createrole", (Node *)makeInteger(false), @1);
+					else if (strcmp($1, "replication") == 0)
+						$$ = makeDefElem("isreplication", (Node *)makeInteger(true), @1);
+					else if (strcmp($1, "noreplication") == 0)
+						$$ = makeDefElem("isreplication", (Node *)makeInteger(false), @1);
+					else if (strcmp($1, "createdb") == 0)
+						$$ = makeDefElem("createdb", (Node *)makeInteger(true), @1);
+					else if (strcmp($1, "nocreatedb") == 0)
+						$$ = makeDefElem("createdb", (Node *)makeInteger(false), @1);
+					else if (strcmp($1, "login") == 0)
+						$$ = makeDefElem("canlogin", (Node *)makeInteger(true), @1);
+					else if (strcmp($1, "nologin") == 0)
+						$$ = makeDefElem("canlogin", (Node *)makeInteger(false), @1);
+					else if (strcmp($1, "bypassrls") == 0)
+						$$ = makeDefElem("bypassrls", (Node *)makeInteger(true), @1);
+					else if (strcmp($1, "nobypassrls") == 0)
+						$$ = makeDefElem("bypassrls", (Node *)makeInteger(false), @1);
+					else if (strcmp($1, "noinherit") == 0)
+					{
+						/*
+						 * Note that INHERIT is a keyword, so it's handled by main parser, but
+						 * NOINHERIT is handled here.
+						 */
+						$$ = makeDefElem("inherit", (Node *)makeInteger(false), @1);
+					}
+					else
+						ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+								 errmsg("unrecognized role option \"%s\"", $1)));
+				}
+		;
+
+CreateOptRoleElem:
+			AlterOptRoleElem			{ $$ = $1; }
+			/* The following are not supported by ALTER ROLE/USER/GROUP */
+			| SYSID Iconst
+				{
+					$$ = makeDefElem("sysid", (Node *)makeInteger($2), @1);
+				}
+			| ADMIN role_list
+				{
+					$$ = makeDefElem("adminmembers", (Node *)$2, @1);
+				}
+			| ROLE role_list
+				{
+					$$ = makeDefElem("rolemembers", (Node *)$2, @1);
+				}
+			| IN ROLE role_list
+				{
+					$$ = makeDefElem("addroleto", (Node *)$3, @1);
+				}
+			| IN GROUP role_list
+				{
+					$$ = makeDefElem("addroleto", (Node *)$3, @1);
+				}
+		;
+
+
+
+
+/* Any not-fully-reserved word --- these names can be, eg, role names.
+ */
+NonReservedWord:	IDENTIFIER							{ $$ = $1; }
+			//| unreserved_keyword					{ $$ = pstrdup($1); }
+			//| col_name_keyword						{ $$ = pstrdup($1); }
+			//| type_func_name_keyword				{ $$ = pstrdup($1); }
+		;
 
 /* Column label --- allowed labels in "AS" clauses.
  * This presently includes *all* Postgres keywords.
@@ -7686,4 +7939,18 @@ processCASbits(int cas_bits, int location, const char *constrType,
 							constrType),
 					 parser_errposition(location)));
 	}
+}
+
+/* makeRoleSpec
+ * Create a RoleSpec with the given type
+ */
+static RoleSpec *
+makeRoleSpec(RoleSpecType type, int location)
+{
+	RoleSpec *spec = makeNode(RoleSpec);
+
+	spec->roletype = type;
+	spec->location = location;
+
+	return spec;
 }
