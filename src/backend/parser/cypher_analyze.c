@@ -1176,6 +1176,48 @@ CypherCreateCommandTag(Node *parsetree)
                     } else if (IsA(n, DeleteStmt)) {
                         tag = CMDTAG_DELETE;
                         break;
+                    } else if (IsA(n, CreateFunctionStmt)) {
+            if (((CreateFunctionStmt *) parsetree)->is_procedure)
+                tag = CMDTAG_CREATE_PROCEDURE;
+            else
+                tag = CMDTAG_CREATE_FUNCTION;
+            break;
+
+                    } else if (IsA(n, DefineStmt)) {
+            switch (((DefineStmt *) parsetree)->kind)
+            {
+                case OBJECT_AGGREGATE:
+                    tag = CMDTAG_CREATE_AGGREGATE;
+                    break;
+                case OBJECT_OPERATOR:
+                    tag = CMDTAG_CREATE_OPERATOR;
+                    break;
+                case OBJECT_TYPE:
+                    tag = CMDTAG_CREATE_TYPE;
+                    break;
+                case OBJECT_TSPARSER:
+                    tag = CMDTAG_CREATE_TEXT_SEARCH_PARSER;
+                    break;
+                case OBJECT_TSDICTIONARY:
+                    tag = CMDTAG_CREATE_TEXT_SEARCH_DICTIONARY;
+                    break;
+                case OBJECT_TSTEMPLATE:
+                    tag = CMDTAG_CREATE_TEXT_SEARCH_TEMPLATE;
+                    break;
+                case OBJECT_TSCONFIGURATION:
+                    tag = CMDTAG_CREATE_TEXT_SEARCH_CONFIGURATION;
+                    break;
+                case OBJECT_COLLATION:
+                    tag = CMDTAG_CREATE_COLLATION;
+                    break;
+                case OBJECT_ACCESS_METHOD:
+                    tag = CMDTAG_CREATE_ACCESS_METHOD;
+                    break;
+                default:
+                    tag = CMDTAG_UNKNOWN;
+            }
+            break;
+
                     } else if (IsA(n, VariableSetStmt)) {
                         switch (((VariableSetStmt *) parsetree)->kind)
                         {
@@ -1420,15 +1462,14 @@ cypher_parse_analyze(RawStmt *parseTree, const char *sourceText,
     if (list_length(parseTree->stmt) == 1) {
       Node *n = linitial(parseTree->stmt);
 
-      if (IsA(n, CreateExtensionStmt) || IsA(n,CreateStmt) || IsA(n, SelectStmt) || IsA(n, InsertStmt)
-      || IsA(n, UpdateStmt) || IsA(n, DeleteStmt) || IsA(n, VariableSetStmt)) {
-	        query = parse_analyze((makeRawStmt(n, 0)), sourceText, paramTypes, numParams,
-						  queryEnv);
+      if (IsA(n, CreateExtensionStmt) || IsA(n,CreateStmt) || IsA(n, SelectStmt) || IsA(n, InsertStmt) ||
+          IsA(n, UpdateStmt) || IsA(n, DeleteStmt) || IsA(n, VariableSetStmt) || IsA(n, DefineStmt) ||
+          IsA(n, CreateFunctionStmt)) {
+	        query = parse_analyze((makeRawStmt(n, 0)), sourceText, paramTypes, numParams, queryEnv);
 
             return query;
       } else if (is_ag_node(n, cypher_create_graph)) {
         cypher_create_graph *ccg = n;
-        //ereport(ERROR, errmsg("Here"));
 
         query = cypher_create_graph_utility(pstate, ccg->graph_name);
 
@@ -1440,7 +1481,7 @@ cypher_parse_analyze(RawStmt *parseTree, const char *sourceText,
         free_parsestate(pstate);
 
         pgstat_report_query_id(query->queryId, false);
-        //PushActiveSnapshot(GetTransactionSnapshot());
+
         return query;
 
       } else if (is_ag_node(n, cypher_use_graph)) {
@@ -1456,7 +1497,7 @@ cypher_parse_analyze(RawStmt *parseTree, const char *sourceText,
         free_parsestate(pstate);
 
         pgstat_report_query_id(query->queryId, false);
-        //PushActiveSnapshot(GetTransactionSnapshot());
+
         return query;
       } else if (is_ag_node(n, cypher_drop_graph)) {
         cypher_drop_graph *ccg = n;
@@ -1471,7 +1512,7 @@ cypher_parse_analyze(RawStmt *parseTree, const char *sourceText,
         free_parsestate(pstate);
 
         pgstat_report_query_id(query->queryId, false);
-        //PushActiveSnapshot(GetTransactionSnapshot());
+
         return query;
         
       }
