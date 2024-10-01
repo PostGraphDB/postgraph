@@ -228,9 +228,6 @@ hexcode     \\(x{hexdigit}+|X{hexdigit}+)
 hexcodefail \\(X|x)
 any           (?s:.)
 
-
-
-
 /* id pattern is for UnescapedSymbolicName rule in Cypher. */
 id      {idstart}{idcont}*
 idstart [A-Z_a-z\x80-\xFF]
@@ -264,8 +261,8 @@ gt_eq    ">="
 dot_dot  ".."
 plus_eq  "+="
 typecast "::"
-operator [&<=>|~!*?@#%]{2,3}|[@|?&#]|"?-|"|"?-"|"@-@"
-operatorfail1 "@-"
+op_chars		[\~\!\@\#\^\&\|\`\?\+\-\*\/\%\<\>\=]
+operator		{op_chars}+
 self     [?&!@#%()*+,\-.~/:;<=>[\]^{|}]
 
 other .
@@ -835,14 +832,6 @@ ag_token token;
     token.location = get_location();
     return token;
 }
-
-{operatorfail1} {
-    update_location();
-    ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
-                    scan_errmsg("invalid literal"),
-                    scan_errposition()));
-}
-
 
 {operator} {
     update_location();
