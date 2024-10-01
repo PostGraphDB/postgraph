@@ -258,7 +258,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <node> select_no_parens select_with_parens select_clause
              simple_select
 
-%type <node> where_clause
+%type <node> where_clause where_or_current_clause
              a_expr b_expr c_expr AexprConst indirection_el opt_slice_bound
              columnref in_expr having_clause array_expr
              OptWhereClause
@@ -1385,6 +1385,21 @@ where_clause:
 			| /*EMPTY*/								{ $$ = NULL; }
 		;
 
+
+/* variant for UPDATE and DELETE */
+where_or_current_clause:
+			WHERE a_expr							{ $$ = $2; }
+			/*| WHERE CURRENT_P OF cursor_name
+				{
+					CurrentOfExpr *n = makeNode(CurrentOfExpr);
+					
+					n->cursor_name = $4;
+					n->cursor_param = 0;
+					$$ = (Node *) n;
+				}*/
+			| /*EMPTY*/								{ $$ = NULL; }
+		;
+
 opt_sort_clause:
 			sort_clause								{ $$ = $1; }
 			| /*EMPTY*/								{ $$ = NIL; }
@@ -1609,14 +1624,14 @@ UpdateStmt: //opt_with_clause
             UPDATE relation_expr_opt_alias
 			SET set_clause_list
 			from_clause
-			//where_or_current_clause
+			where_or_current_clause
 			//returning_clause
 				{
 					UpdateStmt *n = makeNode(UpdateStmt);
 					n->relation = $2;
 					n->targetList = $4;
 					n->fromClause = $5;
-					n->whereClause = NULL;//$7;
+					n->whereClause = $6;//$7;
 					n->returningList = NULL;//$8;
 					n->withClause = NULL;//$1;
 					$$ = (Node *)n;
