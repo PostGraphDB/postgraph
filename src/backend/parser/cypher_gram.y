@@ -239,7 +239,8 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <node> parse_toplevel stmtmulti schema_stmt routine_body_stmt
              AlterDatabaseStmt AlterDatabaseSetStmt
              CreatedbStmt CreateSchemaStmt
-             CreateExtensionStmt CreateFunctionStmt CreateGraphStmt CreateTableStmt
+             CreateExtensionStmt CreateFunctionStmt CreateGraphStmt 
+			 CreateTableStmt CreateTableSpaceStmt
 			 CreateUserStmt
              DefineStmt DeleteStmt DropdbStmt DropGraphStmt
 			 DropStmt
@@ -414,7 +415,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <list> routine_body_stmt_list
              cypher_func_name expr_list
              TableElementList OptTableElementList OptInherit definition
-             reloptions 
+             reloptions opt_reloptions
              name_list role_list opt_array_bounds
              OptWith opt_definition func_args func_args_list
 			 func_args_with_defaults func_args_with_defaults_list
@@ -448,6 +449,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <list>	func_name qual_Op qual_all_Op subquery_Op
 %type <string>		all_Op MathOp
 %type <string>	 OptConsTableSpace
+%type <rolespec> OptTableSpaceOwner
 %type <integer>	sub_type 
 
 %type <defelt>	def_elem reloption_elem
@@ -653,6 +655,7 @@ stmt:
 	| CreateFunctionStmt
 	| CreateSchemaStmt
     | CreateTableStmt
+	| CreateTableSpaceStmt
 	| CreateUserStmt
     | DefineStmt 
     | DeleteStmt
@@ -1721,6 +1724,36 @@ CreateGraphStmt:
             $$ = (Node *)n;
         }
         ;
+
+/*****************************************************************************
+ *
+ *		QUERY:
+ *             CREATE TABLESPACE tablespace LOCATION '/path/to/tablespace/'
+ *
+ *****************************************************************************/
+
+CreateTableSpaceStmt: CREATE TABLESPACE name OptTableSpaceOwner LOCATION Sconst opt_reloptions
+				{
+					CreateTableSpaceStmt *n = makeNode(CreateTableSpaceStmt);
+					n->tablespacename = $3;
+					n->owner = $4;
+					n->location = $6;
+					n->options = $7;
+					$$ = (Node *) n;
+				}
+		;
+
+OptTableSpaceOwner: OWNER RoleSpec		{ $$ = $2; }
+			| /*EMPTY */				{ $$ = NULL; }
+		;
+
+/*****************************************************************************
+ *
+ *		QUERY:
+ *             CREATE EXTENSION extension
+ *             [ WITH ] [ SCHEMA schema ] [ VERSION version ]
+ *
+ *****************************************************************************/
 
 CreateExtensionStmt:
     CREATE EXTENSION IDENTIFIER create_extension_opt_list
@@ -2911,6 +2944,11 @@ ExistingIndex:   USING INDEX name					{ $$ = $3; }
 reloptions:
 			'(' reloption_list ')'					{ $$ = $2; }
 		;
+
+opt_reloptions:		WITH reloptions					{ $$ = $2; }
+			 |		/* EMPTY */						{ $$ = NIL; }
+		;
+			
 reloption_list:
 			reloption_elem							{ $$ = list_make1($1); }
 			| reloption_list ',' reloption_elem		{ $$ = lappend($1, $3); }
