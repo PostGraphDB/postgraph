@@ -184,7 +184,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
                  DATA_P DATABASE DATE DECADE DEC DECIMAL_P DEFAULT DEFAULTS DEFERRABLE DEFERRED DEFINER DELETE DESC DESCENDING DETACH DISTINCT 
 				 DOMAIN_P DOCUMENT_P DOUBLE_P DROP
 
-                 ENCRYPTED ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXCLUDING EXISTS EXTENSION EXTRACT EXTERNAL
+                 ENCODING ENCRYPTED ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXCLUDING EXISTS EXTENSION EXTRACT EXTERNAL
                  EVENT
 
                  GENERATED GLOBAL GRANT GRANTED GRAPH GREATEST GROUP GROUPS GROUPING
@@ -200,13 +200,13 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  KEY
 
-                 LANGUAGE LARGE_P LAST_P LATERAL_P LEADING LEAKPROOF LEAST LEFT LIKE LIMIT LOCAL LOCALTIME LOCALTIMESTAMP
+                 LANGUAGE LARGE_P LAST_P LATERAL_P LEADING LEAKPROOF LEAST LEFT LIKE LIMIT LOCATION LOCAL LOCALTIME LOCALTIMESTAMP
 
                  MATCH MAXVALUE MERGE METHOD MINVALUE
 
                  NAME_P NATURAL NFC NFD NFKC NFKD NO NORMALIZE NORMALIZED NOT NOTNULL NULL_P NULLIF NULLS_LA NUMERIC
 
-                 OBJECT_P ON ONLY OPTION OPTIONS OPTIONAL OTHERS OR ORDER OUT_P OUTER OVER OVERLAPS OVERLAY OWNED
+                 OBJECT_P ON ONLY OPTION OPTIONS OPTIONAL OTHERS OR ORDER OUT_P OUTER OVER OVERLAPS OVERLAY OWNED OWNER
 
                  PARALLEL PARTIAL PARTITION PASSWORD PLACING POLICY POSITION PUBLICATION PRECEDING PRECISION PRIMARY PRIVILEGES PROCEDURAL PROCEDURE PROCEDURES
 
@@ -216,7 +216,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 				 SIMPLE SKIP SMALLINT SOME STABLE START STARTS STATEMENTS STATISTICS
 				 STORED STORAGE STRICT_P SUBSCRIPTION SUBSTRING SUPPORT SYMMETRIC SYSID
 
-                 TABLE TABLES TABLESPACE TEMP TEMPORARY TIME TIES THEN TIMESTAMP TO TRAILING TRANSFORM TREAT TRIGGER TRIM TRUE_P
+                 TABLE TABLES TABLESPACE TEMP TEMPLATE TEMPORARY  TIME TIES THEN TIMESTAMP TO TRAILING TRANSFORM TREAT TRIGGER TRIM TRUE_P
 				 TYPE_P
 
                  UNBOUNDED UNENCRYPTED UNION UNIQUE UNKNOWN UNLOGGED UNTIL UPDATE UNWIND USE USER USING
@@ -236,7 +236,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <list> single_query  cypher_stmt
 
 %type <node> schema_stmt routine_body_stmt
-             CreateSchemaStmt
+             CreatedbStmt CreateSchemaStmt
              CreateExtensionStmt CreateFunctionStmt CreateGraphStmt CreateTableStmt
 			 CreateUserStmt
              DefineStmt DeleteStmt DropdbStmt DropGraphStmt
@@ -282,7 +282,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <node>	func_application func_expr_common_subexpr
 %type <node>	func_expr func_expr_windowless
 
-%type <list>	OptSeqOptList SeqOptList OptParenthesizedSeqOptList
+%type <list>	 SeqOptList OptParenthesizedSeqOptList
 %type <defelt>	SeqOptElem
 
 %type <node>	TableElement 
@@ -303,6 +303,9 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <defelt>	generic_option_elem 
 %type <list>	generic_option_list 
 
+%type <list>	createdb_opt_list createdb_opt_items
+%type <defelt>	createdb_opt_item 
+%type <string>		createdb_opt_name 
 
 %type <integer>	opt_drop_behavior
 
@@ -563,6 +566,7 @@ stmt:
 
             extra->result = $1;
         }
+	| CreatedbStmt semicolon_opt        { extra->result = $1; }
     | CreateGraphStmt semicolon_opt     { extra->result = $1; }
     | CreateExtensionStmt semicolon_opt { extra->result = $1; }
 	| CreateFunctionStmt semicolon_opt  { extra->result = $1; }
@@ -4810,6 +4814,77 @@ generic_option_arg:
 				Sconst				{ $$ = (Node *) makeString($1); }
 		;
 
+
+
+/*****************************************************************************
+ *
+ *		CREATE DATABASE
+ *
+ *****************************************************************************/
+
+CreatedbStmt:
+			CREATE DATABASE name opt_with createdb_opt_list
+				{
+					CreatedbStmt *n = makeNode(CreatedbStmt);
+					n->dbname = $3;
+					n->options = $5;
+					$$ = (Node *)n;
+				}
+		;
+
+createdb_opt_list:
+			createdb_opt_items						{ $$ = $1; }
+			| /* EMPTY */							{ $$ = NIL; }
+		;
+
+createdb_opt_items:
+			createdb_opt_item						{ $$ = list_make1($1); }
+			| createdb_opt_items createdb_opt_item	{ $$ = lappend($1, $2); }
+		;
+
+createdb_opt_item:
+			createdb_opt_name opt_equal SignedIconst
+				{
+					$$ = makeDefElem($1, (Node *)makeInteger($3), @1);
+				}
+			| createdb_opt_name opt_equal opt_boolean_or_string
+				{
+					$$ = makeDefElem($1, (Node *)makeString($3), @1);
+				}
+			| createdb_opt_name opt_equal DEFAULT
+				{
+					$$ = makeDefElem($1, NULL, @1);
+				}
+		;
+
+/*
+ * Ideally we'd use ColId here, but that causes shift/reduce conflicts against
+ * the ALTER DATABASE SET/RESET syntaxes.  Instead call out specific keywords
+ * we need, and allow IDENT so that database option names don't have to be
+ * parser keywords unless they are already keywords for other reasons.
+ *
+ * XXX this coding technique is fragile since if someone makes a formerly
+ * non-keyword option name into a keyword and forgets to add it here, the
+ * option will silently break.  Best defense is to provide a regression test
+ * exercising every such option, at least at the syntax level.
+ */
+createdb_opt_name:
+			IDENTIFIER							{ $$ = $1; }
+			| CONNECTION LIMIT				{ $$ = pstrdup("connection_limit"); }
+			| ENCODING						{ $$ = pstrdup($1); }
+			| LOCATION						{ $$ = pstrdup($1); }
+			| OWNER							{ $$ = pstrdup($1); }
+			| TABLESPACE					{ $$ = pstrdup($1); }
+			| TEMPLATE						{ $$ = pstrdup($1); }
+		;
+
+/*
+ *	Though the equals sign doesn't match other WITH options, pg_dump uses
+ *	equals for backward compatibility, and it doesn't seem worth removing it.
+ */
+opt_equal:	'='
+			| /*EMPTY*/
+		;
 
 /*****************************************************************************
  *
