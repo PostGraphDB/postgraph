@@ -172,7 +172,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ
 
 /* keywords in alphabetical order */
-%token <keyword> ACCESS ACTION ADMIN ALL AND ANY ALWAYS ARRAY AS ASC ASCENDING ASYMMETRIC AT ATOMIC AUTHORIZATION
+%token <keyword> ACCESS ACTION ADMIN ALL ALTER AND ANY ALWAYS ARRAY AS ASC ASCENDING ASYMMETRIC AT ATOMIC AUTHORIZATION
 
                  BIGINT BEGIN_P BETWEEN BOOLEAN_P BOTH BY
 
@@ -194,13 +194,13 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
                  HAVING
 
                  IDENTITY_P IF ILIKE IN INCLUDING INDEX INDEXES IMMEDIATE IMMUTABLE INCLUDE INCREMENT INHERIT INHERITS INITIALLY INNER 
-				 INOUT INPUT_P INT_P INTEGER_P INTERSECT INSERT INTERVAL INTO INVOKER IS ISNULL
+				 INOUT INPUT_P INT_P INTEGER_P INTERSECT INSERT INTERVAL INTO INVOKER IS ISNULL ISOLATION
 
                  JOIN
 
                  KEY
 
-                 LANGUAGE LARGE_P LAST_P LATERAL_P LEADING LEAKPROOF LEAST LEFT LIKE LIMIT LOCATION LOCAL LOCALTIME LOCALTIMESTAMP
+                 LANGUAGE LARGE_P LAST_P LATERAL_P LEADING LEAKPROOF LEAST LEFT LEVEL LIKE LIMIT LOCATION LOCAL LOCALTIME LOCALTIMESTAMP
 
                  MATCH MAXVALUE MERGE METHOD MINVALUE
 
@@ -210,13 +210,13 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  PARALLEL PARTIAL PARTITION PASSWORD PLACING POLICY POSITION PUBLICATION PRECEDING PRECISION PRIMARY PRIVILEGES PROCEDURAL PROCEDURE PROCEDURES
 
-                 RANGE RIGHT REAL REFERENCES REMOVE RESTART RESTRICT REPLACE RETURN RETURNS RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
+                 RANGE RIGHT REAL REFERENCES REMOVE RESET RESTART RESTRICT REPLACE RETURN RETURNS RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
 
                  SCHEMA SECURITY SERVER SELECT SEQUENCE SEQUENCES SESSION SESSION_USER SET SETOF SETS
 				 SIMPLE SKIP SMALLINT SOME STABLE START STARTS STATEMENTS STATISTICS
 				 STORED STORAGE STRICT_P SUBSCRIPTION SUBSTRING SUPPORT SYMMETRIC SYSID
 
-                 TABLE TABLES TABLESPACE TEMP TEMPLATE TEMPORARY  TIME TIES THEN TIMESTAMP TO TRAILING TRANSFORM TREAT TRIGGER TRIM TRUE_P
+                 TABLE TABLES TABLESPACE TEMP TEMPLATE TEMPORARY  TIME TIES THEN TIMESTAMP TO TRAILING TRANSACTION TRANSFORM TREAT TRIGGER TRIM TRUE_P
 				 TYPE_P
 
                  UNBOUNDED UNENCRYPTED UNION UNIQUE UNKNOWN UNLOGGED UNTIL UPDATE UNWIND USE USER USING
@@ -236,6 +236,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <list> single_query  cypher_stmt
 
 %type <node> schema_stmt routine_body_stmt
+             AlterDatabaseStmt AlterDatabaseSetStmt
              CreatedbStmt CreateSchemaStmt
              CreateExtensionStmt CreateFunctionStmt CreateGraphStmt CreateTableStmt
 			 CreateUserStmt
@@ -247,7 +248,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 			 ReturnStmt
              SelectStmt
              UpdateStmt
-             VariableSetStmt
+             VariableResetStmt VariableSetStmt
 
 %type <node> select_no_parens select_with_parens select_clause
              simple_select
@@ -325,7 +326,8 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
 %type <node> cypher_query_start
 %type <list> cypher_query_body
-%type <vsetstmt> generic_set set_rest set_rest_more 
+%type <vsetstmt> generic_set set_rest set_rest_more generic_reset reset_rest
+                 SetResetClause 
 %type <string> var_name type_function_name param_name
 %type <node>	var_value 
 %type <string>	 opt_boolean_or_string
@@ -554,6 +556,8 @@ check_func_name(List *names, ag_scanner_t yyscanner);
 %}
 %%
 
+
+
 /*
  * query
  */
@@ -566,24 +570,27 @@ stmt:
 
             extra->result = $1;
         }
-	| CreatedbStmt semicolon_opt        { extra->result = $1; }
-    | CreateGraphStmt semicolon_opt     { extra->result = $1; }
-    | CreateExtensionStmt semicolon_opt { extra->result = $1; }
-	| CreateFunctionStmt semicolon_opt  { extra->result = $1; }
-	| CreateSchemaStmt semicolon_opt    { extra->result = $1; }
-    | CreateTableStmt semicolon_opt     { extra->result = $1; }
-	| CreateUserStmt semicolon_opt      { extra->result = $1; }
-    | DefineStmt semicolon_opt          { extra->result = $1; }
-    | DeleteStmt semicolon_opt          { extra->result = $1; }
-	| DropdbStmt semicolon_opt          { extra->result = $1; }
-    | DropGraphStmt semicolon_opt       { extra->result = $1; }
-	| DropStmt semicolon_opt            { extra->result = $1; }
-	| GrantStmt semicolon_opt           { extra->result = $1; }
-    | InsertStmt semicolon_opt          { extra->result = $1; }
-    | SelectStmt semicolon_opt          { extra->result = $1; }
-    | UseGraphStmt semicolon_opt        { extra->result = $1; }
-    | UpdateStmt semicolon_opt          { extra->result = $1; }
-    | VariableSetStmt semicolon_opt     { extra->result = $1; }
+	| AlterDatabaseSetStmt semicolon_opt { extra->result = $1; }
+    | AlterDatabaseStmt semicolon_opt    { extra->result = $1; }
+	| CreatedbStmt semicolon_opt         { extra->result = $1; }
+    | CreateGraphStmt semicolon_opt      { extra->result = $1; }
+    | CreateExtensionStmt semicolon_opt  { extra->result = $1; }
+	| CreateFunctionStmt semicolon_opt   { extra->result = $1; }
+	| CreateSchemaStmt semicolon_opt     { extra->result = $1; }
+    | CreateTableStmt semicolon_opt      { extra->result = $1; }
+	| CreateUserStmt semicolon_opt       { extra->result = $1; }
+    | DefineStmt semicolon_opt           { extra->result = $1; }
+    | DeleteStmt semicolon_opt           { extra->result = $1; }
+	| DropdbStmt semicolon_opt           { extra->result = $1; }
+    | DropGraphStmt semicolon_opt        { extra->result = $1; }
+	| DropStmt semicolon_opt             { extra->result = $1; }
+	| GrantStmt semicolon_opt            { extra->result = $1; }
+    | InsertStmt semicolon_opt           { extra->result = $1; }
+    | SelectStmt semicolon_opt           { extra->result = $1; }
+    | UseGraphStmt semicolon_opt         { extra->result = $1; }
+    | UpdateStmt semicolon_opt           { extra->result = $1; }
+	| VariableResetStmt semicolon_opt    { extra->result = $1; }
+    | VariableSetStmt semicolon_opt      { extra->result = $1; }
     ;
 
 cypher_stmt:
@@ -2291,6 +2298,13 @@ generic_set:
 					$$ = n;
 				}
 		;
+
+/* SetResetClause allows SET or RESET without LOCAL */
+SetResetClause:
+			SET set_rest					{ $$ = $2; }
+			| VariableResetStmt				{ $$ = (VariableSetStmt *) $1; }
+		;
+
 
 set_rest_more:	/* Generic SET syntaxes: */
 			generic_set							{$$ = $1;}
@@ -4886,6 +4900,49 @@ opt_equal:	'='
 			| /*EMPTY*/
 		;
 
+
+/*****************************************************************************
+ *
+ *		ALTER DATABASE
+ *
+ *****************************************************************************/
+
+AlterDatabaseStmt:
+			ALTER DATABASE name WITH createdb_opt_list
+				 {
+					AlterDatabaseStmt *n = makeNode(AlterDatabaseStmt);
+					n->dbname = $3;
+					n->options = $5;
+					$$ = (Node *)n;
+				 }
+			| ALTER DATABASE name createdb_opt_list
+				 {
+					AlterDatabaseStmt *n = makeNode(AlterDatabaseStmt);
+					n->dbname = $3;
+					n->options = $4;
+					$$ = (Node *)n;
+				 }
+			| ALTER DATABASE name SET TABLESPACE name
+				 {
+					AlterDatabaseStmt *n = makeNode(AlterDatabaseStmt);
+					n->dbname = $3;
+					n->options = list_make1(makeDefElem("tablespace",
+														(Node *)makeString($6), @6));
+					$$ = (Node *)n;
+				 }
+		;
+
+AlterDatabaseSetStmt:
+			ALTER DATABASE name SetResetClause
+				{
+					AlterDatabaseSetStmt *n = makeNode(AlterDatabaseSetStmt);
+					n->dbname = $3;
+					n->setstmt = $4;
+					$$ = (Node *)n;
+				}
+		;
+
+
 /*****************************************************************************
  *
  * GRANT and REVOKE statements
@@ -6927,6 +6984,52 @@ type_function_name:	IDENTIFIER							{ $$ = $1; }
 NonReservedWord_or_Sconst:
 			NonReservedWord							{ $$ = $1; } 
 			| Sconst								{ $$ = $1; }
+		;
+
+
+VariableResetStmt:
+			RESET reset_rest						{ $$ = (Node *) $2; }
+		;
+
+reset_rest:
+			generic_reset							{ $$ = $1; }
+			| TIME ZONE
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->kind = VAR_RESET;
+					n->name = "timezone";
+					$$ = n;
+				}
+			| TRANSACTION ISOLATION LEVEL
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->kind = VAR_RESET;
+					n->name = "transaction_isolation";
+					$$ = n;
+				}
+			| SESSION AUTHORIZATION
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->kind = VAR_RESET;
+					n->name = "session_authorization";
+					$$ = n;
+				}
+		;
+
+generic_reset:
+			var_name
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->kind = VAR_RESET;
+					n->name = $1;
+					$$ = n;
+				}
+			| ALL
+				{
+					VariableSetStmt *n = makeNode(VariableSetStmt);
+					n->kind = VAR_RESET_ALL;
+					$$ = n;
+				}
 		;
 
 /*
