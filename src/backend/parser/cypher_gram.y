@@ -207,7 +207,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  NAME_P NATURAL NFC NFD NFKC NFKD NO NORMALIZE NORMALIZED NOT NOTNULL NULL_P NULLIF NULLS_LA NUMERIC
 
-                 OBJECT_P ON ONLY OPTION OPTIONS OPTIONAL OTHERS OR ORDER OUT_P OUTER OVER OVERLAPS OVERLAY OWNED OWNER
+                 OBJECT_P ON ONLY OPTION OPTIONS OPTIONAL OTHERS OR ORDER OUT_P OUTER OVER OVERRIDING OVERLAPS OVERLAY OWNED OWNER
 
                  PARALLEL PARTIAL PARTITION PASSWORD PLACING POLICY POSITION PUBLICATION PRECEDING PRECISION PRIMARY PRIVILEGES PROCEDURAL PROCEDURE PROCEDURES
 
@@ -215,14 +215,14 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  SCHEMA SECURITY SERVER SELECT SEQUENCE SEQUENCES SESSION SESSION_USER SET SETOF SETS
 				 SIMPLE SKIP SMALLINT SOME STABLE START STARTS STATEMENTS STATISTICS
-				 STORED STORAGE STRICT_P SUBSCRIPTION SUBSTRING SUPPORT SYMMETRIC SYSID
+				 STORED STORAGE STRICT_P SUBSCRIPTION SUBSTRING SUPPORT SYMMETRIC SYSID SYSTEM_P
 
                  TABLE TABLES TABLESPACE TEMP TEMPLATE TEMPORARY  TIME TIES THEN TIMESTAMP TO TRAILING TRANSACTION TRANSFORM TREAT TRIGGER TRIM TRUE_P
 				 TYPE_P
 
                  UNBOUNDED UNENCRYPTED UNION UNIQUE UNKNOWN UNLOGGED UNTIL UPDATE UNWIND USE USER USING
 
-                 VALID VALUES VARIADIC VERSION_P VOLATILE
+                 VALID VALUE_P VALUES VARIADIC VERSION_P VOLATILE
 
                  WHEN WHERE WINDOW WITH WITHIN WITHOUT WRAPPER
 
@@ -260,7 +260,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              OptWhereClause
 
 %type <integer> set_quantifier
-%type <target>	target_el set_target
+%type <target>	target_el set_target insert_column_item
 %type <range>	relation_expr
 %type <range>	relation_expr_opt_alias
 %type <node>	case_expr case_arg when_clause case_default
@@ -280,7 +280,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <integer>	key_actions key_delete key_match key_update key_action
 %type <integer>	ConstraintAttributeSpec ConstraintAttributeElem
 %type <string>	ExistingIndex
-%type <integer>	generated_when 
+%type <integer>	generated_when override_kind
 %type <node>	func_application func_expr_common_subexpr
 %type <node>	func_expr func_expr_windowless
 
@@ -427,7 +427,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 			 columnList
              sort_clause opt_sort_clause sortby_list
              from_clause from_list
-             target_list opt_target_list set_target_list
+             target_list opt_target_list insert_column_list set_target_list
              set_clause_list set_clause
 			 opt_type_modifiers
 			 def_list
@@ -1539,7 +1539,7 @@ insert_rest:
 					$$ = makeNode(InsertStmt);
 					$$->cols = NIL;
 					$$->selectStmt = $1;
-				}/*
+				}
 			| OVERRIDING override_kind VALUE_P SelectStmt
 				{
 					$$ = makeNode(InsertStmt);
@@ -1565,10 +1565,31 @@ insert_rest:
 					$$ = makeNode(InsertStmt);
 					$$->cols = NIL;
 					$$->selectStmt = NULL;
-				}*/
+				}
 		;        
 
+override_kind:
+			USER		{ $$ = OVERRIDING_USER_VALUE; }
+			| SYSTEM_P	{ $$ = OVERRIDING_SYSTEM_VALUE; }
+		;
 
+insert_column_list:
+			insert_column_item
+					{ $$ = list_make1($1); }
+			| insert_column_list ',' insert_column_item
+					{ $$ = lappend($1, $3); }
+		;
+
+insert_column_item:
+			ColId opt_indirection
+				{
+					$$ = makeNode(ResTarget);
+					$$->name = $1;
+					$$->indirection = check_indirection($2, scanner);
+					$$->val = NULL;
+					$$->location = @1;
+				}
+		;
 
 /*****************************************************************************
  *
@@ -7126,7 +7147,9 @@ generic_reset:
  */
 unreserved_keyword:
 			INPUT_P
-
+			| FALSE_P
+			| TRUE_P
+;
 
 /*
  * While all keywords can be used as column labels when preceded by AS,
@@ -7139,7 +7162,7 @@ unreserved_keyword:
  */
 bare_label_keyword:
 		INPUT_P
-
+;
 
 /*
  * SET and REMOVE clause
