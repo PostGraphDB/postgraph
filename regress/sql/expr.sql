@@ -30,10 +30,10 @@ USE GRAPH expr;
 RETURN 1 = 1.0;
 RETURN 1 > -1.0;
 RETURN -1.0 < 1;
-RETURN "aaa" < "z";
-RETURN "z" > "aaa";
+RETURN 'aaa' < 'z';
+RETURN 'z' > 'aaa';
 RETURN false = false;
-RETURN ("string" < true);
+RETURN ('string' < true);
 RETURN true < 1;
 RETURN (1 + 1.0) = (7 % 5);
 

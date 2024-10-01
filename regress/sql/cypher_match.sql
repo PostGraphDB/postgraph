@@ -120,21 +120,21 @@ MATCH (a:v) MATCH (b:v1)-[]-(c) RETURN a.i, b.id, c.id;
 --
 -- Property constraints
 --
-CREATE ({string_key: "test", int_key: 1, float_key: 3.14, map_key: {key: "value"}, list_key: [1, 2, 3]});
+CREATE ({string_key: 'test', int_key: 1, float_key: 3.14, map_key: {key: 'value'}, list_key: [1, 2, 3]});
 
-CREATE ({lst: [1, NULL, 3.14, "string", {key: "value"}, []]});
+CREATE ({lst: [1, NULL, 3.14, 'string', {key: 'value'}, []]});
 
 MATCH (n  {string_key: NULL}) RETURN n;
 
-MATCH (n  {string_key: "wrong value"}) RETURN n ;
+MATCH (n  {string_key: 'wrong value'}) RETURN n ;
 
-MATCH (n {string_key: "test", int_key: 1, float_key: 3.14, map_key: {key: "value"}, list_key: [1, 2, 3]}) RETURN n;
+MATCH (n {string_key: 'test', int_key: 1, float_key: 3.14, map_key: {key: 'value'}, list_key: [1, 2, 3]}) RETURN n;
 
-MATCH (n {string_key: "test"}) RETURN n;
+MATCH (n {string_key: 'test'}) RETURN n;
 
-MATCH (n {lst: [1, NULL, 3.14, "string", {key: "value"}, []]}) RETURN n;
+MATCH (n {lst: [1, NULL, 3.14, 'string', {key: 'value'}, []]}) RETURN n;
 
-MATCH (n {lst: [1, NULL, 3.14, "string", {key: "value"}, [], "extra value"]})  RETURN n;
+MATCH (n {lst: [1, NULL, 3.14, 'string', {key: 'value'}, [], 'extra value']})  RETURN n;
 
 -- Path of one vertex.
 MATCH p=() RETURN p;
@@ -147,9 +147,9 @@ MATCH (u)-[e]->(v) RETURN u, e, v ;
 MATCH (u)-[e]->(v) WHERE EXISTS ((u)-[e]->(v)) RETURN u, e, v;
 
 -- Property Constraint in EXISTS
-MATCH (u) WHERE EXISTS((u)-[]->({id: "middle"})) RETURN u;
+MATCH (u) WHERE EXISTS((u)-[]->({id: 'middle'})) RETURN u;
 
-MATCH (u) WHERE EXISTS((u)-[]->({id: "not a valid id"})) RETURN u;
+MATCH (u) WHERE EXISTS((u)-[]->({id: 'not a valid id'})) RETURN u;
 
 MATCH (u) WHERE EXISTS((u)-[]->({id: NULL})) RETURN u;
 
@@ -179,9 +179,9 @@ MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) AND EXISTS((v)-[e]->(v)) RETURN u,
 
 MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(x)) RETURN u, e, v;
 
-MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "middle"}) RETURN 1) RETURN u;
+MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: 'middle'}) RETURN 1) RETURN u;
 
-MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "middle"}) RETURN u) RETURN u;
+MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: 'middle'}) RETURN u) RETURN u;
 
 MATCH (u) WHERE u.id = ANY (MATCH (v) RETURN v.id) RETURN u;
 
@@ -192,10 +192,10 @@ MATCH (u) WHERE u.id = SOME (MATCH (v) RETURN v.id) RETURN u;
 MATCH (u) WHERE u.id = ALL (MATCH (v) RETURN v.id) RETURN u;
 
 MATCH (u)
-WHERE EXISTS( MATCH (u)-[]->(v) WHERE v.id = "middle" RETURN 1)
+WHERE EXISTS( MATCH (u)-[]->(v) WHERE v.id = 'middle' RETURN 1)
 RETURN u;
 
-MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "gsjka"}) RETURN 1) RETURN u;
+MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: 'gsjka'}) RETURN 1) RETURN u;
 
 MATCH (u) WHERE EXISTS(MATCH (v {id: 'middle'}) MATCH (u)-[]->(v) RETURN 1) RETURN u;
 
@@ -203,7 +203,7 @@ MATCH (u) WHERE EXISTS(MATCH (v {id: 'middle'}) MATCH (u)-[]->(v) RETURN 1) RETU
 
 MATCH (u) WHERE EXISTS(MATCH (u)-[]->(v {id: 'middle'}) RETURN 1) RETURN u;
 
-MATCH (u) RETURN case WHEN EXISTS(MATCH (u)-[]->({id: "gsjka"}) RETURN 1) THEN 1 ELSE 2 END;
+MATCH (u) RETURN case WHEN EXISTS(MATCH (u)-[]->({id: 'gsjka'}) RETURN 1) THEN 1 ELSE 2 END;
 
 
 MATCH (u) RETURN case WHEN EXISTS(MATCH (u)-[]->() RETURN 1) THEN 1 ELSE 2 END;
@@ -268,7 +268,7 @@ RETURN n.name AS n, type(r),
            m.name AS m, type(s)
 ORDER BY n, p, m, q;
 
-CREATE (u {name: "orphan"}) CREATE (u1 {name: "F"})-[u2:e1]->(u3 {name: "T"}) RETURN u1, u2, u3;
+CREATE (u {name: 'orphan'}) CREATE (u1 {name: 'F'})-[u2:e1]->(u3 {name: 'T'}) RETURN u1, u2, u3;
 
 -- Querying NOT EXISTS syntax
 MATCH (f),(t) WHERE NOT EXISTS((f)-[]->(t)) RETURN f.name, t.name;

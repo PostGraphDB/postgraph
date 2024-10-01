@@ -56,33 +56,33 @@ MATCH (n:v) RETURN n;
 (3 rows)
 
 -- Left relationship
-CREATE (:v {id:"right rel, initial node"})-[:e {id:"right rel"}]->(:v {id:"right rel, end node"});
+CREATE (:v {id:'right rel, initial node'})-[:e {id:'right rel'}]->(:v {id:'right rel, end node'});
 --
 (0 rows)
 
 -- Right relationship
-CREATE (:v {id:"left rel, initial node"})<-[:e {id:"left rel"}]-(:v {id:"left rel, end node"});
+CREATE (:v {id:'left rel, initial node'})<-[:e {id:'left rel'}]-(:v {id:'left rel, end node'});
 --
 (0 rows)
 
 -- Pattern creates a path from the initial node to the last node
-CREATE (:v {id: "path, initial node"})-[:e {id: "path, edge one"}]->(:v {id:"path, middle node"})-[:e {id:"path, edge two"}]->(:v {id:"path, last node"});
+CREATE (:v {id: 'path, initial node'})-[:e {id: 'path, edge one'}]->(:v {id:'path, middle node'})-[:e {id:'path, edge two'}]->(:v {id:'path, last node'});
 --
 (0 rows)
 
 -- middle vertex points to the initial and last vertex
-CREATE (:v {id: "divergent, initial node"})<-[:e {id: "divergent, edge one"}]-(:v {id: "divergent middle node"})-[:e {id: "divergent, edge two"}]->(:v {id: "divergent, end node"});
+CREATE (:v {id: 'divergent, initial node'})<-[:e {id: 'divergent, edge one'}]-(:v {id: 'divergent middle node'})-[:e {id: 'divergent, edge two'}]->(:v {id: 'divergent, end node'});
 --
 (0 rows)
 
 -- initial and last vertex point to the middle vertex
-CREATE (:v {id: "convergent, initial node"})-[:e {id: "convergent, edge one"}]->(:v {id: "convergent middle node"})<-[:e {id: "convergent, edge two"}]-(:v {id: "convergent, end node"});
+CREATE (:v {id: 'convergent, initial node'})-[:e {id: 'convergent, edge one'}]->(:v {id: 'convergent middle node'})<-[:e {id: 'convergent, edge two'}]-(:v {id: 'convergent, end node'});
 --
 (0 rows)
 
 -- Validate Paths work correctly
-CREATE (:v {id: "paths, vertex one"})-[:e {id: "paths, edge one"}]->(:v {id: "paths, vertex two"}),
-       (:v {id: "paths, vertex three"})-[:e {id: "paths, edge two"}]->(:v {id: "paths, vertex four"});
+CREATE (:v {id: 'paths, vertex one'})-[:e {id: 'paths, edge one'}]->(:v {id: 'paths, vertex two'}),
+       (:v {id: 'paths, vertex three'})-[:e {id: 'paths, edge two'}]->(:v {id: 'paths, vertex four'});
 --
 (0 rows)
 
@@ -130,28 +130,29 @@ MATCH (n) RETURN n;
 MATCH ()-[e]-() RETURN e;
 ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-CREATE (:n_var {name: 'Node A'});
+CREATE (:n_var {var_name: 'Node A'});
 --
 (0 rows)
 
-CREATE (:n_var {name: 'Node B'});
+CREATE (:n_var {var_name: 'Node B'});
 --
 (0 rows)
 
-CREATE (:n_var {name: 'Node C'});
+CREATE (:n_var {var_name: 'Node C'});
 --
 (0 rows)
 
-MATCH (a:n_var), (b:n_var) WHERE a.name <> b.name CREATE (a)-[:e_var {name: a.name + ' -> ' + b.name}]->(b);
-ERROR:  operator does not exist: postgraph.gtype -> postgraph.gtype
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-MATCH (a:n_var) CREATE (a)-[:e_var {name: a.name + ' -> ' + a.name}]->(a);
+MATCH (a:n_var), (b:n_var) WHERE a.var_name <> b.var_name CREATE (a)-[:e_var {var_name: a.name + ' -> ' + b.name}]->(b);
+ERROR:  syntax error at or near "name"
+LINE 1: ...ame <> b.var_name CREATE (a)-[:e_var {var_name: a.name + ' -...
+                                                             ^
+MATCH (a:n_var) CREATE (a)-[:e_var {var_name: a.var_name + ' -> ' + a.var_name}]->(a);
 ERROR:  operator does not exist: postgraph.vertex -> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-MATCH (a:n_var) CREATE (a)-[:e_var {name: a.name + ' -> new node'}]->(:n_other_node);
+MATCH (a:n_var) CREATE (a)-[:e_var {var_name: a.var_name + ' -> new node'}]->(:n_other_node);
 ERROR:  operator does not exist: postgraph.vertex -> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-MATCH (a:n_var) WHERE a.name = 'Node A' CREATE (a)-[b:e_var]->();
+MATCH (a:n_var) WHERE a.var_name = 'Node A' CREATE (a)-[b:e_var]->();
 ERROR:  operator does not exist: postgraph.gtype -> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 CREATE (a)-[:b_var]->() RETURN a, id(a);
@@ -170,19 +171,19 @@ CREATE (a)-[b:e_var {id: 0}]->() RETURN a, b, b.id, b.id + 1;
 ERROR:  operator does not exist: postgraph.edge -> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 MATCH (a:n_var) CREATE (a)-[b:e_var]->(a) RETURN a, b;
-                                      a                                       |                                                           b                                                            
-------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------
- {"id": 1407374883553281, "label": "n_var", "properties": {"name": "Node A"}} | {"id": 2533274790395906, "start_id": 1407374883553281, "end_id": 1407374883553281, "label": "e_var", "properties": {}}
- {"id": 1407374883553282, "label": "n_var", "properties": {"name": "Node B"}} | {"id": 2533274790395907, "start_id": 1407374883553282, "end_id": 1407374883553282, "label": "e_var", "properties": {}}
- {"id": 1407374883553283, "label": "n_var", "properties": {"name": "Node C"}} | {"id": 2533274790395908, "start_id": 1407374883553283, "end_id": 1407374883553283, "label": "e_var", "properties": {}}
+                                        a                                         |                                                           b                                                            
+----------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------
+ {"id": 1407374883553281, "label": "n_var", "properties": {"var_name": "Node A"}} | {"id": 2533274790395906, "start_id": 1407374883553281, "end_id": 1407374883553281, "label": "e_var", "properties": {}}
+ {"id": 1407374883553282, "label": "n_var", "properties": {"var_name": "Node B"}} | {"id": 2533274790395907, "start_id": 1407374883553282, "end_id": 1407374883553282, "label": "e_var", "properties": {}}
+ {"id": 1407374883553283, "label": "n_var", "properties": {"var_name": "Node C"}} | {"id": 2533274790395908, "start_id": 1407374883553283, "end_id": 1407374883553283, "label": "e_var", "properties": {}}
 (3 rows)
 
 MATCH (a:n_var) CREATE (a)-[b:e_var]->(c) RETURN a, b, c;
-                                      a                                       |                                                           b                                                           |                           c                            
-------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------
- {"id": 1407374883553281, "label": "n_var", "properties": {"name": "Node A"}} | {"id": 2533274790395909, "start_id": 1407374883553281, "end_id": 281474976710662, "label": "e_var", "properties": {}} | {"id": 281474976710662, "label": "", "properties": {}}
- {"id": 1407374883553282, "label": "n_var", "properties": {"name": "Node B"}} | {"id": 2533274790395910, "start_id": 1407374883553282, "end_id": 281474976710663, "label": "e_var", "properties": {}} | {"id": 281474976710663, "label": "", "properties": {}}
- {"id": 1407374883553283, "label": "n_var", "properties": {"name": "Node C"}} | {"id": 2533274790395911, "start_id": 1407374883553283, "end_id": 281474976710664, "label": "e_var", "properties": {}} | {"id": 281474976710664, "label": "", "properties": {}}
+                                        a                                         |                                                           b                                                           |                           c                            
+----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------
+ {"id": 1407374883553281, "label": "n_var", "properties": {"var_name": "Node A"}} | {"id": 2533274790395909, "start_id": 1407374883553281, "end_id": 281474976710662, "label": "e_var", "properties": {}} | {"id": 281474976710662, "label": "", "properties": {}}
+ {"id": 1407374883553282, "label": "n_var", "properties": {"var_name": "Node B"}} | {"id": 2533274790395910, "start_id": 1407374883553282, "end_id": 281474976710663, "label": "e_var", "properties": {}} | {"id": 281474976710663, "label": "", "properties": {}}
+ {"id": 1407374883553283, "label": "n_var", "properties": {"var_name": "Node C"}} | {"id": 2533274790395911, "start_id": 1407374883553283, "end_id": 281474976710664, "label": "e_var", "properties": {}} | {"id": 281474976710664, "label": "", "properties": {}}
 (3 rows)
 
 CREATE (a)-[:e_var]->() RETURN a;
@@ -210,11 +211,11 @@ CREATE p=(a {id:0})-[:e_var]->(a) RETURN p;
 (1 row)
 
 MATCH (a:n_var) CREATE p=(a)-[:e_var]->(a) RETURN p;
-                                                                                                                                          p                                                                                                                                           
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 1407374883553281, "label": "n_var", "properties": {"name": "Node A"}}, {"id": 2533274790395916, "start_id": 1407374883553281, "end_id": 1407374883553281, "label": "e_var", "properties": {}}, {"id": 1407374883553281, "label": "n_var", "properties": {"name": "Node A"}}]
- [{"id": 1407374883553282, "label": "n_var", "properties": {"name": "Node B"}}, {"id": 2533274790395917, "start_id": 1407374883553282, "end_id": 1407374883553282, "label": "e_var", "properties": {}}, {"id": 1407374883553282, "label": "n_var", "properties": {"name": "Node B"}}]
- [{"id": 1407374883553283, "label": "n_var", "properties": {"name": "Node C"}}, {"id": 2533274790395918, "start_id": 1407374883553283, "end_id": 1407374883553283, "label": "e_var", "properties": {}}, {"id": 1407374883553283, "label": "n_var", "properties": {"name": "Node C"}}]
+                                                                                                                                              p                                                                                                                                               
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 1407374883553281, "label": "n_var", "properties": {"var_name": "Node A"}}, {"id": 2533274790395916, "start_id": 1407374883553281, "end_id": 1407374883553281, "label": "e_var", "properties": {}}, {"id": 1407374883553281, "label": "n_var", "properties": {"var_name": "Node A"}}]
+ [{"id": 1407374883553282, "label": "n_var", "properties": {"var_name": "Node B"}}, {"id": 2533274790395917, "start_id": 1407374883553282, "end_id": 1407374883553282, "label": "e_var", "properties": {}}, {"id": 1407374883553282, "label": "n_var", "properties": {"var_name": "Node B"}}]
+ [{"id": 1407374883553283, "label": "n_var", "properties": {"var_name": "Node C"}}, {"id": 2533274790395918, "start_id": 1407374883553283, "end_id": 1407374883553283, "label": "e_var", "properties": {}}, {"id": 1407374883553283, "label": "n_var", "properties": {"var_name": "Node C"}}]
 (3 rows)
 
 CREATE p=(a)-[:e_var]->(), (a)-[b:e_var]->(a) RETURN p, b;
@@ -223,15 +224,15 @@ CREATE p=(a)-[:e_var]->(), (a)-[b:e_var]->(a) RETURN p, b;
  [{"id": 281474976710672, "label": "", "properties": {}}, {"id": 2533274790395919, "start_id": 281474976710672, "end_id": 281474976710673, "label": "e_var", "properties": {}}, {"id": 281474976710673, "label": "", "properties": {}}] | {"id": 2533274790395920, "start_id": 281474976710672, "end_id": 281474976710672, "label": "e_var", "properties": {}}
 (1 row)
 
-MATCH (a:n_var) WHERE a.name = 'Node Z' CREATE (a)-[:e_var {name: a.name + ' -> doesnt exist'}]->(:n_other_node) RETURN a;
+MATCH (a:n_var) WHERE a.var_name = 'Node Z' CREATE (a)-[:e_var {var_name: a.var_name + ' -> doesnt exist'}]->(:n_other_node) RETURN a;
 ERROR:  operator does not exist: postgraph.gtype -> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 MATCH (n:n_var) RETURN n;
-                                      n                                       
-------------------------------------------------------------------------------
- {"id": 1407374883553281, "label": "n_var", "properties": {"name": "Node A"}}
- {"id": 1407374883553282, "label": "n_var", "properties": {"name": "Node B"}}
- {"id": 1407374883553283, "label": "n_var", "properties": {"name": "Node C"}}
+                                        n                                         
+----------------------------------------------------------------------------------
+ {"id": 1407374883553281, "label": "n_var", "properties": {"var_name": "Node A"}}
+ {"id": 1407374883553282, "label": "n_var", "properties": {"var_name": "Node B"}}
+ {"id": 1407374883553283, "label": "n_var", "properties": {"var_name": "Node C"}}
 (3 rows)
 
 MATCH ()-[e:e_var]->() RETURN e;
@@ -296,9 +297,9 @@ MATCH (n) RETURN n;
  {"id": 844424930131986, "label": "v", "properties": {"id": "paths, vertex two"}}
  {"id": 844424930131987, "label": "v", "properties": {"id": "paths, vertex three"}}
  {"id": 844424930131988, "label": "v", "properties": {"id": "paths, vertex four"}}
- {"id": 1407374883553281, "label": "n_var", "properties": {"name": "Node A"}}
- {"id": 1407374883553282, "label": "n_var", "properties": {"name": "Node B"}}
- {"id": 1407374883553283, "label": "n_var", "properties": {"name": "Node C"}}
+ {"id": 1407374883553281, "label": "n_var", "properties": {"var_name": "Node A"}}
+ {"id": 1407374883553282, "label": "n_var", "properties": {"var_name": "Node B"}}
+ {"id": 1407374883553283, "label": "n_var", "properties": {"var_name": "Node C"}}
 (40 rows)
 
 -- prepared statements
@@ -308,8 +309,8 @@ EXECUTE p_1;
 EXECUTE p_1;
 
 PREPARE p_2 AS SELECT * FROM cypher('cypher_create', $$CREATE (v:new_vertex {key: $var_name}) RETURN v$$, $1) AS (a vertex);
-EXECUTE p_2('{"var_name": "Hello Prepared Statements"}');
-EXECUTE p_2('{"var_name": "Hello Prepared Statements 2"}');
+EXECUTE p_2('{'var_name': 'Hello Prepared Statements'}');
+EXECUTE p_2('{'var_name': 'Hello Prepared Statements 2'}');
 
 -- pl/pgsql
 CREATE FUNCTION create_test()
@@ -357,14 +358,14 @@ END;
 -- Errors
 --
 -- Var 'a' cannot have properties in the create clause
-MATCH (a:n_var) WHERE a.name = 'Node A' CREATE (a {test:1})-[:e_var]->();
+MATCH (a:n_var) WHERE a.var_name = 'Node A' CREATE (a {test:1})-[:e_var]->();
 ERROR:  operator does not exist: postgraph.gtype -> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 -- Var 'a' cannot change labels
-MATCH (a:n_var) WHERE a.name = 'Node A' CREATE (a:new_label)-[:e_var]->();
+MATCH (a:n_var) WHERE a.var_name = 'Node A' CREATE (a:new_label)-[:e_var]->();
 ERROR:  operator does not exist: postgraph.gtype -> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-MATCH (a:n_var)-[b]-() WHERE a.name = 'Node A' CREATE (a)-[b:e_var]->();
+MATCH (a:n_var)-[b]-() WHERE a.var_name = 'Node A' CREATE (a)-[b:e_var]->();
 ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 --CREATE with joins

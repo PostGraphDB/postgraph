@@ -187,38 +187,39 @@ HINT:  No operator matches the given name and argument types. You might need to 
 --
 -- Property constraints
 --
-CREATE ({string_key: "test", int_key: 1, float_key: 3.14, map_key: {key: "value"}, list_key: [1, 2, 3]});
---
-(0 rows)
-
-CREATE ({lst: [1, NULL, 3.14, "string", {key: "value"}, []]});
---
-(0 rows)
-
+CREATE ({string_key: 'test', int_key: 1, float_key: 3.14, map_key: {key: 'value'}, list_key: [1, 2, 3]});
+ERROR:  syntax error at or near "key"
+LINE 1: ...y: 'test', int_key: 1, float_key: 3.14, map_key: {key: 'valu...
+                                                             ^
+CREATE ({lst: [1, NULL, 3.14, 'string', {key: 'value'}, []]});
+ERROR:  syntax error at or near "key"
+LINE 1: CREATE ({lst: [1, NULL, 3.14, 'string', {key: 'value'}, []]}...
+                                                 ^
 MATCH (n  {string_key: NULL}) RETURN n;
 ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-MATCH (n  {string_key: "wrong value"}) RETURN n ;
+MATCH (n  {string_key: 'wrong value'}) RETURN n ;
 ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-MATCH (n {string_key: "test", int_key: 1, float_key: 3.14, map_key: {key: "value"}, list_key: [1, 2, 3]}) RETURN n;
+MATCH (n {string_key: 'test', int_key: 1, float_key: 3.14, map_key: {key: 'value'}, list_key: [1, 2, 3]}) RETURN n;
+ERROR:  syntax error at or near "key"
+LINE 1: ...y: 'test', int_key: 1, float_key: 3.14, map_key: {key: 'valu...
+                                                             ^
+MATCH (n {string_key: 'test'}) RETURN n;
 ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-MATCH (n {string_key: "test"}) RETURN n;
-ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-MATCH (n {lst: [1, NULL, 3.14, "string", {key: "value"}, []]}) RETURN n;
-ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-MATCH (n {lst: [1, NULL, 3.14, "string", {key: "value"}, [], "extra value"]})  RETURN n;
-ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+MATCH (n {lst: [1, NULL, 3.14, 'string', {key: 'value'}, []]}) RETURN n;
+ERROR:  syntax error at or near "key"
+LINE 1: MATCH (n {lst: [1, NULL, 3.14, 'string', {key: 'value'}, []]...
+                                                  ^
+MATCH (n {lst: [1, NULL, 3.14, 'string', {key: 'value'}, [], 'extra value']})  RETURN n;
+ERROR:  syntax error at or near "key"
+LINE 1: MATCH (n {lst: [1, NULL, 3.14, 'string', {key: 'value'}, [],...
+                                                  ^
 -- Path of one vertex.
 MATCH p=() RETURN p;
-                                                                                 p                                                                                 
--------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 281474976710657, "label": "", "properties": {"int_key": 1, "map_key": {"key": "value"}, "list_key": [1, 2, 3], "float_key": 3.14, "string_key": "test"}}]
- [{"id": 281474976710658, "label": "", "properties": {"lst": [1, null, 3.14, "string", {"key": "value"}, []]}}]
+                                     p                                      
+----------------------------------------------------------------------------
  [{"id": 2251799813685249, "label": "v3", "properties": {"id": "initial"}}]
  [{"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}]
  [{"id": 2251799813685251, "label": "v3", "properties": {"id": "end"}}]
@@ -231,7 +232,7 @@ MATCH p=() RETURN p;
  [{"id": 844424930131969, "label": "v", "properties": {}}]
  [{"id": 844424930131970, "label": "v", "properties": {"i": 0}}]
  [{"id": 844424930131971, "label": "v", "properties": {"i": 1}}]
-(14 rows)
+(12 rows)
 
 --
 -- MATCH with WHERE EXISTS(pattern)
@@ -243,9 +244,9 @@ MATCH (u)-[e]->(v) WHERE EXISTS ((u)-[e]->(v)) RETURN u, e, v;
 ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 -- Property Constraint in EXISTS
-MATCH (u) WHERE EXISTS((u)-[]->({id: "middle"})) RETURN u;
+MATCH (u) WHERE EXISTS((u)-[]->({id: 'middle'})) RETURN u;
 ERROR:  MATCH cannot be the last clause in a cypher statement
-MATCH (u) WHERE EXISTS((u)-[]->({id: "not a valid id"})) RETURN u;
+MATCH (u) WHERE EXISTS((u)-[]->({id: 'not a valid id'})) RETURN u;
 ERROR:  MATCH cannot be the last clause in a cypher statement
 MATCH (u) WHERE EXISTS((u)-[]->({id: NULL})) RETURN u;
 ERROR:  MATCH cannot be the last clause in a cypher statement
@@ -282,10 +283,10 @@ HINT:  No operator matches the given name and argument types. You might need to 
 MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(x)) RETURN u, e, v;
 ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "middle"}) RETURN 1) RETURN u;
+MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: 'middle'}) RETURN 1) RETURN u;
 ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "middle"}) RETURN u) RETURN u;
+MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: 'middle'}) RETURN u) RETURN u;
 ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 MATCH (u) WHERE u.id = ANY (MATCH (v) RETURN v.id) RETURN u;
@@ -301,11 +302,11 @@ MATCH (u) WHERE u.id = ALL (MATCH (v) RETURN v.id) RETURN u;
 ERROR:  operator does not exist: postgraph.vertex -> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 MATCH (u)
-WHERE EXISTS( MATCH (u)-[]->(v) WHERE v.id = "middle" RETURN 1)
+WHERE EXISTS( MATCH (u)-[]->(v) WHERE v.id = 'middle' RETURN 1)
 RETURN u;
 ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: "gsjka"}) RETURN 1) RETURN u;
+MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: 'gsjka'}) RETURN 1) RETURN u;
 ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 MATCH (u) WHERE EXISTS(MATCH (v {id: 'middle'}) MATCH (u)-[]->(v) RETURN 1) RETURN u;
@@ -317,7 +318,7 @@ HINT:  No operator matches the given name and argument types. You might need to 
 MATCH (u) WHERE EXISTS(MATCH (u)-[]->(v {id: 'middle'}) RETURN 1) RETURN u;
 ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-MATCH (u) RETURN case WHEN EXISTS(MATCH (u)-[]->({id: "gsjka"}) RETURN 1) THEN 1 ELSE 2 END;
+MATCH (u) RETURN case WHEN EXISTS(MATCH (u)-[]->({id: 'gsjka'}) RETURN 1) THEN 1 ELSE 2 END;
 ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 MATCH (u) RETURN case WHEN EXISTS(MATCH (u)-[]->() RETURN 1) THEN 1 ELSE 2 END;
@@ -365,10 +366,8 @@ HINT:  No operator matches the given name and argument types. You might need to 
 -- Limit & Skip
 --
 MATCH (u) RETURN u;
-                                                                                u                                                                                
------------------------------------------------------------------------------------------------------------------------------------------------------------------
- {"id": 281474976710657, "label": "", "properties": {"int_key": 1, "map_key": {"key": "value"}, "list_key": [1, 2, 3], "float_key": 3.14, "string_key": "test"}}
- {"id": 281474976710658, "label": "", "properties": {"lst": [1, null, 3.14, "string", {"key": "value"}, []]}}
+                                     u                                      
+----------------------------------------------------------------------------
  {"id": 844424930131969, "label": "v", "properties": {}}
  {"id": 844424930131970, "label": "v", "properties": {"i": 0}}
  {"id": 844424930131971, "label": "v", "properties": {"i": 1}}
@@ -385,21 +384,19 @@ MATCH (u) RETURN u;
  {"id": 3377699720527873, "label": "duplicate", "properties": {}}
  {"id": 3940649673949185, "label": "other_v", "properties": {}}
  {"id": 3940649673949186, "label": "other_v", "properties": {}}
-(18 rows)
+(16 rows)
 
 MATCH (u) RETURN u LIMIT 3;
-                                                                                u                                                                                
------------------------------------------------------------------------------------------------------------------------------------------------------------------
- {"id": 281474976710657, "label": "", "properties": {"int_key": 1, "map_key": {"key": "value"}, "list_key": [1, 2, 3], "float_key": 3.14, "string_key": "test"}}
- {"id": 281474976710658, "label": "", "properties": {"lst": [1, null, 3.14, "string", {"key": "value"}, []]}}
+                               u                               
+---------------------------------------------------------------
  {"id": 844424930131969, "label": "v", "properties": {}}
+ {"id": 844424930131970, "label": "v", "properties": {"i": 0}}
+ {"id": 844424930131971, "label": "v", "properties": {"i": 1}}
 (3 rows)
 
 MATCH (u) RETURN u SKIP 7;
                                      u                                      
 ----------------------------------------------------------------------------
- {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}
- {"id": 1688849860263937, "label": "v2", "properties": {"id": "initial"}}
  {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}
  {"id": 1688849860263939, "label": "v2", "properties": {"id": "end"}}
  {"id": 2251799813685249, "label": "v3", "properties": {"id": "initial"}}
@@ -409,14 +406,14 @@ MATCH (u) RETURN u SKIP 7;
  {"id": 3377699720527873, "label": "duplicate", "properties": {}}
  {"id": 3940649673949185, "label": "other_v", "properties": {}}
  {"id": 3940649673949186, "label": "other_v", "properties": {}}
-(11 rows)
+(9 rows)
 
 MATCH (u) RETURN u SKIP 7 LIMIT 3;
                                     u                                     
 --------------------------------------------------------------------------
- {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}
- {"id": 1688849860263937, "label": "v2", "properties": {"id": "initial"}}
  {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}
+ {"id": 1688849860263939, "label": "v2", "properties": {"id": "end"}}
+ {"id": 2251799813685249, "label": "v3", "properties": {"id": "initial"}}
 (3 rows)
 
 --
@@ -424,17 +421,17 @@ MATCH (u) RETURN u SKIP 7 LIMIT 3;
 --
 CREATE (:opt_match_v {name: 'someone'})-[:opt_match_e]->(:opt_match_v {name: 'somebody'}),
         (:opt_match_v {name: 'anybody'})-[:opt_match_e]->(:opt_match_v {name: 'nobody'});
---
-(0 rows)
-
+ERROR:  syntax error at or near "name"
+LINE 1: CREATE (:opt_match_v {name: 'someone'})-[:opt_match_e]->(:op...
+                              ^
 MATCH (u:opt_match_v) OPTIONAL MATCH (u)-[m]-(l) RETURN u.name as u, type(m), l.name as l ORDER BY u, m, l;
-ERROR:  syntax error at or near "("
-LINE 1: ...PTIONAL MATCH (u)-[m]-(l) RETURN u.name as u, type(m), l.nam...
+ERROR:  syntax error at or near "name"
+LINE 1: ...:opt_match_v) OPTIONAL MATCH (u)-[m]-(l) RETURN u.name as u,...
                                                              ^
 OPTIONAL MATCH (n:opt_match_v)-[r]->(p), (m:opt_match_v)-[s]->(q) WHERE id(n) <> id(m) RETURN n.name as n, type(r); m.name AS m, type(s); ORDER BY n, p, m, q;
-ERROR:  syntax error at or near "("
-LINE 1: ...)-[s]->(q) WHERE id(n) <> id(m) RETURN n.name as n, type(r);
-                                                                   ^
+ERROR:  syntax error at or near "name"
+LINE 1: ...t_match_v)-[s]->(q) WHERE id(n) <> id(m) RETURN n.name as n,...
+                                                             ^
 ERROR:  syntax error at or near "m"
 LINE 1: m.name AS m, type(s);
         ^
@@ -447,21 +444,23 @@ OPTIONAL MATCH (n)-[r]->(p), (m)-[s]->(q)
 RETURN n.name AS n, type(r),
            m.name AS m, type(s)
 ORDER BY n, p, m, q;
-ERROR:  syntax error at or near "("
+ERROR:  syntax error at or near "name"
 LINE 4: RETURN n.name AS n, type(r),
-                                ^
-CREATE (u {name: "orphan"}) CREATE (u1 {name: "F"})-[u2:e1]->(u3 {name: "T"}) RETURN u1, u2, u3;
-                                u1                                 |                                                        u2                                                         |                                u3                                 
--------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------
- {"id": 281474976710660, "label": "", "properties": {"name": "F"}} | {"id": 1407374883553283, "start_id": 281474976710660, "end_id": 281474976710661, "label": "e1", "properties": {}} | {"id": 281474976710661, "label": "", "properties": {"name": "T"}}
-(1 row)
-
+                 ^
+CREATE (u {name: 'orphan'}) CREATE (u1 {name: 'F'})-[u2:e1]->(u3 {name: 'T'}) RETURN u1, u2, u3;
+ERROR:  syntax error at or near "name"
+LINE 1: CREATE (u {name: 'orphan'}) CREATE (u1 {name: 'F'})-[u2:e1]-...
+                   ^
 -- Querying NOT EXISTS syntax
 MATCH (f),(t) WHERE NOT EXISTS((f)-[]->(t)) RETURN f.name, t.name;
-ERROR:  MATCH cannot be the last clause in a cypher statement
+ERROR:  syntax error at or near "name"
+LINE 1: ...CH (f),(t) WHERE NOT EXISTS((f)-[]->(t)) RETURN f.name, t.na...
+                                                             ^
 -- Querying EXISTS syntax
 MATCH (f),(t) WHERE EXISTS((f)-[]->(t)) RETURN f.name, t.name;
-ERROR:  MATCH cannot be the last clause in a cypher statement
+ERROR:  syntax error at or near "name"
+LINE 1: MATCH (f),(t) WHERE EXISTS((f)-[]->(t)) RETURN f.name, t.nam...
+                                                         ^
 --
 -- Constraints and WHERE clause together
 --
@@ -516,7 +515,7 @@ LINE 1: MATCH (n:vmissing)-[]-() RETURN n;
 -- Clean up
 --
 DROP GRAPH cypher_match CASCADE;
-NOTICE:  drop cascades to 16 other objects
+NOTICE:  drop cascades to 14 other objects
 DETAIL:  drop cascades to table cypher_match._ag_label_vertex
 drop cascades to table cypher_match._ag_label_edge
 drop cascades to table cypher_match.v
@@ -531,8 +530,6 @@ drop cascades to table cypher_match.self
 drop cascades to table cypher_match.duplicate
 drop cascades to table cypher_match.dup_edge
 drop cascades to table cypher_match.other_v
-drop cascades to table cypher_match.opt_match_v
-drop cascades to table cypher_match.opt_match_e
 NOTICE:  graph "cypher_match" has been dropped
  drop_graph 
 ------------

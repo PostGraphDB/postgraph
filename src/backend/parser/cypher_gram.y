@@ -99,6 +99,7 @@ static void insertSelectOptions(SelectStmt *stmt,
 static void updateRawStmtEnd(RawStmt *rs, int end_location);
 static RawStmt *makeRawStmt(Node *stmt, int stmt_location);
 static Node *makeStringConst(char *str, int location);
+static Node *makeStringConstCast(char *str, int location, TypeName *typename);
 static Node *makeIntConst(int val, int location);
 static Node *makeFloatConst(char *str, int location);
 static Node *makeBoolAConst(bool state, int location);
@@ -464,7 +465,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <sortby>	sortby
 %type <integer>	 OptTemp opt_asc_desc
 
-%type <typnam>	Typename SimpleTypename 
+%type <typnam>	Typename SimpleTypename ConstTypename
                 GenericType Numeric opt_float
 				ConstDatetime
 %type <boolean> opt_timezone opt_no_inherit
@@ -6737,14 +6738,14 @@ AexprConst: Iconst
 				{
 
 					$$ = makeBitStringConst($1, @1);
-				}
+				}*/
 			| func_name Sconst
 				{
 					TypeName *t = makeTypeNameFromNameList($1);
 					t->location = @1;
 					$$ = makeStringConstCast($2, @2, t);
 				}
-			| func_name '(' func_arg_list opt_sort_clause ')' Sconst
+			/*| func_name '(' func_arg_list opt_sort_clause ')' Sconst
 				{
 					TypeName *t = makeTypeNameFromNameList($1);
 					ListCell *lc;
@@ -6768,12 +6769,12 @@ AexprConst: Iconst
 					t->typmods = $3;
 					t->location = @1;
 					$$ = makeStringConstCast($6, @6, t);
-				}
+				}*/
 			| ConstTypename Sconst
 				{
 					$$ = makeStringConstCast($2, @2, $1);
 				}
-			| ConstInterval Sconst opt_interval
+			/*| ConstInterval Sconst opt_interval
 				{
 					TypeName *t = $1;
 					t->typmods = $3;
@@ -6923,6 +6924,25 @@ SimpleTypename:
 											 makeIntConst($3, @3));
 				}*/
 		;
+
+/* We have a separate ConstTypename to allow defaulting fixed-length
+ * types such as CHAR() and BIT() to an unspecified length.
+ * SQL9x requires that these default to a length of one, but this
+ * makes no sense for constructs like CHAR 'hi' and BIT '0101',
+ * where there is an obvious better choice to make.
+ * Note that ConstInterval is not included here since it must
+ * be pushed up higher in the rules to accommodate the postfix
+ * options (e.g. INTERVAL '1' YEAR). Likewise, we have to handle
+ * the generic-type-name case in AexprConst to avoid premature
+ * reduce/reduce conflicts against function names.
+ */
+ConstTypename:
+			Numeric									{ $$ = $1; }
+		/*	| ConstBit								{ $$ = $1; }
+			| ConstCharacter						{ $$ = $1; }
+			| ConstDatetime							{ $$ = $1; }*/
+		;
+
 
 /*
  * GenericType covers all type names that don't have special syntax mandated
@@ -8530,11 +8550,11 @@ cypher_func_name:
     ;
 
 property_key_name:
-    ColId
+    schema_name
     ;
 
 cypher_var_name:
-    ColId
+    symbolic_name
     ;
 
 var_name_opt:
@@ -9471,4 +9491,12 @@ mergeTableFuncParameters(List *func_args, List *columns)
 	}
 
 	return list_concat(func_args, columns);
+}
+
+static Node *
+makeStringConstCast(char *str, int location, TypeName *typename)
+{
+	Node *s = makeStringConst(str, location);
+
+	return makeTypeCast(s, typename, -1);
 }

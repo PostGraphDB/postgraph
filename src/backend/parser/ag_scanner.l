@@ -712,7 +712,6 @@ ag_token token;
                     scan_errposition()));
 }
 
-<dqstr>{dquote} |
 <sqstr>{squote} {
     BEGIN(INITIAL);
 
@@ -723,6 +722,21 @@ ag_token token;
      */
 
     token.type = AG_TOKEN_STRING;
+    token.value.s = strbuf_get_str(&yyextra.literal_buf);
+    token.location = get_location();
+    return token;
+}
+
+<dqstr>{dquote} {
+    BEGIN(INITIAL);
+
+    /*
+     * In quoted strings, only Unicode escape sequences need to be verified,
+     * and the actions for <dqstr,sqstr>{esunicode} and <qstru>{esunicode}
+     * rules verify the code point values. So, quoted strings are always valid.
+     */
+
+    token.type = AG_TOKEN_IDENTIFIER;
     token.value.s = strbuf_get_str(&yyextra.literal_buf);
     token.location = get_location();
     return token;

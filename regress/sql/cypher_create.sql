@@ -35,23 +35,23 @@ CREATE (:v {prop_key: 'value'});
 MATCH (n:v) RETURN n;
 
 -- Left relationship
-CREATE (:v {id:"right rel, initial node"})-[:e {id:"right rel"}]->(:v {id:"right rel, end node"});
+CREATE (:v {id:'right rel, initial node'})-[:e {id:'right rel'}]->(:v {id:'right rel, end node'});
 
 -- Right relationship
-CREATE (:v {id:"left rel, initial node"})<-[:e {id:"left rel"}]-(:v {id:"left rel, end node"});
+CREATE (:v {id:'left rel, initial node'})<-[:e {id:'left rel'}]-(:v {id:'left rel, end node'});
 
 -- Pattern creates a path from the initial node to the last node
-CREATE (:v {id: "path, initial node"})-[:e {id: "path, edge one"}]->(:v {id:"path, middle node"})-[:e {id:"path, edge two"}]->(:v {id:"path, last node"});
+CREATE (:v {id: 'path, initial node'})-[:e {id: 'path, edge one'}]->(:v {id:'path, middle node'})-[:e {id:'path, edge two'}]->(:v {id:'path, last node'});
 
 -- middle vertex points to the initial and last vertex
-CREATE (:v {id: "divergent, initial node"})<-[:e {id: "divergent, edge one"}]-(:v {id: "divergent middle node"})-[:e {id: "divergent, edge two"}]->(:v {id: "divergent, end node"});
+CREATE (:v {id: 'divergent, initial node'})<-[:e {id: 'divergent, edge one'}]-(:v {id: 'divergent middle node'})-[:e {id: 'divergent, edge two'}]->(:v {id: 'divergent, end node'});
 
 -- initial and last vertex point to the middle vertex
-CREATE (:v {id: "convergent, initial node"})-[:e {id: "convergent, edge one"}]->(:v {id: "convergent middle node"})<-[:e {id: "convergent, edge two"}]-(:v {id: "convergent, end node"});
+CREATE (:v {id: 'convergent, initial node'})-[:e {id: 'convergent, edge one'}]->(:v {id: 'convergent middle node'})<-[:e {id: 'convergent, edge two'}]-(:v {id: 'convergent, end node'});
 
 -- Validate Paths work correctly
-CREATE (:v {id: "paths, vertex one"})-[:e {id: "paths, edge one"}]->(:v {id: "paths, vertex two"}),
-       (:v {id: "paths, vertex three"})-[:e {id: "paths, edge two"}]->(:v {id: "paths, vertex four"});
+CREATE (:v {id: 'paths, vertex one'})-[:e {id: 'paths, edge one'}]->(:v {id: 'paths, vertex two'}),
+       (:v {id: 'paths, vertex three'})-[:e {id: 'paths, edge two'}]->(:v {id: 'paths, vertex four'});
 
 --edge with double relationship will throw an error
 CREATE (:v)<-[:e]->();
@@ -65,17 +65,17 @@ CREATE (:v)-[]->(:v);
 MATCH (n) RETURN n;
 MATCH ()-[e]-() RETURN e;
 
-CREATE (:n_var {name: 'Node A'});
-CREATE (:n_var {name: 'Node B'});
-CREATE (:n_var {name: 'Node C'});
+CREATE (:n_var {var_name: 'Node A'});
+CREATE (:n_var {var_name: 'Node B'});
+CREATE (:n_var {var_name: 'Node C'});
 
-MATCH (a:n_var), (b:n_var) WHERE a.name <> b.name CREATE (a)-[:e_var {name: a.name + ' -> ' + b.name}]->(b);
+MATCH (a:n_var), (b:n_var) WHERE a.var_name <> b.var_name CREATE (a)-[:e_var {var_name: a.name + ' -> ' + b.name}]->(b);
 
-MATCH (a:n_var) CREATE (a)-[:e_var {name: a.name + ' -> ' + a.name}]->(a);
+MATCH (a:n_var) CREATE (a)-[:e_var {var_name: a.var_name + ' -> ' + a.var_name}]->(a);
 
-MATCH (a:n_var) CREATE (a)-[:e_var {name: a.name + ' -> new node'}]->(:n_other_node);
+MATCH (a:n_var) CREATE (a)-[:e_var {var_name: a.var_name + ' -> new node'}]->(:n_other_node);
 
-MATCH (a:n_var) WHERE a.name = 'Node A' CREATE (a)-[b:e_var]->();
+MATCH (a:n_var) WHERE a.var_name = 'Node A' CREATE (a)-[b:e_var]->();
 
 CREATE (a)-[:b_var]->() RETURN a, id(a);
 
@@ -99,7 +99,7 @@ MATCH (a:n_var) CREATE p=(a)-[:e_var]->(a) RETURN p;
 
 CREATE p=(a)-[:e_var]->(), (a)-[b:e_var]->(a) RETURN p, b;
 
-MATCH (a:n_var) WHERE a.name = 'Node Z' CREATE (a)-[:e_var {name: a.name + ' -> doesnt exist'}]->(:n_other_node) RETURN a;
+MATCH (a:n_var) WHERE a.var_name = 'Node Z' CREATE (a)-[:e_var {var_name: a.var_name + ' -> doesnt exist'}]->(:n_other_node) RETURN a;
 
 MATCH (n:n_var) RETURN n;
 MATCH ()-[e:e_var]->() RETURN e;
@@ -114,8 +114,8 @@ EXECUTE p_1;
 EXECUTE p_1;
 
 PREPARE p_2 AS SELECT * FROM cypher('cypher_create', $$CREATE (v:new_vertex {key: $var_name}) RETURN v$$, $1) AS (a vertex);
-EXECUTE p_2('{"var_name": "Hello Prepared Statements"}');
-EXECUTE p_2('{"var_name": "Hello Prepared Statements 2"}');
+EXECUTE p_2('{'var_name': 'Hello Prepared Statements'}');
+EXECUTE p_2('{'var_name': 'Hello Prepared Statements 2'}');
 
 -- pl/pgsql
 CREATE FUNCTION create_test()
@@ -165,12 +165,12 @@ END;
 -- Errors
 --
 -- Var 'a' cannot have properties in the create clause
-MATCH (a:n_var) WHERE a.name = 'Node A' CREATE (a {test:1})-[:e_var]->();
+MATCH (a:n_var) WHERE a.var_name = 'Node A' CREATE (a {test:1})-[:e_var]->();
 
 -- Var 'a' cannot change labels
-MATCH (a:n_var) WHERE a.name = 'Node A' CREATE (a:new_label)-[:e_var]->();
+MATCH (a:n_var) WHERE a.var_name = 'Node A' CREATE (a:new_label)-[:e_var]->();
 
-MATCH (a:n_var)-[b]-() WHERE a.name = 'Node A' CREATE (a)-[b:e_var]->();
+MATCH (a:n_var)-[b]-() WHERE a.var_name = 'Node A' CREATE (a)-[b:e_var]->();
 
 --CREATE with joins
 /*

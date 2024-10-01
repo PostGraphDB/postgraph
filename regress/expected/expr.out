@@ -49,14 +49,14 @@ ERROR:  operator is not unique: postgraph.gtype < postgraph.gtype
 LINE 1: RETURN -1.0 < 1;
                     ^
 HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
-RETURN "aaa" < "z";
+RETURN 'aaa' < 'z';
 ERROR:  operator is not unique: postgraph.gtype < postgraph.gtype
-LINE 1: RETURN "aaa" < "z";
+LINE 1: RETURN 'aaa' < 'z';
                      ^
 HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
-RETURN "z" > "aaa";
+RETURN 'z' > 'aaa';
 ERROR:  operator is not unique: postgraph.gtype > postgraph.gtype
-LINE 1: RETURN "z" > "aaa";
+LINE 1: RETURN 'z' > 'aaa';
                    ^
 HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
 RETURN false = false;
@@ -64,9 +64,9 @@ ERROR:  operator is not unique: postgraph.gtype = postgraph.gtype
 LINE 1: RETURN false = false;
                      ^
 HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
-RETURN ("string" < true);
+RETURN ('string' < true);
 ERROR:  operator is not unique: postgraph.gtype < postgraph.gtype
-LINE 1: RETURN ("string" < true);
+LINE 1: RETURN ('string' < true);
                          ^
 HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
 RETURN true < 1;
