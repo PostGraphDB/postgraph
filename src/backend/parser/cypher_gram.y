@@ -112,6 +112,8 @@ static RoleSpec *makeRoleSpec(RoleSpecType type, int location);
 static Node *makeAArrayExpr(List *elements, int location);
 static Node *makeXmlExpr(XmlExprOp op, char *name, List *named_args, List *args, int location);
 static List *extractArgTypes(List *parameters);
+static List *mergeTableFuncParameters(List *func_args, List *columns);
+static TypeName *TableFuncTypeName(List *columns);
 static void processCASbits(int cas_bits, int location, const char *constrType,
 			   bool *deferrable, bool *initdeferred, bool *not_valid,
 			   bool *no_inherit, ag_scanner_t yyscanner);
@@ -438,6 +440,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 			 attrs opt_class
              var_list
 			 create_generic_options
+			 table_func_column_list
 			 transform_type_list
 			 drop_option_list
 
@@ -468,7 +471,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
 
 %type <defelt>	createfunc_opt_item common_func_opt_item 
-%type <fun_param> func_arg func_arg_with_default 
+%type <fun_param> func_arg func_arg_with_default table_func_column
 %type <integer> arg_class
 %type <typnam>	func_return func_type
 
@@ -3176,7 +3179,7 @@ CreateFunctionStmt:
 					n->sql_body = $9;
 					$$ = (Node *)n;
 				}
-			/*| CREATE opt_or_replace FUNCTION func_name func_args_with_defaults
+			| CREATE opt_or_replace FUNCTION func_name func_args_with_defaults
 			  RETURNS TABLE '(' table_func_column_list ')' opt_createfunc_opt_list opt_routine_body
 				{
 					CreateFunctionStmt *n = makeNode(CreateFunctionStmt);
@@ -3215,7 +3218,7 @@ CreateFunctionStmt:
 					n->options = $6;
 					n->sql_body = $7;
 					$$ = (Node *)n;
-				}*/
+				}
 		;
 
 opt_or_replace:
@@ -4518,6 +4521,27 @@ opt_definition:
 			| /*EMPTY*/								{ $$ = NIL; }
 		;
 
+table_func_column:	param_name func_type
+				{
+					FunctionParameter *n = makeNode(FunctionParameter);
+					n->name = $1;
+					n->argType = $2;
+					n->mode = FUNC_PARAM_TABLE;
+					n->defexpr = NULL;
+					$$ = n;
+				}
+		;
+
+table_func_column_list:
+			table_func_column
+				{
+					$$ = list_make1($1);
+				}
+			| table_func_column_list ',' table_func_column
+				{
+					$$ = lappend($1, $3);
+				}
+		;
 
 /*****************************************************************************
  *
@@ -9399,4 +9423,52 @@ updateRawStmtEnd(RawStmt *rs, int end_location)
 
 	/* OK, update length of RawStmt */
 	rs->stmt_len = end_location - rs->stmt_location;
+}
+
+
+/*
+ * Determine return type of a TABLE function.  A single result column
+ * returns setof that column's type; otherwise return setof record.
+ */
+static TypeName *
+TableFuncTypeName(List *columns)
+{
+	TypeName *result;
+
+	if (list_length(columns) == 1)
+	{
+		FunctionParameter *p = (FunctionParameter *) linitial(columns);
+
+		result = copyObject(p->argType);
+	}
+	else
+		result = SystemTypeName("record");
+
+	result->setof = true;
+
+	return result;
+}
+
+/*
+ * Merge the input and output parameters of a table function.
+ */
+static List *
+mergeTableFuncParameters(List *func_args, List *columns)
+{
+	ListCell   *lc;
+
+	/* Explicit OUT and INOUT parameters shouldn't be used in this syntax */
+	foreach(lc, func_args)
+	{
+		FunctionParameter *p = (FunctionParameter *) lfirst(lc);
+
+		if (p->mode != FUNC_PARAM_DEFAULT &&
+			p->mode != FUNC_PARAM_IN &&
+			p->mode != FUNC_PARAM_VARIADIC)
+			ereport(ERROR,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+					 errmsg("OUT and INOUT arguments aren't allowed in TABLE functions")));
+	}
+
+	return list_concat(func_args, columns);
 }
