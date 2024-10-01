@@ -116,19 +116,15 @@ makeRawStmt(Node *stmt, int stmt_location)
 static List *cypher_parse(char *string){
     List       *raw_parsetree_list;
 
-    //TRACE_POSTGRESQL_QUERY_PARSE_START(string);
+    TRACE_POSTGRESQL_QUERY_PARSE_START(string);
 
-    //if (log_parser_stats)
-        //ResetUsage();
-/*
-    if (list_length(raw_parsetree_list) != 1)
-        ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
-                        errmsg("cypher can only handle one parse tree at a time")));
-    else {
-    */
+    if (log_parser_stats)
+        ResetUsage();
+
+
         List *stmt = parse_cypher(string);
-        raw_parsetree_list = list_make1(makeRawStmt(stmt, 0));
-
+        //raw_parsetree_list = list_make1(makeRawStmt(stmt, 0));
+        raw_parsetree_list = stmt;
 
     //}
 
@@ -155,7 +151,7 @@ static List *cypher_parse(char *string){
      * tree nodes, so we don't try to implement WRITE_READ_PARSE_PLAN_TREES
      * here.
      */
-    //TRACE_POSTGRESQL_QUERY_PARSE_DONE(string);
+    TRACE_POSTGRESQL_QUERY_PARSE_DONE(string);
 
     return raw_parsetree_list;
 }

@@ -96,7 +96,8 @@ static void insertSelectOptions(SelectStmt *stmt,
 								SelectLimit *limitClause,
 								WithClause *withClause,
 								ag_scanner_t yyscanner);
-
+static void updateRawStmtEnd(RawStmt *rs, int end_location);
+static RawStmt *makeRawStmt(Node *stmt, int stmt_location);
 static Node *makeStringConst(char *str, int location);
 static Node *makeIntConst(int val, int location);
 static Node *makeFloatConst(char *str, int location);
@@ -235,7 +236,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <node> stmt
 %type <list> single_query  cypher_stmt
 
-%type <node> schema_stmt routine_body_stmt
+%type <node> parse_toplevel stmtmulti schema_stmt routine_body_stmt
              AlterDatabaseStmt AlterDatabaseSetStmt
              CreatedbStmt CreateSchemaStmt
              CreateExtensionStmt CreateFunctionStmt CreateGraphStmt CreateTableStmt
@@ -557,40 +558,116 @@ check_func_name(List *names, ag_scanner_t yyscanner);
 %%
 
 
+/*
+ *	The target production for the whole parse.
+ *
+ * Ordinarily we parse a list of statements, but if we see one of the
+ * special MODE_XXX symbols as first token, we parse something else.
+ * The options here correspond to enum RawParseMode, which see for details.
+ */
+parse_toplevel:
+			stmtmulti
+			{
+
+            if (yychar != YYEOF)
+                yyerror(&yylloc, scanner, extra, "syntax error");				
+				//pg_yyget_extra(yyscanner)->parsetree = $1;
+				extra->result= $1;
+				(void) yynerrs;		/* suppress compiler warning */
+			}/*
+			| MODE_TYPE_NAME Typename
+			{
+				pg_yyget_extra(yyscanner)->parsetree = list_make1($2);
+			}
+			| MODE_PLPGSQL_EXPR PLpgSQL_Expr
+			{
+				pg_yyget_extra(yyscanner)->parsetree =
+					list_make1(makeRawStmt($2, 0));
+			}
+			| MODE_PLPGSQL_ASSIGN1 PLAssignStmt
+			{
+				PLAssignStmt *n = (PLAssignStmt *) $2;
+				n->nnames = 1;
+				pg_yyget_extra(yyscanner)->parsetree =
+					list_make1(makeRawStmt((Node *) n, 0));
+			}
+			| MODE_PLPGSQL_ASSIGN2 PLAssignStmt
+			{
+				PLAssignStmt *n = (PLAssignStmt *) $2;
+				n->nnames = 2;
+				pg_yyget_extra(yyscanner)->parsetree =
+					list_make1(makeRawStmt((Node *) n, 0));
+			}
+			| MODE_PLPGSQL_ASSIGN3 PLAssignStmt
+			{
+				PLAssignStmt *n = (PLAssignStmt *) $2;
+				n->nnames = 3;
+				pg_yyget_extra(yyscanner)->parsetree =
+					list_make1(makeRawStmt((Node *) n, 0));
+			}*/
+		;
+
+/*
+ * At top level, we wrap each stmt with a RawStmt node carrying start location
+ * and length of the stmt's text.  Notice that the start loc/len are driven
+ * entirely from semicolon locations (@2).  It would seem natural to use
+ * @1 or @3 to get the true start location of a stmt, but that doesn't work
+ * for statements that can start with empty nonterminals (opt_with_clause is
+ * the main offender here); as noted in the comments for YYLLOC_DEFAULT,
+ * we'd get -1 for the location in such cases.
+ * We also take care to discard empty statements entirely.
+ */
+stmtmulti:	stmtmulti ';' stmt
+				{
+					//ereport(WARNING, errmsg("There"));
+					if ($1 != NIL)
+					{
+						/* update length of previous stmt */
+						updateRawStmtEnd(llast_node(RawStmt, $1), @2);
+					}
+					if ($3 != NULL)
+						$$= lappend($1, makeRawStmt($3, @2 + 1));
+					else
+						$$ = $1;
+				}
+			| stmt 
+				{
+					//ereport(WARNING, errmsg("Here"));
+					if ($1 != NULL)
+						$$ = list_make1(makeRawStmt($1, 0));
+					else
+						$$ = NIL;
+				}
+		;
 
 /*
  * query
  */
 stmt:
-    cypher_stmt semicolon_opt
-        {
-
-            //if (yychar != YYEOF)
-                //yyerror(&yylloc, scanner, extra, "syntax error");
-
-            extra->result = $1;
-        }
-	| AlterDatabaseSetStmt semicolon_opt { extra->result = $1; }
-    | AlterDatabaseStmt semicolon_opt    { extra->result = $1; }
-	| CreatedbStmt semicolon_opt         { extra->result = $1; }
-    | CreateGraphStmt semicolon_opt      { extra->result = $1; }
-    | CreateExtensionStmt semicolon_opt  { extra->result = $1; }
-	| CreateFunctionStmt semicolon_opt   { extra->result = $1; }
-	| CreateSchemaStmt semicolon_opt     { extra->result = $1; }
-    | CreateTableStmt semicolon_opt      { extra->result = $1; }
-	| CreateUserStmt semicolon_opt       { extra->result = $1; }
-    | DefineStmt semicolon_opt           { extra->result = $1; }
-    | DeleteStmt semicolon_opt           { extra->result = $1; }
-	| DropdbStmt semicolon_opt           { extra->result = $1; }
-    | DropGraphStmt semicolon_opt        { extra->result = $1; }
-	| DropStmt semicolon_opt             { extra->result = $1; }
-	| GrantStmt semicolon_opt            { extra->result = $1; }
-    | InsertStmt semicolon_opt           { extra->result = $1; }
-    | SelectStmt semicolon_opt           { extra->result = $1; }
-    | UseGraphStmt semicolon_opt         { extra->result = $1; }
-    | UpdateStmt semicolon_opt           { extra->result = $1; }
-	| VariableResetStmt semicolon_opt    { extra->result = $1; }
-    | VariableSetStmt semicolon_opt      { extra->result = $1; }
+    cypher_stmt 
+	| AlterDatabaseSetStmt
+    | AlterDatabaseStmt 
+	| CreatedbStmt
+    | CreateGraphStmt
+    | CreateExtensionStmt 
+	| CreateFunctionStmt
+	| CreateSchemaStmt
+    | CreateTableStmt
+	| CreateUserStmt
+    | DefineStmt 
+    | DeleteStmt
+	| DropdbStmt
+    | DropGraphStmt 
+	| DropStmt 
+	| GrantStmt 
+    | InsertStmt 
+    | SelectStmt 
+    | UseGraphStmt 
+    | UpdateStmt 
+	| VariableResetStmt
+    | VariableSetStmt
+	| /*EMPTY*/
+		{ $$ = NULL; }
     ;
 
 cypher_stmt:
@@ -9230,4 +9307,31 @@ extractArgTypes(List *parameters)
 			result = lappend(result, p->argType);
 	}
 	return result;
+}
+
+static RawStmt *
+makeRawStmt(Node *stmt, int stmt_location)
+{
+	RawStmt    *rs = makeNode(RawStmt);
+
+	rs->stmt = stmt;
+	rs->stmt_location = stmt_location;
+	rs->stmt_len = 0;			/* might get changed later */
+	return rs;
+}
+
+/* Adjust a RawStmt to reflect that it doesn't run to the end of the string */
+static void
+updateRawStmtEnd(RawStmt *rs, int end_location)
+{
+	/*
+	 * If we already set the length, don't change it.  This is for situations
+	 * like "select foo ;; select bar" where the same statement will be last
+	 * in the string for more than one semicolon.
+	 */
+	if (rs->stmt_len > 0)
+		return;
+
+	/* OK, update length of RawStmt */
+	rs->stmt_len = end_location - rs->stmt_location;
 }
