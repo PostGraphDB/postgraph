@@ -428,11 +428,13 @@ CREATE (:opt_match_v {name: 'someone'})-[:opt_match_e]->(:opt_match_v {name: 'so
 (0 rows)
 
 MATCH (u:opt_match_v) OPTIONAL MATCH (u)-[m]-(l) RETURN u.name as u, type(m), l.name as l ORDER BY u, m, l;
-ERROR:  operator does not exist: postgraph.graphid = postgraph.gtype
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+ERROR:  syntax error at or near "("
+LINE 1: ...PTIONAL MATCH (u)-[m]-(l) RETURN u.name as u, type(m), l.nam...
+                                                             ^
 OPTIONAL MATCH (n:opt_match_v)-[r]->(p), (m:opt_match_v)-[s]->(q) WHERE id(n) <> id(m) RETURN n.name as n, type(r); m.name AS m, type(s); ORDER BY n, p, m, q;
-ERROR:  operator does not exist: postgraph.graphid = postgraph.graphid
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+ERROR:  syntax error at or near "("
+LINE 1: ...)-[s]->(q) WHERE id(n) <> id(m) RETURN n.name as n, type(r);
+                                                                   ^
 ERROR:  syntax error at or near "m"
 LINE 1: m.name AS m, type(s);
         ^
@@ -445,10 +447,9 @@ OPTIONAL MATCH (n)-[r]->(p), (m)-[s]->(q)
 RETURN n.name AS n, type(r),
            m.name AS m, type(s)
 ORDER BY n, p, m, q;
-ERROR:  operator is not unique: postgraph.gtype <> postgraph.gtype
-LINE 2: WHERE id(n) <> id(m)
-                    ^
-HINT:  Could not choose a best candidate operator. You might need to add explicit type casts.
+ERROR:  syntax error at or near "("
+LINE 4: RETURN n.name AS n, type(r),
+                                ^
 CREATE (u {name: "orphan"}) CREATE (u1 {name: "F"})-[u2:e1]->(u3 {name: "T"}) RETURN u1, u2, u3;
                                 u1                                 |                                                        u2                                                         |                                u3                                 
 -------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------

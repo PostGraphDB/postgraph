@@ -48,9 +48,9 @@ CREATE ({i: 1.0});
 (0 rows)
 
 CREATE ({i: 1::numeric});
---
-(0 rows)
-
+ERROR:  syntax error at or near "numeric"
+LINE 1: CREATE ({i: 1::numeric});
+                       ^
 CREATE ({i: true});
 --
 (0 rows)

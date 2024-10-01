@@ -180,7 +180,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
                  CACHE CALL CALLED CASE CAST CASCADE CHECK CROSS COALESCE COLLATE COLLATION COMMENTS COMPRESSION CONNECTION
 				 CONCURRENTLY CONTAINS CONSTRAINT CONSTRAINTS COST CREATE CUBE CURRENT 
                  CURRENT_CATALOG CURRENT_DATE CURRENT_ROLE CURRENT_SCHEMA CURRENT_TIME 
-                 CURRENT_TIMESTAMP CURRENT_USER CYCLE
+                 CURRENT_TIMESTAMP CURRENT_USER CYCLE CYPHER
 
                  DATA_P DATABASE DATE DECADE DEC DECIMAL_P DEFAULT DEFAULTS DEFERRABLE DEFERRED DEFINER DELETE DESC DESCENDING DETACH DISTINCT 
 				 DOMAIN_P DOCUMENT_P DOUBLE_P DROP
@@ -730,7 +730,7 @@ cypher_stmt:
  * conflict with the select_with_parens productions are manually given
  * precedences lower than the precedence of ')', thereby ensuring that we
  * shift ')' (and then reduce to select_with_parens) rather than trying to
- * reduce the inner <select> nonterminal to something else.  We use UMINUS
+ * reduce the inner <select> nonterminal to something else.  We use UNARY_MINUS
  * precedence for this, which is a fairly arbitrary choice.
  *
  * To be able to define select_with_parens itself without ambiguity, we need
@@ -1293,7 +1293,7 @@ relation_expr:
  * has, causing the parser to prefer to reduce, in effect assuming that the
  * SET is not an alias.
  */
-relation_expr_opt_alias: relation_expr					//%prec UMINUS
+relation_expr_opt_alias: relation_expr					%prec UNARY_MINUS
 				{
 					$$ = $1;
 				}
@@ -2015,7 +2015,7 @@ single_query:
 cypher_query_start:
     create
     | match
-    | with
+    | CYPHER with { $$ = $2; }
     | merge
     | call_stmt
     | return
@@ -5477,9 +5477,9 @@ a_expr:		c_expr									{ $$ = $1; }
 											   COERCE_SQL_SYNTAX,
 											   @2);
 				}
-			| '+' a_expr				//	%prec ;
+			| '+' a_expr					%prec UNARY_MINUS
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "+", NULL, $2, @1); }
-			| '-' a_expr				//	%prec UMINUS
+			| '-' a_expr					%prec UNARY_MINUS
 				{ $$ = doNegate($2, @1); }
 			| a_expr '+' a_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "+", $1, $3, @2); }
@@ -5867,9 +5867,9 @@ b_expr:		c_expr
 				{ $$ = $1; }
 			| b_expr TYPECAST Typename
 				{ $$ = makeTypeCast($1, $3, @2); }
-			| '+' b_expr					//%prec UMINUS
+			| '+' b_expr					%prec UNARY_MINUS
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "+", NULL, $2, @1); }
-			| '-' b_expr					//%prec UMINUS
+			| '-' b_expr					%prec UNARY_MINUS
 				{ $$ = doNegate($2, @1); }
 			| b_expr '+' b_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "+", $1, $3, @2); }
@@ -7185,8 +7185,9 @@ generic_reset:
  */
 unreserved_keyword:
 			INPUT_P
-			| FALSE_P
-			| TRUE_P
+			| KEY
+			| NAME_P
+			| TYPE_P
 ;
 
 /*
@@ -7200,6 +7201,9 @@ unreserved_keyword:
  */
 bare_label_keyword:
 		INPUT_P
+		| KEY
+		| NAME_P
+		| TYPE_P
 ;
 
 /*
@@ -8277,7 +8281,7 @@ expr_atom:
             $$ = $2;
         }
     | expr_case
-    | cypher_var_name
+    | cypher_var_name 
         {
             ColumnRef *n;
             
@@ -8502,11 +8506,11 @@ cypher_func_name:
     ;
 
 property_key_name:
-    schema_name
+    ColId
     ;
 
 cypher_var_name:
-    symbolic_name
+    ColId
     ;
 
 var_name_opt:

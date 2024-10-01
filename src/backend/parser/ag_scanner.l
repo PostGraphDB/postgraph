@@ -261,9 +261,10 @@ gt_eq    ">="
 dot_dot  ".."
 plus_eq  "+="
 typecast "::"
-op_chars		[\~\!\@\#\^\&\|\`\?\+\-\*\/\%\<\>\=]
-operator		{op_chars}+
+operator [&<=>|~!*?@#%]{2,3}|[@|?&#]|"?-|"|"?-"|"@-@"
+operatorfail1 "@-"
 self     [?&!@#%()*+,\-.~/:;<=>[\]^{|}]
+
 
 other .
 
@@ -831,6 +832,13 @@ ag_token token;
     token.value.s = yytext;
     token.location = get_location();
     return token;
+}
+
+{operatorfail1} {
+    update_location();
+    ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                    scan_errmsg("invalid literal"),
+                    scan_errposition()));
 }
 
 {operator} {

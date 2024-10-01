@@ -43,16 +43,16 @@ CREATE (:v {});
 --
 (0 rows)
 
-CREATE (:v {key: 'value'});
+CREATE (:v {prop_key: 'value'});
 --
 (0 rows)
 
 MATCH (n:v) RETURN n;
-                                   n                                   
------------------------------------------------------------------------
+                                     n                                      
+----------------------------------------------------------------------------
  {"id": 844424930131969, "label": "v", "properties": {}}
  {"id": 844424930131970, "label": "v", "properties": {}}
- {"id": 844424930131971, "label": "v", "properties": {"key": "value"}}
+ {"id": 844424930131971, "label": "v", "properties": {"prop_key": "value"}}
 (3 rows)
 
 -- Left relationship
@@ -107,7 +107,7 @@ MATCH (n) RETURN n;
  {"id": 281474976710657, "label": "", "properties": {}}
  {"id": 844424930131969, "label": "v", "properties": {}}
  {"id": 844424930131970, "label": "v", "properties": {}}
- {"id": 844424930131971, "label": "v", "properties": {"key": "value"}}
+ {"id": 844424930131971, "label": "v", "properties": {"prop_key": "value"}}
  {"id": 844424930131972, "label": "v", "properties": {"id": "right rel, initial node"}}
  {"id": 844424930131973, "label": "v", "properties": {"id": "right rel, end node"}}
  {"id": 844424930131974, "label": "v", "properties": {"id": "left rel, initial node"}}
@@ -278,7 +278,7 @@ MATCH (n) RETURN n;
  {"id": 281474976710673, "label": "", "properties": {}}
  {"id": 844424930131969, "label": "v", "properties": {}}
  {"id": 844424930131970, "label": "v", "properties": {}}
- {"id": 844424930131971, "label": "v", "properties": {"key": "value"}}
+ {"id": 844424930131971, "label": "v", "properties": {"prop_key": "value"}}
  {"id": 844424930131972, "label": "v", "properties": {"id": "right rel, initial node"}}
  {"id": 844424930131973, "label": "v", "properties": {"id": "right rel, end node"}}
  {"id": 844424930131974, "label": "v", "properties": {"id": "left rel, initial node"}}

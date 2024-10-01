@@ -30,7 +30,7 @@ CREATE (:v);
 
 CREATE (:v {});
 
-CREATE (:v {key: 'value'});
+CREATE (:v {prop_key: 'value'});
 
 MATCH (n:v) RETURN n;
 
