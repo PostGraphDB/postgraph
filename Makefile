@@ -86,7 +86,8 @@ EXTENSION = postgraph
 
 DATA = postgraph--0.1.0.sql
 
-REGRESS = create_function \
+REGRESS = create_function_1 \
+          create_function \
           create_type \
           create_table \
           new_cypher \

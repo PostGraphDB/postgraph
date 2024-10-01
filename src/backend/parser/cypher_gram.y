@@ -189,7 +189,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  GENERATED GLOBAL GRANT GRANTED GRAPH GREATEST GROUP GROUPS GROUPING
 
-                 FALSE_P FILTER FIRST_P FLOAT_P FOLLOWING FOR FOREIGN FROM FULL FUNCTION FUNCTIONS
+                 FALSE_P FILTER FIRST_P FLOAT_P FOLLOWING FOR FORCE FOREIGN FROM FULL FUNCTION FUNCTIONS
 
                  HAVING
 
@@ -239,7 +239,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              CreateSchemaStmt
              CreateExtensionStmt CreateFunctionStmt CreateGraphStmt CreateTableStmt
 			 CreateUserStmt
-             DefineStmt DeleteStmt DropGraphStmt
+             DefineStmt DeleteStmt DropdbStmt DropGraphStmt
 			 DropStmt
              GrantStmt
 			 InsertStmt
@@ -399,6 +399,9 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <integer>    opt_window_exclusion_clause
 %type <string> all_op
 /* names */
+
+%type <defelt>	drop_option
+
 %type <string> property_key_name cypher_var_name var_name_opt label_name
 %type <string> symbolic_name schema_name temporal_cast attr_name table_access_method_clause
 %type <keyword> reserved_keyword safe_keywords conflicted_keywords
@@ -429,6 +432,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              var_list
 			 create_generic_options
 			 transform_type_list
+			 drop_option_list
 
 %type <node>	opt_routine_body
 
@@ -567,6 +571,7 @@ stmt:
 	| CreateUserStmt semicolon_opt      { extra->result = $1; }
     | DefineStmt semicolon_opt          { extra->result = $1; }
     | DeleteStmt semicolon_opt          { extra->result = $1; }
+	| DropdbStmt semicolon_opt          { extra->result = $1; }
     | DropGraphStmt semicolon_opt       { extra->result = $1; }
 	| DropStmt semicolon_opt            { extra->result = $1; }
 	| GrantStmt semicolon_opt           { extra->result = $1; }
@@ -1663,6 +1668,70 @@ CreateTableStmt:
 			$$ = (Node *)n;
 		}
     ;
+
+
+/*****************************************************************************
+ *
+ *		DROP DATABASE [ IF EXISTS ] dbname [ [ WITH ] ( options ) ]
+ *
+ * This is implicitly CASCADE, no need for drop behavior
+ *****************************************************************************/
+
+DropdbStmt: DROP DATABASE name
+				{
+					DropdbStmt *n = makeNode(DropdbStmt);
+					n->dbname = $3;
+					n->missing_ok = false;
+					n->options = NULL;
+					$$ = (Node *)n;
+				}
+			| DROP DATABASE IF EXISTS name
+				{
+					DropdbStmt *n = makeNode(DropdbStmt);
+					n->dbname = $5;
+					n->missing_ok = true;
+					n->options = NULL;
+					$$ = (Node *)n;
+				}
+			| DROP DATABASE name opt_with '(' drop_option_list ')'
+				{
+					DropdbStmt *n = makeNode(DropdbStmt);
+					n->dbname = $3;
+					n->missing_ok = false;
+					n->options = $6;
+					$$ = (Node *)n;
+				}
+			| DROP DATABASE IF EXISTS name opt_with '(' drop_option_list ')'
+				{
+					DropdbStmt *n = makeNode(DropdbStmt);
+					n->dbname = $5;
+					n->missing_ok = true;
+					n->options = $8;
+					$$ = (Node *)n;
+				}
+		;
+
+drop_option_list:
+			drop_option
+				{
+					$$ = list_make1((Node *) $1);
+				}
+			| drop_option_list ',' drop_option
+				{
+					$$ = lappend($1, (Node *) $3);
+				}
+		;
+
+/*
+ * Currently only the FORCE option is supported, but the syntax is designed
+ * to be extensible so that we can add more options in the future if required.
+ */
+drop_option:
+			FORCE
+				{
+					$$ = makeDefElem("force", NULL, @1);
+				}
+		;
 
 call_stmt:
     CALL cypher_expr_func_norm AS cypher_var_name cypher_where_opt
@@ -6766,7 +6835,9 @@ Sconst:		STRING									{ $$ = $1; };
  */
 
 attr_name:	ColLabel								{ $$ = $1; };
-name:		ColId									{ $$ = $1; };
+name:		ColId									{ $$ = $1; }
+            | Sconst { $$ = $1;}
+			;
 ColId:		IDENTIFIER									{ $$ = $1; }
 			| unreserved_keyword					{ $$ = pstrdup($1); }
 			/*| col_name_keyword						{ $$ = pstrdup($1); }
