@@ -192,7 +192,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
                  CURRENT_CATALOG CURRENT_DATE CURRENT_ROLE CURRENT_SCHEMA CURRENT_TIME 
                  CURRENT_TIMESTAMP CURRENT_USER CYCLE CYPHER
 
-                 DATA_P DATABASE DATE DECADE DEC DECIMAL_P DEFAULT DEFAULTS DEFERRABLE DEFERRED DEFINER DELETE DEPTH DESC DESCENDING DETACH DISTINCT 
+                 DATA_P DATABASE DECADE DEC DECIMAL_P DEFAULT DEFAULTS DEFERRABLE DEFERRED DEFINER DELETE DEPTH DESC DESCENDING DETACH DISTINCT 
 				 DOMAIN_P DOCUMENT_P DOUBLE_P DROP
 
                  ENCODING ENCRYPTED ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXCLUDING EXISTS EXTENSION EXTRACT EXTERNAL
@@ -7521,10 +7521,6 @@ ConstDatetime:
 						$$ = SystemTypeName("time");
 					$$->location = @1;
 				}
-			| DATE
-			{
-				$$ = SystemTypeName("date");
-			}
 		;
 
 opt_timezone:
@@ -8699,10 +8695,6 @@ temporal_cast:
         {
             $$ = pnstrdup("timestamptz", 11);
         }
-    | DATE
-        {
-            $$ = pnstrdup("date", 4);
-        }
     | TIME
         {
             $$ = pnstrdup("time", 4); 
@@ -9053,7 +9045,6 @@ safe_keywords:
     | COALESCE   { $$ = pnstrdup($1, 8); }
     | CONTAINS   { $$ = pnstrdup($1, 8); }
     | CREATE     { $$ = pnstrdup($1, 6); }
-    | DATE       { $$ = pnstrdup($1, 4); }
     | DELETE     { $$ = pnstrdup($1, 6); }
     | DESC       { $$ = pnstrdup($1, 4); }
     | DESCENDING { $$ = pnstrdup($1, 10); }
