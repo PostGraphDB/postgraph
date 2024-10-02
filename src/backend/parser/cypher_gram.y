@@ -179,7 +179,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ
 
 /* keywords in alphabetical order */
-%token <keyword> ACCESS ACTION ADMIN ALL ALTER AND ANY ALWAYS ARRAY AS ASC ASCENDING ASYMMETRIC AT ATOMIC AUTHORIZATION
+%token <keyword> ACCESS ACTION ADMIN ALL ALTER AND ANY ALWAYS ARRAY AS ASC ASCENDING ASSIGNMENT ASYMMETRIC AT ATOMIC AUTHORIZATION
 
                  BIGINT BEGIN_P BETWEEN BOOLEAN_P BOTH BREADTH BY
 
@@ -200,7 +200,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  HAVING
 
-                 IDENTITY_P IF ILIKE IN INCLUDING INDEX INDEXES IMMEDIATE IMMUTABLE INCLUDE INCREMENT INHERIT INHERITS INITIALLY INNER 
+                 IDENTITY_P IF ILIKE IN INCLUDING INDEX INDEXES IMMEDIATE IMMUTABLE IMPLICIT_P INCLUDE INCREMENT INHERIT INHERITS INITIALLY INNER 
 				 INOUT INPUT_P INT_P INTEGER_P INTERSECT INSERT INTERVAL INTO INVOKER IS ISNULL ISOLATION
 
                  JOIN
@@ -244,7 +244,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
 %type <node> parse_toplevel stmtmulti schema_stmt routine_body_stmt
              AlterDatabaseStmt AlterDatabaseSetStmt
-             CreatedbStmt CreateSchemaStmt
+             CreateCastStmt CreatedbStmt CreateSchemaStmt
              CreateExtensionStmt CreateFunctionStmt CreateGraphStmt 
 			 CreateTableStmt CreateTableSpaceStmt
 			 CreateUserStmt
@@ -291,7 +291,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <integer>	generated_when override_kind
 %type <integer> opt_materialized
 
-
+%type <integer> cast_context
 %type <node>	opt_search_clause opt_cycle_clause
 
 %type <node>	func_application func_expr_common_subexpr
@@ -666,6 +666,7 @@ stmt:
     cypher_stmt 
 	| AlterDatabaseSetStmt
     | AlterDatabaseStmt 
+	| CreateCastStmt
 	| CreatedbStmt
     | CreateGraphStmt
     | CreateExtensionStmt 
@@ -2291,7 +2292,7 @@ cypher_range_idx_opt:
                         | /* EMPTY */                   { $$ = NULL; }
                 ;
 
-Iconst: INTEGER
+Iconst: INTEGER | INTEGER_P
 ;
 /*
  * RETURN and WITH clause
@@ -2414,6 +2415,53 @@ empty_grouping_set:
 having_clause:
 			HAVING a_expr							{ $$ = $2; }
 			| /*EMPTY*/								{ $$ = NULL; }
+		;
+
+
+/*****************************************************************************
+ *
+ *		CREATE CAST / DROP CAST
+ *
+ *****************************************************************************/
+
+CreateCastStmt: CREATE CAST '(' Typename AS Typename ')'
+					WITH FUNCTION function_with_argtypes cast_context
+				{
+					CreateCastStmt *n = makeNode(CreateCastStmt);
+					n->sourcetype = $4;
+					n->targettype = $6;
+					n->func = $10;
+					n->context = (CoercionContext) $11;
+					n->inout = false;
+					$$ = (Node *)n;
+				}
+			| CREATE CAST '(' Typename AS Typename ')'
+					WITHOUT FUNCTION cast_context
+				{
+					CreateCastStmt *n = makeNode(CreateCastStmt);
+					n->sourcetype = $4;
+					n->targettype = $6;
+					n->func = NULL;
+					n->context = (CoercionContext) $10;
+					n->inout = false;
+					$$ = (Node *)n;
+				}
+			| CREATE CAST '(' Typename AS Typename ')'
+					WITH INOUT cast_context
+				{
+					CreateCastStmt *n = makeNode(CreateCastStmt);
+					n->sourcetype = $4;
+					n->targettype = $6;
+					n->func = NULL;
+					n->context = (CoercionContext) $10;
+					n->inout = true;
+					$$ = (Node *)n;
+				}
+		;
+
+cast_context:  AS IMPLICIT_P					{ $$ = COERCION_IMPLICIT; }
+		| AS ASSIGNMENT							{ $$ = COERCION_ASSIGNMENT; }
+		| /*EMPTY*/								{ $$ = COERCION_EXPLICIT; }
 		;
 
 
@@ -3223,8 +3271,9 @@ NumericOnly_list:	NumericOnly						{ $$ = list_make1($1); }
 			| '+' Iconst							{ $$ = + $2; }
 			| '-' Iconst							{ $$ = - $2; }
 		;
-Iconst:		INTEGER									{ $$ = $1; };
-
+Iconst:		INTEGER									{ $$ = $1; }
+ | INTEGER_P
+;
 
 
 
@@ -7132,6 +7181,11 @@ Numeric:	INT_P
 				}
 			| INTEGER
 				{
+					$$ = SystemTypeName("int4");
+					$$->location = @1;
+				}
+				| INTEGER_P
+								{
 					$$ = SystemTypeName("int4");
 					$$->location = @1;
 				}
