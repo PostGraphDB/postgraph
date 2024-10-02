@@ -187,7 +187,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  BIGINT BEGIN_P BETWEEN BOOLEAN_P BOTH BREADTH BY
 
-                 CACHE CALL CALLED CASE CAST CASCADE CHECK CROSS COALESCE COLLATE COLLATION COMMENTS COMPRESSION CONNECTION
+                 CACHE CALL CALLED CASE CAST CASCADE CHECK CROSS COALESCE COLLATE COLLATION COMMENTS COMMIT COMPRESSION CONNECTION
 				 CONCURRENTLY CONTAINS CONSTRAINT CONSTRAINTS COST CREATE CUBE CURRENT 
                  CURRENT_CATALOG CURRENT_DATE CURRENT_ROLE CURRENT_SCHEMA CURRENT_TIME 
                  CURRENT_TIMESTAMP CURRENT_USER CYCLE CYPHER
@@ -220,7 +220,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  OBJECT_P OF OFFSET ON ONLY OPTION OPTIONS OPTIONAL OTHERS OR ORDER OUT_P OUTER OVER OVERRIDING OVERLAPS OVERLAY OWNED OWNER
 
-                 PARALLEL PARTIAL PARTITION PASSWORD PLACING POLICY POSITION PUBLICATION PRECEDING PRECISION PRIMARY PRIVILEGES PROCEDURAL PROCEDURE PROCEDURES
+                 PARALLEL PARTIAL PARTITION PASSWORD PLACING POLICY POSITION PUBLICATION PRECEDING PRECISION PRESERVE PRIMARY PRIVILEGES PROCEDURAL PROCEDURE PROCEDURES
 
                  RANGE READ RIGHT REAL RECURSIVE REFERENCES REMOVE RESET RESTART RESTRICT REPLACE RETURN RETURNS RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
 
@@ -256,7 +256,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              DefineStmt DeleteStmt DropdbStmt DropGraphStmt
 			 DropStmt DropTableSpaceStmt
              GrantStmt
-			 InsertStmt
+			 IndexStmt InsertStmt 
              UseGraphStmt
 			 ReturnStmt
              SelectStmt
@@ -305,6 +305,11 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <with>	with_clause opt_with_clause
 %type <list>	cte_list
 
+%type <boolean> opt_unique opt_concurrently 
+
+%type <string>	access_method_clause 
+				table_access_method_clause 
+				opt_index_name
 
 %type <list>	 SeqOptList OptParenthesizedSeqOptList
 %type <defelt>	SeqOptElem
@@ -353,7 +358,6 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <string>		RoleId 
 %type <string>		unicode_normal_form
 %type <rolespec> RoleSpec 
-%type <string>	access_method_clause
 
 %type <node> cypher_query_start
 %type <list> cypher_query_body
@@ -440,7 +444,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <defelt>	drop_option
 
 %type <string> property_key_name cypher_var_name var_name_opt label_name
-%type <string> symbolic_name schema_name temporal_cast attr_name table_access_method_clause
+%type <string> symbolic_name schema_name temporal_cast attr_name 
 %type <keyword> cypher_reserved_keyword safe_keywords conflicted_keywords
 
 %type <node>	select_limit_value
@@ -459,12 +463,12 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 			 func_args_with_defaults func_args_with_defaults_list
 			 func_as createfunc_opt_list opt_createfunc_opt_list
 			 opt_column_list
-			 opt_c_include
+			 sort_clause opt_sort_clause sortby_list index_params
+			 opt_include opt_c_include index_including_params
              qualified_name_list any_name any_name_list type_name_list
 			 any_operator
              reloption_list
 			 columnList opt_name_list
-             sort_clause opt_sort_clause sortby_list
              from_clause from_list
              target_list opt_target_list insert_column_list set_target_list
              set_clause_list set_clause
@@ -487,9 +491,11 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
 %type <list>	func_name qual_Op qual_all_Op subquery_Op
 %type <string>		all_Op MathOp
-%type <string>	 OptConsTableSpace
+%type <string>	 OptTableSpace OptConsTableSpace
 %type <rolespec> OptTableSpaceOwner
 %type <integer>	sub_type 
+
+%type <integer> OnCommitOption
 
 %type <defelt>	def_elem reloption_elem
 %type <string> Sconst 
@@ -705,6 +711,7 @@ stmt:
 	| DropStmt 
 	| DropTableSpaceStmt
 	| GrantStmt 
+	| IndexStmt
     | InsertStmt 
     | SelectStmt 
     | UseGraphStmt 
@@ -2145,7 +2152,7 @@ CreateExtensionStmt:
 CreateTableStmt:
     CREATE OptTemp TABLE qualified_name '(' OptTableElementList ')'
 			OptInherit OptPartitionSpec table_access_method_clause OptWith
-			//OnCommitOption  OptTableSpace
+			OnCommitOption  OptTableSpace
 		{
 			CreateStmt *n = makeNode(CreateStmt);
 			/*
@@ -2161,8 +2168,8 @@ CreateTableStmt:
 			n->constraints = NIL;
 			n->accessMethod = $10;
 			n->options = $11;
-			n->oncommit = ONCOMMIT_NOOP;
-			n->tablespacename = NULL;
+			n->oncommit = $12;
+			n->tablespacename = $13;
 			n->if_not_exists = false;
 
 			$$ = (Node *)n;
@@ -3130,17 +3137,6 @@ return_item:
         }
     ;
 
-opt_asc_desc: ASC							{ $$ = SORTBY_ASC; }
-	| DESC							{ $$ = SORTBY_DESC; }
-	| /*EMPTY*/						{ $$ = SORTBY_DEFAULT; }
-	;
-
-
-opt_nulls_order: NULLS_LA FIRST_P { $$ = SORTBY_NULLS_FIRST; }
-     | NULLS_LA LAST_P { $$ = SORTBY_NULLS_LAST; }
-     | /*EMPTY*/ { $$ = SORTBY_NULLS_DEFAULT; }
-;       
-                        
 
 
 order_by_opt:
@@ -3385,6 +3381,16 @@ OptWith:
 			| /*EMPTY*/					{ $$ = NIL; }
 		;
 
+OnCommitOption:  ON COMMIT DROP				{ $$ = ONCOMMIT_DROP; }
+			| ON COMMIT DELETE ROWS		{ $$ = ONCOMMIT_DELETE_ROWS; }
+			| ON COMMIT PRESERVE ROWS		{ $$ = ONCOMMIT_PRESERVE_ROWS; }
+			| /*EMPTY*/						{ $$ = ONCOMMIT_NOOP; }
+		;
+	
+OptTableSpace:   TABLESPACE name					{ $$ = $2; }
+			| /*EMPTY*/								{ $$ = NULL; }
+		;
+
 OptConsTableSpace:   USING INDEX TABLESPACE name	{ $$ = $4; }
 			| /*EMPTY*/								{ $$ = NULL; }
 		;
@@ -3603,6 +3609,179 @@ part_elem: ColId opt_collate opt_class
 				}
 		;       
 
+
+
+/*****************************************************************************
+ *
+ *		QUERY: CREATE INDEX
+ *
+ * Note: we cannot put TABLESPACE clause after WHERE clause unless we are
+ * willing to make TABLESPACE a fully reserved word.
+ *****************************************************************************/
+
+IndexStmt:	CREATE opt_unique INDEX opt_concurrently opt_index_name
+			ON relation_expr access_method_clause '(' index_params ')'
+			opt_include opt_reloptions OptTableSpace where_clause
+				{
+					IndexStmt *n = makeNode(IndexStmt);
+					n->unique = $2;
+					n->concurrent = $4;
+					n->idxname = $5;
+					n->relation = $7;
+					n->accessMethod = $8;
+					n->indexParams = $10;
+					n->indexIncludingParams = $12;
+					n->options = $13;
+					n->tableSpace = $14;
+					n->whereClause = $15;
+					n->excludeOpNames = NIL;
+					n->idxcomment = NULL;
+					n->indexOid = InvalidOid;
+					n->oldNode = InvalidOid;
+					n->oldCreateSubid = InvalidSubTransactionId;
+					n->oldFirstRelfilenodeSubid = InvalidSubTransactionId;
+					n->primary = false;
+					n->isconstraint = false;
+					n->deferrable = false;
+					n->initdeferred = false;
+					n->transformed = false;
+					n->if_not_exists = false;
+					n->reset_default_tblspc = false;
+					$$ = (Node *)n;
+				}
+			| CREATE opt_unique INDEX opt_concurrently IF NOT EXISTS name
+			ON relation_expr access_method_clause '(' index_params ')'
+			opt_include opt_reloptions OptTableSpace where_clause
+				{
+					IndexStmt *n = makeNode(IndexStmt);
+					n->unique = $2;
+					n->concurrent = $4;
+					n->idxname = $8;
+					n->relation = $10;
+					n->accessMethod = $11;
+					n->indexParams = $13;
+					n->indexIncludingParams = $15;
+					n->options = $16;
+					n->tableSpace = $17;
+					n->whereClause = $18;
+					n->excludeOpNames = NIL;
+					n->idxcomment = NULL;
+					n->indexOid = InvalidOid;
+					n->oldNode = InvalidOid;
+					n->oldCreateSubid = InvalidSubTransactionId;
+					n->oldFirstRelfilenodeSubid = InvalidSubTransactionId;
+					n->primary = false;
+					n->isconstraint = false;
+					n->deferrable = false;
+					n->initdeferred = false;
+					n->transformed = false;
+					n->if_not_exists = true;
+					n->reset_default_tblspc = false;
+					$$ = (Node *)n;
+				}
+		;
+
+opt_unique:
+			UNIQUE									{ $$ = true; }
+			| /*EMPTY*/								{ $$ = false; }
+		;
+
+opt_concurrently:
+			CONCURRENTLY							{ $$ = true; }
+			| /*EMPTY*/								{ $$ = false; }
+		;
+
+opt_index_name:
+			name									{ $$ = $1; }
+			| /*EMPTY*/								{ $$ = NULL; }
+		;
+
+access_method_clause:
+			USING name								{ $$ = $2; }
+			| /*EMPTY*/								{ $$ = DEFAULT_INDEX_TYPE; }
+		;
+
+index_params:	index_elem							{ $$ = list_make1($1); }
+			| index_params ',' index_elem			{ $$ = lappend($1, $3); }
+		;
+
+
+index_elem_options:
+	opt_collate opt_class opt_asc_desc opt_nulls_order
+		{
+			$$ = makeNode(IndexElem);
+			$$->name = NULL;
+			$$->expr = NULL;
+			$$->indexcolname = NULL;
+			$$->collation = $1;
+			$$->opclass = $2;
+			$$->opclassopts = NIL;
+			$$->ordering = $3;
+			$$->nulls_ordering = $4;
+		}
+	| opt_collate any_name reloptions opt_asc_desc opt_nulls_order
+		{
+			$$ = makeNode(IndexElem);
+			$$->name = NULL;
+			$$->expr = NULL;
+			$$->indexcolname = NULL;
+			$$->collation = $1;
+			$$->opclass = $2;
+			$$->opclassopts = $3;
+			$$->ordering = $4;
+			$$->nulls_ordering = $5;
+		}
+	;
+
+/*
+ * Index attributes can be either simple column references, or arbitrary
+ * expressions in parens.  For backwards-compatibility reasons, we allow
+ * an expression that's just a function call to be written without parens.
+ */
+index_elem: ColId index_elem_options
+				{
+					$$ = $2;
+					$$->name = $1;
+				}
+			| func_expr_windowless index_elem_options
+				{
+					$$ = $2;
+					$$->expr = $1;
+				}
+			| '(' a_expr ')' index_elem_options
+				{
+					$$ = $4;
+					$$->expr = $2;
+				}
+		;
+
+opt_include:		INCLUDE '(' index_including_params ')'			{ $$ = $3; }
+			 |		/* EMPTY */						{ $$ = NIL; }
+		;
+
+index_including_params:	index_elem						{ $$ = list_make1($1); }
+			| index_including_params ',' index_elem		{ $$ = lappend($1, $3); }
+		;
+
+opt_collate: COLLATE any_name						{ $$ = $2; }
+			| /*EMPTY*/								{ $$ = NIL; }
+		;
+
+opt_class:	any_name								{ $$ = $1; }
+			| /*EMPTY*/								{ $$ = NIL; }
+		;
+
+opt_asc_desc: ASC							{ $$ = SORTBY_ASC; }
+	| DESC							{ $$ = SORTBY_DESC; }
+	| /*EMPTY*/						{ $$ = SORTBY_DEFAULT; }
+	;
+
+
+opt_nulls_order: NULLS_LA FIRST_P { $$ = SORTBY_NULLS_FIRST; }
+     | NULLS_LA LAST_P { $$ = SORTBY_NULLS_LAST; }
+     | /*EMPTY*/ { $$ = SORTBY_NULLS_DEFAULT; }
+;       
+                        
 
 /*****************************************************************************
  *
