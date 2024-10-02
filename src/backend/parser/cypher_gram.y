@@ -186,11 +186,11 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ
 
 /* keywords in alphabetical order */
-%token <keyword> ACCESS ACTION ADMIN ALL ALTER AND ANY ALWAYS ARRAY AS ASC ASCENDING ASSIGNMENT ASYMMETRIC AT ATOMIC AUTHORIZATION
+%token <keyword> ABORT_P ACCESS ACTION ADMIN ALL ALTER AND ANY ALWAYS ARRAY AS ASC ASCENDING ASSIGNMENT ASYMMETRIC AT ATOMIC AUTHORIZATION
 
                  BIGINT BEGIN_P BETWEEN BOOLEAN_P BOTH BREADTH BY
 
-                 CACHE CALL CALLED CASE CAST CASCADE CHECK CROSS COALESCE COLLATE COLLATION COMMENTS COMMIT COMPRESSION CONNECTION
+                 CACHE CALL CALLED CASE CAST CASCADE CHAIN CHECK CROSS COALESCE COLLATE COLLATION COMMENTS COMMIT COMMITTED COMPRESSION CONNECTION
 				 CONCURRENTLY CONTAINS CONSTRAINT CONSTRAINTS COST CREATE CUBE CURRENT 
                  CURRENT_CATALOG CURRENT_DATE CURRENT_ROLE CURRENT_SCHEMA CURRENT_TIME 
                  CURRENT_TIMESTAMP CURRENT_USER CYCLE CYPHER
@@ -223,22 +223,22 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  OBJECT_P OF OFFSET ON ONLY OPTION OPTIONS OPTIONAL OTHERS OR ORDER OUT_P OUTER OVER OVERRIDING OVERLAPS OVERLAY OWNED OWNER
 
-                 PARALLEL PARTIAL PARTITION PASSWORD PLACING POLICY POSITION PUBLICATION PRECEDING PRECISION PRESERVE PRIMARY PRIVILEGES PROCEDURAL PROCEDURE PROCEDURES
+                 PARALLEL PARTIAL PARTITION PASSWORD PLACING POLICY POSITION PUBLICATION PRECEDING PRECISION PRESERVE PREPARE PREPARED PRIMARY PRIVILEGES PROCEDURAL PROCEDURE PROCEDURES
 
-                 RANGE READ RIGHT REAL RECURSIVE REFERENCES REMOVE RESET RESTART RESTRICT REPLACE RETURN RETURNS RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
+                 RANGE READ RIGHT REAL RECURSIVE REFERENCES RELEASE REMOVE REPEATABLE RESET RESTART RESTRICT REPLACE RETURN RETURNS ROLLBACK RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
 
-                 SCHEMA SEARCH SECURITY SERVER SELECT SEQUENCE SEQUENCES SESSION SESSION_USER SET SETOF SETS SHARE
+                 SAVEPOINT SCHEMA SERIALIZABLE SEARCH SECURITY SERVER SELECT SEQUENCE SEQUENCES SESSION SESSION_USER SET SETOF SETS SHARE
 				 SIMPLE SKIP SMALLINT SOME STABLE START STARTS STATEMENTS STATISTICS
 				 STORED STORAGE STRICT_P SUBSCRIPTION SUBSTRING SUPPORT SYMMETRIC SYSID SYSTEM_P
 
                  TABLE TABLES TABLESPACE TEMP TEMPLATE TEMPORARY  TIME TIES THEN TIMESTAMP TO TRAILING TRANSACTION TRANSFORM TREAT TRIGGER TRIM TRUE_P
 				 TYPE_P
 
-                 UNBOUNDED UNENCRYPTED UNION UNIQUE UNKNOWN UNLOGGED UNTIL UPDATE UNWIND USE USER USING
+                 UNBOUNDED UNCOMMITTED UNENCRYPTED UNION UNIQUE UNKNOWN UNLOGGED UNTIL UPDATE UNWIND USE USER USING
 
                  VALID VALUE_P VALUES VARIADIC VERSION_P VOLATILE
 
-                 WHEN WHERE WINDOW WITH WITHIN WITHOUT WRAPPER
+                 WHEN WHERE WINDOW WITH WITHIN WITHOUT WORK WRAPPER WRITE
 
                  XOR
 
@@ -264,6 +264,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              UseGraphStmt
 			 ReturnStmt
              SelectStmt
+			 TransactionStmt TransactionStmtLegacy
              UpdateStmt
 			 PreparableStmt
              VariableResetStmt VariableSetStmt
@@ -275,6 +276,8 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              a_expr b_expr c_expr AexprConst indirection_el opt_slice_bound
              columnref in_expr having_clause array_expr
              OptWhereClause
+
+%type <string>		iso_level 
 
 %type <integer> set_quantifier
 %type <target>	target_el set_target insert_column_item
@@ -395,9 +398,13 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <node> match cypher_varlen_opt cypher_range_opt cypher_range_idx
              cypher_range_idx_opt
 %type <integer> Iconst
+
+%type <defelt>	transaction_mode_item
+
 %type <boolean> optional_opt opt_or_replace
                 opt_grant_grant_option 
 				opt_with_data
+				opt_transaction_chain
 
 /* CREATE clause */
 %type <node> create
@@ -481,6 +488,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              from_clause from_list
 			 distinct_clause
              target_list opt_target_list insert_column_list set_target_list
+			 transaction_mode_list_or_empty
              set_clause_list set_clause
 			 opt_type_modifiers
 			 def_list
@@ -493,6 +501,9 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 			 table_func_column_list
 			 transform_type_list
 			 drop_option_list
+
+
+%type <list>	transaction_mode_list
 
 %type <node>	opt_routine_body
 
@@ -729,6 +740,8 @@ stmt:
 	| IndexStmt
     | InsertStmt 
     | SelectStmt 
+	| TransactionStmt
+	| TransactionStmtLegacy
     | UseGraphStmt 
     | UpdateStmt 
 	| VariableResetStmt
@@ -3248,6 +3261,12 @@ var_list:	var_value								{ $$ = list_make1($1); }
 			| var_list ',' var_value				{ $$ = lappend($1, $3); }
 		;
 
+iso_level:	READ UNCOMMITTED						{ $$ = "read uncommitted"; }
+			| READ COMMITTED						{ $$ = "read committed"; }
+			| REPEATABLE READ						{ $$ = "repeatable read"; }
+			| SERIALIZABLE							{ $$ = "serializable"; }
+		;
+
 var_value:	opt_boolean_or_string
 				{ $$ = makeStringConst($1, @1); }
 			| NumericOnly
@@ -5445,6 +5464,169 @@ table_func_column_list:
 					$$ = lappend($1, $3);
 				}
 		;
+
+/*****************************************************************************
+ *
+ *		Transactions:
+ *
+ *		BEGIN / COMMIT / ROLLBACK
+ *		(also older versions END / ABORT)
+ *
+ *****************************************************************************/
+
+TransactionStmt:
+			ABORT_P opt_transaction opt_transaction_chain
+				{
+					TransactionStmt *n = makeNode(TransactionStmt);
+					n->kind = TRANS_STMT_ROLLBACK;
+					n->options = NIL;
+					n->chain = $3;
+					$$ = (Node *)n;
+				}
+			| START TRANSACTION transaction_mode_list_or_empty
+				{
+					TransactionStmt *n = makeNode(TransactionStmt);
+					n->kind = TRANS_STMT_START;
+					n->options = $3;
+					$$ = (Node *)n;
+				}
+			| COMMIT opt_transaction opt_transaction_chain
+				{
+					TransactionStmt *n = makeNode(TransactionStmt);
+					n->kind = TRANS_STMT_COMMIT;
+					n->options = NIL;
+					n->chain = $3;
+					$$ = (Node *)n;
+				}
+			| ROLLBACK opt_transaction opt_transaction_chain
+				{
+					TransactionStmt *n = makeNode(TransactionStmt);
+					n->kind = TRANS_STMT_ROLLBACK;
+					n->options = NIL;
+					n->chain = $3;
+					$$ = (Node *)n;
+				}
+			| SAVEPOINT ColId
+				{
+					TransactionStmt *n = makeNode(TransactionStmt);
+					n->kind = TRANS_STMT_SAVEPOINT;
+					n->savepoint_name = $2;
+					$$ = (Node *)n;
+				}
+			| RELEASE SAVEPOINT ColId
+				{
+					TransactionStmt *n = makeNode(TransactionStmt);
+					n->kind = TRANS_STMT_RELEASE;
+					n->savepoint_name = $3;
+					$$ = (Node *)n;
+				}
+			| RELEASE ColId
+				{
+					TransactionStmt *n = makeNode(TransactionStmt);
+					n->kind = TRANS_STMT_RELEASE;
+					n->savepoint_name = $2;
+					$$ = (Node *)n;
+				}
+			| ROLLBACK opt_transaction TO SAVEPOINT ColId
+				{
+					TransactionStmt *n = makeNode(TransactionStmt);
+					n->kind = TRANS_STMT_ROLLBACK_TO;
+					n->savepoint_name = $5;
+					$$ = (Node *)n;
+				}
+			| ROLLBACK opt_transaction TO ColId
+				{
+					TransactionStmt *n = makeNode(TransactionStmt);
+					n->kind = TRANS_STMT_ROLLBACK_TO;
+					n->savepoint_name = $4;
+					$$ = (Node *)n;
+				}
+			| PREPARE TRANSACTION Sconst
+				{
+					TransactionStmt *n = makeNode(TransactionStmt);
+					n->kind = TRANS_STMT_PREPARE;
+					n->gid = $3;
+					$$ = (Node *)n;
+				}
+			| COMMIT PREPARED Sconst
+				{
+					TransactionStmt *n = makeNode(TransactionStmt);
+					n->kind = TRANS_STMT_COMMIT_PREPARED;
+					n->gid = $3;
+					$$ = (Node *)n;
+				}
+			| ROLLBACK PREPARED Sconst
+				{
+					TransactionStmt *n = makeNode(TransactionStmt);
+					n->kind = TRANS_STMT_ROLLBACK_PREPARED;
+					n->gid = $3;
+					$$ = (Node *)n;
+				}
+		;
+
+TransactionStmtLegacy:
+			BEGIN_P opt_transaction transaction_mode_list_or_empty
+				{
+					TransactionStmt *n = makeNode(TransactionStmt);
+					n->kind = TRANS_STMT_BEGIN;
+					n->options = $3;
+					$$ = (Node *)n;
+				}
+			| END_P opt_transaction opt_transaction_chain
+				{
+					TransactionStmt *n = makeNode(TransactionStmt);
+					n->kind = TRANS_STMT_COMMIT;
+					n->options = NIL;
+					n->chain = $3;
+					$$ = (Node *)n;
+				}
+		;
+
+opt_transaction:	WORK
+			| TRANSACTION
+			| /*EMPTY*/
+		;
+
+transaction_mode_item:
+			ISOLATION LEVEL iso_level
+					{ $$ = makeDefElem("transaction_isolation",
+									   makeStringConst($3, @3), @1); }
+			| READ ONLY
+					{ $$ = makeDefElem("transaction_read_only",
+									   makeIntConst(true, @1), @1); }
+			| READ WRITE
+					{ $$ = makeDefElem("transaction_read_only",
+									   makeIntConst(false, @1), @1); }
+			| DEFERRABLE
+					{ $$ = makeDefElem("transaction_deferrable",
+									   makeIntConst(true, @1), @1); }
+			| NOT DEFERRABLE
+					{ $$ = makeDefElem("transaction_deferrable",
+									   makeIntConst(false, @1), @1); }
+		;
+
+/* Syntax with commas is SQL-spec, without commas is Postgres historical */
+transaction_mode_list:
+			transaction_mode_item
+					{ $$ = list_make1($1); }
+			| transaction_mode_list ',' transaction_mode_item
+					{ $$ = lappend($1, $3); }
+			| transaction_mode_list transaction_mode_item
+					{ $$ = lappend($1, $2); }
+		;
+
+transaction_mode_list_or_empty:
+			transaction_mode_list
+			| /* EMPTY */
+					{ $$ = NIL; }
+		;
+
+opt_transaction_chain:
+			AND CHAIN		{ $$ = true; }
+			| AND NO CHAIN	{ $$ = false; }
+			| /* EMPTY */	{ $$ = false; }
+		;
+
 
 /*****************************************************************************
  *
