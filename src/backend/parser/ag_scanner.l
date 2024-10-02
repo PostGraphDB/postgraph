@@ -32,6 +32,7 @@
 
 #include "common/string.h"
 #include "mb/pg_wchar.h"
+#include "parser/scansup.h"
 
 #include "parser/ag_scanner.h"
 }
@@ -751,8 +752,7 @@ ag_token token;
 {id} {
     update_location();
     token.type = AG_TOKEN_IDENTIFIER;
-    token.value.s = yytext;
-    //token.value.s =  downcase_truncate_identifier(yytext, strlen(yytext), true);//, yyleng, true);
+    token.value.s = downcase_truncate_identifier(yytext, yyleng, true);
     token.location = get_location();
     return token;
 }
