@@ -102,6 +102,7 @@ static Node *makeStringConst(char *str, int location);
 static Node *makeStringConstCast(char *str, int location, TypeName *typename);
 static Node *makeIntConst(int val, int location);
 static Node *makeFloatConst(char *str, int location);
+static Node *makeBitStringConst(char *str, int location);
 static Node *makeBoolAConst(bool state, int location);
 static Node *makeNullAConst(int location);
 static Node *makeTypeCast(Node *arg, TypeName *typename, int location);
@@ -176,6 +177,8 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %token <string> INET
 %token <string> PARAMETER
 %token <string> OPERATOR
+%token <string> XCONST
+
 /* operators that have more than 1 character */
 %token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ
 
@@ -7150,12 +7153,12 @@ AexprConst: Iconst
 			/*| BCONST
 				{
 					$$ = makeBitStringConst($1, @1);
-				}
+				}*/
 			| XCONST
 				{
 
 					$$ = makeBitStringConst($1, @1);
-				}*/
+				}
 			| func_name Sconst
 				{
 					TypeName *t = makeTypeNameFromNameList($1);
@@ -9923,4 +9926,17 @@ makeStringConstCast(char *str, int location, TypeName *typename)
 	Node *s = makeStringConst(str, location);
 
 	return makeTypeCast(s, typename, -1);
+}
+
+
+static Node *
+makeBitStringConst(char *str, int location)
+{
+	A_Const *n = makeNode(A_Const);
+
+	n->val.type = T_BitString;
+	n->val.val.str = str;
+	n->location = location;
+
+	return (Node *)n;
 }

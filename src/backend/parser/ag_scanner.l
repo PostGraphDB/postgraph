@@ -217,6 +217,14 @@ dquote        \"
 dqchars       [^"\\]+
 squote        '
 
+
+
+/* Hexadecimal number */
+xhstart			[xX]{squote}
+xhinside		[^']*
+
+
+
 sqchars       [^'\\]+
 esascii       \\["'/\\bfnrt]
 esasciifail   \\[^Uu]?
@@ -285,6 +293,7 @@ static void strbuf_append_codepoint(strbuf *sb, const pg_wchar c);
 static void strbuf_ensure_capacity(strbuf *sb, int len);
 static const char *strbuf_get_str(strbuf *sb);
 static void strbuf_reset(strbuf *sb);
+char *copy_string(const char *ident, int len);
 
 typedef struct ag_yy_extra
 {
@@ -711,6 +720,51 @@ ag_token token;
                     scan_errmsg("invalid Unicode surrogate pair"),
                     errdetail("A low surrogate must follow a high surrogate."),
                     scan_errposition()));
+}
+
+
+{xhstart}		{
+					/* Hexadecimal bit type.
+					 * At some point we should simply pass the string
+					 * forward to the parser and label it there.
+					 * In the meantime, place a leading "x" on the string
+					 * to mark it for the input routine as a hex string.
+					 */
+					//SET_YYLLOC();
+					BEGIN(xh);
+					//startlit();
+					//addlitchar('x', scanner);
+                    //strbuf_append_char(&yyextra.literal_buf, '\\');
+                    strbuf_append_char(&yyextra.literal_buf, 'x');
+				}
+                /*
+<xh>{xhinside}	{
+   // strbuf_append_buf(&yyextra.literal_buf, 'x', 1);
+        strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
+					//addlit(yytext, yyleng, scanner);
+				}
+                */
+<xh><<EOF>>		{ 
+    ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                    scan_errmsg("unterminated hexadecimal string literal"),
+                    scan_errposition()));
+    }
+
+<xh>{squote} {
+    BEGIN(INITIAL);
+
+    /*
+     * In quoted strings, only Unicode escape sequences need to be verified,
+     * and the actions for <dqstr,sqstr>{esunicode} and <qstru>{esunicode}
+     * rules verify the code point values. So, quoted strings are always valid.
+     */
+
+    token.type = AG_TOKEN_XCONST;
+    //token.value.s = strbuf_get_str(&yyextra.literal_buf);
+    //token.value.s = copy_string(strbuf_get_str(&yyextra.literal_buf), yyleng);
+    token.value.s = strbuf_get_str(&yyextra.literal_buf);
+    token.location = get_location();
+    return token;
 }
 
 <sqstr>{squote} {
@@ -1344,4 +1398,27 @@ int ag_scanner_errposition(const int location, ag_scanner_t *scanner)
     extra = ag_yyget_extra(scanner);
 
     return _scan_errposition(location, &extra);
+}
+
+
+/*
+ * a workhorse for downcase_truncate_identifier
+ */
+char *
+copy_string(const char *ident, int len)
+{
+	char	   *result;
+	int			i;
+	result = palloc(len + 1);
+
+	for (i = 0; i < len; i++)
+	{
+		unsigned char ch = (unsigned char) ident[i];
+
+		result[i] = (char) ch;
+	}
+	result[i] = '\0';
+
+
+	return result;
 }
