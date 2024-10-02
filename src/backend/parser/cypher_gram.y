@@ -382,6 +382,9 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <string> reserved_keyword 
 %type <string> bare_label_keyword
 
+%type <range>	OptTempTableName
+%type <into>	into_clause 
+
 /* RETURN and WITH clause */
 %type <node> empty_grouping_set cube_clause rollup_clause group_item having_opt return return_item sort_item skip_opt limit_opt with
 %type <list> group_item_list return_item_list order_by_opt sort_item_list group_by_opt within_group_clause
@@ -474,6 +477,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              reloption_list
 			 columnList opt_name_list
              from_clause from_list
+			 distinct_clause
              target_list opt_target_list insert_column_list set_target_list
              set_clause_list set_clause
 			 opt_type_modifiers
@@ -910,31 +914,22 @@ select_clause:
  */
 simple_select:
 			SELECT opt_all_clause opt_target_list
-			//into_clause 
-            from_clause where_clause group_clause
+			into_clause from_clause where_clause group_clause
 			 having_clause window_clause
 				{
 					SelectStmt *n = makeNode(SelectStmt);
-					/*n->targetList = $3;
+					n->targetList = $3;
 					n->intoClause = $4;
 					n->fromClause = $5;
 					n->whereClause = $6;
 					n->groupClause = ($7)->list;
 					n->groupDistinct = ($7)->distinct;
 					n->havingClause = $8;
-					n->windowClause = $9;*/
-                    n->targetList = $3;
-					n->intoClause = NULL;
-					n->fromClause = $4;
-					n->whereClause = $5;
-					n->groupClause = ($6)->list;
-					n->groupDistinct = ($6)->distinct;
-					n->havingClause = $7;
-					n->windowClause = $8;
+					n->windowClause = $9;
 					$$ = (Node *)n;
 				}
 
-			/*| SELECT distinct_clause target_list
+			| SELECT distinct_clause target_list
 			into_clause from_clause where_clause
 			group_clause having_clause window_clause
 				{
@@ -950,7 +945,6 @@ simple_select:
 					n->windowClause = $9;
 					$$ = (Node *)n;
 				}
-*/
 			| values_clause							{ $$ = $1; }
 			| TABLE relation_expr
 				{
@@ -1099,6 +1093,97 @@ opt_cycle_clause:
 opt_with_clause:
 		with_clause								{ $$ = $1; }
 		| /*EMPTY*/								{ $$ = NULL; }
+		;
+
+
+into_clause:
+			INTO OptTempTableName
+				{
+					$$ = makeNode(IntoClause);
+					$$->rel = $2;
+					$$->colNames = NIL;
+					$$->options = NIL;
+					$$->onCommit = ONCOMMIT_NOOP;
+					$$->tableSpaceName = NULL;
+					$$->viewQuery = NULL;
+					$$->skipData = false;
+				}
+			| /*EMPTY*/
+				{ $$ = NULL; }
+		;
+
+/*
+ * Redundancy here is needed to avoid shift/reduce conflicts,
+ * since TEMP is not a reserved word.  See also OptTemp.
+ */
+OptTempTableName:
+			TEMPORARY opt_table qualified_name
+				{
+					$$ = $3;
+					$$->relpersistence = RELPERSISTENCE_TEMP;
+				}
+			| TEMP opt_table qualified_name
+				{
+					$$ = $3;
+					$$->relpersistence = RELPERSISTENCE_TEMP;
+				}
+			| LOCAL TEMPORARY opt_table qualified_name
+				{
+					$$ = $4;
+					$$->relpersistence = RELPERSISTENCE_TEMP;
+				}
+			| LOCAL TEMP opt_table qualified_name
+				{
+					$$ = $4;
+					$$->relpersistence = RELPERSISTENCE_TEMP;
+				}
+			| GLOBAL TEMPORARY opt_table qualified_name
+				{
+					ereport(WARNING,
+							(errmsg("GLOBAL is deprecated in temporary table creation")));
+					$$ = $4;
+					$$->relpersistence = RELPERSISTENCE_TEMP;
+				}
+			| GLOBAL TEMP opt_table qualified_name
+				{
+					ereport(WARNING,
+							(errmsg("GLOBAL is deprecated in temporary table creation")));
+					$$ = $4;
+					$$->relpersistence = RELPERSISTENCE_TEMP;
+				}
+			| UNLOGGED opt_table qualified_name
+				{
+					$$ = $3;
+					$$->relpersistence = RELPERSISTENCE_UNLOGGED;
+				}
+			| TABLE qualified_name
+				{
+					$$ = $2;
+					$$->relpersistence = RELPERSISTENCE_PERMANENT;
+				}
+			| qualified_name
+				{
+					$$ = $1;
+					$$->relpersistence = RELPERSISTENCE_PERMANENT;
+				}
+		;
+
+opt_table:	TABLE
+			| /*EMPTY*/
+		;
+
+set_quantifier:
+			ALL										{ $$ = SET_QUANTIFIER_ALL; }
+			| DISTINCT								{ $$ = SET_QUANTIFIER_DISTINCT; }
+			| /*EMPTY*/								{ $$ = SET_QUANTIFIER_DEFAULT; }
+		;
+
+/* We use (NIL) as a placeholder to indicate that all target expressions
+ * should be placed in the DISTINCT list during parsetree analysis.
+ */
+distinct_clause:
+			DISTINCT								{ $$ = list_make1(NIL); }
+			| DISTINCT ON '(' expr_list ')'			{ $$ = $4; }
 		;
 
 opt_all_clause:
@@ -2657,12 +2742,6 @@ group_clause:
 					n->list = NIL;
 					$$ = n;
 				}
-		;
-
-set_quantifier:
-			ALL										{ $$ = SET_QUANTIFIER_ALL; }
-			| DISTINCT								{ $$ = SET_QUANTIFIER_DISTINCT; }
-			| /*EMPTY*/								{ $$ = SET_QUANTIFIER_DEFAULT; }
 		;
 
 group_by_opt:
