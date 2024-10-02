@@ -248,13 +248,13 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <list> single_query  cypher_stmt
 
 %type <node> parse_toplevel stmtmulti schema_stmt routine_body_stmt
-             AlterDatabaseStmt AlterDatabaseSetStmt
+             AlterDatabaseStmt AlterDatabaseSetStmt AlterTblSpcStmt
              CreateCastStmt CreatedbStmt CreateSchemaStmt
              CreateExtensionStmt CreateFunctionStmt CreateGraphStmt 
 			 CreateTableStmt CreateTableSpaceStmt
 			 CreateUserStmt
              DefineStmt DeleteStmt DropdbStmt DropGraphStmt
-			 DropStmt
+			 DropStmt DropTableSpaceStmt
              GrantStmt
 			 InsertStmt
              UseGraphStmt
@@ -688,6 +688,7 @@ stmt:
     cypher_stmt 
 	| AlterDatabaseSetStmt
     | AlterDatabaseStmt 
+	| AlterTblSpcStmt
 	| CreateCastStmt
 	| CreatedbStmt
     | CreateGraphStmt
@@ -702,6 +703,7 @@ stmt:
 	| DropdbStmt
     | DropGraphStmt 
 	| DropStmt 
+	| DropTableSpaceStmt
 	| GrantStmt 
     | InsertStmt 
     | SelectStmt 
@@ -2075,6 +2077,32 @@ CreateTableSpaceStmt: CREATE TABLESPACE name OptTableSpaceOwner LOCATION Sconst 
 
 OptTableSpaceOwner: OWNER RoleSpec		{ $$ = $2; }
 			| /*EMPTY */				{ $$ = NULL; }
+		;
+
+/*****************************************************************************
+ *
+ *		QUERY :
+ *				DROP TABLESPACE <tablespace>
+ *
+ *		No need for drop behaviour as we cannot implement dependencies for
+ *		objects in other databases; we can only support RESTRICT.
+ *
+ ****************************************************************************/
+
+DropTableSpaceStmt: DROP TABLESPACE name
+				{
+					DropTableSpaceStmt *n = makeNode(DropTableSpaceStmt);
+					n->tablespacename = $3;
+					n->missing_ok = false;
+					$$ = (Node *) n;
+				}
+				|  DROP TABLESPACE IF EXISTS name
+				{
+					DropTableSpaceStmt *n = makeNode(DropTableSpaceStmt);
+					n->tablespacename = $5;
+					n->missing_ok = true;
+					$$ = (Node *) n;
+				}
 		;
 
 /*****************************************************************************
@@ -5226,6 +5254,34 @@ role_list:	RoleSpec
 					{ $$ = list_make1($1); }
 			| role_list ',' RoleSpec
 					{ $$ = lappend($1, $3); }
+		;
+
+
+/*****************************************************************************
+ *
+ * ALTER TABLESPACE
+ *
+ *****************************************************************************/
+
+AlterTblSpcStmt:
+			ALTER TABLESPACE name SET reloptions
+				{
+					AlterTableSpaceOptionsStmt *n =
+						makeNode(AlterTableSpaceOptionsStmt);
+					n->tablespacename = $3;
+					n->options = $5;
+					n->isReset = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TABLESPACE name RESET reloptions
+				{
+					AlterTableSpaceOptionsStmt *n =
+						makeNode(AlterTableSpaceOptionsStmt);
+					n->tablespacename = $3;
+					n->options = $5;
+					n->isReset = true;
+					$$ = (Node *)n;
+				}
 		;
 
 /*****************************************************************************
