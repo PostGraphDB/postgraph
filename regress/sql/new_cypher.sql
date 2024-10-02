@@ -61,8 +61,8 @@ CREATE TABLE tst3 () INHERITS (tst);
 CREATE TEMPORARY TABLE tst2 (i text);
 
 CREATE TABLE tst4 (i text) PARTITION BY LIST (i);
-CREATE TABLE tst5 (i text) PARTITION BY LIST (i COLLATE de_DE);
-CREATE TABLE tst6 (i text) PARTITION BY LIST (i COLLATE de_DE text_ops);
+CREATE TABLE tst5 (i text) PARTITION BY LIST (i COLLATE "de_DE");
+CREATE TABLE tst6 (i text) PARTITION BY LIST (i COLLATE "de_DE" text_ops);
 CREATE TABLE tst7 (i text) USING heap;
 CREATE TABLE tst8 (i text) WITH (fillfactor=70);
 

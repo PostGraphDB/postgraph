@@ -752,6 +752,7 @@ ag_token token;
     update_location();
     token.type = AG_TOKEN_IDENTIFIER;
     token.value.s = yytext;
+    //token.value.s =  downcase_truncate_identifier(yytext, strlen(yytext), true);//, yyleng, true);
     token.location = get_location();
     return token;
 }

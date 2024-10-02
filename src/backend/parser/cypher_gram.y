@@ -146,7 +146,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 	struct ObjectWithArgs		*objwithargs;
     struct WindowDef *windef;
     struct DefElem *defelt;
-    struct RangeVar *range;
+
     struct TypeName *typnam;
 	struct PartitionElem *partelem;
 	struct PartitionSpec *partspec;
@@ -154,6 +154,9 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
     struct Value *value;
     struct ResTarget *target;
     struct Alias *alias;
+    struct RangeVar *range;
+	struct IntoClause *into;
+	struct WithClause *with;
 	struct PrivTarget	*privtarget;
 	struct AccessPriv			*accesspriv;
     struct SortBy *sortby;
@@ -178,14 +181,14 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 /* keywords in alphabetical order */
 %token <keyword> ACCESS ACTION ADMIN ALL ALTER AND ANY ALWAYS ARRAY AS ASC ASCENDING ASYMMETRIC AT ATOMIC AUTHORIZATION
 
-                 BIGINT BEGIN_P BETWEEN BOOLEAN_P BOTH BY
+                 BIGINT BEGIN_P BETWEEN BOOLEAN_P BOTH BREADTH BY
 
                  CACHE CALL CALLED CASE CAST CASCADE CHECK CROSS COALESCE COLLATE COLLATION COMMENTS COMPRESSION CONNECTION
 				 CONCURRENTLY CONTAINS CONSTRAINT CONSTRAINTS COST CREATE CUBE CURRENT 
                  CURRENT_CATALOG CURRENT_DATE CURRENT_ROLE CURRENT_SCHEMA CURRENT_TIME 
                  CURRENT_TIMESTAMP CURRENT_USER CYCLE CYPHER
 
-                 DATA_P DATABASE DATE DECADE DEC DECIMAL_P DEFAULT DEFAULTS DEFERRABLE DEFERRED DEFINER DELETE DESC DESCENDING DETACH DISTINCT 
+                 DATA_P DATABASE DATE DECADE DEC DECIMAL_P DEFAULT DEFAULTS DEFERRABLE DEFERRED DEFINER DELETE DEPTH DESC DESCENDING DETACH DISTINCT 
 				 DOMAIN_P DOCUMENT_P DOUBLE_P DROP
 
                  ENCODING ENCRYPTED ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXCLUDING EXISTS EXTENSION EXTRACT EXTERNAL
@@ -206,7 +209,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  LANGUAGE LARGE_P LAST_P LATERAL_P LEADING LEAKPROOF LEAST LEFT LEVEL LIKE LIMIT LOCATION LOCAL LOCALTIME LOCALTIMESTAMP
 
-                 MATCH MAXVALUE MERGE METHOD MINVALUE
+                 MATERIALIZED MATCH MAXVALUE MERGE METHOD MINVALUE
 
                  NAME_P NATURAL NFC NFD NFKC NFKD NO NORMALIZE NORMALIZED NOT NOTNULL NULL_P NULLIF NULLS_LA NUMERIC
 
@@ -214,9 +217,9 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  PARALLEL PARTIAL PARTITION PASSWORD PLACING POLICY POSITION PUBLICATION PRECEDING PRECISION PRIMARY PRIVILEGES PROCEDURAL PROCEDURE PROCEDURES
 
-                 RANGE RIGHT REAL REFERENCES REMOVE RESET RESTART RESTRICT REPLACE RETURN RETURNS RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
+                 RANGE RIGHT REAL RECURSIVE REFERENCES REMOVE RESET RESTART RESTRICT REPLACE RETURN RETURNS RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
 
-                 SCHEMA SECURITY SERVER SELECT SEQUENCE SEQUENCES SESSION SESSION_USER SET SETOF SETS
+                 SCHEMA SEARCH SECURITY SERVER SELECT SEQUENCE SEQUENCES SESSION SESSION_USER SET SETOF SETS
 				 SIMPLE SKIP SMALLINT SOME STABLE START STARTS STATEMENTS STATISTICS
 				 STORED STORAGE STRICT_P SUBSCRIPTION SUBSTRING SUPPORT SYMMETRIC SYSID SYSTEM_P
 
@@ -253,6 +256,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 			 ReturnStmt
              SelectStmt
              UpdateStmt
+			 PreparableStmt
              VariableResetStmt VariableSetStmt
 
 %type <node> select_no_parens select_with_parens select_clause
@@ -285,8 +289,17 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <integer>	ConstraintAttributeSpec ConstraintAttributeElem
 %type <string>	ExistingIndex
 %type <integer>	generated_when override_kind
+%type <integer> opt_materialized
+
+
+%type <node>	opt_search_clause opt_cycle_clause
+
 %type <node>	func_application func_expr_common_subexpr
 %type <node>	func_expr func_expr_windowless
+%type <node>	common_table_expr
+%type <with>	with_clause opt_with_clause
+%type <list>	cte_list
+
 
 %type <list>	 SeqOptList OptParenthesizedSeqOptList
 %type <defelt>	SeqOptElem
@@ -428,7 +441,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              qualified_name_list any_name any_name_list type_name_list
 			 any_operator
              reloption_list
-			 columnList
+			 columnList opt_name_list
              sort_clause opt_sort_clause sortby_list
              from_clause from_list
              target_list opt_target_list insert_column_list set_target_list
@@ -798,16 +811,13 @@ select_no_parens:
 										$1,
 										scanner);
 					$$ = $2;
-				}
+				}*/
 			| with_clause select_clause sort_clause
 				{
-					insertSelectOptions((SelectStmt *) $2, $3, NIL,
-										NULL,
-										$1,
-										scanner);
+					insertSelectOptions((SelectStmt *) $2, $3, NIL, NULL, $1, scanner);
 					$$ = $2;
 				}
-			| with_clause select_clause opt_sort_clause for_locking_clause opt_select_limit
+			/*| with_clause select_clause opt_sort_clause for_locking_clause opt_select_limit
 				{
 					insertSelectOptions((SelectStmt *) $2, $3, $4,
 										$5,
@@ -935,11 +945,139 @@ simple_select:
 				}
 		;
 
+/*
+ * SQL standard WITH clause looks like:
+ *
+ * WITH [ RECURSIVE ] <query name> [ (<column>,...) ]
+ *		AS (query) [ SEARCH or CYCLE clause ]
+ *
+ * Recognizing WITH_LA here allows a CTE to be named TIME or ORDINALITY.
+ */
+with_clause:
+		WITH cte_list
+			{
+				$$ = makeNode(WithClause);
+				$$->ctes = $2;
+				$$->recursive = false;
+				$$->location = @1;
+			}
+		| WITH cte_list
+			{
+				$$ = makeNode(WithClause);
+				$$->ctes = $2;
+				$$->recursive = false;
+				$$->location = @1;
+			}
+		| WITH RECURSIVE cte_list
+			{
+				$$ = makeNode(WithClause);
+				$$->ctes = $3;
+				$$->recursive = true;
+				$$->location = @1;
+			}
+		;
+
+cte_list:
+		common_table_expr						{ $$ = list_make1($1); }
+		| cte_list ',' common_table_expr		{ $$ = lappend($1, $3); }
+		;
+
+common_table_expr:  name opt_name_list AS opt_materialized '(' PreparableStmt ')' opt_search_clause opt_cycle_clause
+			{
+				CommonTableExpr *n = makeNode(CommonTableExpr);
+				n->ctename = $1;
+				n->aliascolnames = $2;
+				n->ctematerialized = $4;
+				n->ctequery = $6;
+				n->search_clause = castNode(CTESearchClause, $8);
+				n->cycle_clause = castNode(CTECycleClause, $9);
+				n->location = @1;
+				$$ = (Node *) n;
+			}
+		;
+
+opt_materialized:
+		MATERIALIZED							{ $$ = CTEMaterializeAlways; }
+		| NOT MATERIALIZED						{ $$ = CTEMaterializeNever; }
+		| /*EMPTY*/								{ $$ = CTEMaterializeDefault; }
+		;
+
+opt_search_clause:
+		SEARCH DEPTH FIRST_P BY columnList SET ColId
+			{
+				CTESearchClause *n = makeNode(CTESearchClause);
+				n->search_col_list = $5;
+				n->search_breadth_first = false;
+				n->search_seq_column = $7;
+				n->location = @1;
+				$$ = (Node *) n;
+			}
+		| SEARCH BREADTH FIRST_P BY columnList SET ColId
+			{
+				CTESearchClause *n = makeNode(CTESearchClause);
+				n->search_col_list = $5;
+				n->search_breadth_first = true;
+				n->search_seq_column = $7;
+				n->location = @1;
+				$$ = (Node *) n;
+			}
+		| /*EMPTY*/
+			{
+				$$ = NULL;
+			}
+		;
+
+opt_cycle_clause:
+		CYCLE columnList SET ColId TO AexprConst DEFAULT AexprConst USING ColId
+			{
+				CTECycleClause *n = makeNode(CTECycleClause);
+				n->cycle_col_list = $2;
+				n->cycle_mark_column = $4;
+				n->cycle_mark_value = $6;
+				n->cycle_mark_default = $8;
+				n->cycle_path_column = $10;
+				n->location = @1;
+				$$ = (Node *) n;
+			}
+		| CYCLE columnList SET ColId USING ColId
+			{
+				CTECycleClause *n = makeNode(CTECycleClause);
+				n->cycle_col_list = $2;
+				n->cycle_mark_column = $4;
+				n->cycle_mark_value = makeBoolAConst(true, -1);
+				n->cycle_mark_default = makeBoolAConst(false, -1);
+				n->cycle_path_column = $6;
+				n->location = @1;
+				$$ = (Node *) n;
+			}
+		| /*EMPTY*/
+			{
+				$$ = NULL;
+			}
+		;
+
+opt_with_clause:
+		with_clause								{ $$ = $1; }
+		| /*EMPTY*/								{ $$ = NULL; }
+		;
+
 opt_all_clause:
 			ALL
 			| /*EMPTY*/
 		;
 
+PreparableStmt:
+			SelectStmt
+			| InsertStmt
+			| UpdateStmt
+			| DeleteStmt					/* by default all are $$=$1 */
+		;
+
+
+opt_name_list:
+			'(' name_list ')'						{ $$ = $2; }
+			| /*EMPTY*/								{ $$ = NIL; }
+		;
 /*****************************************************************************
  *
  *	target list for SELECT
@@ -7245,6 +7383,7 @@ generic_reset:
 unreserved_keyword:
 			INPUT_P
 			| KEY
+			| LIKE
 			| NAME_P
 			| TYPE_P
 ;
@@ -7261,6 +7400,7 @@ unreserved_keyword:
 bare_label_keyword:
 		INPUT_P
 		| KEY
+		| LIKE
 		| NAME_P
 		| TYPE_P
 ;
