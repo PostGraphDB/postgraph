@@ -393,9 +393,9 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
 %type <rolespec> opt_granted_by
 
-%type <string> unreserved_keyword 
-%type <string> reserved_keyword 
-%type <string> bare_label_keyword
+%type <keyword> unreserved_keyword 
+%type <keyword> reserved_keyword 
+%type <keyword> bare_label_keyword
 
 %type <range>	OptTempTableName
 %type <into>	into_clause create_as_target
@@ -2665,7 +2665,7 @@ cypher_query_start:
     | match
     | CYPHER with { $$ = $2; }
     | merge
-    | call_stmt
+    | CYPHER call_stmt { $$ = $2; }
     | return
     | unwind
 ;
@@ -2782,7 +2782,7 @@ cypher_range_idx_opt:
                         | /* EMPTY */                   { $$ = NULL; }
                 ;
 
-Iconst: INTEGER | INTEGER_P
+Iconst: INTEGER
 ;
 /*
  * RETURN and WITH clause
@@ -5346,15 +5346,6 @@ ConstraintAttributeSpec:
 								 errmsg("conflicting constraint properties")));
 					$$ = newspec;
 				}
-		;
-
-ConstraintAttributeElem:
-			NOT DEFERRABLE					{ $$ = CAS_NOT_DEFERRABLE; }
-			| DEFERRABLE					{ $$ = CAS_DEFERRABLE; }
-			| INITIALLY IMMEDIATE			{ $$ = CAS_INITIALLY_IMMEDIATE; }
-			| INITIALLY DEFERRED			{ $$ = CAS_INITIALLY_DEFERRED; }
-			| NOT VALID						{ $$ = CAS_NOT_VALID; }
-			| NO INHERIT					{ $$ = CAS_NO_INHERIT; }
 		;
 
 
