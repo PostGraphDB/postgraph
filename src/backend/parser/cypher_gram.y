@@ -372,6 +372,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <rolespec> opt_granted_by
 
 %type <string> unreserved_keyword 
+%type <string> reserved_keyword 
 %type <string> bare_label_keyword
 
 /* RETURN and WITH clause */
@@ -440,7 +441,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
 %type <string> property_key_name cypher_var_name var_name_opt label_name
 %type <string> symbolic_name schema_name temporal_cast attr_name table_access_method_clause
-%type <keyword> reserved_keyword safe_keywords conflicted_keywords
+%type <keyword> cypher_reserved_keyword safe_keywords conflicted_keywords
 
 %type <node>	select_limit_value
 				offset_clause select_offset_value
@@ -3498,7 +3499,7 @@ Iconst:		INTEGER									{ $$ = $1; }
 
 /* Note: any simple identifier will be returned as a type name! */
 def_arg:	func_type						{ $$ = (Node *)$1; }
-			//| reserved_keyword				{ $$ = (Node *)makeString(pstrdup($1)); }
+			| reserved_keyword				{ $$ = (Node *)makeString(pstrdup($1)); }
 			| all_op					{ $$ = (Node *)$1; }
 			| NumericOnly					{ $$ = (Node *)$1; }
 			| Sconst						{ $$ = (Node *)makeString($1); }
@@ -5822,9 +5823,9 @@ NonReservedWord:	IDENTIFIER							{ $$ = $1; }
 ColLabel:	IDENTIFIER									{ $$ = $1; }
 			| unreserved_keyword					{ $$ = pstrdup($1); }
 			/*| col_name_keyword						{ $$ = pstrdup($1); }
-			| type_func_name_keyword				{ $$ = pstrdup($1); }
+			| type_func_name_keyword				{ $$ = pstrdup($1); }*/
 			| reserved_keyword						{ $$ = pstrdup($1); }
-		*/;
+		;
 
 
 /* Bare column label --- names that can be column labels without writing "AS".
@@ -7666,12 +7667,18 @@ unreserved_keyword:
  * in kwlist.h if it is included here, or AS_LABEL if it is not.
  */
 bare_label_keyword:
-		INPUT_P
+        FALSE_P
+		| INPUT_P
 		| KEY
 		| LIKE
 		| NAME_P
+		| TRUE_P
 		| TYPE_P
 ;
+
+reserved_keyword:
+        FALSE_P
+		| TRUE_P
 
 /*
  * SET and REMOVE clause
@@ -9015,14 +9022,14 @@ symbolic_name:
 
 schema_name:
     symbolic_name
-    | reserved_keyword
+    | cypher_reserved_keyword
         {
             /* we don't need to copy it, as it already has been */
             $$ = (char *) $1;
         }
     ;
 
-reserved_keyword:
+cypher_reserved_keyword:
     safe_keywords
     | conflicted_keywords
     ;
