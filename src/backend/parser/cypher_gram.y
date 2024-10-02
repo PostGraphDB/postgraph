@@ -30,7 +30,7 @@
 #include "nodes/primnodes.h"
 #include "nodes/value.h"
 #include "parser/parser.h"
-
+#include "catalog/pg_trigger.h"
 
 #include "nodes/ag_nodes.h"
 #include "nodes/cypher_nodes.h"
@@ -186,9 +186,9 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ
 
 /* keywords in alphabetical order */
-%token <keyword> ABORT_P ACCESS ACTION ADMIN ALL ALTER AND ANY ALWAYS ARRAY AS ASC ASCENDING ASSIGNMENT ASYMMETRIC AT ATOMIC AUTHORIZATION
+%token <keyword> ABORT_P ACCESS ACTION ADMIN AFTER ALL ALTER AND ANY ALWAYS ARRAY AS ASC ASCENDING ASSIGNMENT ASYMMETRIC AT ATOMIC AUTHORIZATION
 
-                 BIGINT BEGIN_P BETWEEN BOOLEAN_P BOTH BREADTH BY
+                 BIGINT BEFORE BEGIN_P BETWEEN BOOLEAN_P BOTH BREADTH BY
 
                  CACHE CALL CALLED CASE CAST CASCADE CHAIN CHECK CROSS COALESCE COLLATE COLLATION COMMENTS COMMIT COMMITTED COMPRESSION CONNECTION
 				 CONCURRENTLY CONTAINS CONSTRAINT CONSTRAINTS COST CREATE CUBE CURRENT 
@@ -198,8 +198,8 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
                  DATA_P DATABASE DECADE DEC DECIMAL_P DEFAULT DEFAULTS DEFERRABLE DEFERRED DEFINER DELETE DEPTH DESC DESCENDING DETACH DISTINCT 
 				 DOMAIN_P DOCUMENT_P DOUBLE_P DROP
 
-                 ENCODING ENCRYPTED ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXCLUDING EXISTS EXTENSION EXTRACT EXTERNAL
-                 EVENT
+                 EACH ENCODING ENCRYPTED ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXCLUDING EXISTS EXTENSION EXTRACT EXTERNAL
+                 EVENT EXECUTE
 
                  GENERATED GLOBAL GRANT GRANTED GRAPH GREATEST GROUP GROUPS GROUPING
 
@@ -208,7 +208,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
                  HAVING
 
                  IDENTITY_P IF ILIKE IN INCLUDING INDEX INDEXES IMMEDIATE IMMUTABLE IMPLICIT_P INCLUDE INCREMENT INHERIT INHERITS INITIALLY INNER 
-				 INOUT INPUT_P INT_P INTEGER_P INTERSECT INSERT INTERVAL INTO INVOKER IS ISNULL ISOLATION
+				 INSTEAD INOUT INPUT_P INT_P INTEGER_P INTERSECT INSERT INTERVAL INTO INVOKER IS ISNULL ISOLATION
 
                  JOIN
 
@@ -219,20 +219,20 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  MATERIALIZED MATCH MAXVALUE MERGE METHOD MINVALUE
 
-                 NAME_P NATURAL NEXT NFC NFD NFKC NFKD NO NORMALIZE NORMALIZED NOT NOTNULL NOWAIT NULL_P NULLIF NULLS_LA NUMERIC
+                 NAME_P NATURAL NEXT NEW NFC NFD NFKC NFKD NO NORMALIZE NORMALIZED NOT NOTNULL NOWAIT NULL_P NULLIF NULLS_LA NUMERIC
 
-                 OBJECT_P OF OFFSET ON ONLY OPTION OPTIONS OPTIONAL OTHERS OR ORDER OUT_P OUTER OVER OVERRIDING OVERLAPS OVERLAY OWNED OWNER
+                 OBJECT_P OF OFFSET ON ONLY OPTION OPTIONS OPTIONAL OTHERS OR OLD ORDER OUT_P OUTER OVER OVERRIDING OVERLAPS OVERLAY OWNED OWNER
 
                  PARALLEL PARTIAL PARTITION PASSWORD PLACING POLICY POSITION PUBLICATION PRECEDING PRECISION PRESERVE PREPARE PREPARED PRIMARY PRIVILEGES PROCEDURAL PROCEDURE PROCEDURES
 
-                 RANGE READ RIGHT REAL RECURSIVE REFERENCES RELEASE REMOVE REPEATABLE RESET RESTART RESTRICT REPLACE RETURN RETURNS ROLLBACK RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
+                 RANGE READ RIGHT REAL RECURSIVE REFERENCING REFERENCES RELEASE REMOVE REPEATABLE RESET RESTART RESTRICT REPLACE RETURN RETURNS ROLLBACK RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
 
                  SAVEPOINT SCHEMA SERIALIZABLE SEARCH SECURITY SERVER SELECT SEQUENCE SEQUENCES SESSION SESSION_USER SET SETOF SETS SHARE
-				 SIMPLE SKIP SMALLINT SOME STABLE START STARTS STATEMENTS STATISTICS
+				 SIMPLE SKIP SMALLINT SOME STABLE START STARTS STATEMENT STATEMENTS STATISTICS 
 				 STORED STORAGE STRICT_P SUBSCRIPTION SUBSTRING SUPPORT SYMMETRIC SYSID SYSTEM_P
 
                  TABLE TABLES TABLESPACE TEMP TEMPLATE TEMPORARY  TIME TIES THEN TIMESTAMP TO TRAILING TRANSACTION TRANSFORM TREAT TRIGGER TRIM TRUE_P
-				 TYPE_P
+				 TYPE_P TRUNCATE
 
                  UNBOUNDED UNCOMMITTED UNENCRYPTED UNION UNIQUE UNKNOWN UNLOGGED UNTIL UPDATE UNWIND USE USER USING
 
@@ -254,6 +254,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              AlterDatabaseStmt AlterDatabaseSetStmt AlterTblSpcStmt
 			 CreateAsStmt
              CreateCastStmt CreatedbStmt CreateSchemaStmt
+			 CreateTrigStmt
              CreateExtensionStmt CreateFunctionStmt CreateGraphStmt 
 			 CreateTableStmt CreateTableSpaceStmt
 			 CreateUserStmt
@@ -268,6 +269,16 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              UpdateStmt
 			 PreparableStmt
              VariableResetStmt VariableSetStmt
+
+
+%type <boolean> TriggerForSpec TriggerForType
+%type <integer>	TriggerActionTime
+%type <list>	TriggerEvents TriggerOneEvent
+%type <value>	TriggerFuncArg
+%type <node>	TriggerWhen
+%type <string>		TransitionRelName
+%type <boolean>	TransitionRowOrTable TransitionOldOrNew
+%type <node>	TriggerTransition
 
 %type <node> select_no_parens select_with_parens select_clause
              simple_select
@@ -483,7 +494,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 			 opt_include opt_c_include index_including_params
              qualified_name_list any_name any_name_list type_name_list
 			 any_operator
-             reloption_list
+             reloption_list TriggerFuncArgs
 			 columnList opt_name_list
              from_clause from_list
 			 distinct_clause
@@ -500,8 +511,8 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 			 create_generic_options
 			 table_func_column_list
 			 transform_type_list
+			 TriggerTransitions TriggerReferencing
 			 drop_option_list
-
 
 %type <list>	transaction_mode_list
 
@@ -538,7 +549,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <integer> arg_class
 %type <typnam>	func_return func_type
 
-%type <range>	qualified_name insert_target
+%type <range>	qualified_name insert_target OptConstrFromTable
 %type <istmt>	insert_rest
 
 %type <list>	extract_list overlay_list position_list
@@ -729,6 +740,7 @@ stmt:
 	| CreateSchemaStmt
     | CreateTableStmt
 	| CreateTableSpaceStmt
+	| CreateTrigStmt
 	| CreateUserStmt
     | DefineStmt 
     | DeleteStmt
@@ -3064,11 +3076,11 @@ OptSchemaEltList:
  */
 schema_stmt:
 			CreateTableStmt
-			/*| IndexStmt
-			| CreateSeqStmt
+			| IndexStmt
+			//| CreateSeqStmt
 			| CreateTrigStmt
-			| GrantStmt
-			| ViewStmt*/
+			//| GrantStmt
+			//| ViewStmt
 		;
 
 /*****************************************************************************
@@ -5625,6 +5637,250 @@ opt_transaction_chain:
 			AND CHAIN		{ $$ = true; }
 			| AND NO CHAIN	{ $$ = false; }
 			| /* EMPTY */	{ $$ = false; }
+		;
+
+
+/*****************************************************************************
+ *
+ *		QUERIES :
+ *				CREATE TRIGGER ...
+ *
+ *****************************************************************************/
+
+CreateTrigStmt:
+			CREATE opt_or_replace TRIGGER name TriggerActionTime TriggerEvents ON
+			qualified_name TriggerReferencing TriggerForSpec TriggerWhen
+			EXECUTE FUNCTION_or_PROCEDURE func_name '(' TriggerFuncArgs ')'
+				{
+					CreateTrigStmt *n = makeNode(CreateTrigStmt);
+					n->replace = $2;
+					n->isconstraint = false;
+					n->trigname = $4;
+					n->relation = $8;
+					n->funcname = $14;
+					n->args = $16;
+					n->row = $10;
+					n->timing = $5;
+					n->events = intVal(linitial($6));
+					n->columns = (List *) lsecond($6);
+					n->whenClause = $11;
+					n->transitionRels = $9;
+					n->deferrable = false;
+					n->initdeferred = false;
+					n->constrrel = NULL;
+					$$ = (Node *)n;
+				}
+		  | CREATE opt_or_replace CONSTRAINT TRIGGER name AFTER TriggerEvents ON
+			qualified_name OptConstrFromTable ConstraintAttributeSpec
+			FOR EACH ROW TriggerWhen
+			EXECUTE FUNCTION_or_PROCEDURE func_name '(' TriggerFuncArgs ')'
+				{
+					CreateTrigStmt *n = makeNode(CreateTrigStmt);
+					n->replace = $2;
+					if (n->replace) /* not supported, see CreateTrigger */
+						ereport(ERROR,
+								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+								 errmsg("CREATE OR REPLACE CONSTRAINT TRIGGER is not supported")));
+					n->isconstraint = true;
+					n->trigname = $5;
+					n->relation = $9;
+					n->funcname = $18;
+					n->args = $20;
+					n->row = true;
+					n->timing = TRIGGER_TYPE_AFTER;
+					n->events = intVal(linitial($7));
+					n->columns = (List *) lsecond($7);
+					n->whenClause = $15;
+					n->transitionRels = NIL;
+					processCASbits($11, @11, "TRIGGER",
+								   &n->deferrable, &n->initdeferred, NULL,
+								   NULL, scanner);
+					n->constrrel = $10;
+					$$ = (Node *)n;
+				}
+		;
+
+TriggerActionTime:
+			BEFORE								{ $$ = TRIGGER_TYPE_BEFORE; }
+			| AFTER								{ $$ = TRIGGER_TYPE_AFTER; }
+			| INSTEAD OF						{ $$ = TRIGGER_TYPE_INSTEAD; }
+		;
+
+TriggerEvents:
+			TriggerOneEvent
+				{ $$ = $1; }
+			| TriggerEvents OR TriggerOneEvent
+				{
+					int		events1 = intVal(linitial($1));
+					int		events2 = intVal(linitial($3));
+					List   *columns1 = (List *) lsecond($1);
+					List   *columns2 = (List *) lsecond($3);
+
+					if (events1 & events2)
+					    ereport(ERROR, errmsg("duplicate trigger events specified"));
+						//parser_yyerror("duplicate trigger events specified");
+					/*
+					 * concat'ing the columns lists loses information about
+					 * which columns went with which event, but so long as
+					 * only UPDATE carries columns and we disallow multiple
+					 * UPDATE items, it doesn't matter.  Command execution
+					 * should just ignore the columns for non-UPDATE events.
+					 */
+					$$ = list_make2(makeInteger(events1 | events2),
+									list_concat(columns1, columns2));
+				}
+		;
+
+TriggerOneEvent:
+			INSERT
+				{ $$ = list_make2(makeInteger(TRIGGER_TYPE_INSERT), NIL); }
+			| DELETE
+				{ $$ = list_make2(makeInteger(TRIGGER_TYPE_DELETE), NIL); }
+			| UPDATE
+				{ $$ = list_make2(makeInteger(TRIGGER_TYPE_UPDATE), NIL); }
+			| UPDATE OF columnList
+				{ $$ = list_make2(makeInteger(TRIGGER_TYPE_UPDATE), $3); }
+			| TRUNCATE
+				{ $$ = list_make2(makeInteger(TRIGGER_TYPE_TRUNCATE), NIL); }
+		;
+
+TriggerReferencing:
+			REFERENCING TriggerTransitions			{ $$ = $2; }
+			| /*EMPTY*/								{ $$ = NIL; }
+		;
+
+TriggerTransitions:
+			TriggerTransition						{ $$ = list_make1($1); }
+			| TriggerTransitions TriggerTransition	{ $$ = lappend($1, $2); }
+		;
+
+TriggerTransition:
+			TransitionOldOrNew TransitionRowOrTable opt_as TransitionRelName
+				{
+					TriggerTransition *n = makeNode(TriggerTransition);
+					n->name = $4;
+					n->isNew = $1;
+					n->isTable = $2;
+					$$ = (Node *)n;
+				}
+		;
+
+TransitionOldOrNew:
+			NEW										{ $$ = true; }
+			| OLD									{ $$ = false; }
+		;
+
+TransitionRowOrTable:
+			TABLE									{ $$ = true; }
+			/*
+			 * According to the standard, lack of a keyword here implies ROW.
+			 * Support for that would require prohibiting ROW entirely here,
+			 * reserving the keyword ROW, and/or requiring AS (instead of
+			 * allowing it to be optional, as the standard specifies) as the
+			 * next token.  Requiring ROW seems cleanest and easiest to
+			 * explain.
+			 */
+			| ROW									{ $$ = false; }
+		;
+
+TransitionRelName:
+			ColId									{ $$ = $1; }
+		;
+
+TriggerForSpec:
+			FOR TriggerForOptEach TriggerForType
+				{
+					$$ = $3;
+				}
+			| /* EMPTY */
+				{
+					/*
+					 * If ROW/STATEMENT not specified, default to
+					 * STATEMENT, per SQL
+					 */
+					$$ = false;
+				}
+		;
+
+TriggerForOptEach:
+			EACH
+			| /*EMPTY*/
+		;
+
+TriggerForType:
+			ROW										{ $$ = true; }
+			| STATEMENT								{ $$ = false; }
+		;
+
+TriggerWhen:
+			WHEN '(' a_expr ')'						{ $$ = $3; }
+			| /*EMPTY*/								{ $$ = NULL; }
+		;
+
+FUNCTION_or_PROCEDURE:
+			FUNCTION
+		|	PROCEDURE
+		;
+
+TriggerFuncArgs:
+			TriggerFuncArg							{ $$ = list_make1($1); }
+			| TriggerFuncArgs ',' TriggerFuncArg	{ $$ = lappend($1, $3); }
+			| /*EMPTY*/								{ $$ = NIL; }
+		;
+
+TriggerFuncArg:
+			Iconst
+				{
+					$$ = makeString(psprintf("%d", $1));
+				}
+			| Numeric								{ $$ = makeString($1); }
+			| Sconst								{ $$ = makeString($1); }
+			| ColLabel								{ $$ = makeString($1); }
+		;
+
+OptConstrFromTable:
+			FROM qualified_name						{ $$ = $2; }
+			| /*EMPTY*/								{ $$ = NULL; }
+		;
+
+ConstraintAttributeSpec:
+			/*EMPTY*/
+				{ $$ = 0; }
+			| ConstraintAttributeSpec ConstraintAttributeElem
+				{
+					/*
+					 * We must complain about conflicting options.
+					 * We could, but choose not to, complain about redundant
+					 * options (ie, where $2's bit is already set in $1).
+					 */
+					int		newspec = $1 | $2;
+
+					/* special message for this case */
+					if ((newspec & (CAS_NOT_DEFERRABLE | CAS_INITIALLY_DEFERRED)) == (CAS_NOT_DEFERRABLE | CAS_INITIALLY_DEFERRED))
+						ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+								 errmsg("constraint declared INITIALLY DEFERRED must be DEFERRABLE")));
+					/* generic message for other conflicts */
+					if ((newspec & (CAS_NOT_DEFERRABLE | CAS_DEFERRABLE)) == (CAS_NOT_DEFERRABLE | CAS_DEFERRABLE) ||
+						(newspec & (CAS_INITIALLY_IMMEDIATE | CAS_INITIALLY_DEFERRED)) == (CAS_INITIALLY_IMMEDIATE | CAS_INITIALLY_DEFERRED))
+						ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+								 errmsg("conflicting constraint properties")));
+					$$ = newspec;
+				}
+		;
+
+ConstraintAttributeElem:
+			NOT DEFERRABLE					{ $$ = CAS_NOT_DEFERRABLE; }
+			| DEFERRABLE					{ $$ = CAS_DEFERRABLE; }
+			| INITIALLY IMMEDIATE			{ $$ = CAS_INITIALLY_IMMEDIATE; }
+			| INITIALLY DEFERRED			{ $$ = CAS_INITIALLY_DEFERRED; }
+			| NOT VALID						{ $$ = CAS_NOT_VALID; }
+			| NO INHERIT					{ $$ = CAS_NO_INHERIT; }
+		;
+
+opt_as:		AS
+			| /* EMPTY */
 		;
 
 
@@ -10186,7 +10442,8 @@ makeColumnRef(char *colname, List *indirection,
 		{
 			/* We only allow '*' at the end of a ColumnRef */
 			if (lnext(indirection, l) != NULL)
-				parser_yyerror("improper use of \"*\"");
+			ereport(ERROR, errmsg("improper use of \"*\""));
+				//parser_yyerror("improper use of \"*\"");
 		}
 		nfields++;
 	}
@@ -10211,7 +10468,8 @@ check_indirection(List *indirection, ag_scanner_t yyscanner)
 		if (IsA(lfirst(l), A_Star))
 		{
 			if (lnext(indirection, l) != NULL)
-				parser_yyerror("improper use of \"*\"");
+						ereport(ERROR, errmsg("improper use of \"*\""));
+				//parser_yyerror("improper use of \"*\"");
 		}
 	}
 	return indirection;
@@ -10562,8 +10820,7 @@ processCASbits(int cas_bits, int location, const char *constrType,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 /* translator: %s is CHECK, UNIQUE, or similar */
 					 errmsg("%s constraints cannot be marked DEFERRABLE",
-							constrType),
-					 parser_errposition(location)));
+							constrType)));
 	}
 
 	if (cas_bits & CAS_INITIALLY_DEFERRED)
@@ -10575,8 +10832,7 @@ processCASbits(int cas_bits, int location, const char *constrType,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 /* translator: %s is CHECK, UNIQUE, or similar */
 					 errmsg("%s constraints cannot be marked DEFERRABLE",
-							constrType),
-					 parser_errposition(location)));
+							constrType)));
 	}
 
 	if (cas_bits & CAS_NOT_VALID)
@@ -10588,8 +10844,7 @@ processCASbits(int cas_bits, int location, const char *constrType,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 /* translator: %s is CHECK, UNIQUE, or similar */
 					 errmsg("%s constraints cannot be marked NOT VALID",
-							constrType),
-					 parser_errposition(location)));
+							constrType)));
 	}
 
 	if (cas_bits & CAS_NO_INHERIT)
@@ -10601,8 +10856,7 @@ processCASbits(int cas_bits, int location, const char *constrType,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 /* translator: %s is CHECK, UNIQUE, or similar */
 					 errmsg("%s constraints cannot be marked NO INHERIT",
-							constrType),
-					 parser_errposition(location)));
+							constrType)));
 	}
 }
 
