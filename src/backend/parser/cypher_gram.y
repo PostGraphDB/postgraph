@@ -252,6 +252,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
 %type <node> parse_toplevel stmtmulti schema_stmt routine_body_stmt
              AlterDatabaseStmt AlterDatabaseSetStmt AlterTblSpcStmt
+			 CreateAsStmt
              CreateCastStmt CreatedbStmt CreateSchemaStmt
              CreateExtensionStmt CreateFunctionStmt CreateGraphStmt 
 			 CreateTableStmt CreateTableSpaceStmt
@@ -383,7 +384,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <string> bare_label_keyword
 
 %type <range>	OptTempTableName
-%type <into>	into_clause 
+%type <into>	into_clause create_as_target
 
 /* RETURN and WITH clause */
 %type <node> empty_grouping_set cube_clause rollup_clause group_item having_opt return return_item sort_item skip_opt limit_opt with
@@ -396,6 +397,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <integer> Iconst
 %type <boolean> optional_opt opt_or_replace
                 opt_grant_grant_option 
+				opt_with_data
 
 /* CREATE clause */
 %type <node> create
@@ -707,6 +709,7 @@ stmt:
 	| AlterDatabaseSetStmt
     | AlterDatabaseStmt 
 	| AlterTblSpcStmt
+	| CreateAsStmt
 	| CreateCastStmt
 	| CreatedbStmt
     | CreateGraphStmt
@@ -2156,6 +2159,69 @@ CreateGraphStmt:
             $$ = (Node *)n;
         }
         ;
+
+
+/*****************************************************************************
+ *
+ *		QUERY :
+ *				CREATE TABLE relname AS SelectStmt [ WITH [NO] DATA ]
+ *
+ *
+ * Note: SELECT ... INTO is a now-deprecated alternative for this.
+ *
+ *****************************************************************************/
+
+CreateAsStmt:
+		CREATE OptTemp TABLE create_as_target AS SelectStmt opt_with_data
+				{
+					CreateTableAsStmt *ctas = makeNode(CreateTableAsStmt);
+					ctas->query = $6;
+					ctas->into = $4;
+					ctas->objtype = OBJECT_TABLE;
+					ctas->is_select_into = false;
+					ctas->if_not_exists = false;
+					/* cram additional flags into the IntoClause */
+					$4->rel->relpersistence = $2;
+					$4->skipData = !($7);
+					$$ = (Node *) ctas;
+				}
+		| CREATE OptTemp TABLE IF NOT EXISTS create_as_target AS SelectStmt opt_with_data
+				{
+					CreateTableAsStmt *ctas = makeNode(CreateTableAsStmt);
+					ctas->query = $9;
+					ctas->into = $7;
+					ctas->objtype = OBJECT_TABLE;
+					ctas->is_select_into = false;
+					ctas->if_not_exists = true;
+					/* cram additional flags into the IntoClause */
+					$7->rel->relpersistence = $2;
+					$7->skipData = !($10);
+					$$ = (Node *) ctas;
+				}
+		;
+
+create_as_target:
+			qualified_name opt_column_list table_access_method_clause
+			OptWith OnCommitOption OptTableSpace
+				{
+					$$ = makeNode(IntoClause);
+					$$->rel = $1;
+					$$->colNames = $2;
+					$$->accessMethod = $3;
+					$$->options = $4;
+					$$->onCommit = $5;
+					$$->tableSpaceName = $6;
+					$$->viewQuery = NULL;
+					$$->skipData = false;		/* might get changed later */
+				}
+		;
+
+opt_with_data:
+			WITH DATA_P								{ $$ = true; }
+			| WITH NO DATA_P						{ $$ = false; }
+			| /*EMPTY*/								{ $$ = true; }
+		;
+
 
 /*****************************************************************************
  *
