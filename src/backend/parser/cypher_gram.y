@@ -165,6 +165,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 	struct JoinExpr *jexpr;
 	struct IndexElem *ielem;
 	struct RoleSpec *rolespec;
+	struct SelectLimit	*selectlimit;
     struct GroupClause  *groupclause;
 }
 
@@ -196,7 +197,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  GENERATED GLOBAL GRANT GRANTED GRAPH GREATEST GROUP GROUPS GROUPING
 
-                 FALSE_P FILTER FIRST_P FLOAT_P FOLLOWING FOR FORCE FOREIGN FROM FULL FUNCTION FUNCTIONS
+                 FALSE_P FETCH FILTER FIRST_P FLOAT_P FOLLOWING FOR FORCE FOREIGN FROM FULL FUNCTION FUNCTIONS
 
                  HAVING
 
@@ -208,18 +209,19 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
                  KEY
 
                  LANGUAGE LARGE_P LAST_P LATERAL_P LEADING LEAKPROOF LEAST LEFT LEVEL LIKE LIMIT LOCATION LOCAL LOCALTIME LOCALTIMESTAMP
+				 LOCK_P LOCKED
 
                  MATERIALIZED MATCH MAXVALUE MERGE METHOD MINVALUE
 
-                 NAME_P NATURAL NFC NFD NFKC NFKD NO NORMALIZE NORMALIZED NOT NOTNULL NULL_P NULLIF NULLS_LA NUMERIC
+                 NAME_P NATURAL NEXT NFC NFD NFKC NFKD NO NORMALIZE NORMALIZED NOT NOTNULL NOWAIT NULL_P NULLIF NULLS_LA NUMERIC
 
-                 OBJECT_P ON ONLY OPTION OPTIONS OPTIONAL OTHERS OR ORDER OUT_P OUTER OVER OVERRIDING OVERLAPS OVERLAY OWNED OWNER
+                 OBJECT_P OF OFFSET ON ONLY OPTION OPTIONS OPTIONAL OTHERS OR ORDER OUT_P OUTER OVER OVERRIDING OVERLAPS OVERLAY OWNED OWNER
 
                  PARALLEL PARTIAL PARTITION PASSWORD PLACING POLICY POSITION PUBLICATION PRECEDING PRECISION PRIMARY PRIVILEGES PROCEDURAL PROCEDURE PROCEDURES
 
-                 RANGE RIGHT REAL RECURSIVE REFERENCES REMOVE RESET RESTART RESTRICT REPLACE RETURN RETURNS RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
+                 RANGE READ RIGHT REAL RECURSIVE REFERENCES REMOVE RESET RESTART RESTRICT REPLACE RETURN RETURNS RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
 
-                 SCHEMA SEARCH SECURITY SERVER SELECT SEQUENCE SEQUENCES SESSION SESSION_USER SET SETOF SETS
+                 SCHEMA SEARCH SECURITY SERVER SELECT SEQUENCE SEQUENCES SESSION SESSION_USER SET SETOF SETS SHARE
 				 SIMPLE SKIP SMALLINT SOME STABLE START STARTS STATEMENTS STATISTICS
 				 STORED STORAGE STRICT_P SUBSCRIPTION SUBSTRING SUPPORT SYMMETRIC SYSID SYSTEM_P
 
@@ -314,6 +316,14 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <node>	table_ref
 %type <jexpr>	joined_table
 %type <ielem>	index_elem index_elem_options
+
+%type <integer>	opt_nowait_or_skip
+
+%type <integer>	for_locking_strength
+%type <node>	for_locking_item
+%type <list>	for_locking_clause opt_for_locking_clause for_locking_items
+%type <list>	locked_rels_list
+
 %type <node>	join_qual
 %type <integer>	join_type
 
@@ -428,6 +438,14 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <string> property_key_name cypher_var_name var_name_opt label_name
 %type <string> symbolic_name schema_name temporal_cast attr_name table_access_method_clause
 %type <keyword> reserved_keyword safe_keywords conflicted_keywords
+
+%type <node>	select_limit_value
+				offset_clause select_offset_value
+				select_fetch_first_value I_or_F_const
+%type <integer>	row_or_rows first_or_next
+
+%type <selectlimit> opt_select_limit select_limit limit_clause
+
 %type <list> routine_body_stmt_list
              cypher_func_name expr_list
              TableElementList OptTableElementList OptInherit definition
@@ -789,7 +807,7 @@ select_no_parens:
 										scanner);
 					$$ = $1;
 				}
-		/*	| select_clause opt_sort_clause for_locking_clause opt_select_limit
+			| select_clause opt_sort_clause for_locking_clause opt_select_limit
 				{
 					insertSelectOptions((SelectStmt *) $1, $2, $3,
 										$4,
@@ -812,13 +830,13 @@ select_no_parens:
 										$1,
 										scanner);
 					$$ = $2;
-				}*/
+				}
 			| with_clause select_clause sort_clause
 				{
 					insertSelectOptions((SelectStmt *) $2, $3, NIL, NULL, $1, scanner);
 					$$ = $2;
 				}
-			/*| with_clause select_clause opt_sort_clause for_locking_clause opt_select_limit
+			| with_clause select_clause opt_sort_clause for_locking_clause opt_select_limit
 				{
 					insertSelectOptions((SelectStmt *) $2, $3, $4,
 										$5,
@@ -833,7 +851,7 @@ select_no_parens:
 										$1,
 										scanner);
 					$$ = $2;
-				}*/
+				}
 		;
 
 select_clause:
@@ -873,7 +891,7 @@ simple_select:
 			SELECT opt_all_clause opt_target_list
 			//into_clause 
             from_clause where_clause group_clause
-			 having_clause //window_clause
+			 having_clause window_clause
 				{
 					SelectStmt *n = makeNode(SelectStmt);
 					/*n->targetList = $3;
@@ -891,7 +909,7 @@ simple_select:
 					n->groupClause = ($6)->list;
 					n->groupDistinct = ($6)->distinct;
 					n->havingClause = $7;
-					n->windowClause = NULL;
+					n->windowClause = $8;
 					$$ = (Node *)n;
 				}
 
@@ -1572,6 +1590,156 @@ sortby:		a_expr USING all_op opt_nulls_order
 					$$->location = -1;		/* no operator */
 				}
 		;
+
+
+
+select_limit:
+			limit_clause offset_clause
+				{
+					$$ = $1;
+					($$)->limitOffset = $2;
+				}
+			| offset_clause limit_clause
+				{
+					$$ = $2;
+					($$)->limitOffset = $1;
+				}
+			| limit_clause
+				{
+					$$ = $1;
+				}
+			| offset_clause
+				{
+					SelectLimit *n = (SelectLimit *) palloc(sizeof(SelectLimit));
+					n->limitOffset = $1;
+					n->limitCount = NULL;
+					n->limitOption = LIMIT_OPTION_COUNT;
+					$$ = n;
+				}
+		;
+
+opt_select_limit:
+			select_limit						{ $$ = $1; }
+			| /* EMPTY */						{ $$ = NULL; }
+		;
+
+limit_clause:
+			LIMIT select_limit_value
+				{
+					SelectLimit *n = (SelectLimit *) palloc(sizeof(SelectLimit));
+					n->limitOffset = NULL;
+					n->limitCount = $2;
+					n->limitOption = LIMIT_OPTION_COUNT;
+					$$ = n;
+				}
+			| LIMIT select_limit_value ',' select_offset_value
+				{
+					/* Disabled because it was too confusing, bjm 2002-02-18 */
+					ereport(ERROR,
+							(errcode(ERRCODE_SYNTAX_ERROR),
+							 errmsg("LIMIT #,# syntax is not supported"),
+							 errhint("Use separate LIMIT and OFFSET clauses.")));
+				}
+			/* SQL:2008 syntax */
+			/* to avoid shift/reduce conflicts, handle the optional value with
+			 * a separate production rather than an opt_ expression.  The fact
+			 * that ONLY is fully reserved means that this way, we defer any
+			 * decision about what rule reduces ROW or ROWS to the point where
+			 * we can see the ONLY token in the lookahead slot.
+			 */
+			| FETCH first_or_next select_fetch_first_value row_or_rows ONLY
+				{
+					SelectLimit *n = (SelectLimit *) palloc(sizeof(SelectLimit));
+					n->limitOffset = NULL;
+					n->limitCount = $3;
+					n->limitOption = LIMIT_OPTION_COUNT;
+					$$ = n;
+				}
+			| FETCH first_or_next select_fetch_first_value row_or_rows WITH TIES
+				{
+					SelectLimit *n = (SelectLimit *) palloc(sizeof(SelectLimit));
+					n->limitOffset = NULL;
+					n->limitCount = $3;
+					n->limitOption = LIMIT_OPTION_WITH_TIES;
+					$$ = n;
+				}
+			| FETCH first_or_next row_or_rows ONLY
+				{
+					SelectLimit *n = (SelectLimit *) palloc(sizeof(SelectLimit));
+					n->limitOffset = NULL;
+					n->limitCount = makeIntConst(1, -1);
+					n->limitOption = LIMIT_OPTION_COUNT;
+					$$ = n;
+				}
+			| FETCH first_or_next row_or_rows WITH TIES
+				{
+					SelectLimit *n = (SelectLimit *) palloc(sizeof(SelectLimit));
+					n->limitOffset = NULL;
+					n->limitCount = makeIntConst(1, -1);
+					n->limitOption = LIMIT_OPTION_WITH_TIES;
+					$$ = n;
+				}
+		;
+
+offset_clause:
+			OFFSET select_offset_value
+				{ $$ = $2; }
+			/* SQL:2008 syntax */
+			| OFFSET select_fetch_first_value row_or_rows
+				{ $$ = $2; }
+		;
+
+select_limit_value:
+			a_expr									{ $$ = $1; }
+			| ALL
+				{
+					/* LIMIT ALL is represented as a NULL constant */
+					$$ = makeNullAConst(@1);
+				}
+		;
+
+select_offset_value:
+			a_expr									{ $$ = $1; }
+		;
+
+/*
+ * Allowing full expressions without parentheses causes various parsing
+ * problems with the trailing ROW/ROWS key words.  SQL spec only calls for
+ * <simple value specification>, which is either a literal or a parameter (but
+ * an <SQL parameter reference> could be an identifier, bringing up conflicts
+ * with ROW/ROWS). We solve this by leveraging the presence of ONLY (see above)
+ * to determine whether the expression is missing rather than trying to make it
+ * optional in this rule.
+ *
+ * c_expr covers almost all the spec-required cases (and more), but it doesn't
+ * cover signed numeric literals, which are allowed by the spec. So we include
+ * those here explicitly. We need FCONST as well as ICONST because values that
+ * don't fit in the platform's "long", but do fit in bigint, should still be
+ * accepted here. (This is possible in 64-bit Windows as well as all 32-bit
+ * builds.)
+ */
+select_fetch_first_value:
+			c_expr									{ $$ = $1; }
+			| '+' I_or_F_const
+				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "+", NULL, $2, @1); }
+			| '-' I_or_F_const
+				{ $$ = doNegate($2, @1); }
+		;
+
+I_or_F_const:
+			Iconst									{ $$ = makeIntConst($1,@1); }
+			| DECIMAL								{ $$ = makeFloatConst($1,@1); }
+		;
+
+/* noise words */
+row_or_rows: ROW									{ $$ = 0; }
+			| ROWS									{ $$ = 0; }
+		;
+
+first_or_next: FIRST_P								{ $$ = 0; }
+			| NEXT									{ $$ = 0; }
+		;
+
 
 
 /*
@@ -2415,6 +2583,53 @@ empty_grouping_set:
 having_clause:
 			HAVING a_expr							{ $$ = $2; }
 			| /*EMPTY*/								{ $$ = NULL; }
+		;
+
+
+for_locking_clause:
+			for_locking_items						{ $$ = $1; }
+			| FOR READ ONLY							{ $$ = NIL; }
+		;
+
+opt_for_locking_clause:
+			for_locking_clause						{ $$ = $1; }
+			| /* EMPTY */							{ $$ = NIL; }
+		;
+
+for_locking_items:
+			for_locking_item						{ $$ = list_make1($1); }
+			| for_locking_items for_locking_item	{ $$ = lappend($1, $2); }
+		;
+
+for_locking_item:
+			for_locking_strength locked_rels_list opt_nowait_or_skip
+				{
+					LockingClause *n = makeNode(LockingClause);
+					n->lockedRels = $2;
+					n->strength = $1;
+					n->waitPolicy = $3;
+					$$ = (Node *) n;
+				}
+		;
+
+for_locking_strength:
+			FOR UPDATE							{ $$ = LCS_FORUPDATE; }
+			| FOR NO KEY UPDATE					{ $$ = LCS_FORNOKEYUPDATE; }
+			| FOR SHARE							{ $$ = LCS_FORSHARE; }
+			| FOR KEY SHARE						{ $$ = LCS_FORKEYSHARE; }
+		;
+
+locked_rels_list:
+			OF qualified_name_list					{ $$ = $2; }
+			| /* EMPTY */							{ $$ = NIL; }
+		;
+
+
+
+opt_nowait_or_skip:
+			NOWAIT							{ $$ = LockWaitError; }
+			| SKIP LOCKED					{ $$ = LockWaitSkip; }
+			| /*EMPTY*/						{ $$ = LockWaitBlock; }
 		;
 
 
@@ -8214,17 +8429,17 @@ over_clause:
 
 
 window_specification: //TODO opt_existing_window_name
-    '(' opt_partition_clause /*opt_sort_clause*/ order_by_opt opt_frame_clause ')'
+    '(' opt_partition_clause opt_sort_clause order_by_opt opt_frame_clause ')'
      {
          WindowDef *n = makeNode(WindowDef);
          n->name = NULL;
-         n->refname = NULL;//$2;
-         n->partitionClause = $2;
-         n->orderClause = $3;
+         n->refname = $2;
+         n->partitionClause = $3;
+         n->orderClause = $4;
          /* copy relevant fields of opt_frame_clause */
-         n->frameOptions = $4->frameOptions;
-         n->startOffset = $4->startOffset;
-         n->endOffset = $4->endOffset;
+         n->frameOptions = $5->frameOptions;
+         n->startOffset = $5->startOffset;
+         n->endOffset = $5->endOffset;
          n->location = @1;
          $$ = n;
       }
@@ -8349,7 +8564,7 @@ frame_bound:
               n->endOffset = NULL;
               $$ = n;
           }
-     | cypher_a_expr PRECEDING
+     | a_expr PRECEDING
           {
               WindowDef *n = makeNode(WindowDef);
               n->frameOptions = FRAMEOPTION_START_OFFSET_PRECEDING;
@@ -8357,7 +8572,7 @@ frame_bound:
               n->endOffset = NULL;
               $$ = n;
           }
-     | cypher_a_expr FOLLOWING
+     | a_expr FOLLOWING
           {
               WindowDef *n = makeNode(WindowDef);
               n->frameOptions = FRAMEOPTION_START_OFFSET_FOLLOWING;
