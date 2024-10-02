@@ -116,6 +116,9 @@ static Node *makeXmlExpr(XmlExprOp op, char *name, List *named_args, List *args,
 static List *extractArgTypes(List *parameters);
 static List *mergeTableFuncParameters(List *func_args, List *columns);
 static TypeName *TableFuncTypeName(List *columns);
+static void SplitColQualList(List *qualList,
+							 List **constraintList, CollateClause **collClause,
+							 ag_scanner_t yyscanner);
 static void processCASbits(int cas_bits, int location, const char *constrType,
 			   bool *deferrable, bool *initdeferred, bool *not_valid,
 			   bool *no_inherit, ag_scanner_t yyscanner);
@@ -150,8 +153,6 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
     struct TypeName *typnam;
 	struct PartitionElem *partelem;
-	struct PartitionSpec *partspec;
-	struct PartitionBoundSpec *partboundspec;
     struct Value *value;
     struct ResTarget *target;
     struct Alias *alias;
@@ -165,6 +166,8 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
     struct VariableSetStmt *vsetstmt;
 	struct JoinExpr *jexpr;
 	struct IndexElem *ielem;
+	struct PartitionSpec		*partspec;
+	struct PartitionBoundSpec	*partboundspec;
 	struct RoleSpec *rolespec;
 	struct SelectLimit	*selectlimit;
     struct GroupClause  *groupclause;
@@ -314,7 +317,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <list>	 SeqOptList OptParenthesizedSeqOptList
 %type <defelt>	SeqOptElem
 
-%type <node>	TableElement 
+%type <node>	TableElement TypedTableElement
 %type <node>	columnDef columnOptions
 
 %type <list>	ExclusionConstraintList ExclusionConstraintElem
@@ -457,6 +460,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <list> routine_body_stmt_list
              cypher_func_name expr_list
              TableElementList OptTableElementList OptInherit definition
+			 OptTypedTableElementList TypedTableElementList
              reloptions opt_reloptions
              name_list role_list opt_array_bounds
              OptWith opt_definition func_args func_args_list
@@ -534,6 +538,10 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <list> part_params
 %type <value>	NumericOnly
 %type <list>	NumericOnly_list
+
+%type <partboundspec> PartitionBoundSpec
+%type <list>		hash_partbound
+%type <defelt>		hash_partbound_elem
 
 /* precedence: lowest to highest */
 %left UNION INTERSECT EXCEPT
@@ -2174,6 +2182,105 @@ CreateTableStmt:
 
 			$$ = (Node *)n;
 		}
+		| CREATE OptTemp TABLE IF NOT EXISTS qualified_name '('
+			OptTableElementList ')' OptInherit OptPartitionSpec table_access_method_clause
+			OptWith OnCommitOption OptTableSpace
+				{
+					CreateStmt *n = makeNode(CreateStmt);
+					$7->relpersistence = $2;
+					n->relation = $7;
+					n->tableElts = $9;
+					n->inhRelations = $11;
+					n->partspec = $12;
+					n->ofTypename = NULL;
+					n->constraints = NIL;
+					n->accessMethod = $13;
+					n->options = $14;
+					n->oncommit = $15;
+					n->tablespacename = $16;
+					n->if_not_exists = true;
+					$$ = (Node *)n;
+				}
+		| CREATE OptTemp TABLE qualified_name OF any_name
+			OptTypedTableElementList OptPartitionSpec table_access_method_clause
+			OptWith OnCommitOption OptTableSpace
+				{
+					CreateStmt *n = makeNode(CreateStmt);
+					$4->relpersistence = $2;
+					n->relation = $4;
+					n->tableElts = $7;
+					n->inhRelations = NIL;
+					n->partspec = $8;
+					n->ofTypename = makeTypeNameFromNameList($6);
+					n->ofTypename->location = @6;
+					n->constraints = NIL;
+					n->accessMethod = $9;
+					n->options = $10;
+					n->oncommit = $11;
+					n->tablespacename = $12;
+					n->if_not_exists = false;
+					$$ = (Node *)n;
+				}
+		| CREATE OptTemp TABLE IF NOT EXISTS qualified_name OF any_name
+			OptTypedTableElementList OptPartitionSpec table_access_method_clause
+			OptWith OnCommitOption OptTableSpace
+				{
+					CreateStmt *n = makeNode(CreateStmt);
+					$7->relpersistence = $2;
+					n->relation = $7;
+					n->tableElts = $10;
+					n->inhRelations = NIL;
+					n->partspec = $11;
+					n->ofTypename = makeTypeNameFromNameList($9);
+					n->ofTypename->location = @9;
+					n->constraints = NIL;
+					n->accessMethod = $12;
+					n->options = $13;
+					n->oncommit = $14;
+					n->tablespacename = $15;
+					n->if_not_exists = true;
+					$$ = (Node *)n;
+				}
+		| CREATE OptTemp TABLE qualified_name PARTITION OF qualified_name
+			OptTypedTableElementList PartitionBoundSpec OptPartitionSpec
+			table_access_method_clause OptWith OnCommitOption OptTableSpace
+				{
+					CreateStmt *n = makeNode(CreateStmt);
+					$4->relpersistence = $2;
+					n->relation = $4;
+					n->tableElts = $8;
+					n->inhRelations = list_make1($7);
+					n->partbound = $9;
+					n->partspec = $10;
+					n->ofTypename = NULL;
+					n->constraints = NIL;
+					n->accessMethod = $11;
+					n->options = $12;
+					n->oncommit = $13;
+					n->tablespacename = $14;
+					n->if_not_exists = false;
+					$$ = (Node *)n;
+				}
+		| CREATE OptTemp TABLE IF NOT EXISTS qualified_name PARTITION OF
+			qualified_name OptTypedTableElementList PartitionBoundSpec OptPartitionSpec
+			table_access_method_clause OptWith OnCommitOption OptTableSpace
+				{
+					CreateStmt *n = makeNode(CreateStmt);
+					$7->relpersistence = $2;
+					n->relation = $7;
+					n->tableElts = $11;
+					n->inhRelations = list_make1($10);
+					n->partbound = $12;
+					n->partspec = $13;
+					n->ofTypename = NULL;
+					n->constraints = NIL;
+					n->accessMethod = $14;
+					n->options = $15;
+					n->oncommit = $16;
+					n->tablespacename = $17;
+					n->if_not_exists = true;
+					$$ = (Node *)n;
+				}
     ;
 
 
@@ -4480,6 +4587,11 @@ OptTableElementList:
 			| /*EMPTY*/							{ $$ = NIL; }
 		;
 
+OptTypedTableElementList:
+			'(' TypedTableElementList ')'		{ $$ = $2; }
+			| /*EMPTY*/							{ $$ = NIL; }
+		;
+
 TableElementList:
 			TableElement
 				{
@@ -4489,6 +4601,23 @@ TableElementList:
 				{
 					$$ = lappend($1, $3);
 				}
+		;
+
+
+TypedTableElementList:
+			TypedTableElement
+				{
+					$$ = list_make1($1);
+				}
+			| TypedTableElementList ',' TypedTableElement
+				{
+					$$ = lappend($1, $3);
+				}
+		;
+
+TypedTableElement:
+			columnOptions						{ $$ = $1; }
+			| TableConstraint					{ $$ = $1; }
 		;
 
 TableElement:
@@ -4547,7 +4676,7 @@ columnOptions:	ColId ColQualList
 					n->cooked_default = NULL;
 					n->collOid = InvalidOid;
 					SplitColQualList($2, &n->constraints, &n->collClause,
-									 yyscanner);
+									 scanner);
 					n->location = @1;
 					$$ = (Node *)n;
 				}
@@ -4565,7 +4694,7 @@ columnOptions:	ColId ColQualList
 					n->cooked_default = NULL;
 					n->collOid = InvalidOid;
 					SplitColQualList($4, &n->constraints, &n->collClause,
-									 yyscanner);
+									 scanner);
 					n->location = @1;
 					$$ = (Node *)n;
 				}
@@ -6110,6 +6239,115 @@ indirection_el:
 opt_slice_bound:
 			a_expr									{ $$ = $1; }
 			| /*EMPTY*/								{ $$ = NULL; }
+		;
+
+
+PartitionBoundSpec:
+			/* a HASH partition */
+			FOR VALUES WITH '(' hash_partbound ')'
+				{
+					ListCell   *lc;
+					PartitionBoundSpec *n = makeNode(PartitionBoundSpec);
+
+					n->strategy = PARTITION_STRATEGY_HASH;
+					n->modulus = n->remainder = -1;
+
+					foreach (lc, $5)
+					{
+						DefElem    *opt = lfirst_node(DefElem, lc);
+
+						if (strcmp(opt->defname, "modulus") == 0)
+						{
+							if (n->modulus != -1)
+								ereport(ERROR,
+										(errcode(ERRCODE_DUPLICATE_OBJECT),
+										 errmsg("modulus for hash partition provided more than once")));
+							n->modulus = defGetInt32(opt);
+						}
+						else if (strcmp(opt->defname, "remainder") == 0)
+						{
+							if (n->remainder != -1)
+								ereport(ERROR,
+										(errcode(ERRCODE_DUPLICATE_OBJECT),
+										 errmsg("remainder for hash partition provided more than once")));
+							n->remainder = defGetInt32(opt);
+						}
+						else
+							ereport(ERROR,
+									(errcode(ERRCODE_SYNTAX_ERROR),
+									 errmsg("unrecognized hash partition bound specification \"%s\"",
+											opt->defname)));
+					}
+
+					if (n->modulus == -1)
+						ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+								 errmsg("modulus for hash partition must be specified")));
+					if (n->remainder == -1)
+						ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+								 errmsg("remainder for hash partition must be specified")));
+
+					n->location = @3;
+
+					$$ = n;
+				}
+
+			/* a LIST partition */
+			| FOR VALUES IN '(' expr_list ')'
+				{
+					PartitionBoundSpec *n = makeNode(PartitionBoundSpec);
+
+					n->strategy = PARTITION_STRATEGY_LIST;
+					n->is_default = false;
+					n->listdatums = $5;
+					n->location = @3;
+
+					$$ = n;
+				}
+
+			/* a RANGE partition */
+			| FOR VALUES FROM '(' expr_list ')' TO '(' expr_list ')'
+				{
+					PartitionBoundSpec *n = makeNode(PartitionBoundSpec);
+
+					n->strategy = PARTITION_STRATEGY_RANGE;
+					n->is_default = false;
+					n->lowerdatums = $5;
+					n->upperdatums = $9;
+					n->location = @3;
+
+					$$ = n;
+				}
+
+			/* a DEFAULT partition */
+			| DEFAULT
+				{
+					PartitionBoundSpec *n = makeNode(PartitionBoundSpec);
+
+					n->is_default = true;
+					n->location = @1;
+
+					$$ = n;
+				}
+		;
+
+hash_partbound_elem:
+		NonReservedWord Iconst
+			{
+				$$ = makeDefElem($1, (Node *)makeInteger($2), @1);
+			}
+		;
+
+hash_partbound:
+		hash_partbound_elem
+			{
+				$$ = list_make1($1);
+			}
+		| hash_partbound ',' hash_partbound_elem
+			{
+				$$ = lappend($1, $3);
+			}
 		;
 
 /*****************************************************************************
@@ -10172,4 +10410,42 @@ makeBitStringConst(char *str, int location)
 	n->location = location;
 
 	return (Node *)n;
+}
+
+
+/* Separate Constraint nodes from COLLATE clauses in a ColQualList */
+static void
+SplitColQualList(List *qualList,
+				 List **constraintList, CollateClause **collClause,
+				 ag_scanner_t yyscanner)
+{
+	ListCell   *cell;
+
+	*collClause = NULL;
+	foreach(cell, qualList)
+	{
+		Node   *n = (Node *) lfirst(cell);
+
+		if (IsA(n, Constraint))
+		{
+			/* keep it in list */
+			continue;
+		}
+		if (IsA(n, CollateClause))
+		{
+			CollateClause *c = (CollateClause *) n;
+
+			if (*collClause)
+				ereport(ERROR,
+						(errcode(ERRCODE_SYNTAX_ERROR),
+						 errmsg("multiple COLLATE clauses not allowed"),
+						 parser_errposition(c->location)));
+			*collClause = c;
+		}
+		else
+			elog(ERROR, "unexpected node type %d", (int) n->type);
+		/* remove non-Constraint nodes from qualList */
+		qualList = foreach_delete_current(qualList, cell);
+	}
+	*constraintList = qualList;
 }
