@@ -7359,8 +7359,8 @@ SimpleTypename:
 ConstTypename:
 			Numeric									{ $$ = $1; }
 		/*	| ConstBit								{ $$ = $1; }
-			| ConstCharacter						{ $$ = $1; }
-			| ConstDatetime							{ $$ = $1; }*/
+			| ConstCharacter						{ $$ = $1; }*/
+			| ConstDatetime							{ $$ = $1; }
 		;
 
 
