@@ -31,6 +31,7 @@
 #include "nodes/value.h"
 #include "parser/parser.h"
 #include "catalog/pg_trigger.h"
+#include "commands/trigger.h"
 
 #include "nodes/ag_nodes.h"
 #include "nodes/cypher_nodes.h"
@@ -91,6 +92,8 @@ typedef struct GroupClause
 #define CAS_NO_INHERIT				0x20
 
 static Node *makeSetOp(SetOperation op, bool all, Node *larg, Node *rarg);
+static List *makeOrderedSetArgs(List *directargs, List *orderedargs,
+								ag_scanner_t yyscanner);
 static void insertSelectOptions(SelectStmt *stmt,
 								List *sortClause, List *lockingClause,
 								SelectLimit *limitClause,
@@ -143,6 +146,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
     const char *keyword;
 
     /* extra types */
+	char chr;
     bool boolean;
     Node *node;
     List *list;
@@ -188,7 +192,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ
 
 /* keywords in alphabetical order */
-%token <keyword> ABORT_P ACCESS ACTION ADMIN AFTER ALL ALTER AND ANY ALWAYS ARRAY AS ASC ASCENDING ASSIGNMENT ASYMMETRIC AT ATOMIC AUTHORIZATION
+%token <keyword> ABORT_P ACCESS ACTION ADMIN AFTER AGGREGATE ALL ALTER AND ANY ALWAYS ARRAY AS ASC ASCENDING ASSIGNMENT ASYMMETRIC AT ATOMIC AUTHORIZATION
 
                  BIGINT BEFORE BEGIN_P BETWEEN BOOLEAN_P BOTH BREADTH BY
 
@@ -198,10 +202,10 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
                  CURRENT_TIMESTAMP CURRENT_USER CYCLE CYPHER
 
                  DATA_P DATABASE DECADE DEC DECIMAL_P DEFAULT DEFAULTS DEFERRABLE DEFERRED DEFINER DELETE DEPTH DESC DESCENDING DETACH DISTINCT 
-				 DO DOMAIN_P DOCUMENT_P DOUBLE_P DROP
+				 DO DOMAIN_P DOCUMENT_P DOUBLE_P DROP DISABLE_P
 
                  EACH ENCODING ENCRYPTED ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXCLUDING EXISTS EXTENSION EXTRACT EXTERNAL
-                 EVENT EXECUTE
+                 EVENT EXECUTE ENABLE_P
 
                  GENERATED GLOBAL GRANT GRANTED GRAPH GREATEST GROUP GROUPS GROUPING
 
@@ -227,7 +231,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  PARALLEL PARTIAL PARTITION PASSWORD PLACING POLICY POSITION PUBLICATION PRECEDING PRECISION PRESERVE PREPARE PREPARED PRIMARY PRIVILEGES PROCEDURAL PROCEDURE PROCEDURES
 
-                 RANGE READ RIGHT REAL RECURSIVE REFERENCING REFERENCES RELEASE REMOVE REPEATABLE RESET RESTART RESTRICT REPLACE RETURN RETURNING RETURNS ROLLBACK RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
+                 RANGE READ RIGHT REAL RECURSIVE REFERENCING REFERENCES RELEASE REMOVE REPEATABLE REPLICA RESET RESTART RESTRICT REPLACE RETURN RETURNING RETURNS ROLLBACK RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
 
                  SAVEPOINT SCHEMA SERIALIZABLE SEARCH SECURITY SERVER SELECT SEQUENCE SEQUENCES SESSION SESSION_USER SET SETOF SETS SHARE
 				 SIMPLE SKIP SMALLINT SOME STABLE START STARTS STATEMENT STATEMENTS STATISTICS 
@@ -253,9 +257,10 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <list> single_query  cypher_stmt
 
 %type <node> parse_toplevel stmtmulti schema_stmt routine_body_stmt
-             AlterDatabaseStmt AlterDatabaseSetStmt AlterTblSpcStmt
+             AlterDatabaseStmt AlterDatabaseSetStmt AlterEventTrigStmt
+			 AlterTblSpcStmt
 			 CreateAsStmt
-             CreateCastStmt CreatedbStmt CreateSchemaStmt
+             CreateCastStmt CreatedbStmt CreateEventTrigStmt CreateSchemaStmt
 			 CreateTrigStmt
              CreateExtensionStmt CreateFunctionStmt CreateGraphStmt 
 			 CreateTableStmt CreateTableSpaceStmt
@@ -281,6 +286,11 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <string>		TransitionRelName
 %type <boolean>	TransitionRowOrTable TransitionOldOrNew
 %type <node>	TriggerTransition
+
+
+%type <list>	event_trigger_when_list event_trigger_value_list
+%type <defelt>	event_trigger_when_item
+%type <chr>		enable_trigger
 
 %type <node> select_no_parens select_with_parens select_clause
              simple_select
@@ -490,7 +500,9 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              name_list role_list opt_array_bounds
              OptWith opt_definition func_args func_args_list
 			 func_args_with_defaults func_args_with_defaults_list
+			 aggr_args aggr_args_list
 			 func_as createfunc_opt_list opt_createfunc_opt_list
+			 old_aggr_definition old_aggr_list
 			 opt_column_list
 			 sort_clause opt_sort_clause sortby_list index_params
 			 opt_include opt_c_include index_including_params
@@ -521,8 +533,8 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
 %type <node>	opt_routine_body
 
-%type <objwithargs> function_with_argtypes 
-%type <list>	function_with_argtypes_list 
+%type <objwithargs> function_with_argtypes aggregate_with_argtypes
+%type <list>	function_with_argtypes_list aggregate_with_argtypes_list
 
 %type <list>	func_name qual_Op qual_all_Op subquery_Op
 %type <string>		all_Op MathOp
@@ -532,7 +544,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
 %type <integer> OnCommitOption
 
-%type <defelt>	def_elem reloption_elem
+%type <defelt>	def_elem reloption_elem old_aggr_elem
 %type <string> Sconst 
 %type <string> ColId  ColLabel BareColLabel
 %type <string> NonReservedWord NonReservedWord_or_Sconst name
@@ -548,7 +560,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <onconflict> opt_on_conflict
 
 %type <defelt>	createfunc_opt_item common_func_opt_item 
-%type <fun_param> func_arg func_arg_with_default table_func_column
+%type <fun_param> func_arg func_arg_with_default table_func_column aggr_arg
 %type <integer> arg_class
 %type <typnam>	func_return func_type
 
@@ -731,6 +743,7 @@ stmtmulti:	stmtmulti ';' stmt
  */
 stmt:
     cypher_stmt { $$ = (Node *)$1; }
+	| AlterEventTrigStmt
 	| AlterDatabaseSetStmt
     | AlterDatabaseStmt 
 	| AlterTblSpcStmt
@@ -738,7 +751,8 @@ stmt:
 	| CreateCastStmt
 	| CreatedbStmt
     | CreateGraphStmt
-    | CreateExtensionStmt 
+    | CreateExtensionStmt
+	| CreateEventTrigStmt 
 	| CreateFunctionStmt
 	| CreateSchemaStmt
     | CreateTableStmt
@@ -3855,6 +3869,26 @@ def_arg:	func_type						{ $$ = (Node *)$1; }
 			| FALSE_P	{ $$ = (Node *)makeBoolAConst(false, @1); }
 		;
 
+
+old_aggr_definition: '(' old_aggr_list ')'			{ $$ = $2; }
+		;
+
+old_aggr_list: old_aggr_elem						{ $$ = list_make1($1); }
+			| old_aggr_list ',' old_aggr_elem		{ $$ = lappend($1, $3); }
+		;
+
+/*
+ * Must use IDENT here to avoid reduce/reduce conflicts; fortunately none of
+ * the item names needed in old aggregate definitions are likely to become
+ * SQL keywords.
+ */
+old_aggr_elem:  IDENTIFIER '=' def_arg
+				{
+					$$ = makeDefElem($1, (Node *)$3, @1);
+				}
+		;
+
+
 OptInherit: INHERITS '(' qualified_name_list ')'	{ $$ = $3; }
 			| /*EMPTY*/								{ $$ = NIL; }
 		;
@@ -4353,6 +4387,88 @@ func_arg_with_default:
 				}
 		;
 
+/* Aggregate args can be most things that function args can be */
+aggr_arg:	func_arg
+				{
+					if (!($1->mode == FUNC_PARAM_DEFAULT ||
+						  $1->mode == FUNC_PARAM_IN ||
+						  $1->mode == FUNC_PARAM_VARIADIC))
+						ereport(ERROR,
+								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+								 errmsg("aggregates cannot have output arguments")));
+					$$ = $1;
+				}
+		;
+
+/*
+ * The SQL standard offers no guidance on how to declare aggregate argument
+ * lists, since it doesn't have CREATE AGGREGATE etc.  We accept these cases:
+ *
+ * (*)									- normal agg with no args
+ * (aggr_arg,...)						- normal agg with args
+ * (ORDER BY aggr_arg,...)				- ordered-set agg with no direct args
+ * (aggr_arg,... ORDER BY aggr_arg,...)	- ordered-set agg with direct args
+ *
+ * The zero-argument case is spelled with '*' for consistency with COUNT(*).
+ *
+ * An additional restriction is that if the direct-args list ends in a
+ * VARIADIC item, the ordered-args list must contain exactly one item that
+ * is also VARIADIC with the same type.  This allows us to collapse the two
+ * VARIADIC items into one, which is necessary to represent the aggregate in
+ * pg_proc.  We check this at the grammar stage so that we can return a list
+ * in which the second VARIADIC item is already discarded, avoiding extra work
+ * in cases such as DROP AGGREGATE.
+ *
+ * The return value of this production is a two-element list, in which the
+ * first item is a sublist of FunctionParameter nodes (with any duplicate
+ * VARIADIC item already dropped, as per above) and the second is an integer
+ * Value node, containing -1 if there was no ORDER BY and otherwise the number
+ * of argument declarations before the ORDER BY.  (If this number is equal
+ * to the first sublist's length, then we dropped a duplicate VARIADIC item.)
+ * This representation is passed as-is to CREATE AGGREGATE; for operations
+ * on existing aggregates, we can just apply extractArgTypes to the first
+ * sublist.
+ */
+aggr_args:	'(' '*' ')'
+				{
+					$$ = list_make2(NIL, makeInteger(-1));
+				}
+			| '(' aggr_args_list ')'
+				{
+					$$ = list_make2($2, makeInteger(-1));
+				}
+			| '(' ORDER BY aggr_args_list ')'
+				{
+					$$ = list_make2($4, makeInteger(0));
+				}
+			| '(' aggr_args_list ORDER BY aggr_args_list ')'
+				{
+					/* this is the only case requiring consistency checking */
+					$$ = makeOrderedSetArgs($2, $5, scanner);
+				}
+		;
+
+aggr_args_list:
+			aggr_arg								{ $$ = list_make1($1); }
+			| aggr_args_list ',' aggr_arg			{ $$ = lappend($1, $3); }
+		;
+
+aggregate_with_argtypes:
+			func_name aggr_args
+				{
+					ObjectWithArgs *n = makeNode(ObjectWithArgs);
+					n->objname = $1;
+					n->objargs = extractAggrArgTypes($2);
+					n->objfuncargs = (List *) linitial($2);
+					$$ = n;
+				}
+		;
+
+aggregate_with_argtypes_list:
+			aggregate_with_argtypes					{ $$ = list_make1($1); }
+			| aggregate_with_argtypes_list ',' aggregate_with_argtypes
+													{ $$ = lappend($1, $3); }
+		;
 
 opt_createfunc_opt_list:
 			createfunc_opt_list
@@ -5793,6 +5909,75 @@ ConstraintAttributeElem:
 			| NO INHERIT					{ $$ = CAS_NO_INHERIT; }
 		;
 
+
+/*****************************************************************************
+ *
+ *		QUERIES :
+ *				CREATE EVENT TRIGGER ...
+ *				ALTER EVENT TRIGGER ...
+ *
+ *****************************************************************************/
+
+CreateEventTrigStmt:
+			CREATE EVENT TRIGGER name ON ColLabel
+			EXECUTE FUNCTION_or_PROCEDURE func_name '(' ')'
+				{
+					CreateEventTrigStmt *n = makeNode(CreateEventTrigStmt);
+					n->trigname = $4;
+					n->eventname = $6;
+					n->whenclause = NULL;
+					n->funcname = $9;
+					$$ = (Node *)n;
+				}
+		  | CREATE EVENT TRIGGER name ON ColLabel
+			WHEN event_trigger_when_list
+			EXECUTE FUNCTION_or_PROCEDURE func_name '(' ')'
+				{
+					CreateEventTrigStmt *n = makeNode(CreateEventTrigStmt);
+					n->trigname = $4;
+					n->eventname = $6;
+					n->whenclause = $8;
+					n->funcname = $11;
+					$$ = (Node *)n;
+				}
+		;
+
+event_trigger_when_list:
+		  event_trigger_when_item
+			{ $$ = list_make1($1); }
+		| event_trigger_when_list AND event_trigger_when_item
+			{ $$ = lappend($1, $3); }
+		;
+
+event_trigger_when_item:
+		ColId IN '(' event_trigger_value_list ')'
+			{ $$ = makeDefElem($1, (Node *) $4, @1); }
+		;
+
+event_trigger_value_list:
+		  Sconst
+			{ $$ = list_make1(makeString($1)); }
+		| event_trigger_value_list ',' Sconst
+			{ $$ = lappend($1, makeString($3)); }
+		;
+
+AlterEventTrigStmt:
+			ALTER EVENT TRIGGER name enable_trigger
+				{
+					AlterEventTrigStmt *n = makeNode(AlterEventTrigStmt);
+					n->trigname = $4;
+					n->tgenabled = $5;
+					$$ = (Node *) n;
+				}
+		;
+
+enable_trigger:
+			ENABLE_P					{ $$ = TRIGGER_FIRES_ON_ORIGIN; }
+			| ENABLE_P REPLICA			{ $$ = TRIGGER_FIRES_ON_REPLICA; }
+			| ENABLE_P ALWAYS			{ $$ = TRIGGER_FIRES_ALWAYS; }
+			| DISABLE_P					{ $$ = TRIGGER_DISABLED; }
+		;
+
 opt_as:		AS
 			| /* EMPTY */
 		;
@@ -5806,7 +5991,7 @@ opt_as:		AS
  *****************************************************************************/
 
 DefineStmt:
-			/*CREATE opt_or_replace AGGREGATE func_name aggr_args definition
+			CREATE opt_or_replace AGGREGATE func_name aggr_args definition
 				{
 					DefineStmt *n = makeNode(DefineStmt);
 					n->kind = OBJECT_AGGREGATE;
@@ -5829,7 +6014,7 @@ DefineStmt:
 					n->definition = $5;
 					$$ = (Node *)n;
 				}
-			| CREATE OPERATOR any_operator definition
+			/*| CREATE OPERATOR any_operator definition
 				{
 					DefineStmt *n = makeNode(DefineStmt);
 					n->kind = OBJECT_OPERATOR;
@@ -5838,8 +6023,8 @@ DefineStmt:
 					n->args = NIL;
 					n->definition = $4;
 					$$ = (Node *)n;
-				}
-			| */CREATE TYPE_P any_name definition
+				}*/
+			| CREATE TYPE_P any_name definition
 				{
 					DefineStmt *n = makeNode(DefineStmt);
 					n->kind = OBJECT_TYPE;
@@ -10936,4 +11121,45 @@ SplitColQualList(List *qualList,
 		qualList = foreach_delete_current(qualList, cell);
 	}
 	*constraintList = qualList;
+}
+
+
+/* makeOrderedSetArgs()
+ * Build the result of the aggr_args production (which see the comments for).
+ * This handles only the case where both given lists are nonempty, so that
+ * we have to deal with multiple VARIADIC arguments.
+ */
+static List *
+makeOrderedSetArgs(List *directargs, List *orderedargs,
+				   ag_scanner_t yyscanner)
+{
+	FunctionParameter *lastd = (FunctionParameter *) llast(directargs);
+	Value	   *ndirectargs;
+
+	/* No restriction unless last direct arg is VARIADIC */
+	if (lastd->mode == FUNC_PARAM_VARIADIC)
+	{
+		FunctionParameter *firsto = (FunctionParameter *) linitial(orderedargs);
+
+		/*
+		 * We ignore the names, though the aggr_arg production allows them;
+		 * it doesn't allow default values, so those need not be checked.
+		 */
+		if (list_length(orderedargs) != 1 ||
+			firsto->mode != FUNC_PARAM_VARIADIC ||
+			!equal(lastd->argType, firsto->argType))
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("an ordered-set aggregate with a VARIADIC direct argument must have one VARIADIC aggregated argument of the same data type"),
+					 parser_errposition(exprLocation((Node *) firsto))));
+
+		/* OK, drop the duplicate VARIADIC argument from the internal form */
+		orderedargs = NIL;
+	}
+
+	/* don't merge into the next line, as list_concat changes directargs */
+	ndirectargs = makeInteger(list_length(directargs));
+
+	return list_make2(list_concat(directargs, orderedargs),
+					  ndirectargs);
 }
