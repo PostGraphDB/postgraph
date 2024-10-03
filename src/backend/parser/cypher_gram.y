@@ -159,9 +159,11 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
     struct RangeVar *range;
 	struct IntoClause *into;
 	struct WithClause *with;
+	struct InferClause			*infer;
 	struct PrivTarget	*privtarget;
 	struct AccessPriv			*accesspriv;
     struct SortBy *sortby;
+	struct OnConflictClause	*onconflict;
     struct InsertStmt *istmt;
     struct VariableSetStmt *vsetstmt;
 	struct JoinExpr *jexpr;
@@ -191,12 +193,12 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
                  BIGINT BEFORE BEGIN_P BETWEEN BOOLEAN_P BOTH BREADTH BY
 
                  CACHE CALL CALLED CASE CAST CASCADE CHAIN CHECK CROSS COALESCE COLLATE COLLATION COMMENTS COMMIT COMMITTED COMPRESSION CONNECTION
-				 CONCURRENTLY CONTAINS CONSTRAINT CONSTRAINTS COST CREATE CUBE CURRENT 
+				 CONCURRENTLY CONFLICT CONTAINS CONSTRAINT CONSTRAINTS COST CREATE CUBE CURRENT 
                  CURRENT_CATALOG CURRENT_DATE CURRENT_ROLE CURRENT_SCHEMA CURRENT_TIME 
                  CURRENT_TIMESTAMP CURRENT_USER CYCLE CYPHER
 
                  DATA_P DATABASE DECADE DEC DECIMAL_P DEFAULT DEFAULTS DEFERRABLE DEFERRED DEFINER DELETE DEPTH DESC DESCENDING DETACH DISTINCT 
-				 DOMAIN_P DOCUMENT_P DOUBLE_P DROP
+				 DO DOMAIN_P DOCUMENT_P DOUBLE_P DROP
 
                  EACH ENCODING ENCRYPTED ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXCLUDING EXISTS EXTENSION EXTRACT EXTERNAL
                  EVENT EXECUTE
@@ -219,13 +221,13 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 
                  MATERIALIZED MATCH MAXVALUE MERGE METHOD MINVALUE
 
-                 NAME_P NATURAL NEXT NEW NFC NFD NFKC NFKD NO NORMALIZE NORMALIZED NOT NOTNULL NOWAIT NULL_P NULLIF NULLS_LA NUMERIC
+                 NAME_P NATURAL NEXT NEW NFC NFD NFKC NFKD NO NORMALIZE NORMALIZED NOT NOTHING NOTNULL NOWAIT NULL_P NULLIF NULLS_LA NUMERIC
 
                  OBJECT_P OF OFFSET ON ONLY OPTION OPTIONS OPTIONAL OTHERS OR OLD ORDER OUT_P OUTER OVER OVERRIDING OVERLAPS OVERLAY OWNED OWNER
 
                  PARALLEL PARTIAL PARTITION PASSWORD PLACING POLICY POSITION PUBLICATION PRECEDING PRECISION PRESERVE PREPARE PREPARED PRIMARY PRIVILEGES PROCEDURAL PROCEDURE PROCEDURES
 
-                 RANGE READ RIGHT REAL RECURSIVE REFERENCING REFERENCES RELEASE REMOVE REPEATABLE RESET RESTART RESTRICT REPLACE RETURN RETURNS ROLLBACK RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
+                 RANGE READ RIGHT REAL RECURSIVE REFERENCING REFERENCES RELEASE REMOVE REPEATABLE RESET RESTART RESTRICT REPLACE RETURN RETURNING RETURNS ROLLBACK RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
 
                  SAVEPOINT SCHEMA SERIALIZABLE SEARCH SECURITY SERVER SELECT SEQUENCE SEQUENCES SESSION SESSION_USER SET SETOF SETS SHARE
 				 SIMPLE SKIP SMALLINT SOME STABLE START STARTS STATEMENT STATEMENTS STATISTICS 
@@ -270,7 +272,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 			 PreparableStmt
              VariableResetStmt VariableSetStmt
 
-
+%type <infer>	opt_conf_expr
 %type <boolean> TriggerForSpec TriggerForType
 %type <integer>	TriggerActionTime
 %type <list>	TriggerEvents TriggerOneEvent
@@ -508,6 +510,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              indirection opt_indirection
 			 attrs opt_class
              var_list
+			 returning_clause
 			 create_generic_options
 			 table_func_column_list
 			 transform_type_list
@@ -542,7 +545,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
                 GenericType Numeric opt_float
 				ConstDatetime
 %type <boolean> opt_timezone opt_no_inherit
-
+%type <onconflict> opt_on_conflict
 
 %type <defelt>	createfunc_opt_item common_func_opt_item 
 %type <fun_param> func_arg func_arg_with_default table_func_column
@@ -727,7 +730,7 @@ stmtmulti:	stmtmulti ';' stmt
  * query
  */
 stmt:
-    cypher_stmt 
+    cypher_stmt { $$ = (Node *)$1; }
 	| AlterDatabaseSetStmt
     | AlterDatabaseStmt 
 	| AlterTblSpcStmt
@@ -1017,13 +1020,6 @@ simple_select:
  */
 with_clause:
 		WITH cte_list
-			{
-				$$ = makeNode(WithClause);
-				$$->ctes = $2;
-				$$->recursive = false;
-				$$->location = @1;
-			}
-		| WITH cte_list
 			{
 				$$ = makeNode(WithClause);
 				$$->ctes = $2;
@@ -1705,7 +1701,7 @@ sortby_list:
 			| sortby_list ',' sortby				{ $$ = lappend($1, $3); }
 		;
 
-sortby:		a_expr USING all_op opt_nulls_order
+sortby:		a_expr USING qual_all_Op opt_nulls_order
 				{
 					$$ = makeNode(SortBy);
 					$$->node = $1;
@@ -1956,7 +1952,7 @@ subquery_Op:
  *****************************************************************************/
 
 InsertStmt:
-/*			opt_with_clause INSERT INTO insert_target insert_rest
+			opt_with_clause INSERT INTO insert_target insert_rest
 			opt_on_conflict returning_clause
 				{
 					$5->relation = $4;
@@ -1964,17 +1960,6 @@ InsertStmt:
 					$5->returningList = $7;
 					$5->withClause = $1;
 					$$ = (Node *) $5;
-				}
-*/
-	INSERT INTO insert_target insert_rest
-			//opt_on_conflict returning_clause
-				{
-					$4->relation = $3;
-					$4->onConflictClause = NULL;
-					$4->returningList = NULL;
-					$4->withClause = NULL;
-
-					$$ = (Node *) $4;
 				}
 		;
 
@@ -2061,20 +2046,20 @@ insert_column_item:
  *
  *****************************************************************************/
 
-UpdateStmt: //opt_with_clause
+UpdateStmt: opt_with_clause
             UPDATE relation_expr_opt_alias
 			SET set_clause_list
 			from_clause
 			where_or_current_clause
-			//returning_clause
+			returning_clause
 				{
 					UpdateStmt *n = makeNode(UpdateStmt);
-					n->relation = $2;
-					n->targetList = $4;
-					n->fromClause = $5;
-					n->whereClause = $6;//$7;
-					n->returningList = NULL;//$8;
-					n->withClause = NULL;//$1;
+					n->relation = $3;
+					n->targetList = $5;
+					n->fromClause = $6;
+					n->whereClause = $7;
+					n->returningList = $8;
+					n->withClause = $1;
 					$$ = (Node *)n;
 				}
 /*
@@ -2144,6 +2129,62 @@ set_target:
 set_target_list:
 			set_target								{ $$ = list_make1($1); }
 			| set_target_list ',' set_target		{ $$ = lappend($1,$3); }
+		;
+
+
+opt_on_conflict:
+			ON CONFLICT opt_conf_expr DO UPDATE SET set_clause_list	where_clause
+				{
+					$$ = makeNode(OnConflictClause);
+					$$->action = ONCONFLICT_UPDATE;
+					$$->infer = $3;
+					$$->targetList = $7;
+					$$->whereClause = $8;
+					$$->location = @1;
+				}
+			|
+			ON CONFLICT opt_conf_expr DO NOTHING
+				{
+					$$ = makeNode(OnConflictClause);
+					$$->action = ONCONFLICT_NOTHING;
+					$$->infer = $3;
+					$$->targetList = NIL;
+					$$->whereClause = NULL;
+					$$->location = @1;
+				}
+			| /*EMPTY*/
+				{
+					$$ = NULL;
+				}
+		;
+
+opt_conf_expr:
+			'(' index_params ')' where_clause
+				{
+					$$ = makeNode(InferClause);
+					$$->indexElems = $2;
+					$$->whereClause = $4;
+					$$->conname = NULL;
+					$$->location = @1;
+				}
+			|
+			ON CONSTRAINT name
+				{
+					$$ = makeNode(InferClause);
+					$$->indexElems = NIL;
+					$$->whereClause = NULL;
+					$$->conname = $3;
+					$$->location = @1;
+				}
+			| /*EMPTY*/
+				{
+					$$ = NULL;
+				}
+		;
+
+returning_clause:
+			RETURNING target_list		{ $$ = $2; }
+			| /* EMPTY */				{ $$ = NIL; }
 		;
 
 
@@ -2620,13 +2661,6 @@ yield_item:
 
             $$ = (Node *)rt;
         }
-    ;
-
-
-semicolon_opt:
-    /* empty */
-    | ';'
-
     ;
 
 all_or_distinct:
@@ -3807,12 +3841,7 @@ NumericOnly_list:	NumericOnly						{ $$ = list_make1($1); }
 			| '+' Iconst							{ $$ = + $2; }
 			| '-' Iconst							{ $$ = - $2; }
 		;
-Iconst:		INTEGER									{ $$ = $1; }
- | INTEGER_P
-;
-
-
-
+Iconst:		INTEGER									{ $$ = $1; };
 
 /* Note: any simple identifier will be returned as a type name! */
 def_arg:	func_type						{ $$ = (Node *)$1; }
@@ -3850,10 +3879,6 @@ PartitionSpec: PARTITION BY ColId '(' part_params ')'
 
 part_params:	part_elem						{ $$ = list_make1($1); }
 			| part_params ',' part_elem			{ $$ = lappend($1, $3); }
-		;
-
- opt_class:	any_name								{ $$ = $1; }
-			| /*EMPTY*/								{ $$ = NIL; }
 		;
         
 part_elem: ColId opt_collate opt_class
@@ -4499,27 +4524,6 @@ transform_type_list:
 			FOR TYPE_P Typename { $$ = list_make1($3); }
 			| transform_type_list ',' FOR TYPE_P Typename { $$ = lappend($1, $5); }
 		;
-
-def_elem:	ColLabel '=' def_arg
-				{
-					$$ = makeDefElem($1, (Node *) $3, @1);
-				}
-			| ColLabel
-				{
-					$$ = makeDefElem($1, NULL, @1);
-				}
-		;
-
-table_access_method_clause:
-			USING name							{ $$ = $2; }
-			| /*EMPTY*/							{ $$ = NULL; }
-		;
-
-opt_collate: COLLATE any_name						{ $$ = $2; }
-			| /*EMPTY*/								{ $$ = NIL; }
-		;
-
-
 
 /*****************************************************************************
  *
@@ -5320,34 +5324,7 @@ key_action:
 			| CASCADE					{ $$ = FKCONSTR_ACTION_CASCADE; }
 			| SET NULL_P				{ $$ = FKCONSTR_ACTION_SETNULL; }
 			| SET DEFAULT				{ $$ = FKCONSTR_ACTION_SETDEFAULT; }
-
-ConstraintAttributeSpec:
-			/*EMPTY*/
-				{ $$ = 0; }
-			| ConstraintAttributeSpec ConstraintAttributeElem
-				{
-					/*
-					 * We must complain about conflicting options.
-					 * We could, but choose not to, complain about redundant
-					 * options (ie, where $2's bit is already set in $1).
-					 */
-					int		newspec = $1 | $2;
-
-					/* special message for this case */
-					if ((newspec & (CAS_NOT_DEFERRABLE | CAS_INITIALLY_DEFERRED)) == (CAS_NOT_DEFERRABLE | CAS_INITIALLY_DEFERRED))
-						ereport(ERROR,
-								(errcode(ERRCODE_SYNTAX_ERROR),
-								 errmsg("constraint declared INITIALLY DEFERRED must be DEFERRABLE")));
-					/* generic message for other conflicts */
-					if ((newspec & (CAS_NOT_DEFERRABLE | CAS_DEFERRABLE)) == (CAS_NOT_DEFERRABLE | CAS_DEFERRABLE) ||
-						(newspec & (CAS_INITIALLY_IMMEDIATE | CAS_INITIALLY_DEFERRED)) == (CAS_INITIALLY_IMMEDIATE | CAS_INITIALLY_DEFERRED))
-						ereport(ERROR,
-								(errcode(ERRCODE_SYNTAX_ERROR),
-								 errmsg("conflicting constraint properties")));
-					$$ = newspec;
-				}
-		;
-
+;
 
 TableLikeClause:
 			LIKE qualified_name TableLikeOptionList
@@ -5377,60 +5354,6 @@ TableLikeOption:
 				| STATISTICS		{ $$ = CREATE_TABLE_LIKE_STATISTICS; }
 				| STORAGE			{ $$ = CREATE_TABLE_LIKE_STORAGE; }
 				| ALL				{ $$ = CREATE_TABLE_LIKE_ALL; }
-		;
-
-access_method_clause:
-			USING name								{ $$ = $2; }
-			| /*EMPTY*/								{ $$ = DEFAULT_INDEX_TYPE; }
-		;
-
-index_elem_options:
-	opt_collate opt_class opt_asc_desc opt_nulls_order
-		{
-			$$ = makeNode(IndexElem);
-			$$->name = NULL;
-			$$->expr = NULL;
-			$$->indexcolname = NULL;
-			$$->collation = $1;
-			$$->opclass = $2;
-			$$->opclassopts = NIL;
-			$$->ordering = $3;
-			$$->nulls_ordering = $4;
-		}
-	| opt_collate any_name reloptions opt_asc_desc opt_nulls_order
-		{
-			$$ = makeNode(IndexElem);
-			$$->name = NULL;
-			$$->expr = NULL;
-			$$->indexcolname = NULL;
-			$$->collation = $1;
-			$$->opclass = $2;
-			$$->opclassopts = $3;
-			$$->ordering = $4;
-			$$->nulls_ordering = $5;
-		}
-	;
-
-/*
- * Index attributes can be either simple column references, or arbitrary
- * expressions in parens.  For backwards-compatibility reasons, we allow
- * an expression that's just a function call to be written without parens.
- */
-index_elem: ColId index_elem_options
-				{
-					$$ = $2;
-					$$->name = $1;
-				}
-			| func_expr_windowless index_elem_options
-				{
-					$$ = $2;
-					$$->expr = $1;
-				}
-			| '(' a_expr ')' index_elem_options
-				{
-					$$ = $4;
-					$$->expr = $2;
-				}
 		;
 
 any_operator:
@@ -7954,13 +7877,6 @@ func_arg_list:  func_arg_expr
 func_arg_list_opt:	func_arg_list					{ $$ = $1; }
 			| /*EMPTY*/								{ $$ = NIL; }
 		;
-
-/*
- * Ideally param_name should be ColId, but that causes too many conflicts.
- */
-param_name:	type_function_name
-		;
-
 
 func_arg_expr:  a_expr
 				{
