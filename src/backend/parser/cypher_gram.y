@@ -194,14 +194,14 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 /* keywords in alphabetical order */
 %token <keyword> ABORT_P ACCESS ACTION ADD_P ADMIN AFTER AGGREGATE ALL ALTER AND ANY ALWAYS ARRAY AS ASC ASCENDING ASSIGNMENT ASYMMETRIC AT ATOMIC ATTACH AUTHORIZATION
 
-                 BIGINT BEFORE BEGIN_P BETWEEN BOOLEAN_P BOTH BREADTH BY
+                 BIGINT BEFORE BEGIN_P BETWEEN BINARY BOOLEAN_P BOTH BREADTH BY
 
                  CACHE CALL CALLED CASE CAST CASCADE CHAIN CHECK CROSS CLUSTER COALESCE COLLATE COLLATION COMMENTS COMMIT COMMITTED COMPRESSION CONNECTION
-				 CONCURRENTLY CONFLICT CONTAINS CONSTRAINT CONSTRAINTS COST CREATE CUBE CURRENT 
+				 CONCURRENTLY CONFLICT CONTAINS CONSTRAINT CONSTRAINTS COPY COST CREATE CUBE CURRENT 
                  CURRENT_CATALOG CURRENT_DATE CURRENT_ROLE CURRENT_SCHEMA CURRENT_TIME 
-                 CURRENT_TIMESTAMP CURRENT_USER CYCLE CYPHER COLUMN CASCADED
+                 CURRENT_TIMESTAMP CURRENT_USER CYCLE CYPHER COLUMN CASCADED CSV
 
-                 DATA_P DATABASE DECADE DEC DECIMAL_P DEFAULT DEFAULTS DEFERRABLE DEFERRED DEFINER DELETE DEPTH DESC DESCENDING DETACH DISTINCT 
+                 DATA_P DATABASE DECADE DEC DECIMAL_P DEFAULT DEFAULTS DEFERRABLE DEFERRED DEFINER DELETE DELIMITER DELIMITERS DEPTH DESC DESCENDING DETACH DISTINCT 
 				 DO DOMAIN_P DOCUMENT_P DOUBLE_P DROP DISABLE_P
 
                  EACH ENCODING ENCRYPTED ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXCLUDING EXISTS EXTENSION EXTRACT EXTERNAL
@@ -209,9 +209,9 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 
                  GENERATED GLOBAL GRANT GRANTED GRAPH GREATEST GROUP GROUPS GROUPING
 
-                 FALSE_P FETCH FILTER FIRST_P FINALIZE FLOAT_P FOLLOWING FOR FORCE FOREIGN FROM FULL FUNCTION FUNCTIONS
+                 FALSE_P FETCH FILTER FIRST_P FINALIZE FLOAT_P FOLLOWING FOR FORCE FOREIGN FREEZE FROM FULL FUNCTION FUNCTIONS
 
-                 HAVING
+                 HAVING HEADER_P
 
                  IDENTITY_P IF ILIKE IN INCLUDING INDEX INDEXES IMMEDIATE IMMUTABLE IMPLICIT_P INCLUDE INCREMENT INHERIT INHERITS INITIALLY INNER 
 				 INSTEAD INOUT INPUT_P INT_P INTEGER_P INTERSECT INSERT INTERVAL INTO INVOKER IS ISNULL ISOLATION
@@ -229,12 +229,14 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 
                  OBJECT_P OF OFFSET OIDS ON ONLY OPTION OPTIONS OPTIONAL OTHERS OR OLD ORDER OUT_P OUTER OVER OVERRIDING OVERLAPS OVERLAY OWNED OWNER
 
-                 PARALLEL PARTIAL PARTITION PASSWORD PLACING POLICY POSITION PUBLICATION PRECEDING PRECISION PRESERVE PREPARE PREPARED PRIMARY PRIVILEGES PROCEDURAL PROCEDURE PROCEDURES
+                 PARALLEL PARTIAL PARTITION PASSWORD PLACING POLICY POSITION PUBLICATION PRECEDING PRECISION PRESERVE PREPARE PREPARED PRIMARY PRIVILEGES PROCEDURAL PROCEDURE PROCEDURES PROGRAM
+
+				 QUOTE
 
                  RANGE READ RIGHT REAL RECURSIVE REFERENCING REFERENCES RELEASE REMOVE REPEATABLE REPLICA RESET RESTART RESTRICT REPLACE RETURN RETURNING RETURNS ROLLBACK RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
 
                  SAVEPOINT SCHEMA SERIALIZABLE SEARCH SECURITY SERVER SELECT SEQUENCE SEQUENCES SESSION SESSION_USER SET SETOF SETS SHARE
-				 SIMPLE SKIP SMALLINT SOME STABLE START STARTS STATEMENT STATEMENTS STATISTICS 
+				 SIMPLE SKIP SMALLINT SOME STABLE START STARTS STATEMENT STATEMENTS STATISTICS STDIN STDOUT
 				 STORED STORAGE STRICT_P SUBSCRIPTION SUBSTRING SUPPORT SYMMETRIC SYSID SYSTEM_P
 
                  TABLE TABLES TABLESPACE TEMP TEMPLATE TEMPORARY  TIME TIES THEN TIMESTAMP TO TRAILING TRANSACTION TRANSFORM TREAT TRIGGER TRIM TRUE_P
@@ -259,7 +261,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <node> parse_toplevel stmtmulti schema_stmt routine_body_stmt
              AlterDatabaseStmt AlterDatabaseSetStmt AlterEventTrigStmt
 			 AlterTableStmt AlterTblSpcStmt
-			 CreateAsStmt
+			 CopyStmt CreateAsStmt
              CreateCastStmt CreatedbStmt CreateEventTrigStmt CreateSchemaStmt
 			 CreateTrigStmt
              CreateExtensionStmt CreateFunctionStmt CreateGraphStmt 
@@ -301,6 +303,18 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <boolean>	TransitionRowOrTable TransitionOldOrNew
 %type <node>	TriggerTransition
 
+
+%type <boolean> opt_instead
+%type <boolean> opt_unique opt_concurrently opt_verbose opt_full
+%type <boolean> opt_freeze opt_analyze opt_default opt_recheck
+%type <defelt>	opt_binary copy_delimiter
+
+%type <boolean> copy_from opt_program
+
+%type <node>	copy_generic_opt_arg copy_generic_opt_arg_list_item
+%type <defelt>	copy_generic_opt_elem
+%type <list>	copy_generic_opt_list copy_generic_opt_arg_list
+%type <list>	copy_options copy_opt_list
 
 %type <list>	event_trigger_when_list event_trigger_value_list
 %type <defelt>	event_trigger_when_item
@@ -352,9 +366,8 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <with>	with_clause opt_with_clause
 %type <list>	cte_list
 
-%type <boolean> opt_unique opt_concurrently 
-
-%type <string>	access_method_clause 
+%type <string>	copy_file_name
+                access_method_clause 
 				table_access_method_clause 
 				opt_index_name
 
@@ -563,7 +576,8 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <string> ColId  ColLabel BareColLabel
 %type <string> NonReservedWord NonReservedWord_or_Sconst name
 %type <list> create_extension_opt_list
-%type <defelt> create_extension_opt_item
+%type <defelt> copy_opt_item
+               create_extension_opt_item
 %type <sortby>	sortby
 %type <integer>	 OptTemp opt_asc_desc
 
@@ -762,6 +776,7 @@ stmt:
     | AlterDatabaseStmt 
 	| AlterTableStmt
 	| AlterTblSpcStmt
+	| CopyStmt
 	| CreateAsStmt
 	| CreateCastStmt
 	| CreatedbStmt
@@ -2259,6 +2274,237 @@ CreateGraphStmt:
             $$ = (Node *)n;
         }
         ;
+
+
+
+/*****************************************************************************
+ *
+ *		QUERY :
+ *				COPY relname [(columnList)] FROM/TO file [WITH] [(options)]
+ *				COPY ( query ) TO file	[WITH] [(options)]
+ *
+ *				where 'query' can be one of:
+ *				{ SELECT | UPDATE | INSERT | DELETE }
+ *
+ *				and 'file' can be one of:
+ *				{ PROGRAM 'command' | STDIN | STDOUT | 'filename' }
+ *
+ *				In the preferred syntax the options are comma-separated
+ *				and use generic identifiers instead of keywords.  The pre-9.0
+ *				syntax had a hard-wired, space-separated set of options.
+ *
+ *				Really old syntax, from versions 7.2 and prior:
+ *				COPY [ BINARY ] table FROM/TO file
+ *					[ [ USING ] DELIMITERS 'delimiter' ] ]
+ *					[ WITH NULL AS 'null string' ]
+ *				This option placement is not supported with COPY (query...).
+ *
+ *****************************************************************************/
+
+CopyStmt:	COPY opt_binary qualified_name opt_column_list
+			copy_from opt_program copy_file_name copy_delimiter opt_with
+			copy_options where_clause
+				{
+					CopyStmt *n = makeNode(CopyStmt);
+					n->relation = $3;
+					n->query = NULL;
+					n->attlist = $4;
+					n->is_from = $5;
+					n->is_program = $6;
+					n->filename = $7;
+					n->whereClause = $11;
+
+					if (n->is_program && n->filename == NULL)
+						ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+								 errmsg("STDIN/STDOUT not allowed with PROGRAM")));
+
+					if (!n->is_from && n->whereClause != NULL)
+						ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+								 errmsg("WHERE clause not allowed with COPY TO")));
+
+					n->options = NIL;
+					/* Concatenate user-supplied flags */
+					if ($2)
+						n->options = lappend(n->options, $2);
+					if ($8)
+						n->options = lappend(n->options, $8);
+					if ($10)
+						n->options = list_concat(n->options, $10);
+					$$ = (Node *)n;
+				}
+			| COPY '(' PreparableStmt ')' TO opt_program copy_file_name opt_with copy_options
+				{
+					CopyStmt *n = makeNode(CopyStmt);
+					n->relation = NULL;
+					n->query = $3;
+					n->attlist = NIL;
+					n->is_from = false;
+					n->is_program = $6;
+					n->filename = $7;
+					n->options = $9;
+
+					if (n->is_program && n->filename == NULL)
+						ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+								 errmsg("STDIN/STDOUT not allowed with PROGRAM")));
+
+					$$ = (Node *)n;
+				}
+		;
+
+copy_from:
+			FROM									{ $$ = true; }
+			| TO									{ $$ = false; }
+		;
+
+opt_program:
+			PROGRAM									{ $$ = true; }
+			| /* EMPTY */							{ $$ = false; }
+		;
+
+/*
+ * copy_file_name NULL indicates stdio is used. Whether stdin or stdout is
+ * used depends on the direction. (It really doesn't make sense to copy from
+ * stdout. We silently correct the "typo".)		 - AY 9/94
+ */
+copy_file_name:
+			Sconst									{ $$ = $1; }
+			| STDIN									{ $$ = NULL; }
+			| STDOUT								{ $$ = NULL; }
+		;
+
+copy_options: copy_opt_list							{ $$ = $1; }
+			| '(' copy_generic_opt_list ')'			{ $$ = $2; }
+		;
+
+/* old COPY option syntax */
+copy_opt_list:
+			copy_opt_list copy_opt_item				{ $$ = lappend($1, $2); }
+			| /* EMPTY */							{ $$ = NIL; }
+		;
+
+copy_opt_item:
+			BINARY
+				{
+					$$ = makeDefElem("format", (Node *)makeString("binary"), @1);
+				}
+			| FREEZE
+				{
+					$$ = makeDefElem("freeze", (Node *)makeInteger(true), @1);
+				}
+			| DELIMITER opt_as Sconst
+				{
+					$$ = makeDefElem("delimiter", (Node *)makeString($3), @1);
+				}
+			| NULL_P opt_as Sconst
+				{
+					$$ = makeDefElem("null", (Node *)makeString($3), @1);
+				}
+			| CSV
+				{
+					$$ = makeDefElem("format", (Node *)makeString("csv"), @1);
+				}
+			| HEADER_P
+				{
+					$$ = makeDefElem("header", (Node *)makeInteger(true), @1);
+				}
+			| QUOTE opt_as Sconst
+				{
+					$$ = makeDefElem("quote", (Node *)makeString($3), @1);
+				}
+			| ESCAPE opt_as Sconst
+				{
+					$$ = makeDefElem("escape", (Node *)makeString($3), @1);
+				}
+			| FORCE QUOTE columnList
+				{
+					$$ = makeDefElem("force_quote", (Node *)$3, @1);
+				}
+			| FORCE QUOTE '*'
+				{
+					$$ = makeDefElem("force_quote", (Node *)makeNode(A_Star), @1);
+				}
+			| FORCE NOT NULL_P columnList
+				{
+					$$ = makeDefElem("force_not_null", (Node *)$4, @1);
+				}
+			| FORCE NULL_P columnList
+				{
+					$$ = makeDefElem("force_null", (Node *)$3, @1);
+				}
+			| ENCODING Sconst
+				{
+					$$ = makeDefElem("encoding", (Node *)makeString($2), @1);
+				}
+		;
+
+/* The following exist for backward compatibility with very old versions */
+
+opt_binary:
+			BINARY
+				{
+					$$ = makeDefElem("format", (Node *)makeString("binary"), @1);
+				}
+			| /*EMPTY*/								{ $$ = NULL; }
+		;
+
+copy_delimiter:
+			opt_using DELIMITERS Sconst
+				{
+					$$ = makeDefElem("delimiter", (Node *)makeString($3), @2);
+				}
+			| /*EMPTY*/								{ $$ = NULL; }
+		;
+
+opt_using:
+			USING
+			| /*EMPTY*/
+		;
+
+/* new COPY option syntax */
+copy_generic_opt_list:
+			copy_generic_opt_elem
+				{
+					$$ = list_make1($1);
+				}
+			| copy_generic_opt_list ',' copy_generic_opt_elem
+				{
+					$$ = lappend($1, $3);
+				}
+		;
+
+copy_generic_opt_elem:
+			ColLabel copy_generic_opt_arg
+				{
+					$$ = makeDefElem($1, $2, @1);
+				}
+		;
+
+copy_generic_opt_arg:
+			opt_boolean_or_string			{ $$ = (Node *) makeString($1); }
+			| NumericOnly					{ $$ = (Node *) $1; }
+			| '*'							{ $$ = (Node *) makeNode(A_Star); }
+			| '(' copy_generic_opt_arg_list ')'		{ $$ = (Node *) $2; }
+			| /* EMPTY */					{ $$ = NULL; }
+		;
+
+copy_generic_opt_arg_list:
+			  copy_generic_opt_arg_list_item
+				{
+					$$ = list_make1($1);
+				}
+			| copy_generic_opt_arg_list ',' copy_generic_opt_arg_list_item
+				{
+					$$ = lappend($1, $3);
+				}
+		;
+
+/* beware of emitting non-string list elements here; see commands/define.c */
+copy_generic_opt_arg_list_item:
+			opt_boolean_or_string	{ $$ = (Node *) makeString($1); }
+		;
 
 
 /*****************************************************************************
