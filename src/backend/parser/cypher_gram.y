@@ -9889,7 +9889,8 @@ generic_reset:
 /* "Unreserved" keywords --- available for use as any kind of name.
  */
 unreserved_keyword:
-			INPUT_P
+			DATA_P
+			| INPUT_P
 			| KEY
 			| LIKE
 			| NAME_P
@@ -9907,7 +9908,8 @@ unreserved_keyword:
  * in kwlist.h if it is included here, or AS_LABEL if it is not.
  */
 bare_label_keyword:
-        FALSE_P
+		DATA_P
+        | FALSE_P
 		| INPUT_P
 		| KEY
 		| LIKE
