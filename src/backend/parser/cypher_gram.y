@@ -4775,15 +4775,15 @@ DropStmt:	DROP object_type_any_name IF EXISTS any_name_list opt_drop_behavior
 /* object types taking any_name/any_name_list */
 object_type_any_name:
 			TABLE									{ $$ = OBJECT_TABLE; }
-			/*| SEQUENCE								{ $$ = OBJECT_SEQUENCE; }
-			| VIEW									{ $$ = OBJECT_VIEW; }
-			| MATERIALIZED VIEW						{ $$ = OBJECT_MATVIEW; }
+			| SEQUENCE								{ $$ = OBJECT_SEQUENCE; }
+			//| VIEW									{ $$ = OBJECT_VIEW; }
+			//| MATERIALIZED VIEW						{ $$ = OBJECT_MATVIEW; }
 			| INDEX									{ $$ = OBJECT_INDEX; }
 			| FOREIGN TABLE							{ $$ = OBJECT_FOREIGN_TABLE; }
-			| COLLATION								{ $$ = OBJECT_COLLATION; }
-			| CONVERSION_P							{ $$ = OBJECT_CONVERSION; }
-			| STATISTICS							{ $$ = OBJECT_STATISTIC_EXT; }
-			| TEXT_P SEARCH PARSER					{ $$ = OBJECT_TSPARSER; }
+			//| COLLATION								{ $$ = OBJECT_COLLATION; }
+			//| CONVERSION_P							{ $$ = OBJECT_CONVERSION; }
+			//| STATISTICS							{ $$ = OBJECT_STATISTIC_EXT; }
+			/*| TEXT_P SEARCH PARSER					{ $$ = OBJECT_TSPARSER; }
 			| TEXT_P SEARCH DICTIONARY				{ $$ = OBJECT_TSDICTIONARY; }
 			| TEXT_P SEARCH TEMPLATE				{ $$ = OBJECT_TSTEMPLATE; }
 			| TEXT_P SEARCH CONFIGURATION			{ $$ = OBJECT_TSCONFIGURATION; }*/
@@ -8802,6 +8802,7 @@ unreserved_keyword:
 			| KEY
 			| LIKE
 			| NAME_P
+			| RANGE
 			| TYPE_P
 ;
 
