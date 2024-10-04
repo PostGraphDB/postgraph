@@ -3183,7 +3183,7 @@ group_item_list:
 ;
 
 group_item:
-    cypher_a_expr { $$ = $1; }
+    a_expr { $$ = $1; }
         | cube_clause { $$ = $1; }
         | rollup_clause { $$ = $1; }
         | empty_grouping_set { $$ = $1; }
@@ -3759,7 +3759,7 @@ sort_item_list:
     ;
 
 sort_item:
-    cypher_a_expr USING all_op opt_nulls_order
+    a_expr USING all_op opt_nulls_order
     {
         SortBy *n;
 
@@ -3773,7 +3773,7 @@ sort_item:
         $$ = (Node *)n;
 
     }
-    | cypher_a_expr order_opt opt_nulls_order
+    | a_expr order_opt opt_nulls_order
     {
         SortBy *n;
 
@@ -3816,7 +3816,7 @@ skip_opt:
         {
             $$ = NULL;
         }
-    | SKIP cypher_a_expr
+    | SKIP a_expr
         {
             $$ = $2;
         }
@@ -3827,7 +3827,7 @@ limit_opt:
         {
             $$ = NULL;
         }
-    | LIMIT cypher_a_expr
+    | LIMIT a_expr
         {
             $$ = $2;
         }
@@ -10877,7 +10877,7 @@ within_group_clause:
 ; 
 
 filter_clause:
-     FILTER '(' WHERE cypher_a_expr ')' { $$ = $4; }
+     FILTER '(' WHERE a_expr ')' { $$ = $4; }
      | /*EMPTY*/               { $$ = NULL; }
      ;      
 
