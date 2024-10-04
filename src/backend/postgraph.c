@@ -36,7 +36,7 @@ void _PG_init(void)
     register_ag_nodes();
     set_rel_pathlist_init();
     //object_access_hook_init();
-    process_utility_hook_init();
+    //process_utility_hook_init();
     parse_analyze_init();
     parse_init();
     IvfflatInit();
@@ -46,7 +46,7 @@ void _PG_fini(void);
 
 void _PG_fini(void)
 {
-    process_utility_hook_fini();
+    //process_utility_hook_fini();
     //object_access_hook_fini();
     set_rel_pathlist_fini();
     parse_analyze_fini();
