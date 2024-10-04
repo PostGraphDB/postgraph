@@ -125,7 +125,7 @@ static void SplitColQualList(List *qualList,
 static void processCASbits(int cas_bits, int location, const char *constrType,
 			   bool *deferrable, bool *initdeferred, bool *not_valid,
 			   bool *no_inherit, ag_scanner_t yyscanner);
-
+static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 #define parser_yyerror(msg)  scanner_yyerror(msg, yyscanner)
 #define parser_errposition(pos)  scanner_errposition(pos, yyscanner)
 %}
@@ -199,7 +199,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
                  CACHE CALL CALLED CASE CAST CASCADE CHAIN CHECK CROSS CLUSTER COALESCE COLLATE COLLATION COMMENTS COMMIT COMMITTED COMPRESSION CONNECTION
 				 CONCURRENTLY CONFLICT CONTAINS CONSTRAINT CONSTRAINTS COST CREATE CUBE CURRENT 
                  CURRENT_CATALOG CURRENT_DATE CURRENT_ROLE CURRENT_SCHEMA CURRENT_TIME 
-                 CURRENT_TIMESTAMP CURRENT_USER CYCLE CYPHER COLUMN
+                 CURRENT_TIMESTAMP CURRENT_USER CYCLE CYPHER COLUMN CASCADED
 
                  DATA_P DATABASE DECADE DEC DECIMAL_P DEFAULT DEFAULTS DEFERRABLE DEFERRED DEFINER DELETE DEPTH DESC DESCENDING DETACH DISTINCT 
 				 DO DOMAIN_P DOCUMENT_P DOUBLE_P DROP DISABLE_P
@@ -276,6 +276,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
              UpdateStmt
 			 PreparableStmt
              VariableResetStmt VariableSetStmt
+			 ViewStmt
 
 %type <node> select_no_parens select_with_parens select_clause
              simple_select
@@ -551,6 +552,8 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 %type <string>		all_Op MathOp
 %type <string>	 OptTableSpace OptConsTableSpace
 %type <rolespec> OptTableSpaceOwner
+%type <integer>	opt_check_option
+
 %type <integer>	sub_type 
 
 %type <integer> OnCommitOption
@@ -787,6 +790,7 @@ stmt:
     | UpdateStmt 
 	| VariableResetStmt
     | VariableSetStmt
+	| ViewStmt
 	| /*EMPTY*/
 		{ $$ = NULL; }
     ;
@@ -5683,6 +5687,85 @@ opt_transaction_chain:
 			AND CHAIN		{ $$ = true; }
 			| AND NO CHAIN	{ $$ = false; }
 			| /* EMPTY */	{ $$ = false; }
+		;
+
+
+
+/*****************************************************************************
+ *
+ *	QUERY:
+ *		CREATE [ OR REPLACE ] [ TEMP ] VIEW <viewname> '('target-list ')'
+ *			AS <query> [ WITH [ CASCADED | LOCAL ] CHECK OPTION ]
+ *
+ *****************************************************************************/
+
+ViewStmt: CREATE OptTemp VIEW qualified_name opt_column_list opt_reloptions
+				AS SelectStmt opt_check_option
+				{
+					ViewStmt *n = makeNode(ViewStmt);
+					n->view = $4;
+					n->view->relpersistence = $2;
+					n->aliases = $5;
+					n->query = $8;
+					n->replace = false;
+					n->options = $6;
+					n->withCheckOption = $9;
+					$$ = (Node *) n;
+				}
+		| CREATE OR REPLACE OptTemp VIEW qualified_name opt_column_list opt_reloptions
+				AS SelectStmt opt_check_option
+				{
+					ViewStmt *n = makeNode(ViewStmt);
+					n->view = $6;
+					n->view->relpersistence = $4;
+					n->aliases = $7;
+					n->query = $10;
+					n->replace = true;
+					n->options = $8;
+					n->withCheckOption = $11;
+					$$ = (Node *) n;
+				}
+		| CREATE OptTemp RECURSIVE VIEW qualified_name '(' columnList ')' opt_reloptions
+				AS SelectStmt opt_check_option
+				{
+					ViewStmt *n = makeNode(ViewStmt);
+					n->view = $5;
+					n->view->relpersistence = $2;
+					n->aliases = $7;
+					n->query = makeRecursiveViewSelect(n->view->relname, n->aliases, $11);
+					n->replace = false;
+					n->options = $9;
+					n->withCheckOption = $12;
+					if (n->withCheckOption != NO_CHECK_OPTION)
+						ereport(ERROR,
+								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+								 errmsg("WITH CHECK OPTION not supported on recursive views")));
+					$$ = (Node *) n;
+				}
+		| CREATE OR REPLACE OptTemp RECURSIVE VIEW qualified_name '(' columnList ')' opt_reloptions
+				AS SelectStmt opt_check_option
+				{
+					ViewStmt *n = makeNode(ViewStmt);
+					n->view = $7;
+					n->view->relpersistence = $4;
+					n->aliases = $9;
+					n->query = makeRecursiveViewSelect(n->view->relname, n->aliases, $13);
+					n->replace = true;
+					n->options = $11;
+					n->withCheckOption = $14;
+					if (n->withCheckOption != NO_CHECK_OPTION)
+						ereport(ERROR,
+								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+								 errmsg("WITH CHECK OPTION not supported on recursive views")));
+					$$ = (Node *) n;
+				}
+		;
+
+opt_check_option:
+		WITH CHECK OPTION				{ $$ = CASCADED_CHECK_OPTION; }
+		| WITH CASCADED CHECK OPTION	{ $$ = CASCADED_CHECK_OPTION; }
+		| WITH LOCAL CHECK OPTION		{ $$ = LOCAL_CHECK_OPTION; }
+		| /* EMPTY */					{ $$ = NO_CHECK_OPTION; }
 		;
 
 
@@ -12171,4 +12254,66 @@ makeOrderedSetArgs(List *directargs, List *orderedargs,
 
 	return list_make2(list_concat(directargs, orderedargs),
 					  ndirectargs);
+}
+
+
+/*----------
+ * Recursive view transformation
+ *
+ * Convert
+ *
+ *     CREATE RECURSIVE VIEW relname (aliases) AS query
+ *
+ * to
+ *
+ *     CREATE VIEW relname (aliases) AS
+ *         WITH RECURSIVE relname (aliases) AS (query)
+ *         SELECT aliases FROM relname
+ *
+ * Actually, just the WITH ... part, which is then inserted into the original
+ * view definition as the query.
+ * ----------
+ */
+static Node *
+makeRecursiveViewSelect(char *relname, List *aliases, Node *query)
+{
+	SelectStmt *s = makeNode(SelectStmt);
+	WithClause *w = makeNode(WithClause);
+	CommonTableExpr *cte = makeNode(CommonTableExpr);
+	List	   *tl = NIL;
+	ListCell   *lc;
+
+	/* create common table expression */
+	cte->ctename = relname;
+	cte->aliascolnames = aliases;
+	cte->ctematerialized = CTEMaterializeDefault;
+	cte->ctequery = query;
+	cte->location = -1;
+
+	/* create WITH clause and attach CTE */
+	w->recursive = true;
+	w->ctes = list_make1(cte);
+	w->location = -1;
+
+	/* create target list for the new SELECT from the alias list of the
+	 * recursive view specification */
+	foreach (lc, aliases)
+	{
+		ResTarget *rt = makeNode(ResTarget);
+
+		rt->name = NULL;
+		rt->indirection = NIL;
+		rt->val = makeColumnRef(strVal(lfirst(lc)), NIL, -1, 0);
+		rt->location = -1;
+
+		tl = lappend(tl, rt);
+	}
+
+	/* create new SELECT combining WITH clause, target list, and fake FROM
+	 * clause */
+	s->withClause = w;
+	s->targetList = tl;
+	s->fromClause = list_make1(makeRangeVar(NULL, relname, -1));
+
+	return (Node *) s;
 }
