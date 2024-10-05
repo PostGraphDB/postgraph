@@ -264,7 +264,7 @@ param (\${id})|(\${digitseq})
  * These are tokens that are used as operators and language constructs in
  * Cypher, and some of them are structural characters in JSON.
  */
-lt_gt    "<>"
+lt_gt    "<>"|"!="
 lt_eq    "<="
 gt_eq    ">="
 dot_dot  ".."
