@@ -217,16 +217,33 @@ dquote        \"
 dqchars       [^"\\]+
 squote        '
 
-
+/* Hexadecimal number */
+xbstart			[bB]{squote}
+xbinside		[^']*
 
 /* Hexadecimal number */
 xhstart			[xX]{squote}
 xhinside		[^']*
 
 
+/* $foo$ style quotes ("dollar quoting")
+ * The quoted string starts with $foo$ where "foo" is an optional string
+ * in the form of an identifier, except that it may not contain "$",
+ * and extends to the first occurrence of an identical string.
+ * There is *no* processing of the quoted text.
+ *
+ * {dolqfailed} is an error rule to avoid scanner backup when {dolqdelim}
+ * fails to match its trailing "$".
+ */
+dolq_start		[A-Za-z\200-\377_]
+dolq_cont		[A-Za-z\200-\377_0-9]
+dolqdelim		\$({dolq_start}{dolq_cont}*)?\$
+dolqfailed		\${dolq_start}{dolq_cont}*
+dolqinside		[^$]+
+
 
 sqchars       [^'\\]+
-esascii       \\["'/\\bfnrt]
+esascii       \\["'/\\bfnrtd]
 esasciifail   \\[^Uu]?
 esunicode     \\(U{hexdigit}{8}|u{hexdigit}{4})
 esunicodefail \\(U{hexdigit}{0,7}|u{hexdigit}{0,3})
@@ -270,7 +287,7 @@ gt_eq    ">="
 dot_dot  ".."
 plus_eq  "+="
 typecast "::"
-operator [&<=>|~!*?@#%]{2,3}|[@|?&#]|"?-|"|"?-"|"@-@"|"<->"|~|"##"
+operator [&<=>|~!*?@#%]{2,3}|[@|?&#]|"?-|"|"?-"|"@-@"|"<->"|~|"##"|"#@%#"
 operatorfail1 "@-"|"<-"
 self     [?&!@#%()*+,\-.~/:;<=>[\]^{|}]
 
@@ -546,7 +563,7 @@ ag_token token;
         ereport(ERROR,
                 (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
                  scan_errmsg("invalid escape sequence"),
-                 errdetail("Valid escape sequences are \\\", \\', \\/, \\\\, \\b, \\f, \\n, \\r, \\t, \\uXXXX, and \\UXXXXXXXX."),
+                 errdetail("Valid escape sequences are \\\", \\', \\/, \\\\, \\d, \\b, \\f, \\n, \\r, \\t, \\uXXXX, and \\UXXXXXXXX."),
                  scan_errposition()));
     }
 }
@@ -722,6 +739,44 @@ ag_token token;
                     scan_errposition()));
 }
 
+
+{xbstart}		{
+					/* Hexadecimal bit type.
+					 * At some point we should simply pass the string
+					 * forward to the parser and label it there.
+					 * In the meantime, place a leading "x" on the string
+					 * to mark it for the input routine as a hex string.
+					 */
+					//SET_YYLLOC();
+					BEGIN(xb);
+					//startlit();
+					//addlitchar('x', scanner);
+                    //strbuf_append_char(&yyextra.literal_buf, '\\');
+                    strbuf_append_char(&yyextra.literal_buf, 'x');
+				}
+
+<xb><<EOF>>		{ 
+    ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                    scan_errmsg("unterminated hexadecimal string literal"),
+                    scan_errposition()));
+    }
+
+<xb>{squote} {
+    BEGIN(INITIAL);
+
+    /*
+     * In quoted strings, only Unicode escape sequences need to be verified,
+     * and the actions for <dqstr,sqstr>{esunicode} and <qstru>{esunicode}
+     * rules verify the code point values. So, quoted strings are always valid.
+     */
+
+    token.type = AG_TOKEN_BCONST;
+    //token.value.s = strbuf_get_str(&yyextra.literal_buf);
+    //token.value.s = copy_string(strbuf_get_str(&yyextra.literal_buf), yyleng);
+    token.value.s = strbuf_get_str(&yyextra.literal_buf);
+    token.location = get_location();
+    return token;
+}
 
 {xhstart}		{
 					/* Hexadecimal bit type.

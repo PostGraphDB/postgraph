@@ -190,7 +190,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %token <string> INET
 %token <string> PARAMETER
 %token <string> OPERATOR
-%token <string> XCONST
+%token <string> XCONST BCONST
 
 /* operators that have more than 1 character */
 %token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ
@@ -204,7 +204,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 
                  CACHE CALL CALLED CASE CAST CASCADE CHAIN CHECK CROSS CLUSTER COALESCE COLLATE COLLATION COMMENTS COMMIT COMMITTED COMPRESSION CONNECTION CONVERSION_P
 				 CONCURRENTLY CONTENT_P CONFLICT CONTAINS CONSTRAINT CONSTRAINTS COPY COST CREATE CUBE CURRENT 
-                 CURRENT_CATALOG CURRENT_DATE CURRENT_ROLE CURRENT_SCHEMA CURRENT_TIME CHAR_P CHARACTER
+                 CURRENT_CATALOG CURRENT_DATE CURRENT_ROLE CURRENT_SCHEMA CURRENT_TIME CHAR_P CHARACTER CATALOG_P
                  CURRENT_TIMESTAMP CURRENT_USER CYCLE CYPHER COLUMN CASCADED CSV CLASS CONTINUE_P COLUMNS
 
                  DATA_P DATABASE DECADE_P DEC DECIMAL_P DEFAULT DEFAULTS DEFERRABLE DEFERRED DEFINER DELETE DELIMITER DELIMITERS DEPTH DESC DESCENDING DETACH DISTINCT 
@@ -239,7 +239,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 
 				 QUOTE
 
-                 RANGE READ RIGHT REAL RECHECK RECURSIVE REINDEX REF_P REFERENCING REFERENCES REFRESH RELEASE REMOVE REPEATABLE REPLICA RESET RESTART RESTRICT REPLACE RETURN RETURNING RETURNS ROLLBACK RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
+                 RANGE READ REVOKE RIGHT REAL RECHECK RECURSIVE REINDEX REF_P REFERENCING REFERENCES REFRESH RELEASE REMOVE REPEATABLE REPLICA RESET RESTART RESTRICT REPLACE RETURN RETURNING RETURNS ROLLBACK RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
 
                  SAVEPOINT SCHEMA SERIALIZABLE SEARCH SECURITY SECOND_P SERVER SELECT SEQUENCE SEQUENCES SESSION SESSION_USER SET SETOF SETS SHARE
 				 SIMPLE SKIP SMALLINT SOME STABLE START STARTS STATEMENT STATEMENTS STATISTICS STDIN STDOUT STANDALONE_P
@@ -266,12 +266,13 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <list> single_query  cypher_stmt
 
 %type <node> parse_toplevel stmtmulti schema_stmt routine_body_stmt
-             AlterFunctionStmt
+             AlterFunctionStmt AlterPolicyStmt
 	         AlterSeqStmt AlterCollationStmt AlterSystemStmt CreateDomainStmt AlterDomainStmt
              AlterDatabaseStmt AlterDatabaseSetStmt AlterEventTrigStmt 
+			 AlterRoleStmt AlterRoleSetStmt
 			 AlterTableStmt AlterTblSpcStmt AnalyzeStmt AlterOpFamilyStmt 
 			 reateOpFamilyStmt CreateConversionStmt CreateOpFamilyStmt
-			 CopyStmt ClusterStmt CreateAsStmt CreateOpClassStmt CreateGroupStmt
+			 CopyStmt ClusterStmt CreateAsStmt CreateOpClassStmt CreateGroupStmt CreatePolicyStmt
 			 CreateTransformStmt
              CreateCastStmt CreatedbStmt CreateEventTrigStmt CreateSchemaStmt
 			 CreateTrigStmt CreateSeqStmt CreateRoleStmt
@@ -280,11 +281,12 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 			 CreateUserStmt
              DefineStmt DeleteStmt DoStmt DropCastStmt DropdbStmt DropGraphStmt
 			 DropStmt DropTableSpaceStmt DropTransformStmt DropOpClassStmt DropOpFamilyStmt
+			 DropRoleStmt
 			 ExplainStmt ExplainableStmt
              GrantStmt
 			 IndexStmt InsertStmt 
              UseGraphStmt
-			 ReindexStmt RemoveFuncStmt ReturnStmt
+			 ReindexStmt RemoveFuncStmt ReturnStmt RevokeStmt
              SelectStmt
 			 TransactionStmt TransactionStmtLegacy TruncateStmt
              UpdateStmt
@@ -306,6 +308,10 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <integer>	opt_drop_behavior
 
 %type <infer>	opt_conf_expr
+
+%type <string>		opt_in_database
+
+
 %type <boolean> TriggerForSpec TriggerForType
 %type <integer>	TriggerActionTime
 %type <list>	TriggerEvents TriggerOneEvent
@@ -441,7 +447,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <integer>	object_type_any_name object_type_name object_type_name_on_any_name
 				drop_type_name
 
-%type <list>	OptRoleList 
+%type <list>	OptRoleList AlterOptRoleList
 %type <defelt>	CreateOptRoleElem AlterOptRoleElem
 
 %type <string>		OptSchemaName
@@ -607,7 +613,16 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <list>	function_with_argtypes_list aggregate_with_argtypes_list operator_with_argtypes_list
 
 %type <list>	func_name qual_Op qual_all_Op subquery_Op
+
 %type <string>		all_Op MathOp
+
+
+%type <string>		row_security_cmd RowSecurityDefaultForCmd
+%type <boolean> RowSecurityDefaultPermissive
+%type <node>	RowSecurityOptionalWithCheck RowSecurityOptionalExpr
+%type <list>	RowSecurityDefaultToRole RowSecurityOptionalToRole
+
+
 %type <string>	 OptTableSpace OptConsTableSpace
 %type <rolespec> OptTableSpaceOwner
 %type <integer>	opt_check_option
@@ -830,6 +845,9 @@ stmt:
 	| AlterSeqStmt 
 	| AlterSystemStmt
 	| AlterOpFamilyStmt
+	| AlterPolicyStmt
+	| AlterRoleStmt
+	| AlterRoleSetStmt
 	| AlterTableStmt
 	| AlterTblSpcStmt
 	| AnalyzeStmt
@@ -845,6 +863,7 @@ stmt:
     | CreateExtensionStmt
 	| CreateEventTrigStmt 
 	| CreateFunctionStmt
+	| CreatePolicyStmt
 	| CreateRoleStmt
 	| CreateTransformStmt
 	| CreateOpClassStmt
@@ -862,6 +881,7 @@ stmt:
     | DropGraphStmt
 	| DropOpClassStmt
 	| DropOpFamilyStmt 
+	| DropRoleStmt
 	| DropStmt 
 	| DropTableSpaceStmt
 	| DropTransformStmt
@@ -871,6 +891,7 @@ stmt:
     | InsertStmt 
 	| ReindexStmt
 	| RemoveFuncStmt
+	| RevokeStmt
     | SelectStmt 
 	| TransactionStmt
 	| TransactionStmtLegacy
@@ -3965,7 +3986,7 @@ SetResetClause:
 
 set_rest_more:	/* Generic SET syntaxes: */
 			generic_set							{$$ = $1;}
-			/*| var_name FROM CURRENT_P
+			| var_name FROM CURRENT
 				{
 					VariableSetStmt *n = makeNode(VariableSetStmt);
 					n->kind = VAR_SET_CURRENT;
@@ -3973,7 +3994,7 @@ set_rest_more:	/* Generic SET syntaxes: */
 					$$ = n;
 				}
 			// Special syntaxes mandated by SQL standard:
-			| TIME ZONE zone_value
+			/*| TIME ZONE zone_value
 				{
 					VariableSetStmt *n = makeNode(VariableSetStmt);
 					n->kind = VAR_SET_VALUE;
@@ -3983,13 +4004,12 @@ set_rest_more:	/* Generic SET syntaxes: */
 					else
 						n->kind = VAR_SET_DEFAULT;
 					$$ = n;
-				}
+				}*/
 			| CATALOG_P Sconst
 				{
 					ereport(ERROR,
 							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-							 errmsg("current database cannot be changed"),
-							 parser_errposition(@2)));
+							 errmsg("current database cannot be changed")));
 					$$ = NULL; 
 				}
 			| SCHEMA Sconst
@@ -3999,7 +4019,7 @@ set_rest_more:	/* Generic SET syntaxes: */
 					n->name = "search_path";
 					n->args = list_make1(makeStringConst($2, @2));
 					$$ = n;
-				}
+				}/*
 			| NAMES opt_encoding
 				{
 					VariableSetStmt *n = makeNode(VariableSetStmt);
@@ -4010,7 +4030,7 @@ set_rest_more:	/* Generic SET syntaxes: */
 					else
 						n->kind = VAR_SET_DEFAULT;
 					$$ = n;
-				}
+				}*/
 			| ROLE NonReservedWord_or_Sconst
 				{
 					VariableSetStmt *n = makeNode(VariableSetStmt);
@@ -4018,7 +4038,7 @@ set_rest_more:	/* Generic SET syntaxes: */
 					n->name = "role";
 					n->args = list_make1(makeStringConst($2, @2));
 					$$ = n;
-				}*/
+				}
 			| SESSION AUTHORIZATION NonReservedWord_or_Sconst
 				{
 					VariableSetStmt *n = makeNode(VariableSetStmt);
@@ -4078,7 +4098,7 @@ var_value:	opt_boolean_or_string
 opt_boolean_or_string:
 			TRUE_P									{ $$ = "true"; }
 			| FALSE_P								{ $$ = "false"; }
-			//| ON									{ $$ = "on"; }
+			| ON									{ $$ = "on"; }
 			/*
 			 * OFF is also accepted as a boolean value, but is handled by
 			 * the NonReservedWord rule.  The action for booleans and strings
@@ -8059,6 +8079,126 @@ CreateUserStmt:
 
 /*****************************************************************************
  *
+ * Alter a postgresql DBMS role
+ *
+ *****************************************************************************/
+
+AlterRoleStmt:
+			ALTER ROLE RoleSpec opt_with AlterOptRoleList
+				 {
+					AlterRoleStmt *n = makeNode(AlterRoleStmt);
+					n->role = $3;
+					n->action = +1;	/* add, if there are members */
+					n->options = $5;
+					$$ = (Node *)n;
+				 }
+			| ALTER USER RoleSpec opt_with AlterOptRoleList
+				 {
+					AlterRoleStmt *n = makeNode(AlterRoleStmt);
+					n->role = $3;
+					n->action = +1;	/* add, if there are members */
+					n->options = $5;
+					$$ = (Node *)n;
+				 }
+		;
+
+opt_in_database:
+			   /* EMPTY */					{ $$ = NULL; }
+			| IN DATABASE name	{ $$ = $3; }
+		;
+
+AlterRoleSetStmt:
+			ALTER ROLE RoleSpec opt_in_database SetResetClause
+				{
+					AlterRoleSetStmt *n = makeNode(AlterRoleSetStmt);
+					n->role = $3;
+					n->database = $4;
+					n->setstmt = $5;
+					$$ = (Node *)n;
+				}
+			| ALTER ROLE ALL opt_in_database SetResetClause
+				{
+					AlterRoleSetStmt *n = makeNode(AlterRoleSetStmt);
+					n->role = NULL;
+					n->database = $4;
+					n->setstmt = $5;
+					$$ = (Node *)n;
+				}
+			| ALTER USER RoleSpec opt_in_database SetResetClause
+				{
+					AlterRoleSetStmt *n = makeNode(AlterRoleSetStmt);
+					n->role = $3;
+					n->database = $4;
+					n->setstmt = $5;
+					$$ = (Node *)n;
+				}
+			| ALTER USER ALL opt_in_database SetResetClause
+				{
+					AlterRoleSetStmt *n = makeNode(AlterRoleSetStmt);
+					n->role = NULL;
+					n->database = $4;
+					n->setstmt = $5;
+					$$ = (Node *)n;
+				}
+		;
+
+
+/*****************************************************************************
+ *
+ * Drop a postgresql DBMS role
+ *
+ * XXX Ideally this would have CASCADE/RESTRICT options, but a role
+ * might own objects in multiple databases, and there is presently no way to
+ * implement cascading to other databases.  So we always behave as RESTRICT.
+ *****************************************************************************/
+
+DropRoleStmt:
+			DROP ROLE role_list
+				{
+					DropRoleStmt *n = makeNode(DropRoleStmt);
+					n->missing_ok = false;
+					n->roles = $3;
+					$$ = (Node *)n;
+				}
+			| DROP ROLE IF EXISTS role_list
+				{
+					DropRoleStmt *n = makeNode(DropRoleStmt);
+					n->missing_ok = true;
+					n->roles = $5;
+					$$ = (Node *)n;
+				}
+			| DROP USER role_list
+				{
+					DropRoleStmt *n = makeNode(DropRoleStmt);
+					n->missing_ok = false;
+					n->roles = $3;
+					$$ = (Node *)n;
+				}
+			| DROP USER IF EXISTS role_list
+				{
+					DropRoleStmt *n = makeNode(DropRoleStmt);
+					n->roles = $5;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
+			| DROP GROUP role_list
+				{
+					DropRoleStmt *n = makeNode(DropRoleStmt);
+					n->missing_ok = false;
+					n->roles = $3;
+					$$ = (Node *)n;
+				}
+			| DROP GROUP IF EXISTS role_list
+				{
+					DropRoleStmt *n = makeNode(DropRoleStmt);
+					n->missing_ok = true;
+					n->roles = $5;
+					$$ = (Node *)n;
+				}
+			;
+
+/*****************************************************************************
+ *
  * Create a new Postgres DBMS role
  *
  *****************************************************************************/
@@ -8089,7 +8229,10 @@ OptRoleList:
 			| /* EMPTY */							{ $$ = NIL; }
 		;
 
-
+AlterOptRoleList:
+			AlterOptRoleList AlterOptRoleElem		{ $$ = lappend($1, $2); }
+			| /* EMPTY */							{ $$ = NIL; }
+		;
 
 AlterOptRoleElem:
 			PASSWORD Sconst
@@ -8373,6 +8516,40 @@ GrantStmt:	GRANT privileges ON privilege_target TO grantee_list
 					n->grant_option = $7;
 					n->grantor = $8;
 					$$ = (Node*)n;
+				}
+		;
+
+
+RevokeStmt:
+			REVOKE privileges ON privilege_target
+			FROM grantee_list opt_granted_by opt_drop_behavior
+				{
+					GrantStmt *n = makeNode(GrantStmt);
+					n->is_grant = false;
+					n->grant_option = false;
+					n->privileges = $2;
+					n->targtype = ($4)->targtype;
+					n->objtype = ($4)->objtype;
+					n->objects = ($4)->objs;
+					n->grantees = $6;
+					n->grantor = $7;
+					n->behavior = $8;
+					$$ = (Node *)n;
+				}
+			| REVOKE GRANT OPTION FOR privileges ON privilege_target
+			FROM grantee_list opt_granted_by opt_drop_behavior
+				{
+					GrantStmt *n = makeNode(GrantStmt);
+					n->is_grant = false;
+					n->grant_option = true;
+					n->privileges = $5;
+					n->targtype = ($7)->targtype;
+					n->objtype = ($7)->objtype;
+					n->objects = ($7)->objs;
+					n->grantees = $9;
+					n->grantor = $10;
+					n->behavior = $11;
+					$$ = (Node *)n;
 				}
 		;
 
@@ -9793,6 +9970,102 @@ opt_ordinality: WITH ORDINALITY					{ $$ = true; }
 
 /*****************************************************************************
  *
+ *		QUERIES:
+ *				CREATE POLICY name ON table
+ *					[AS { PERMISSIVE | RESTRICTIVE } ]
+ *					[FOR { SELECT | INSERT | UPDATE | DELETE } ]
+ *					[TO role, ...]
+ *					[USING (qual)] [WITH CHECK (with check qual)]
+ *				ALTER POLICY name ON table [TO role, ...]
+ *					[USING (qual)] [WITH CHECK (with check qual)]
+ *
+ *****************************************************************************/
+
+CreatePolicyStmt:
+			CREATE POLICY name ON qualified_name RowSecurityDefaultPermissive
+				RowSecurityDefaultForCmd RowSecurityDefaultToRole
+				RowSecurityOptionalExpr RowSecurityOptionalWithCheck
+				{
+					CreatePolicyStmt *n = makeNode(CreatePolicyStmt);
+					n->policy_name = $3;
+					n->table = $5;
+					n->permissive = $6;
+					n->cmd_name = $7;
+					n->roles = $8;
+					n->qual = $9;
+					n->with_check = $10;
+					$$ = (Node *) n;
+				}
+		;
+
+AlterPolicyStmt:
+			ALTER POLICY name ON qualified_name RowSecurityOptionalToRole
+				RowSecurityOptionalExpr RowSecurityOptionalWithCheck
+				{
+					AlterPolicyStmt *n = makeNode(AlterPolicyStmt);
+					n->policy_name = $3;
+					n->table = $5;
+					n->roles = $6;
+					n->qual = $7;
+					n->with_check = $8;
+					$$ = (Node *) n;
+				}
+		;
+
+RowSecurityOptionalExpr:
+			USING '(' a_expr ')'	{ $$ = $3; }
+			| /* EMPTY */			{ $$ = NULL; }
+		;
+
+RowSecurityOptionalWithCheck:
+			WITH CHECK '(' a_expr ')'		{ $$ = $4; }
+			| /* EMPTY */					{ $$ = NULL; }
+		;
+
+RowSecurityDefaultToRole:
+			TO role_list			{ $$ = $2; }
+			| /* EMPTY */			{ $$ = list_make1(makeRoleSpec(ROLESPEC_PUBLIC, -1)); }
+		;
+
+RowSecurityOptionalToRole:
+			TO role_list			{ $$ = $2; }
+			| /* EMPTY */			{ $$ = NULL; }
+		;
+
+RowSecurityDefaultPermissive:
+			AS IDENTIFIER
+				{
+					if (strcmp($2, "permissive") == 0)
+						$$ = true;
+					else if (strcmp($2, "restrictive") == 0)
+						$$ = false;
+					else
+						ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+							 errmsg("unrecognized row security option \"%s\"", $2),
+								 errhint("Only PERMISSIVE or RESTRICTIVE policies are supported currently.")));
+
+				}
+			| /* EMPTY */			{ $$ = true; }
+		;
+
+RowSecurityDefaultForCmd:
+			FOR row_security_cmd	{ $$ = $2; }
+			| /* EMPTY */			{ $$ = "all"; }
+		;
+
+row_security_cmd:
+			ALL				{ $$ = "all"; }
+		|	SELECT			{ $$ = "select"; }
+		|	INSERT			{ $$ = "insert"; }
+		|	UPDATE			{ $$ = "update"; }
+		|	DELETE		{ $$ = "delete"; }
+		;
+
+
+
+/*****************************************************************************
+ *
  *	expression grammar
  *
  *****************************************************************************/
@@ -11062,10 +11335,10 @@ AexprConst: Iconst
 				{
 					$$ = makeStringConst($1, @1);
 				}
-			/*| BCONST
+			| BCONST
 				{
 					$$ = makeBitStringConst($1, @1);
-				}*/
+				}
 			| XCONST
 				{
 
@@ -11241,8 +11514,8 @@ opt_array_bounds:
 SimpleTypename:
 			GenericType								{ $$ = $1; }
 			| Numeric								{ $$ = $1; }
-			/*| Bit									{ $$ = $1; }
-			| Character								{ $$ = $1; }*/
+			| Bit									{ $$ = $1; }
+			| Character								{ $$ = $1; }
 			| ConstDatetime							{ $$ = $1; }
 			| ConstInterval opt_interval
 				{
@@ -11270,7 +11543,7 @@ SimpleTypename:
  */
 ConstTypename:
 			Numeric									{ $$ = $1; }
-		//	| ConstBit								{ $$ = $1; }
+			| ConstBit								{ $$ = $1; }
 			| ConstCharacter						{ $$ = $1; }
 			| ConstDatetime							{ $$ = $1; }
 		;
@@ -11692,7 +11965,7 @@ name:		ColId									{ $$ = $1; }
 			;
 ColId:		IDENTIFIER									{ $$ = $1; }
 			| unreserved_keyword					{ $$ = pstrdup($1); }
-			//| col_name_keyword						{ $$ = pstrdup($1); }
+			| col_name_keyword						{ $$ = pstrdup($1); }
 			;
 
 /* Type/function identifier --- names that can be type or function names.
@@ -11769,6 +12042,7 @@ generic_reset:
  */
 unreserved_keyword:
 			DATA_P
+			| DOCUMENT_P
 			| FUNCTION
 			| INDEX
 			| INPUT_P
@@ -11841,6 +12115,7 @@ col_name_keyword:
 bare_label_keyword:
 		DATA_P
 		| DEFAULT
+		| DOCUMENT_P
         | FALSE_P
 		| FUNCTION
 		| INDEX

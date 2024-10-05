@@ -31,6 +31,7 @@ typedef enum ag_token_type
     AG_TOKEN_DECIMAL,
     AG_TOKEN_STRING,
     AG_TOKEN_XCONST,
+    AG_TOKEN_BCONST,
     AG_TOKEN_IDENTIFIER,
     AG_TOKEN_PARAMETER,
     AG_TOKEN_LT_GT,

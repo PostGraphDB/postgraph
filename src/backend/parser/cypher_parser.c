@@ -39,6 +39,7 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner)
         DECIMAL,
         STRING,
         XCONST,
+        BCONST,
         IDENTIFIER,
         PARAMETER,
         NOT_EQ,
@@ -67,6 +68,7 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner)
     case AG_TOKEN_INET:
     case AG_TOKEN_OPERATOR:
     case AG_TOKEN_XCONST:
+    case AG_TOKEN_BCONST:
 	lvalp->string = pstrdup(token.value.s);
         break;
     case AG_TOKEN_IDENTIFIER:
