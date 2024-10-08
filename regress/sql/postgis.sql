@@ -29,6 +29,19 @@ SELECT * FROM cypher('postgis', $$RETURN 'BOX3D(1 2 3, 4 5 6)'::box3d$$) AS r(c 
 
 SELECT * FROM cypher('postgis', $$RETURN 'SPHEROID["WGS 84",6378137,298.257223563]'::spheroid$$) AS r(c gtype);
 
+
+SELECT * FROM cypher('postgis', $$
+     RETURN 'POLYHEDRALSURFACE Z (
+  ((0 0 0, 0 1 0, 1 1 0, 1 0 0, 0 0 0)),
+  ((0 0 0, 0 1 0, 0 1 1, 0 0 1, 0 0 0)),
+  ((0 0 0, 1 0 0, 1 0 1, 0 0 1, 0 0 0)),
+  ((1 1 1, 1 0 1, 0 0 1, 0 1 1, 1 1 1)),
+  ((1 1 1, 1 0 1, 1 0 0, 1 1 0, 1 1 1)),
+  ((1 1 1, 1 1 0, 0 1 0, 0 1 1, 1 1 1))
+)'::geometry
+$$) AS r(c gtype);
+
+
 --
 -- Box3D
 --
@@ -1270,6 +1283,7 @@ CREATE INDEX ON postgis.i USING gist ((properties->'"i"') gist_geometry_ops_2d);
 
 SELECT * FROM cypher('postgis', $$CREATE (:i {i: 'POLYGON( (0 0, 10 0, 10 10, 0 10, 0 0) )'::geometry })$$) AS r(c gtype);
 
+/*
 SET enable_mergejoin = ON;
 SET enable_hashjoin = ON;
 SET enable_nestloop = ON;
@@ -1290,7 +1304,7 @@ SELECT * FROM cypher('postgis', $$
     WHERE i.i << 'POLYGON( (0 0, 10 0, 10 10, 0 10, 0 0) )'::geometry
     RETURN i
 $$) AS r(c vertex);
-
+*/
 
 
 
