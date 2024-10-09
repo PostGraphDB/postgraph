@@ -33,6 +33,7 @@
 #include "libpgcommon/lwgeom_pg.h"
 #include "liblwgeom/liblwgeom.h"
 #include "libpgcommon/lwgeom_pg.h"
+#include "liblwgeom/liblwgeom_internal.h"
 
 //PostGraph
 #include "utils/gtype.h"
@@ -64,7 +65,6 @@ PostGraphDirectFunctionCall1(PGFunction func, Oid collation, bool *is_null, Datu
 
         return result;
 }
-
 
 Datum
 PostGraphDirectFunctionCall3(PGFunction func, Oid collation, bool *is_null, Datum arg1, Datum arg2, Datum arg3)
@@ -962,7 +962,6 @@ Datum gtype_affine(PG_FUNCTION_ARGS)
 
     /* Release memory */
     lwgeom_free(lwgeom);
-    PG_FREE_IF_COPY(geom, 0);
 
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
@@ -1451,4 +1450,457 @@ gtype_st_frechet_distance(PG_FUNCTION_ARGS) {
     AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
 }
 
+#include <float.h>
 
+/**
+Returns boolean describing if
+mininimum 3d distance between objects in
+geom1 and geom2 is shorter than tolerance
+*/
+PG_FUNCTION_INFO_V1(gtype_dwithin3d);
+Datum gtype_dwithin3d(PG_FUNCTION_ARGS)
+{
+	double mindist;
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+    gtype *gt_3 = AG_GET_ARG_GTYPE_P(2);
+	GSERIALIZED *geom1 = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry"));
+	GSERIALIZED *geom2 = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry"));
+	double tolerance = DatumGetFloat8(convert_to_scalar(gtype_to_float8_internal, gt_3, "float"));
+	LWGEOM *lwgeom1 = lwgeom_from_gserialized(geom1);
+	LWGEOM *lwgeom2 = lwgeom_from_gserialized(geom2);
+
+	if (tolerance < 0)
+	{
+		elog(ERROR, "Tolerance cannot be less than zero\n");
+		PG_RETURN_NULL();
+	}
+
+	gserialized_error_if_srid_mismatch(geom1, geom2, __func__);
+
+	mindist = lwgeom_mindistance3d_tolerance(lwgeom1, lwgeom2, tolerance);
+
+	/*empty geometries cases should be right handled since return from underlying
+	 functions should be FLT_MAX which causes false as answer*/
+    gtype_value gtv = { .type = AGTV_BOOL, .val.boolean = (tolerance >= mindist) };
+    
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+
+/**
+Returns boolean describing if
+maximum 3d distance between objects in
+geom1 and geom2 is shorter than tolerance
+*/
+PG_FUNCTION_INFO_V1(gtype_dfullywithin3d);
+Datum gtype_dfullywithin3d(PG_FUNCTION_ARGS)
+{
+	double maxdist;
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+    gtype *gt_3 = AG_GET_ARG_GTYPE_P(2);
+	GSERIALIZED *geom1 = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry"));
+	GSERIALIZED *geom2 = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry"));
+	double tolerance = DatumGetFloat8(convert_to_scalar(gtype_to_float8_internal, gt_3, "float"));
+	LWGEOM *lwgeom1 = lwgeom_from_gserialized(geom1);
+	LWGEOM *lwgeom2 = lwgeom_from_gserialized(geom2);
+
+	if (tolerance < 0)
+	{
+		elog(ERROR, "Tolerance cannot be less than zero\n");
+		PG_RETURN_NULL();
+	}
+
+	gserialized_error_if_srid_mismatch(geom1, geom2, __func__);
+	maxdist = lwgeom_maxdistance3d_tolerance(lwgeom1, lwgeom2, tolerance);
+
+    gtype_value gtv = { .type = AGTV_BOOL, .val.boolean = maxdist > -1 ? (tolerance >= maxdist) : LW_FALSE };
+    
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+
+}
+
+/**
+ Maximum 3d distance between objects in geom1 and geom2.
+ */
+PG_FUNCTION_INFO_V1(LWGEOM_maxdistance3d);
+PG_FUNCTION_INFO_V1(gtype_maxdistance3d);
+Datum gtype_maxdistance3d(PG_FUNCTION_ARGS)
+{
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+	GSERIALIZED *geom1 = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry"));
+	GSERIALIZED *geom2 = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry"));
+	LWGEOM *lwgeom1 = lwgeom_from_gserialized(geom1);
+	LWGEOM *lwgeom2 = lwgeom_from_gserialized(geom2);
+	gserialized_error_if_srid_mismatch(geom1, geom2, __func__);
+
+	double maxdist = lwgeom_maxdistance3d(lwgeom1, lwgeom2);
+
+	/*if called with empty geometries the ingoing mindistance is untouched, and makes us return NULL*/
+	if (maxdist > -1){
+        gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = maxdist };
+
+        AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+    }
+
+    PG_RETURN_NULL();
+}
+
+
+/**
+ Minimum 2d distance between objects in geom1 and geom2 in 3D
+ */
+PG_FUNCTION_INFO_V1(ST_3DDistance);
+PG_FUNCTION_INFO_V1(gtype_3DDistance);
+Datum gtype_3DDistance(PG_FUNCTION_ARGS)
+{
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+	GSERIALIZED *geom1 = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry"));
+	GSERIALIZED *geom2 = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry"));
+	LWGEOM *lwgeom1 = lwgeom_from_gserialized(geom1);
+	LWGEOM *lwgeom2 = lwgeom_from_gserialized(geom2);
+	gserialized_error_if_srid_mismatch(geom1, geom2, __func__);
+
+	double mindist = lwgeom_mindistance3d(lwgeom1, lwgeom2);
+
+	/*if called with empty geometries the ingoing mindistance is untouched, and makes us return NULL*/
+	if (mindist < FLT_MAX){
+        gtype_value gtv = { .type = AGTV_FLOAT, .val.float_value = mindist };
+
+        AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+    }
+
+    PG_RETURN_NULL();
+}
+
+/**
+Returns the point in first input geometry that is closest to the second input geometry in 3D
+*/
+PG_FUNCTION_INFO_V1(LWGEOM_closestpoint3d);
+PG_FUNCTION_INFO_V1(gtype_closestpoint3d);
+Datum gtype_closestpoint3d(PG_FUNCTION_ARGS)
+{
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+    bool is_null;
+
+
+    Datum d = PostGraphDirectFunctionCall2(LWGEOM_closestpoint3d, 100, &is_null, d1, d2);
+
+    if (is_null)
+        PG_RETURN_NULL();
+
+    gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.gserialized = DatumGetPointer(d)  };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+/**
+Returns the point in first input geometry that is closest to the second input geometry in 3D
+*/
+PG_FUNCTION_INFO_V1(LWGEOM_shortestline3d);
+PG_FUNCTION_INFO_V1(gtype_shortestline3d);
+Datum gtype_shortestline3d(PG_FUNCTION_ARGS)
+{
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+    bool is_null;
+
+    Datum d = PostGraphDirectFunctionCall2(LWGEOM_shortestline3d, 100, &is_null, d1, d2);
+
+    if (is_null)
+        PG_RETURN_NULL();
+
+    gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.gserialized = DatumGetPointer(d)  };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+/**
+Returns the longest line between two geometries in 3D
+*/
+PG_FUNCTION_INFO_V1(LWGEOM_longestline3d);
+PG_FUNCTION_INFO_V1(gtype_longestline3d);
+Datum gtype_longestline3d(PG_FUNCTION_ARGS)
+{
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+    Datum d1 = convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry");
+    Datum d2 = convert_to_scalar(gtype_to_geometry_internal, gt_2, "geometry");
+    bool is_null;
+
+    Datum d = PostGraphDirectFunctionCall2(LWGEOM_longestline3d, 100, &is_null, d1, d2);
+
+    if (is_null)
+        PG_RETURN_NULL();
+
+    gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.gserialized = DatumGetPointer(d)  };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+
+/** convert LWGEOM to wkt (in TEXT format) */
+PG_FUNCTION_INFO_V1(gtype_asText);
+Datum gtype_asText(PG_FUNCTION_ARGS)
+{
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    GSERIALIZED *geom = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry"));
+	LWGEOM *lwgeom = lwgeom_from_gserialized(geom);
+
+	int dbl_dig_for_wkt = OUT_DEFAULT_DECIMAL_DIGITS;
+	if (PG_NARGS() > 1) {
+        gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);
+        dbl_dig_for_wkt = DatumGetInt32(convert_to_scalar(gtype_to_int4_internal, gt_2, "int"));
+    }
+
+    lwvarlena_t *lwv = lwgeom_to_wkt_varlena(lwgeom, WKT_ISO, dbl_dig_for_wkt);
+    gtype_value gtv = { .type = AGTV_STRING, .val.string = {.len = VARSIZE_ANY_EXHDR(lwv), .val = VARDATA(lwv)}  };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+
+
+/** @brief
+* 		returns 0 for points, 1 for lines, 2 for polygons, 3 for volume.
+* 		returns max dimension for a collection.
+*/
+PG_FUNCTION_INFO_V1(gtype_dimension);
+Datum gtype_dimension(PG_FUNCTION_ARGS)
+{
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    GSERIALIZED *geom = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry"));
+	LWGEOM *lwgeom = lwgeom_from_gserialized(geom);
+	int dimension = -1;
+
+	dimension = lwgeom_dimension(lwgeom);
+	lwgeom_free(lwgeom);
+
+	if ( dimension < 0 )
+	{
+		elog(NOTICE, "Could not compute geometry dimensions");
+		PG_RETURN_NULL();
+	}
+
+    gtype_value gtv = { .type = AGTV_INTEGER, .val.int_value = dimension };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+/* Matches lwutil.c::lwgeomTypeName */
+static char *stTypeName[] = {"Unknown",
+			     "ST_Point",
+			     "ST_LineString",
+			     "ST_Polygon",
+			     "ST_MultiPoint",
+			     "ST_MultiLineString",
+			     "ST_MultiPolygon",
+			     "ST_GeometryCollection",
+			     "ST_CircularString",
+			     "ST_CompoundCurve",
+			     "ST_CurvePolygon",
+			     "ST_MultiCurve",
+			     "ST_MultiSurface",
+			     "ST_PolyhedralSurface",
+			     "ST_Triangle",
+			     "ST_Tin"};
+
+/* returns a string representation of this geometry's type */
+PG_FUNCTION_INFO_V1(gtype_geometrytype);
+Datum gtype_geometrytype(PG_FUNCTION_ARGS)
+{
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    GSERIALIZED *gser = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry"));
+
+	text *type_text;
+
+	/* Build a text type to store things in */
+	char *str = stTypeName[gserialized_get_type(gser)];
+
+    gtype_value gtv = { .type = AGTV_STRING, .val.string = {.len = strlen(str), .val = str}  };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+
+
+PG_FUNCTION_INFO_V1(gtype_numgeometries_collection);
+Datum gtype_numgeometries_collection(PG_FUNCTION_ARGS)
+{
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    GSERIALIZED *geom = DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry"));
+	LWGEOM *lwgeom;
+	int32 ret = 0;
+
+	lwgeom = lwgeom_from_gserialized(geom);
+	if (lwgeom_is_empty(lwgeom))
+	{
+		ret = 0;
+	}
+	else if (lwgeom_is_unitary(lwgeom))
+	{
+		ret = 1;
+	}
+	else
+	{
+		LWCOLLECTION *col = lwgeom_as_lwcollection(lwgeom);
+		ret = col->ngeoms;
+	}
+	lwgeom_free(lwgeom);
+
+    gtype_value gtv = { .type = AGTV_INTEGER, .val.int_value = ret };
+
+    AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+/** 1-based offset */
+PG_FUNCTION_INFO_V1(gtype_geometryn_collection);
+Datum gtype_geometryn_collection(PG_FUNCTION_ARGS)
+{
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+	GSERIALIZED *geom =  DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry"));
+	LWGEOM *lwgeom = lwgeom_from_gserialized(geom);
+	GSERIALIZED *result = NULL;
+    gtype *gt_2 = AG_GET_ARG_GTYPE_P(1);	
+    int32 idx = DatumGetInt32(convert_to_scalar(gtype_to_int4_internal, gt_2, "int"));
+	LWCOLLECTION *coll = NULL;
+	LWGEOM *subgeom = NULL;
+
+	/* Empty returns NULL */
+	if (lwgeom_is_empty(lwgeom))
+		PG_RETURN_NULL();
+
+	/* Unitary geometries just reflect back */
+	if (lwgeom_is_unitary(lwgeom))
+	{
+		if ( idx == 1 )
+			PG_RETURN_POINTER(gt_1);
+		else
+			PG_RETURN_NULL();
+	}
+
+	coll = lwgeom_as_lwcollection(lwgeom);
+	if (!coll)
+		elog(ERROR, "Unable to handle type %d in ST_GeometryN", lwgeom->type);
+
+	/* Handle out-of-range index value */
+	idx -= 1;
+	if ( idx < 0 || idx >= (int32) coll->ngeoms )
+		PG_RETURN_NULL();
+
+	subgeom = coll->geoms[idx];
+	subgeom->srid = coll->srid;
+
+	/* COMPUTE_BBOX==TAINTING */
+	if ( coll->bbox ) lwgeom_add_bbox(subgeom);
+
+	result = geometry_serialize(subgeom);
+	lwgeom_free(lwgeom);
+
+
+    gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.gserialized = result };
+	AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+/** Reverse vertex order of geometry */
+PG_FUNCTION_INFO_V1(gtype_st_reverse);
+Datum gtype_st_reverse(PG_FUNCTION_ARGS)
+{
+	gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+	GSERIALIZED *geom =  PG_DETOAST_DATUM_COPY(DatumGetPointer(convert_to_scalar(gtype_to_geometry_internal, gt_1, "geometry")));
+	LWGEOM *lwgeom;
+
+	POSTGIS_DEBUG(2, "LWGEOM_reverse called");
+
+	lwgeom = lwgeom_from_gserialized(geom);
+	lwgeom_reverse_in_place(lwgeom);
+
+	geom = geometry_serialize(lwgeom);
+
+	//PG_RETURN_POINTER(geom);
+    gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.gserialized = geom };
+	AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}
+
+/*
+ * Error message parsing functions
+ *
+ * Produces nicely formatted messages for parser/unparser errors with optional HINT
+ */
+
+void
+pg_parser_errhint(LWGEOM_PARSER_RESULT *lwg_parser_result)
+{
+	char *hintbuffer;
+
+	/* Only display the parser position if the location is > 0; this provides a nicer output when the first token
+	   within the input stream cannot be matched */
+	if (lwg_parser_result->errlocation > 0)
+	{
+		/* Return a copy of the input string start truncated
+		 * at the error location */
+		hintbuffer = lwmessage_truncate(
+			(char *)lwg_parser_result->wkinput, 0,
+			lwg_parser_result->errlocation - 1, 40, 0);
+
+		ereport(ERROR,
+		        (errmsg("%s", lwg_parser_result->message),
+		         errhint("\"%s\" <-- parse error at position %d within geometry", hintbuffer, lwg_parser_result->errlocation))
+		       );
+	}
+	else
+	{
+		ereport(ERROR,
+		        (errmsg("%s", lwg_parser_result->message),
+		         errhint("You must specify a valid OGC WKT geometry type such as POINT, LINESTRING or POLYGON"))
+		       );
+	}
+}
+/**
+ * @brief Returns a geometry Given an OGC WKT (and optionally a SRID)
+ * @return a geometry.
+ * @note Note that this is a a stricter version
+ * 		of geometry_in, where we refuse to
+ * 		accept (HEX)WKB or EWKT.
+ */
+PG_FUNCTION_INFO_V1(gtype_from_text);
+Datum gtype_from_text(PG_FUNCTION_ARGS)
+{
+    gtype *gt_1 = AG_GET_ARG_GTYPE_P(0);
+    text *wkttext = DatumGetTextP(convert_to_scalar(gtype_to_text_internal, gt_1, "text"));
+	char *wkt = text_to_cstring(wkttext);
+	LWGEOM_PARSER_RESULT lwg_parser_result;
+	GSERIALIZED *geom_result = NULL;
+	LWGEOM *lwgeom;
+
+	POSTGIS_DEBUG(2, "LWGEOM_from_text");
+	POSTGIS_DEBUGF(3, "wkt: [%s]", wkt);
+
+	if (lwgeom_parse_wkt(&lwg_parser_result, wkt, LW_PARSER_CHECK_ALL) == LW_FAILURE )
+		PG_PARSER_ERROR(lwg_parser_result);
+
+	lwgeom = lwg_parser_result.geom;
+
+	if ( lwgeom->srid != SRID_UNKNOWN )
+	{
+		elog(WARNING, "OGC WKT expected, EWKT provided - use GeomFromEWKT() for this");
+	}
+
+	/* read user-requested SRID if any */
+	if ( PG_NARGS() > 1 )
+		lwgeom_set_srid(lwgeom, PG_GETARG_INT32(1));
+
+	geom_result = geometry_serialize(lwgeom);
+	lwgeom_parser_result_free(&lwg_parser_result);
+
+    gtype_value gtv = { .type = AGTV_GSERIALIZED, .val.gserialized = geom_result };
+	AG_RETURN_GTYPE_P(gtype_value_to_gtype(&gtv));
+}

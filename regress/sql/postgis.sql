@@ -1263,8 +1263,212 @@ SELECT * FROM cypher('postgis', $$
 $$) AS r(c gtype);
 
 
+/*
+ * 3D Functions
+ */
+--3D Distance functions
+
+SELECT * FROM cypher('postgis', $$
+    WITH 'POINT(1 1 1)'::geometry as a, 'POINT(3 2 7)'::geometry as b
+    RETURN 	ST_3DDistance(a,b),
+		    ST_3DMaxDistance(a,b)::numeric,
+			ST_3DDWithin(a,b,5),
+			ST_3DDFullyWithin(a,b,5),
+			ST_ASEWKT(ST_3DShortestline(a,b)),
+			ST_ASEWKT(ST_3DClosestpoint(a,b)),
+			ST_ASEWKT(ST_3DLongestline(a,b))
+$$ ) as a(distance gtype, max_distance gtype, within gtype, fully_within gtype, shortest gtype, closest gtype, longest gtype);
+
+SELECT * FROM cypher('postgis', $$
+    WITH 'POINT(1 1 1)'::geometry as a, 'LINESTRING(0 0 0, 2 2 2)'::geometry as b
+    RETURN 	ST_3DDistance(a,b),
+		    ST_3DMaxDistance(a,b)::numeric,
+			ST_3DDWithin(a,b,5),
+			ST_3DDFullyWithin(a,b,5),
+			ST_ASEWKT(ST_3DShortestline(a,b)),
+			ST_ASEWKT(ST_3DClosestpoint(a,b)),
+			ST_ASEWKT(ST_3DLongestline(a,b))
+$$ ) as a(distance gtype, max_distance gtype, within gtype, fully_within gtype, shortest gtype, closest gtype, longest gtype);
+
+SELECT * FROM cypher('postgis', $$
+    WITH 'POINT(1 1 1)'::geometry as a, 'LINESTRING(5 2 6, -3 -2 4)'::geometry as b
+    RETURN 	ST_3DDistance(a,b),
+		    ST_3DMaxDistance(a,b)::numeric,
+			ST_3DDWithin(a,b,5),
+			ST_3DDFullyWithin(a,b,5),
+			ST_ASEWKT(ST_3DShortestline(a,b)),
+			ST_ASEWKT(ST_3DClosestpoint(a,b)),
+			ST_ASEWKT(ST_3DLongestline(a,b))
+$$ ) as a(distance gtype, max_distance gtype, within gtype, fully_within gtype, shortest gtype, closest gtype, longest gtype);
 
 
+
+SELECT * FROM cypher('postgis', $$
+    WITH 'LINESTRING(1 1 3, 5 7 8)'::geometry as a, 'POINT(1 1 1)'::geometry as b
+    RETURN 	ST_3DDistance(a,b),
+		    ST_3DMaxDistance(a,b)::numeric,
+			ST_3DDWithin(a,b,5),
+			ST_3DDFullyWithin(a,b,5),
+			ST_ASEWKT(ST_3DShortestline(a,b)),
+			ST_ASEWKT(ST_3DClosestpoint(a,b)),
+			ST_ASEWKT(ST_3DLongestline(a,b))
+$$ ) as a(distance gtype, max_distance gtype, within gtype, fully_within gtype, shortest gtype, closest gtype, longest gtype);
+
+SELECT * FROM cypher('postgis', $$
+    WITH 'LINESTRING(1 0 5, 11 0 5)'::geometry as a, 'LINESTRING(5 2 0, 5 2 10, 5 0 13)'::geometry as b
+    RETURN 	ST_3DDistance(a,b),
+		    ST_3DMaxDistance(a,b)::numeric,
+			ST_3DDWithin(a,b,5),
+			ST_3DDFullyWithin(a,b,5),
+			ST_ASEWKT(ST_3DShortestline(a,b)),
+			ST_ASEWKT(ST_3DClosestpoint(a,b)),
+			ST_ASEWKT(ST_3DLongestline(a,b))
+$$ ) as a(distance gtype, max_distance gtype, within gtype, fully_within gtype, shortest gtype, closest gtype, longest gtype);
+
+SELECT * FROM cypher('postgis', $$
+    WITH 'LINESTRING(1 1 1 , 2 2 2)'::geometry as a, 'POLYGON((0 0 0, 2 2 2, 3 3 3, 0 0 0))'::geometry as b
+    RETURN 	ST_3DDistance(a,b)
+$$ ) as a(distance gtype);
+
+
+SELECT * FROM cypher('postgis', $$
+    WITH 'LINESTRING(1 1 1 , 2 2 2)'::geometry as a, 'POLYGON((0 0 0, 2 2 2, 3 3 1, 0 0 0))'::geometry as b
+    RETURN 	ST_3DDistance(a,b)
+$$ ) as a(distance gtype);
+
+
+
+-- 3D mixed dimmentionality #2034
+--closestpoint with 2d as first point and 3d as second
+SELECT * FROM cypher('postgis', $$
+    RETURN st_astext(st_3dclosestpoint('linestring(0 0,1 1,2 0)'::geometry, 'linestring(0 2 3, 3 2 3)'::geometry))
+$$) AS r(c gtype);
+
+--closestpoint with 3d as first point and 2d as second
+SELECT * FROM cypher('postgis', $$
+    RETURN st_astext(st_3dclosestpoint('linestring(0 0 1,1 1 2,2 0 3)'::geometry, 'linestring(0 2, 3 2)'::geometry))
+$$) AS r(c gtype);
+
+--shortestline with 2d as first point and 3d as second
+SELECT * FROM cypher('postgis', $$
+    RETURN st_astext(st_3dshortestline('linestring(0 0,1 1,2 0)'::geometry, 'linestring(0 2 3, 3 2 3)'::geometry))
+$$) AS r(c gtype);
+
+--shortestline with 3d as first point and 2d as second
+SELECT * FROM cypher('postgis', $$
+    RETURN st_astext(st_3dshortestline('linestring(0 0 1,1 1 2,2 0 3)'::geometry, 'linestring(0 2, 3 2)'::geometry))
+$$) AS r(c gtype);
+
+
+--distance with 2d as first point and 3d as second
+SELECT * FROM cypher('postgis', $$
+    RETURN st_3ddistance('linestring(0 0,1 1,2 0)'::geometry, 'linestring(0 2 3, 3 2 3)'::geometry)
+$$) AS r(c gtype);
+
+--distance with 3d as first point and 2d as second
+SELECT * FROM cypher('postgis', $$
+    RETURN st_3ddistance('linestring(0 0 1,1 1 2,2 0 3)'::geometry, 'linestring(0 2, 3 2)'::geometry)
+$$) AS r(c gtype);
+
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_AsText(ST_3DClosestPoint('POINT(0 0 0)', 'POINT(0 0)'))
+$$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_AsText(ST_3DShortestLine('LINESTRING(2 1, 3 0)', 'LINESTRING(0 0 2, 3 3 -4)'))
+$$) AS r(c gtype);
+
+
+/*
+ * Polyheadral Surface
+ */
+ -- ST_Dimension on 2D: not closed
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_Dimension('POLYHEDRALSURFACE(((0 0,0 0,0 1,0 0)))'::geometry)
+$$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_Dimension('GEOMETRYCOLLECTION(POLYHEDRALSURFACE(((0 0,0 0,0 1,0 0))))'::geometry)
+$$) AS r(c gtype);
+
+-- ST_Dimension on 3D: closed
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_Dimension('POLYHEDRALSURFACE(((0 0 0,0 0 1,0 1 0,0 0 0)),((0 0 0,0 1 0,1 0 0,0 0 0)),((0 0 0,1 0 0,0 0 1,0 0 0)),((1 0 0,0 1 0,0 0 1,1 0 0)))'::geometry)
+$$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN  ST_Dimension('GEOMETRYCOLLECTION(POLYHEDRALSURFACE(((0 0 0,0 0 1,0 1 0,0 0 0)),((0 0 0,0 1 0,1 0 0,0 0 0)),((0 0 0,1 0 0,0 0 1,0 0 0)),((1 0 0,0 1 0,0 0 1,1 0 0))))'::geometry)
+$$) AS r(c gtype);
+
+-- ST_Dimension on 4D: closed
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_Dimension('POLYHEDRALSURFACE(((0 0 0 0,0 0 1 0,0 1 0 2,0 0 0 0)),((0 0 0 0,0 1 0 0,1 0 0 4,0 0 0 0)),((0 0 0 0,1 0 0 0,0 0 1 6,0 0 0 0)),((1 0 0 0,0 1 0 0,0 0 1 0,1 0 0 0)))'::geometry)
+$$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_Dimension('GEOMETRYCOLLECTION(POLYHEDRALSURFACE(((0 0 0 0,0 0 1 0,0 1 0 2,0 0 0 0)),((0 0 0 0,0 1 0 0,1 0 0 4,0 0 0 0)),((0 0 0 0,1 0 0 0,0 0 1 6,0 0 0 0)),((1 0 0 0,0 1 0 0,0 0 1 0,1 0 0 0))))'::geometry)
+$$) AS r(c gtype);
+
+-- ST_Dimension on 3D: invalid polyedron (a single edge is shared 3 times)
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_Dimension('POLYHEDRALSURFACE(((0 0 0,0 0 1,0 1 0,0 0 0)),((0 0 0,0 1 0,1 0 0,0 0 0)),((0 0 0,0 1 0,0 0 1,0 0 0)),((1 0 0,0 1 0,0 0 1,1 0 0)))'::geometry)
+$$) AS r(c gtype);
+
+-- ST_Dimension on 3D: invalid polyedron (redundant point inside each face)
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_Dimension('POLYHEDRALSURFACE(((0 0 0,1 0 0,1 0 0,0 0 0)),((0 0 1,1 0 1,1 0 1,0 0 1)),((0 0 2,1 0 2,1 0 2,0 0 2)),((0 0 3,1 0 3,1 0 3,0 0 3)))'::geometry)
+$$) AS r(c gtype);
+
+-- ST_NumPatches
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_NumPatches('POLYHEDRALSURFACE EMPTY'::geometry)
+$$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_NumPatches('POLYHEDRALSURFACE(((0 0,0 0,0 1,0 0)))'::geometry)
+$$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_NumPatches('POLYHEDRALSURFACE(((0 0 0,0 0 1,0 1 0,0 0 0)),((0 0 0,0 1 0,1 0 0,0 0 0)),((0 0 0,1 0 0,0 0 1,0 0 0)),((1 0 0,0 1 0,0 0 1,1 0 0)))'::geometry)
+$$) AS r(c gtype);
+
+-- ST_PatchN
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_AsEWKT(ST_patchN('POLYHEDRALSURFACE EMPTY'::geometry, 1))
+$$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_AsEWKT(ST_patchN('POLYHEDRALSURFACE(((0 0,0 0,0 1,0 0)))'::geometry, 1))
+$$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_AsEWKT(ST_patchN('POLYHEDRALSURFACE(((0 0,0 0,0 1,0 0)))'::geometry, 0))
+$$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_AsEWKT(ST_patchN('POLYHEDRALSURFACE(((0 0,0 0,0 1,0 0)))'::geometry, 2))
+$$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_AsEWKT(ST_patchN('POLYHEDRALSURFACE(((0 0 0,0 0 1,0 1 0,0 0 0)),((0 0 0,0 1 0,1 0 0,0 0 0)),((0 0 0,1 0 0,0 0 1,0 0 0)),((1 0 0,0 1 0,0 0 1,1 0 0)))'::geometry, 2))
+$$) AS r(c gtype);
+
+-- PolyedralSurface (TODO)
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_AsText(ST_Reverse('POLYHEDRALSURFACE EMPTY'::geometry))
+$$) AS r(c gtype);;
+SELECT * FROM cypher('postgis', $$
+    RETURN ST_AsText(ST_Reverse('POLYHEDRALSURFACE (((0 0,0 0,0 1,0 0)),((0 0,0 1,1 0,0 0)),((0 0,1 0,0 0,0 0)),((1 0,0 1,0 0,1 0)))'::geometry))
+$$) AS r(c gtype);
+
+-- TODO KNN
+SELECT * FROM cypher('postgis', $$
+    WITH ST_GeomFromText(
+'PolyhedralSurface(
+((0 0 0, 0 0 1, 0 1 1, 0 1 0, 0 0 0)),
+((0 0 0, 0 1 0, 1 1 0, 1 0 0, 0 0 0)), ((0 0 0, 1 0 0, 1 0 1, 0 0 1, 0 0 0)),  ((1 1 0, 1 1 1, 1 0 1, 1 0 0, 1 1 0)),
+((0 1 0, 0 1 1, 1 1 1, 1 1 0, 0 1 0)),  ((0 0 1, 1 0 1, 1 1 1, 0 1 1, 0 0 1))
+)') as a
+    RETURN ST_Translate(a,100, 450,1000)
+$$ ) as a(the_geom gtype);
+
+SELECT * FROM cypher('postgis', $$
+    WITH ST_GeomFromText(
+'PolyhedralSurface(
+((0 0 0, 0 0 1, 0 1 1, 0 1 0, 0 0 0)),
+((0 0 0, 0 1 0, 1 1 0, 1 0 0, 0 0 0)) )') as a
+    RETURN ST_Translate(a,100, 450,1000)
+$$ ) as a(the_geom gtype);
 
 
 
@@ -1275,7 +1479,7 @@ $$) AS r(c gtype);
 --
 SELECT * FROM cypher('postgis', $$CREATE (:i {i: 'POLYGON( (0 0, 10 0, 10 10, 0 10, 0 0) )'::geometry })$$) AS r(c gtype);
 SELECT * FROM cypher('postgis', $$CREATE (:i {i: 'POLYGON( (0 0, 10 0, 10 10, 0 10, 0 0) )'::geometry }) $$) AS r(c gtype);
-SELECT * FROM cypher('postgis', $$CREATE (:i {i:'POLYGON( (0 0, 10 0, 10 10, 0 10, 0 0) )'::geometry })  $$) AS r(c gtype);
+SELECT * FROM cypher('postgis', $$CREATE (:i {i: 'POLYGON( (0 0, 10 0, 10 10, 0 10, 0 0) )'::geometry })  $$) AS r(c gtype);
 
 SELECT create_vlabel('postgis', 'i');
 
