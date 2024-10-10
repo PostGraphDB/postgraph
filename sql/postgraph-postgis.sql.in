@@ -367,6 +367,120 @@ CREATE OPERATOR ~~= (
         JOIN = gserialized_gist_joinsel_nd*/
 );
 
+CREATE FUNCTION ST_DistanceCPA (gtype, gtype)
+RETURNS gtype
+LANGUAGE c
+IMMUTABLE
+RETURNS NULL ON NULL INPUT
+PARALLEL SAFE
+COST 5000
+AS 'MODULE_PATHNAME', 'gtype_ST_DistanceCPA';
+
+CREATE OPERATOR |=| (
+    LEFTARG = gtype, RIGHTARG = gtype,
+    PROCEDURE = ST_DistanceCPA,
+    COMMUTATOR = '|=|'
+);
+
+-- Availability: 2.2.0
+CREATE OR REPLACE FUNCTION gtype_distance_centroid_nd(gtype, gtype)
+RETURNS gtype
+IMMUTABLE 
+STRICT 
+PARALLEL SAFE
+LANGUAGE 'c' 
+AS 'MODULE_PATHNAME', 'gtype_distance_nd';
+
+-- Availability: 2.2.0
+CREATE OPERATOR <<->> (
+	LEFTARG = gtype,
+    RIGHTARG = gtype,
+	PROCEDURE = gtype_distance_centroid_nd,
+	COMMUTATOR = '<<->>'
+);
+
+
+-- Availability: 2.2.0
+CREATE OR REPLACE FUNCTION gtype_gist_distance_nd(internal,gtype,integer)
+RETURNS gtype
+PARALLEL SAFE
+LANGUAGE 'c' 
+AS 'MODULE_PATHNAME', 'gtype_gist_distance';
+
+-- Availability: 2.0.0
+CREATE OR REPLACE FUNCTION gtype_gist_consistent_nd(internal,gtype,integer)
+RETURNS gtype
+PARALLEL SAFE
+LANGUAGE 'c' 
+AS 'MODULE_PATHNAME', 'gtype_gist_consistent';
+
+-- Availability: 2.0.0
+CREATE OR REPLACE FUNCTION gtype_gist_compress_nd(internal)
+RETURNS internal
+PARALLEL SAFE
+LANGUAGE 'c' 
+AS 'MODULE_PATHNAME','gtype_gist_compress';
+
+-- Availability: 2.0.0
+CREATE OR REPLACE FUNCTION gtype_gist_penalty_nd(internal,internal,internal)
+RETURNS internal
+PARALLEL SAFE
+LANGUAGE 'c' 
+AS 'MODULE_PATHNAME' ,'gtype_gist_penalty';
+
+-- Availability: 2.0.0
+CREATE OR REPLACE FUNCTION gtype_gist_picksplit_nd(internal, internal)
+RETURNS internal
+PARALLEL SAFE
+LANGUAGE 'c' 
+AS 'MODULE_PATHNAME' ,'gtype_gist_picksplit';
+
+-- Availability: 2.0.0
+CREATE OR REPLACE FUNCTION gtype_gist_union_nd(bytea, internal)
+RETURNS internal
+PARALLEL SAFE
+LANGUAGE 'c' 
+AS 'MODULE_PATHNAME' ,'gtype_gist_union';
+
+-- Availability: 2.0.0
+CREATE OR REPLACE FUNCTION gtype_gist_same_nd(gtype, gtype, internal)
+RETURNS internal
+PARALLEL SAFE
+LANGUAGE 'c' 
+AS 'MODULE_PATHNAME' ,'gtype_gist_same';
+
+-- Availability: 2.0.0
+CREATE OR REPLACE FUNCTION gtype_gist_decompress_nd(internal)
+RETURNS internal
+PARALLEL SAFE
+LANGUAGE 'c' 
+AS 'MODULE_PATHNAME' ,'gtype_gist_decompress';
+
+
+-- Availability: 2.0.0
+CREATE OPERATOR CLASS gist_geometry_ops_nd
+	FOR TYPE gtype USING GIST AS
+	STORAGE 	public.gidx,
+	OPERATOR        3        &&&	,
+	-- Availability: 3.0.0
+	OPERATOR        6        ~~=	,
+	-- Availability: 3.0.0
+	OPERATOR        7        ~~	,
+	-- Availability: 3.0.0
+	OPERATOR        8        @@	,
+	-- Availability: 2.2.0
+	OPERATOR        13       <<->> FOR ORDER BY pg_catalog.float_ops,
+	-- Availability: 2.2.0
+	OPERATOR        20       |=| FOR ORDER BY pg_catalog.float_ops,
+	-- Availability: 2.2.0
+	FUNCTION        8        gtype_gist_distance_nd (internal, gtype, integer),
+	FUNCTION        1        gtype_gist_consistent_nd (internal, gtype, integer),
+	FUNCTION        2        gtype_gist_union_nd (bytea, internal),
+	FUNCTION        3        gtype_gist_compress_nd (internal),
+	FUNCTION        4        gtype_gist_decompress_nd (internal),
+	FUNCTION        5        gtype_gist_penalty_nd (internal, internal, internal),
+	FUNCTION        6        gtype_gist_picksplit_nd (internal, internal),
+	FUNCTION        7        gtype_gist_same_nd (gtype, gtype, internal);
 
 --
 -- PostGIS Functions
@@ -638,20 +752,7 @@ PARALLEL SAFE
 COST 5000
 AS 'MODULE_PATHNAME', 'gtype_ST_ClosestPointOfApproach';
 
-CREATE FUNCTION ST_DistanceCPA (gtype, gtype)
-RETURNS gtype
-LANGUAGE c
-IMMUTABLE
-RETURNS NULL ON NULL INPUT
-PARALLEL SAFE
-COST 5000
-AS 'MODULE_PATHNAME', 'gtype_ST_DistanceCPA';
 
-CREATE OPERATOR |=| (
-    LEFTARG = gtype, RIGHTARG = gtype,
-    PROCEDURE = ST_DistanceCPA,
-    COMMUTATOR = '|=|'
-);
 
 CREATE FUNCTION ST_IsValidTrajectory (gtype)
 RETURNS gtype

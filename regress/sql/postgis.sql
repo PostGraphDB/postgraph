@@ -1471,8 +1471,47 @@ SELECT * FROM cypher('postgis', $$
 $$ ) as a(the_geom gtype);
 
 
+SELECT * FROM cypher('postgis', $$CREATE (:j {j: 'PolyhedralSurface(((0 0 0, 0 0 1, 0 1 1, 0 1 0, 0 0 0)), ((0 0 0, 0 1 0, 1 1 0, 1 0 0, 0 0 0)) )'::geometry })  $$) AS r(c gtype);
 
+SELECT * FROM cypher('postgis', $$CREATE (:j {j: 'PolyhedralSurface(
+((0 0 0, 0 0 1, 0 1 1, 0 1 0, 0 0 0)),
+((0 0 0, 0 1 0, 1 1 0, 1 0 0, 0 0 0)), ((0 0 0, 1 0 0, 1 0 1, 0 0 1, 0 0 0)),  ((1 1 0, 1 1 1, 1 0 1, 1 0 0, 1 1 0)),
+((0 1 0, 0 1 1, 1 1 1, 1 1 0, 0 1 0)),  ((0 0 1, 1 0 1, 1 1 1, 0 1 1, 0 0 1))
+)'::geometry })  
+$$) AS r(c gtype);
 
+SET enable_mergejoin = ON;
+SET enable_hashjoin = ON;
+SET enable_nestloop = ON;
+SET enable_seqscan = false;
+SET enable_sort = false;
+
+CREATE INDEX ON postgis.j USING gist((properties->'"j"') gist_geometry_ops_nd);
+\d+ postgis.j
+
+EXPLAIN (costs off)
+SELECT * FROM cypher('postgis', $$
+    MATCH (a:j)
+    WHERE a.j &&& 'PolyhedralSurface(((0 0 0, 0 0 1, 0 1 1, 0 1 0, 0 0 0)), ((0 0 0, 0 1 0, 1 1 0, 1 0 0, 0 0 0)) )'::geometry
+    RETURN a
+$$ ) as a(b vertex);
+
+SELECT * FROM cypher('postgis', $$
+    MATCH (a:j)
+    WHERE a.j &&& 'PolyhedralSurface(((0 0 0, 0 0 1, 0 1 1, 0 1 0, 0 0 0)), ((0 0 0, 0 1 0, 1 1 0, 1 0 0, 0 0 0)) )'::geometry
+    RETURN a
+$$ ) as a(b vertex);
+
+EXPLAIN (costs off)
+SELECT * FROM cypher('postgis', $$
+    MATCH (a:j)
+    RETURN a ORDER BY a.j <<->> 'PolyhedralSurface(((0 0 0, 0 0 1, 0 1 1, 0 1 0, 0 0 0)), ((0 0 0, 0 1 0, 1 1 0, 1 0 0, 0 0 0)) )'
+$$ ) as a(b vertex);
+
+SELECT * FROM cypher('postgis', $$
+    MATCH (a:j)
+    RETURN a ORDER BY a.j <<->> 'PolyhedralSurface(((0 0 0, 0 0 1, 0 1 1, 0 1 0, 0 0 0)), ((0 0 0, 0 1 0, 1 1 0, 1 0 0, 0 0 0)) )'
+$$ ) as a(b vertex);
 
 --
 -- 2D Gist Indices
@@ -1488,10 +1527,7 @@ CREATE INDEX ON postgis.i USING gist ((properties->'"i"') gist_geometry_ops_2d);
 SELECT * FROM cypher('postgis', $$CREATE (:i {i: 'POLYGON( (0 0, 10 0, 10 10, 0 10, 0 0) )'::geometry })$$) AS r(c gtype);
 
 /*
-SET enable_mergejoin = ON;
-SET enable_hashjoin = ON;
-SET enable_nestloop = ON;
-SET enable_seqscan = false;
+
 
 
 
