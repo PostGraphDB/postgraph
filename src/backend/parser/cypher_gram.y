@@ -122,6 +122,7 @@ static Node *makeXmlExpr(XmlExprOp op, char *name, List *named_args, List *args,
 static List *extractArgTypes(List *parameters);
 static List *mergeTableFuncParameters(List *func_args, List *columns);
 static TypeName *TableFuncTypeName(List *columns);
+static List *extractAggrArgTypes(List *aggrargs);
 static RangeVar *makeRangeVarFromAnyName(List *names, int position, ag_scanner_t yyscanner);
 static void SplitColQualList(List *qualList,
 							 List **constraintList, CollateClause **collClause,
@@ -198,17 +199,17 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 /* keywords in alphabetical order */ 
 %token <keyword> ABORT_P ACCESS ACTION ADD_P ADMIN AFTER AGGREGATE ALL ALSO ALTER AND ANY ALWAYS ARRAY 
                  AS ASC ASCENDING ASSIGNMENT ASYMMETRIC AT ATOMIC ATTACH AUTHORIZATION
-				 ANALYSE ANALYZE
+				 ANALYSE ANALYZE ATTRIBUTE
 
                  BIGINT BEFORE BEGIN_P BETWEEN BINARY BIT BOOLEAN_P BOTH BREADTH BY
 
                  CACHE CALL CALLED CASE CAST CASCADE CHAIN CHECK CROSS CLUSTER COALESCE COLLATE COLLATION COMMENTS COMMIT COMMITTED COMPRESSION CONNECTION CONVERSION_P
 				 CONCURRENTLY CONTENT_P CONFLICT CONTAINS CONSTRAINT CONSTRAINTS COPY COST CREATE CUBE CURRENT 
                  CURRENT_CATALOG CURRENT_DATE CURRENT_ROLE CURRENT_SCHEMA CURRENT_TIME CHAR_P CHARACTER CATALOG_P
-                 CURRENT_TIMESTAMP CURRENT_USER CYCLE CYPHER COLUMN CASCADED CSV CLASS CONTINUE_P COLUMNS
+                 CURRENT_TIMESTAMP CURRENT_USER CYCLE CYPHER COLUMN CASCADED CSV CLASS CONTINUE_P COLUMNS CONFIGURATION
 
                  DATA_P DATABASE DECADE_P DEC DECIMAL_P DEFAULT DEFAULTS DEFERRABLE DEFERRED DEFINER DELETE DELIMITER DELIMITERS DEPTH DESC DESCENDING DETACH DISTINCT 
-				 DO DOMAIN_P DOCUMENT_P DOUBLE_P DROP DISABLE_P DAY_P
+				 DO DOMAIN_P DOCUMENT_P DOUBLE_P DROP DISABLE_P DAY_P DICTIONARY DEPENDS
 
                  EACH ENCODING ENCRYPTED ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXCLUDING EXISTS EXTENSION EXTRACT EXTERNAL
                  EVENT EXECUTE ENABLE_P EXPLAIN EXPRESSION
@@ -235,17 +236,18 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 
                  OBJECT_P OPERATOR_P OF OFFSET OIDS ON ONLY OPTION OPTIONS OPTIONAL OTHERS OR ORDINALITY OLD ORDER OUT_P OUTER OVER OVERRIDING OVERLAPS OVERLAY OWNED OWNER
 
-                 PARALLEL PARTIAL PARTITION PASSING PASSWORD PLACING POLICY POSITION PUBLICATION PRECEDING PRECISION PRESERVE PREPARE PREPARED PRIMARY PRIVILEGES PROCEDURAL PROCEDURE PROCEDURES PROGRAM
+                 PARALLEL PARSER PARTIAL PARTITION PASSING PASSWORD PLACING POLICY POSITION PUBLICATION PRECEDING PRECISION PRESERVE PREPARE PREPARED PRIMARY PRIVILEGES PROCEDURAL PROCEDURE PROCEDURES PROGRAM
 
 				 QUOTE
 
-                 RANGE READ REVOKE RIGHT REAL RECHECK RECURSIVE REINDEX REF_P REFERENCING REFERENCES REFRESH RELEASE REMOVE REPEATABLE REPLICA RESET RESTART RESTRICT REPLACE RETURN RETURNING RETURNS ROLLBACK RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS
+                 RANGE READ REVOKE RIGHT REAL RECHECK RECURSIVE REINDEX REF_P REFERENCING REFERENCES REFRESH RELEASE REMOVE REPEATABLE REPLICA RESET RESTART RESTRICT REPLACE RETURN RETURNING RETURNS ROLLBACK 
+				 RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS RENAME
 
                  SAVEPOINT SCHEMA SERIALIZABLE SEARCH SECURITY SECOND_P SERVER SELECT SEQUENCE SEQUENCES SESSION SESSION_USER SET SETOF SETS SHARE
 				 SIMPLE SKIP SMALLINT SOME STABLE START STARTS STATEMENT STATEMENTS STATISTICS STDIN STDOUT STANDALONE_P
 				 STORED STORAGE STRICT_P STRIP_P SUBSCRIPTION SUBSTRING SUPPORT SYMMETRIC SYSID SYSTEM_P SQL_P
  
-                 TABLE TABLES TABLESAMPLE TABLESPACE TEMP TEMPLATE TEMPORARY  TIME TIES THEN TIMESTAMP TO TRAILING TRANSACTION TRANSFORM TREAT TRIGGER TRIM TRUE_P
+                 TABLE TABLES TABLESAMPLE TABLESPACE TEMP TEMPLATE TEMPORARY TEXT_P TIME TIES THEN TIMESTAMP TO TRAILING TRANSACTION TRANSFORM TREAT TRIGGER TRIM TRUE_P
 				 TYPE_P TRUNCATE
 
                  UNBOUNDED UNCOMMITTED UNENCRYPTED UNION UNIQUE UNKNOWN UNLOGGED UNTIL UPDATE UNWIND USE USER USING
@@ -268,10 +270,10 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <node> parse_toplevel stmtmulti schema_stmt routine_body_stmt
              AlterFunctionStmt AlterPolicyStmt
 	         AlterSeqStmt AlterCollationStmt AlterSystemStmt CreateDomainStmt AlterDomainStmt
-             AlterDatabaseStmt AlterDatabaseSetStmt AlterEventTrigStmt 
-			 AlterRoleStmt AlterRoleSetStmt
-			 AlterTableStmt AlterTblSpcStmt AnalyzeStmt AlterOpFamilyStmt 
-			 reateOpFamilyStmt CreateConversionStmt CreateOpFamilyStmt
+             AlterDatabaseStmt AlterDatabaseSetStmt AlterEventTrigStmt AlterObjectDependsStmt
+			 AlterRoleStmt AlterRoleSetStmt AlterOwnerStmt AlterObjectSchemaStmt AlterOperatorStmt
+			 AlterTableStmt AlterTblSpcStmt AnalyzeStmt AlterOpFamilyStmt AlterTypeStmt
+			 CreateConversionStmt CreateOpFamilyStmt
 			 CopyStmt ClusterStmt CreateAsStmt CreateOpClassStmt CreateGroupStmt CreatePolicyStmt
 			 CreateTransformStmt
              CreateCastStmt CreatedbStmt CreateEventTrigStmt CreateSchemaStmt
@@ -286,7 +288,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
              GrantStmt
 			 IndexStmt InsertStmt 
              UseGraphStmt
-			 ReindexStmt RemoveFuncStmt ReturnStmt RevokeStmt
+			 ReindexStmt RemoveFuncStmt ReturnStmt RenameStmt RevokeStmt
              SelectStmt
 			 TransactionStmt TransactionStmtLegacy TruncateStmt
              UpdateStmt
@@ -346,7 +348,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <node> where_clause where_or_current_clause
              a_expr b_expr c_expr AexprConst indirection_el opt_slice_bound
              columnref in_expr having_clause func_table xmltable array_expr
-             OptWhereClause
+             OptWhereClause operator_def_arg
 %type <list>	rowsfrom_item rowsfrom_list opt_col_def_list
 %type <boolean> opt_ordinality
 
@@ -493,11 +495,12 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 
 %type <defelt>	transaction_mode_item
 
-%type <boolean> optional_opt opt_or_replace
+%type <boolean> opt_or_replace opt_no
                 opt_grant_grant_option 
 				opt_nowait opt_if_exists
 				opt_with_data
 				opt_transaction_chain
+				optional_opt
 
 /* CREATE clause */
 %type <node> create
@@ -588,7 +591,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 			 transaction_mode_list_or_empty
              set_clause_list set_clause
 			 opt_type_modifiers
-			 def_list
+			 def_list operator_def_list
              opt_collate
              using_clause
              indirection opt_indirection
@@ -631,7 +634,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 
 %type <integer> OnCommitOption
 
-%type <defelt>	def_elem reloption_elem old_aggr_elem
+%type <defelt>	def_elem reloption_elem old_aggr_elem operator_def_elem
 %type <string> Sconst 
 %type <string> ColId  ColLabel BareColLabel
 %type <string> NonReservedWord NonReservedWord_or_Sconst name
@@ -844,12 +847,16 @@ stmt:
 	| AlterDomainStmt
 	| AlterSeqStmt 
 	| AlterSystemStmt
+	| AlterObjectDependsStmt
+	| AlterObjectSchemaStmt
 	| AlterOpFamilyStmt
+	| AlterOwnerStmt
 	| AlterPolicyStmt
 	| AlterRoleStmt
 	| AlterRoleSetStmt
 	| AlterTableStmt
 	| AlterTblSpcStmt
+	| AlterTypeStmt
 	| AnalyzeStmt
 	| CreateConversionStmt
 	| CopyStmt
@@ -891,6 +898,7 @@ stmt:
     | InsertStmt 
 	| ReindexStmt
 	| RemoveFuncStmt
+	| RenameStmt
 	| RevokeStmt
     | SelectStmt 
 	| TransactionStmt
@@ -8059,6 +8067,1127 @@ AlterTblSpcStmt:
 				}
 		;
 
+
+/*****************************************************************************
+ *
+ * ALTER THING name RENAME TO newname
+ *
+ *****************************************************************************/
+
+RenameStmt: ALTER AGGREGATE aggregate_with_argtypes RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_AGGREGATE;
+					n->object = (Node *) $3;
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER COLLATION any_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_COLLATION;
+					n->object = (Node *) $3;
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER CONVERSION_P any_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_CONVERSION;
+					n->object = (Node *) $3;
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER DATABASE name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_DATABASE;
+					n->subname = $3;
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER DOMAIN_P any_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_DOMAIN;
+					n->object = (Node *) $3;
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER DOMAIN_P any_name RENAME CONSTRAINT name TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_DOMCONSTRAINT;
+					n->object = (Node *) $3;
+					n->subname = $6;
+					n->newname = $8;
+					$$ = (Node *)n;
+				}
+			| ALTER FOREIGN DATA_P WRAPPER name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_FDW;
+					n->object = (Node *) makeString($5);
+					n->newname = $8;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER FUNCTION function_with_argtypes RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_FUNCTION;
+					n->object = (Node *) $3;
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER GROUP RoleId RENAME TO RoleId
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_ROLE;
+					n->subname = $3;
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER opt_procedural LANGUAGE name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_LANGUAGE;
+					n->object = (Node *) makeString($4);
+					n->newname = $7;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER OPERATOR CLASS any_name USING name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_OPCLASS;
+					n->object = (Node *) lcons(makeString($6), $4);
+					n->newname = $9;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER OPERATOR FAMILY any_name USING name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_OPFAMILY;
+					n->object = (Node *) lcons(makeString($6), $4);
+					n->newname = $9;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER POLICY name ON qualified_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_POLICY;
+					n->relation = $5;
+					n->subname = $3;
+					n->newname = $8;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER POLICY IF EXISTS name ON qualified_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_POLICY;
+					n->relation = $7;
+					n->subname = $5;
+					n->newname = $10;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
+			| ALTER PROCEDURE function_with_argtypes RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_PROCEDURE;
+					n->object = (Node *) $3;
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER PUBLICATION name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_PUBLICATION;
+					n->object = (Node *) makeString($3);
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER ROUTINE function_with_argtypes RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_ROUTINE;
+					n->object = (Node *) $3;
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER SCHEMA name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_SCHEMA;
+					n->subname = $3;
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER SERVER name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_FOREIGN_SERVER;
+					n->object = (Node *) makeString($3);
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER SUBSCRIPTION name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_SUBSCRIPTION;
+					n->object = (Node *) makeString($3);
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TABLE relation_expr RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_TABLE;
+					n->relation = $3;
+					n->subname = NULL;
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TABLE IF EXISTS relation_expr RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_TABLE;
+					n->relation = $5;
+					n->subname = NULL;
+					n->newname = $8;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
+			| ALTER SEQUENCE qualified_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_SEQUENCE;
+					n->relation = $3;
+					n->subname = NULL;
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER SEQUENCE IF EXISTS qualified_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_SEQUENCE;
+					n->relation = $5;
+					n->subname = NULL;
+					n->newname = $8;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
+			| ALTER VIEW qualified_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_VIEW;
+					n->relation = $3;
+					n->subname = NULL;
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER VIEW IF EXISTS qualified_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_VIEW;
+					n->relation = $5;
+					n->subname = NULL;
+					n->newname = $8;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
+			| ALTER MATERIALIZED VIEW qualified_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_MATVIEW;
+					n->relation = $4;
+					n->subname = NULL;
+					n->newname = $7;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER MATERIALIZED VIEW IF EXISTS qualified_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_MATVIEW;
+					n->relation = $6;
+					n->subname = NULL;
+					n->newname = $9;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
+			| ALTER INDEX qualified_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_INDEX;
+					n->relation = $3;
+					n->subname = NULL;
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER INDEX IF EXISTS qualified_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_INDEX;
+					n->relation = $5;
+					n->subname = NULL;
+					n->newname = $8;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
+			| ALTER FOREIGN TABLE relation_expr RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_FOREIGN_TABLE;
+					n->relation = $4;
+					n->subname = NULL;
+					n->newname = $7;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER FOREIGN TABLE IF EXISTS relation_expr RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_FOREIGN_TABLE;
+					n->relation = $6;
+					n->subname = NULL;
+					n->newname = $9;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
+			| ALTER TABLE relation_expr RENAME opt_column name TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_COLUMN;
+					n->relationType = OBJECT_TABLE;
+					n->relation = $3;
+					n->subname = $6;
+					n->newname = $8;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TABLE IF EXISTS relation_expr RENAME opt_column name TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_COLUMN;
+					n->relationType = OBJECT_TABLE;
+					n->relation = $5;
+					n->subname = $8;
+					n->newname = $10;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
+			| ALTER VIEW qualified_name RENAME opt_column name TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_COLUMN;
+					n->relationType = OBJECT_VIEW;
+					n->relation = $3;
+					n->subname = $6;
+					n->newname = $8;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER VIEW IF EXISTS qualified_name RENAME opt_column name TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_COLUMN;
+					n->relationType = OBJECT_VIEW;
+					n->relation = $5;
+					n->subname = $8;
+					n->newname = $10;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
+			| ALTER MATERIALIZED VIEW qualified_name RENAME opt_column name TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_COLUMN;
+					n->relationType = OBJECT_MATVIEW;
+					n->relation = $4;
+					n->subname = $7;
+					n->newname = $9;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER MATERIALIZED VIEW IF EXISTS qualified_name RENAME opt_column name TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_COLUMN;
+					n->relationType = OBJECT_MATVIEW;
+					n->relation = $6;
+					n->subname = $9;
+					n->newname = $11;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
+			| ALTER TABLE relation_expr RENAME CONSTRAINT name TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_TABCONSTRAINT;
+					n->relation = $3;
+					n->subname = $6;
+					n->newname = $8;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TABLE IF EXISTS relation_expr RENAME CONSTRAINT name TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_TABCONSTRAINT;
+					n->relation = $5;
+					n->subname = $8;
+					n->newname = $10;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
+			| ALTER FOREIGN TABLE relation_expr RENAME opt_column name TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_COLUMN;
+					n->relationType = OBJECT_FOREIGN_TABLE;
+					n->relation = $4;
+					n->subname = $7;
+					n->newname = $9;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER FOREIGN TABLE IF EXISTS relation_expr RENAME opt_column name TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_COLUMN;
+					n->relationType = OBJECT_FOREIGN_TABLE;
+					n->relation = $6;
+					n->subname = $9;
+					n->newname = $11;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
+			| ALTER RULE name ON qualified_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_RULE;
+					n->relation = $5;
+					n->subname = $3;
+					n->newname = $8;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TRIGGER name ON qualified_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_TRIGGER;
+					n->relation = $5;
+					n->subname = $3;
+					n->newname = $8;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER EVENT TRIGGER name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_EVENT_TRIGGER;
+					n->object = (Node *) makeString($4);
+					n->newname = $7;
+					$$ = (Node *)n;
+				}
+			| ALTER ROLE RoleId RENAME TO RoleId
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_ROLE;
+					n->subname = $3;
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER USER RoleId RENAME TO RoleId
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_ROLE;
+					n->subname = $3;
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TABLESPACE name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_TABLESPACE;
+					n->subname = $3;
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER STATISTICS any_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_STATISTIC_EXT;
+					n->object = (Node *) $3;
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TEXT_P SEARCH PARSER any_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_TSPARSER;
+					n->object = (Node *) $5;
+					n->newname = $8;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TEXT_P SEARCH DICTIONARY any_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_TSDICTIONARY;
+					n->object = (Node *) $5;
+					n->newname = $8;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TEXT_P SEARCH TEMPLATE any_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_TSTEMPLATE;
+					n->object = (Node *) $5;
+					n->newname = $8;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TEXT_P SEARCH CONFIGURATION any_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_TSCONFIGURATION;
+					n->object = (Node *) $5;
+					n->newname = $8;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TYPE_P any_name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_TYPE;
+					n->object = (Node *) $3;
+					n->newname = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TYPE_P any_name RENAME ATTRIBUTE name TO name opt_drop_behavior
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_ATTRIBUTE;
+					n->relationType = OBJECT_TYPE;
+					n->relation = makeRangeVarFromAnyName($3, @3, scanner);
+					n->subname = $6;
+					n->newname = $8;
+					n->behavior = $9;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+		;
+
+opt_column: COLUMN
+			| /*EMPTY*/
+		;
+
+opt_set_data: SET DATA_P							{ $$ = 1; }
+			| /*EMPTY*/								{ $$ = 0; }
+		;
+
+/*****************************************************************************
+ *
+ * ALTER THING name DEPENDS ON EXTENSION name
+ *
+ *****************************************************************************/
+
+AlterObjectDependsStmt:
+			ALTER FUNCTION function_with_argtypes opt_no DEPENDS ON EXTENSION name
+				{
+					AlterObjectDependsStmt *n = makeNode(AlterObjectDependsStmt);
+					n->objectType = OBJECT_FUNCTION;
+					n->object = (Node *) $3;
+					n->extname = makeString($8);
+					n->remove = $4;
+					$$ = (Node *)n;
+				}
+			| ALTER PROCEDURE function_with_argtypes opt_no DEPENDS ON EXTENSION name
+				{
+					AlterObjectDependsStmt *n = makeNode(AlterObjectDependsStmt);
+					n->objectType = OBJECT_PROCEDURE;
+					n->object = (Node *) $3;
+					n->extname = makeString($8);
+					n->remove = $4;
+					$$ = (Node *)n;
+				}
+			| ALTER ROUTINE function_with_argtypes opt_no DEPENDS ON EXTENSION name
+				{
+					AlterObjectDependsStmt *n = makeNode(AlterObjectDependsStmt);
+					n->objectType = OBJECT_ROUTINE;
+					n->object = (Node *) $3;
+					n->extname = makeString($8);
+					n->remove = $4;
+					$$ = (Node *)n;
+				}
+			| ALTER TRIGGER name ON qualified_name opt_no DEPENDS ON EXTENSION name
+				{
+					AlterObjectDependsStmt *n = makeNode(AlterObjectDependsStmt);
+					n->objectType = OBJECT_TRIGGER;
+					n->relation = $5;
+					n->object = (Node *) list_make1(makeString($3));
+					n->extname = makeString($10);
+					n->remove = $6;
+					$$ = (Node *)n;
+				}
+			| ALTER MATERIALIZED VIEW qualified_name opt_no DEPENDS ON EXTENSION name
+				{
+					AlterObjectDependsStmt *n = makeNode(AlterObjectDependsStmt);
+					n->objectType = OBJECT_MATVIEW;
+					n->relation = $4;
+					n->extname = makeString($9);
+					n->remove = $5;
+					$$ = (Node *)n;
+				}
+			| ALTER INDEX qualified_name opt_no DEPENDS ON EXTENSION name
+				{
+					AlterObjectDependsStmt *n = makeNode(AlterObjectDependsStmt);
+					n->objectType = OBJECT_INDEX;
+					n->relation = $3;
+					n->extname = makeString($8);
+					n->remove = $4;
+					$$ = (Node *)n;
+				}
+		;
+
+opt_no:		NO				{ $$ = true; }
+			| /* EMPTY */	{ $$ = false;	}
+		;
+
+/*****************************************************************************
+ *
+ * ALTER THING name SET SCHEMA name
+ *
+ *****************************************************************************/
+
+AlterObjectSchemaStmt:
+			ALTER AGGREGATE aggregate_with_argtypes SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_AGGREGATE;
+					n->object = (Node *) $3;
+					n->newschema = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER COLLATION any_name SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_COLLATION;
+					n->object = (Node *) $3;
+					n->newschema = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER CONVERSION_P any_name SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_CONVERSION;
+					n->object = (Node *) $3;
+					n->newschema = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER DOMAIN_P any_name SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_DOMAIN;
+					n->object = (Node *) $3;
+					n->newschema = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER EXTENSION name SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_EXTENSION;
+					n->object = (Node *) makeString($3);
+					n->newschema = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER FUNCTION function_with_argtypes SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_FUNCTION;
+					n->object = (Node *) $3;
+					n->newschema = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER OPERATOR operator_with_argtypes SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_OPERATOR;
+					n->object = (Node *) $3;
+					n->newschema = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER OPERATOR CLASS any_name USING name SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_OPCLASS;
+					n->object = (Node *) lcons(makeString($6), $4);
+					n->newschema = $9;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER OPERATOR FAMILY any_name USING name SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_OPFAMILY;
+					n->object = (Node *) lcons(makeString($6), $4);
+					n->newschema = $9;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER PROCEDURE function_with_argtypes SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_PROCEDURE;
+					n->object = (Node *) $3;
+					n->newschema = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER ROUTINE function_with_argtypes SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_ROUTINE;
+					n->object = (Node *) $3;
+					n->newschema = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TABLE relation_expr SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_TABLE;
+					n->relation = $3;
+					n->newschema = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TABLE IF EXISTS relation_expr SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_TABLE;
+					n->relation = $5;
+					n->newschema = $8;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
+			| ALTER STATISTICS any_name SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_STATISTIC_EXT;
+					n->object = (Node *) $3;
+					n->newschema = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TEXT_P SEARCH PARSER any_name SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_TSPARSER;
+					n->object = (Node *) $5;
+					n->newschema = $8;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TEXT_P SEARCH DICTIONARY any_name SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_TSDICTIONARY;
+					n->object = (Node *) $5;
+					n->newschema = $8;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TEXT_P SEARCH TEMPLATE any_name SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_TSTEMPLATE;
+					n->object = (Node *) $5;
+					n->newschema = $8;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER TEXT_P SEARCH CONFIGURATION any_name SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_TSCONFIGURATION;
+					n->object = (Node *) $5;
+					n->newschema = $8;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER SEQUENCE qualified_name SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_SEQUENCE;
+					n->relation = $3;
+					n->newschema = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER SEQUENCE IF EXISTS qualified_name SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_SEQUENCE;
+					n->relation = $5;
+					n->newschema = $8;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
+			| ALTER VIEW qualified_name SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_VIEW;
+					n->relation = $3;
+					n->newschema = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER VIEW IF EXISTS qualified_name SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_VIEW;
+					n->relation = $5;
+					n->newschema = $8;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
+			| ALTER MATERIALIZED VIEW qualified_name SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_MATVIEW;
+					n->relation = $4;
+					n->newschema = $7;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER MATERIALIZED VIEW IF EXISTS qualified_name SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_MATVIEW;
+					n->relation = $6;
+					n->newschema = $9;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
+			| ALTER FOREIGN TABLE relation_expr SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_FOREIGN_TABLE;
+					n->relation = $4;
+					n->newschema = $7;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER FOREIGN TABLE IF EXISTS relation_expr SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_FOREIGN_TABLE;
+					n->relation = $6;
+					n->newschema = $9;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
+			| ALTER TYPE_P any_name SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_TYPE;
+					n->object = (Node *) $3;
+					n->newschema = $6;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+		;
+
+/*****************************************************************************
+ *
+ * ALTER OPERATOR name SET define
+ *
+ *****************************************************************************/
+
+AlterOperatorStmt:
+			ALTER OPERATOR operator_with_argtypes SET '(' operator_def_list ')'
+				{
+					AlterOperatorStmt *n = makeNode(AlterOperatorStmt);
+					n->opername = $3;
+					n->options = $6;
+					$$ = (Node *)n;
+				}
+		;
+
+operator_def_list:	operator_def_elem								{ $$ = list_make1($1); }
+			| operator_def_list ',' operator_def_elem				{ $$ = lappend($1, $3); }
+		;
+
+operator_def_elem: ColLabel '=' NONE
+						{ $$ = makeDefElem($1, NULL, @1); }
+				   | ColLabel '=' operator_def_arg
+						{ $$ = makeDefElem($1, (Node *) $3, @1); }
+		;
+
+/* must be similar enough to def_arg to avoid reduce/reduce conflicts */
+operator_def_arg:
+			func_type						{ $$ = (Node *)$1; }
+			| reserved_keyword				{ $$ = (Node *)makeString(pstrdup($1)); }
+			| qual_all_Op					{ $$ = (Node *)$1; }
+			| NumericOnly					{ $$ = (Node *)$1; }
+			| Sconst						{ $$ = (Node *)makeString($1); }
+		;
+
+/*****************************************************************************
+ *
+ * ALTER TYPE name SET define
+ *
+ * We repurpose ALTER OPERATOR's version of "definition" here
+ *
+ *****************************************************************************/
+
+AlterTypeStmt:
+			ALTER TYPE_P any_name SET '(' operator_def_list ')'
+				{
+					AlterTypeStmt *n = makeNode(AlterTypeStmt);
+					n->typeName = $3;
+					n->options = $6;
+					$$ = (Node *)n;
+				}
+		;
+
+/*****************************************************************************
+ *
+ * ALTER THING name OWNER TO newname
+ *
+ *****************************************************************************/
+
+AlterOwnerStmt: ALTER AGGREGATE aggregate_with_argtypes OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_AGGREGATE;
+					n->object = (Node *) $3;
+					n->newowner = $6;
+					$$ = (Node *)n;
+				}
+			| ALTER COLLATION any_name OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_COLLATION;
+					n->object = (Node *) $3;
+					n->newowner = $6;
+					$$ = (Node *)n;
+				}
+			| ALTER CONVERSION_P any_name OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_CONVERSION;
+					n->object = (Node *) $3;
+					n->newowner = $6;
+					$$ = (Node *)n;
+				}
+			| ALTER DATABASE name OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_DATABASE;
+					n->object = (Node *) makeString($3);
+					n->newowner = $6;
+					$$ = (Node *)n;
+				}
+			| ALTER DOMAIN_P any_name OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_DOMAIN;
+					n->object = (Node *) $3;
+					n->newowner = $6;
+					$$ = (Node *)n;
+				}
+			| ALTER FUNCTION function_with_argtypes OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_FUNCTION;
+					n->object = (Node *) $3;
+					n->newowner = $6;
+					$$ = (Node *)n;
+				}
+			| ALTER opt_procedural LANGUAGE name OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_LANGUAGE;
+					n->object = (Node *) makeString($4);
+					n->newowner = $7;
+					$$ = (Node *)n;
+				}
+			| ALTER LARGE_P OBJECT_P NumericOnly OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_LARGEOBJECT;
+					n->object = (Node *) $4;
+					n->newowner = $7;
+					$$ = (Node *)n;
+				}
+			| ALTER OPERATOR operator_with_argtypes OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_OPERATOR;
+					n->object = (Node *) $3;
+					n->newowner = $6;
+					$$ = (Node *)n;
+				}
+			| ALTER OPERATOR CLASS any_name USING name OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_OPCLASS;
+					n->object = (Node *) lcons(makeString($6), $4);
+					n->newowner = $9;
+					$$ = (Node *)n;
+				}
+			| ALTER OPERATOR FAMILY any_name USING name OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_OPFAMILY;
+					n->object = (Node *) lcons(makeString($6), $4);
+					n->newowner = $9;
+					$$ = (Node *)n;
+				}
+			| ALTER PROCEDURE function_with_argtypes OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_PROCEDURE;
+					n->object = (Node *) $3;
+					n->newowner = $6;
+					$$ = (Node *)n;
+				}
+			| ALTER ROUTINE function_with_argtypes OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_ROUTINE;
+					n->object = (Node *) $3;
+					n->newowner = $6;
+					$$ = (Node *)n;
+				}
+			| ALTER SCHEMA name OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_SCHEMA;
+					n->object = (Node *) makeString($3);
+					n->newowner = $6;
+					$$ = (Node *)n;
+				}
+			| ALTER TYPE_P any_name OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_TYPE;
+					n->object = (Node *) $3;
+					n->newowner = $6;
+					$$ = (Node *)n;
+				}
+			| ALTER TABLESPACE name OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_TABLESPACE;
+					n->object = (Node *) makeString($3);
+					n->newowner = $6;
+					$$ = (Node *)n;
+				}
+			| ALTER STATISTICS any_name OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_STATISTIC_EXT;
+					n->object = (Node *) $3;
+					n->newowner = $6;
+					$$ = (Node *)n;
+				}
+			| ALTER TEXT_P SEARCH DICTIONARY any_name OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_TSDICTIONARY;
+					n->object = (Node *) $5;
+					n->newowner = $8;
+					$$ = (Node *)n;
+				}
+			| ALTER TEXT_P SEARCH CONFIGURATION any_name OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_TSCONFIGURATION;
+					n->object = (Node *) $5;
+					n->newowner = $8;
+					$$ = (Node *)n;
+				}
+			| ALTER FOREIGN DATA_P WRAPPER name OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_FDW;
+					n->object = (Node *) makeString($5);
+					n->newowner = $8;
+					$$ = (Node *)n;
+				}
+			| ALTER SERVER name OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_FOREIGN_SERVER;
+					n->object = (Node *) makeString($3);
+					n->newowner = $6;
+					$$ = (Node *)n;
+				}
+			| ALTER EVENT TRIGGER name OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_EVENT_TRIGGER;
+					n->object = (Node *) makeString($4);
+					n->newowner = $7;
+					$$ = (Node *)n;
+				}
+			| ALTER PUBLICATION name OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_PUBLICATION;
+					n->object = (Node *) makeString($3);
+					n->newowner = $6;
+					$$ = (Node *)n;
+				}
+			| ALTER SUBSCRIPTION name OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_SUBSCRIPTION;
+					n->object = (Node *) makeString($3);
+					n->newowner = $6;
+					$$ = (Node *)n;
+				}
+		;
+
 /*****************************************************************************
  *
  * Create a new Postgres DBMS user (role with implied login ability)
@@ -14722,4 +15851,14 @@ makeRangeVarFromAnyName(List *names, int position, ag_scanner_t yyscanner)
 	r->location = position;
 
 	return r;
+}
+
+/* extractAggrArgTypes()
+ * As above, but work from the output of the aggr_args production.
+ */
+static List *
+extractAggrArgTypes(List *aggrargs)
+{
+	Assert(list_length(aggrargs) == 2);
+	return extractArgTypes((List *) linitial(aggrargs));
 }
