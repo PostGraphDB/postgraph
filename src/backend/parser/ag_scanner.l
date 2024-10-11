@@ -226,24 +226,16 @@ xhstart			[xX]{squote}
 xhinside		[^']*
 
 
-/* $foo$ style quotes ("dollar quoting")
- * The quoted string starts with $foo$ where "foo" is an optional string
- * in the form of an identifier, except that it may not contain "$",
- * and extends to the first occurrence of an identical string.
- * There is *no* processing of the quoted text.
- *
- * {dolqfailed} is an error rule to avoid scanner backup when {dolqdelim}
- * fails to match its trailing "$".
- */
 dolq_start		[A-Za-z\200-\377_]
 dolq_cont		[A-Za-z\200-\377_0-9]
-dolqdelim		\$({dolq_start}{dolq_cont}*)?\$
+dolqdelim              \$({dolq_start}{dolq_cont}*)?\$
 dolqfailed		\${dolq_start}{dolq_cont}*
-dolqinside		[^$]+
+dolqinside             [^$]+
+
 
 
 sqchars       [^'\\]+
-esascii       \\["'/\\bfnrtd]
+esascii       \\["'/\\bfnrtdw1]
 esasciifail   \\[^Uu]?
 esunicode     \\(U{hexdigit}{8}|u{hexdigit}{4})
 esunicodefail \\(U{hexdigit}{0,7}|u{hexdigit}{0,3})
@@ -295,6 +287,7 @@ self     [?&!@#%()*+,\-.~/:;<=>[\]^{|}]
 other .
 
 %{
+
 typedef struct strbuf
 {
     char *buffer;
@@ -563,7 +556,7 @@ ag_token token;
         ereport(ERROR,
                 (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
                  scan_errmsg("invalid escape sequence"),
-                 errdetail("Valid escape sequences are \\\", \\', \\/, \\\\, \\d, \\b, \\f, \\n, \\r, \\t, \\uXXXX, and \\UXXXXXXXX."),
+                 errdetail("Valid escape sequences are \\\", \\', \\/, \\\\, \\d, \\b, \\f, \\n, \\r, \\t, \\w, \\uXXXX, and \\UXXXXXXXX."),
                  scan_errposition()));
     }
 }
@@ -822,6 +815,59 @@ ag_token token;
     return token;
 }
 
+
+{dolqdelim}		{
+					//SET_YYLLOC();
+					//yyextra->dolqstart = pstrdup(yytext);
+					BEGIN(xdolq);
+					//startlit();
+				}
+{dolqfailed}	{
+					//SET_YYLLOC();
+					/* throw back all but the initial "$" */
+					//yyless(1);
+					/* and treat it as {other} */
+					//return yytext[0];
+				}
+<xdolq>{dolqdelim} {
+					//if (strcmp(yytext, yyextra->dolqstart) == 0)
+					//{
+						//pfree(yyextra->dolqstart);
+						//yyextra->dolqstart = NULL;
+						BEGIN(INITIAL);
+						/*yylval->str = litbufdup(yyscanner);
+						return SCONST;*/
+
+    token.type = AG_TOKEN_STRING;
+    token.value.s = strbuf_get_str(&yyextra.literal_buf);
+    token.location = get_location();
+    return token;
+					//}
+					//else
+					//{
+						/*
+						 * When we fail to match $...$ to dolqstart, transfer
+						 * the $... part to the output, but put back the final
+						 * $ for rescanning.  Consider $delim$...$junk$delim$
+						 */
+						//addlit(yytext, yyleng - 1, yyscanner);
+						//yyless(yyleng - 1);
+					//}
+				}
+<xdolq>{dolqinside} {
+					//addlit(yytext, yyleng, yyscanner);
+				}
+<xdolq>{dolqfailed} {
+					//addlit(yytext, yyleng, yyscanner);
+				}
+<xdolq>.		{
+				}
+<xdolq><<EOF>>	{     ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                    scan_errmsg("unterminated dollar quoted string"),
+                    scan_errposition())); }
+
+
+
 <sqstr>{squote} {
     BEGIN(INITIAL);
 
@@ -996,44 +1042,16 @@ ag_token token;
     return token;
 }
 
+other	{
+    ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                    errmsg("bad input character '%s' at line %d", yytext, yylineno),
+                    scan_errposition()));
+
+}
+
 %%
 
-/*
- * Override the default memory management to make flex use palloc() instead of
- * malloc().
- */
 
-void *ag_yyalloc(yy_size_t size, yyscan_t yyscanner)
-{
-    return palloc(size);
-}
-
-void *ag_yyrealloc(void *ptr, yy_size_t size, yyscan_t yyscanner)
-{
-    // see realloc(3)
-    if (ptr)
-    {
-        if (size == 0)
-        {
-            pfree(ptr);
-            return NULL;
-        }
-        else
-        {
-            return repalloc(ptr, size);
-        }
-    }
-    else
-    {
-        return palloc(size);
-    }
-}
-
-void ag_yyfree(void *ptr, yyscan_t yyscanner)
-{
-    if (ptr)
-        pfree(ptr);
-}
 
 static void strbuf_init(strbuf *sb, int capacity)
 {
@@ -1476,4 +1494,32 @@ copy_string(const char *ident, int len)
 
 
 	return result;
+}
+
+
+/*
+ * Interface functions to make flex use palloc() instead of malloc().
+ * It'd be better to make these static, but flex insists otherwise.
+ */
+
+void *
+ag_yyalloc(yy_size_t bytes, ag_scanner_t yyscanner)
+{
+	return palloc(bytes);
+}
+
+void *
+ag_yyrealloc(void *ptr, yy_size_t bytes, ag_scanner_t yyscanner)
+{
+	if (ptr)
+		return repalloc(ptr, bytes);
+	else
+		return palloc(bytes);
+}
+
+void
+ag_yyfree(void *ptr, ag_scanner_t yyscanner)
+{
+	if (ptr)
+		pfree(ptr);
 }
