@@ -291,10 +291,12 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
              CreateExtensionStmt CreateFunctionStmt CreateGraphStmt 
 			 CreateTableStmt CreateTableSpaceStmt CreateFdwStmt
 			 CreateUserStmt
+			 DeclareCursorStmt
              DefineStmt DeleteStmt DoStmt DropCastStmt DropdbStmt DropGraphStmt
 			 DropStmt DropTableSpaceStmt DropTransformStmt DropOpClassStmt DropOpFamilyStmt
 			 DropRoleStmt
 			 ExplainStmt ExplainableStmt
+			 FetchStmt
              GrantStmt
 			 IndexStmt InsertStmt
 			 LockStmt 
@@ -440,7 +442,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 
 %type <string>	copy_file_name
                 access_method_clause 
-				table_access_method_clause 
+				table_access_method_clause cursor_name
 				opt_index_name cluster_index_specification
 
 %type <list>	OptSeqOptList SeqOptList OptParenthesizedSeqOptList
@@ -469,7 +471,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <defelt>	createdb_opt_item 
 %type <string>		createdb_opt_name 
 
-%type <integer>	event
+%type <integer>	event cursor_options opt_hold
 %type <integer>	object_type_any_name object_type_name object_type_name_on_any_name
 				drop_type_name
 
@@ -576,7 +578,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <string> symbolic_name schema_name temporal_cast attr_name 
 %type <keyword> cypher_reserved_keyword safe_keywords conflicted_keywords
 
-%type <node>	select_limit_value
+%type <node>	fetch_args select_limit_value
 				offset_clause select_offset_value
 				select_fetch_first_value I_or_F_const
 %type <integer>	row_or_rows first_or_next
@@ -926,6 +928,7 @@ stmt:
 	| DropTableSpaceStmt
 	| DropTransformStmt
 	| ExplainStmt
+	| FetchStmt
 	| GrantStmt 
 	| IndexStmt
     | InsertStmt 
@@ -2645,6 +2648,40 @@ opt_conf_expr:
 returning_clause:
 			RETURNING target_list		{ $$ = $2; }
 			| /* EMPTY */				{ $$ = NIL; }
+		;
+
+
+/*****************************************************************************
+ *
+ *		QUERY:
+ *				CURSOR STATEMENTS
+ *
+ *****************************************************************************/
+DeclareCursorStmt: DECLARE cursor_name cursor_options CURSOR opt_hold FOR SelectStmt
+				{
+					DeclareCursorStmt *n = makeNode(DeclareCursorStmt);
+					n->portalname = $2;
+					/* currently we always set FAST_PLAN option */
+					n->options = $3 | $5 | CURSOR_OPT_FAST_PLAN;
+					n->query = $7;
+					$$ = (Node *)n;
+				}
+		;
+
+cursor_name:	name						{ $$ = $1; }
+		;
+
+cursor_options: /*EMPTY*/					{ $$ = 0; }
+			| cursor_options NO SCROLL		{ $$ = $1 | CURSOR_OPT_NO_SCROLL; }
+			| cursor_options SCROLL			{ $$ = $1 | CURSOR_OPT_SCROLL; }
+			| cursor_options BINARY			{ $$ = $1 | CURSOR_OPT_BINARY; }
+			| cursor_options ASENSITIVE		{ $$ = $1 | CURSOR_OPT_ASENSITIVE; }
+			| cursor_options INSENSITIVE	{ $$ = $1 | CURSOR_OPT_INSENSITIVE; }
+		;
+
+opt_hold: /* EMPTY */						{ $$ = 0; }
+			| WITH HOLD						{ $$ = CURSOR_OPT_HOLD; }
+			| WITHOUT HOLD					{ $$ = 0; }
 		;
 
 
@@ -6243,9 +6280,9 @@ ExplainableStmt:
 			| InsertStmt
 			| UpdateStmt
 			| DeleteStmt
-			//| DeclareCursorStmt TODO
+			| DeclareCursorStmt 
 			| CreateAsStmt
-			//| CreateMatViewStmt
+			//| CreateMatViewStmt TODO
 			//| RefreshMatViewStmt
 			//| ExecuteStmt					
 		;
@@ -10325,6 +10362,165 @@ AlterDatabaseSetStmt:
 				}
 		;
 
+
+/*****************************************************************************
+ *
+ *		QUERY:
+ *			fetch/move
+ *
+ *****************************************************************************/
+
+FetchStmt:	FETCH fetch_args
+				{
+					FetchStmt *n = (FetchStmt *) $2;
+					n->ismove = false;
+					$$ = (Node *)n;
+				}
+			| MOVE fetch_args
+				{
+					FetchStmt *n = (FetchStmt *) $2;
+					n->ismove = true;
+					$$ = (Node *)n;
+				}
+		;
+
+fetch_args:	cursor_name
+				{
+					FetchStmt *n = makeNode(FetchStmt);
+					n->portalname = $1;
+					n->direction = FETCH_FORWARD;
+					n->howMany = 1;
+					$$ = (Node *)n;
+				}
+			| from_in cursor_name
+				{
+					FetchStmt *n = makeNode(FetchStmt);
+					n->portalname = $2;
+					n->direction = FETCH_FORWARD;
+					n->howMany = 1;
+					$$ = (Node *)n;
+				}
+			| NEXT opt_from_in cursor_name
+				{
+					FetchStmt *n = makeNode(FetchStmt);
+					n->portalname = $3;
+					n->direction = FETCH_FORWARD;
+					n->howMany = 1;
+					$$ = (Node *)n;
+				}
+			| PRIOR opt_from_in cursor_name
+				{
+					FetchStmt *n = makeNode(FetchStmt);
+					n->portalname = $3;
+					n->direction = FETCH_BACKWARD;
+					n->howMany = 1;
+					$$ = (Node *)n;
+				}
+			| FIRST_P opt_from_in cursor_name
+				{
+					FetchStmt *n = makeNode(FetchStmt);
+					n->portalname = $3;
+					n->direction = FETCH_ABSOLUTE;
+					n->howMany = 1;
+					$$ = (Node *)n;
+				}
+			| LAST_P opt_from_in cursor_name
+				{
+					FetchStmt *n = makeNode(FetchStmt);
+					n->portalname = $3;
+					n->direction = FETCH_ABSOLUTE;
+					n->howMany = -1;
+					$$ = (Node *)n;
+				}
+			| ABSOLUTE_P SignedIconst opt_from_in cursor_name
+				{
+					FetchStmt *n = makeNode(FetchStmt);
+					n->portalname = $4;
+					n->direction = FETCH_ABSOLUTE;
+					n->howMany = $2;
+					$$ = (Node *)n;
+				}
+			| RELATIVE_P SignedIconst opt_from_in cursor_name
+				{
+					FetchStmt *n = makeNode(FetchStmt);
+					n->portalname = $4;
+					n->direction = FETCH_RELATIVE;
+					n->howMany = $2;
+					$$ = (Node *)n;
+				}
+			| SignedIconst opt_from_in cursor_name
+				{
+					FetchStmt *n = makeNode(FetchStmt);
+					n->portalname = $3;
+					n->direction = FETCH_FORWARD;
+					n->howMany = $1;
+					$$ = (Node *)n;
+				}
+			| ALL opt_from_in cursor_name
+				{
+					FetchStmt *n = makeNode(FetchStmt);
+					n->portalname = $3;
+					n->direction = FETCH_FORWARD;
+					n->howMany = FETCH_ALL;
+					$$ = (Node *)n;
+				}
+			| FORWARD opt_from_in cursor_name
+				{
+					FetchStmt *n = makeNode(FetchStmt);
+					n->portalname = $3;
+					n->direction = FETCH_FORWARD;
+					n->howMany = 1;
+					$$ = (Node *)n;
+				}
+			| FORWARD SignedIconst opt_from_in cursor_name
+				{
+					FetchStmt *n = makeNode(FetchStmt);
+					n->portalname = $4;
+					n->direction = FETCH_FORWARD;
+					n->howMany = $2;
+					$$ = (Node *)n;
+				}
+			| FORWARD ALL opt_from_in cursor_name
+				{
+					FetchStmt *n = makeNode(FetchStmt);
+					n->portalname = $4;
+					n->direction = FETCH_FORWARD;
+					n->howMany = FETCH_ALL;
+					$$ = (Node *)n;
+				}
+			| BACKWARD opt_from_in cursor_name
+				{
+					FetchStmt *n = makeNode(FetchStmt);
+					n->portalname = $3;
+					n->direction = FETCH_BACKWARD;
+					n->howMany = 1;
+					$$ = (Node *)n;
+				}
+			| BACKWARD SignedIconst opt_from_in cursor_name
+				{
+					FetchStmt *n = makeNode(FetchStmt);
+					n->portalname = $4;
+					n->direction = FETCH_BACKWARD;
+					n->howMany = $2;
+					$$ = (Node *)n;
+				}
+			| BACKWARD ALL opt_from_in cursor_name
+				{
+					FetchStmt *n = makeNode(FetchStmt);
+					n->portalname = $4;
+					n->direction = FETCH_BACKWARD;
+					n->howMany = FETCH_ALL;
+					$$ = (Node *)n;
+				}
+		;
+
+from_in:	FROM
+			| IN
+		;
+
+opt_from_in:	from_in
+			| /* EMPTY */
+		;
 
 /*****************************************************************************
  *
