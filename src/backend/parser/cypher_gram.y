@@ -275,18 +275,20 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <list> single_query  cypher_stmt
 
 %type <node> parse_toplevel stmtmulti schema_stmt routine_body_stmt
-             AlterFunctionStmt AlterPolicyStmt
+             AlterFunctionStmt AlterPolicyStmt AlterDefaultPrivilegesStmt
 	         AlterSeqStmt AlterCollationStmt AlterSystemStmt CreateDomainStmt AlterDomainStmt
              AlterDatabaseStmt AlterDatabaseSetStmt AlterEventTrigStmt AlterObjectDependsStmt
+			 AlterEnumStmt AlterExtensionStmt AlterExtensionContentsStmt AlterFdwStmt
+			 AlterGroupStmt 
 			 AlterRoleStmt AlterRoleSetStmt AlterOwnerStmt AlterObjectSchemaStmt AlterOperatorStmt
 			 AlterTableStmt AlterTblSpcStmt AnalyzeStmt AlterOpFamilyStmt AlterTypeStmt
 			 CreateConversionStmt CreateOpFamilyStmt
 			 CopyStmt ClusterStmt CreateAsStmt CreateOpClassStmt CreateGroupStmt CreatePolicyStmt
-			 CreateTransformStmt
+			 CreateTransformStmt DefACLAction
              CreateCastStmt CreatedbStmt CreateEventTrigStmt CreateSchemaStmt
-			 CreateTrigStmt CreateSeqStmt CreateRoleStmt
+			 CreateTrigStmt CreatePLangStmt CreateSeqStmt CreateRoleStmt 
              CreateExtensionStmt CreateFunctionStmt CreateGraphStmt 
-			 CreateTableStmt CreateTableSpaceStmt
+			 CreateTableStmt CreateTableSpaceStmt CreateFdwStmt
 			 CreateUserStmt
              DefineStmt DeleteStmt DoStmt DropCastStmt DropdbStmt DropGraphStmt
 			 DropStmt DropTableSpaceStmt DropTransformStmt DropOpClassStmt DropOpFamilyStmt
@@ -306,11 +308,16 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <node> select_no_parens select_with_parens select_clause
              simple_select
 
+
+%type <list>	opt_fdw_options fdw_options
+%type <defelt>	fdw_option
+
 %type <node>	alter_column_default opclass_item opclass_drop alter_using
 %type <list>	alter_table_cmds
 
 %type <node>	alter_table_cmd opt_collate_clause
 	   replica_identity partition_cmd index_partition_cmd
+%type <boolean> opt_if_not_exists
 %type <list>    alter_identity_column_option_list
 %type <defelt>  alter_identity_column_option
 
@@ -493,7 +500,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 /* RETURN and WITH clause */
 %type <node> empty_grouping_set cube_clause rollup_clause group_item having_opt return return_item sort_item skip_opt limit_opt with
 %type <list> group_item_list return_item_list order_by_opt sort_item_list group_by_opt within_group_clause
-%type <integer> order_opt opt_nulls_order 
+%type <integer> add_drop order_opt opt_nulls_order 
 
 /* MATCH clause */
 %type <node> match cypher_varlen_opt cypher_range_opt cypher_range_idx
@@ -599,10 +606,9 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
              set_clause_list set_clause
 			 opt_type_modifiers
 			 def_list operator_def_list
-             opt_collate
              using_clause
              indirection opt_indirection
-			 attrs opt_class
+			 attrs
              var_list
 			 returning_clause
 			 create_generic_options
@@ -621,9 +627,15 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 
 %type <objwithargs> function_with_argtypes aggregate_with_argtypes operator_with_argtypes
 %type <list>	function_with_argtypes_list aggregate_with_argtypes_list operator_with_argtypes_list
+%type <integer>	defacl_privilege_target
+%type <defelt>	DefACLOption
+%type <list>	DefACLOptionList
+%type <boolean>  opt_trusted 
 
-%type <list>	func_name qual_Op qual_all_Op subquery_Op
-
+%type <list>	func_name handler_name qual_Op qual_all_Op subquery_Op
+				opt_class opt_inline_handler opt_validator validator_clause
+				opt_collate
+	
 %type <string>		all_Op MathOp
 
 
@@ -645,9 +657,9 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <string> Sconst 
 %type <string> ColId  ColLabel BareColLabel
 %type <string> NonReservedWord NonReservedWord_or_Sconst name
-%type <list> create_extension_opt_list
+%type <list> alter_extension_opt_list create_extension_opt_list
 %type <defelt> copy_opt_item
-               create_extension_opt_item
+               alter_extension_opt_item create_extension_opt_item
 %type <list>	func_alias_clause
 %type <sortby>	sortby
 %type <integer>	 OptTemp opt_asc_desc
@@ -851,7 +863,13 @@ stmt:
 	| AlterCollationStmt
 	| AlterDatabaseSetStmt
     | AlterDatabaseStmt
+	| AlterDefaultPrivilegesStmt
 	| AlterDomainStmt
+	| AlterEnumStmt
+	| AlterExtensionStmt
+	| AlterExtensionContentsStmt
+	| AlterFdwStmt
+	| AlterGroupStmt
 	| AlterSeqStmt 
 	| AlterSystemStmt
 	| AlterObjectDependsStmt
@@ -875,6 +893,7 @@ stmt:
     | CreateGraphStmt
 	| CreateGroupStmt
     | CreateExtensionStmt
+	| CreateFdwStmt
 	| CreateEventTrigStmt 
 	| CreateFunctionStmt
 	| CreatePolicyStmt
@@ -2940,6 +2959,79 @@ opt_with_data:
 		;
 
 
+
+/*****************************************************************************
+ *
+ *		QUERIES :
+ *				CREATE [OR REPLACE] [TRUSTED] [PROCEDURAL] LANGUAGE ...
+ *				DROP [PROCEDURAL] LANGUAGE ...
+ *
+ *****************************************************************************/
+
+CreatePLangStmt:
+			CREATE opt_or_replace opt_trusted opt_procedural LANGUAGE name
+			{
+				/*
+				 * We now interpret parameterless CREATE LANGUAGE as
+				 * CREATE EXTENSION.  "OR REPLACE" is silently translated
+				 * to "IF NOT EXISTS", which isn't quite the same, but
+				 * seems more useful than throwing an error.  We just
+				 * ignore TRUSTED, as the previous code would have too.
+				 */
+				CreateExtensionStmt *n = makeNode(CreateExtensionStmt);
+				n->if_not_exists = $2;
+				n->extname = $6;
+				n->options = NIL;
+				$$ = (Node *)n;
+			}
+			| CREATE opt_or_replace opt_trusted opt_procedural LANGUAGE name
+			  HANDLER handler_name opt_inline_handler opt_validator
+			{
+				CreatePLangStmt *n = makeNode(CreatePLangStmt);
+				n->replace = $2;
+				n->plname = $6;
+				n->plhandler = $8;
+				n->plinline = $9;
+				n->plvalidator = $10;
+				n->pltrusted = $3;
+				$$ = (Node *)n;
+			}
+		;
+
+opt_trusted:
+			TRUSTED									{ $$ = true; }
+			| /*EMPTY*/								{ $$ = false; }
+		;
+
+/* This ought to be just func_name, but that causes reduce/reduce conflicts
+ * (CREATE LANGUAGE is the only place where func_name isn't followed by '(').
+ * Work around by using simple names, instead.
+ */
+handler_name:
+			name						{ $$ = list_make1(makeString($1)); }
+			| name attrs				{ $$ = lcons(makeString($1), $2); }
+		;
+
+opt_inline_handler:
+			INLINE_P handler_name					{ $$ = $2; }
+			| /*EMPTY*/								{ $$ = NIL; }
+		;
+
+validator_clause:
+			VALIDATOR handler_name					{ $$ = $2; }
+			| NO VALIDATOR							{ $$ = NIL; }
+		;
+
+opt_validator:
+			validator_clause						{ $$ = $1; }
+			| /*EMPTY*/								{ $$ = NIL; }
+		;
+
+opt_procedural:
+			PROCEDURAL
+			| /*EMPTY*/
+		;
+
 /*****************************************************************************
  *
  *		QUERY:
@@ -3018,6 +3110,163 @@ CreateExtensionStmt:
         	$$ = (Node *) n;
 		}
     ;
+
+
+/*****************************************************************************
+ *
+ * ALTER EXTENSION name UPDATE [ TO version ]
+ *
+ *****************************************************************************/
+
+AlterExtensionStmt: ALTER EXTENSION name UPDATE alter_extension_opt_list
+				{
+					AlterExtensionStmt *n = makeNode(AlterExtensionStmt);
+					n->extname = $3;
+					n->options = $5;
+					$$ = (Node *) n;
+				}
+		;
+
+alter_extension_opt_list:
+			alter_extension_opt_list alter_extension_opt_item
+				{ $$ = lappend($1, $2); }
+			| /* EMPTY */
+				{ $$ = NIL; }
+		;
+
+alter_extension_opt_item:
+			TO NonReservedWord_or_Sconst
+				{
+					$$ = makeDefElem("new_version", (Node *)makeString($2), @1);
+				}
+		;
+
+/*****************************************************************************
+ *
+ * ALTER EXTENSION name ADD/DROP object-identifier
+ *
+ *****************************************************************************/
+
+AlterExtensionContentsStmt:
+			ALTER EXTENSION name add_drop object_type_name name
+				{
+					AlterExtensionContentsStmt *n = makeNode(AlterExtensionContentsStmt);
+					n->extname = $3;
+					n->action = $4;
+					n->objtype = $5;
+					n->object = (Node *) makeString($6);
+					$$ = (Node *)n;
+				}
+			| ALTER EXTENSION name add_drop object_type_any_name any_name
+				{
+					AlterExtensionContentsStmt *n = makeNode(AlterExtensionContentsStmt);
+					n->extname = $3;
+					n->action = $4;
+					n->objtype = $5;
+					n->object = (Node *) $6;
+					$$ = (Node *)n;
+				}
+			| ALTER EXTENSION name add_drop AGGREGATE aggregate_with_argtypes
+				{
+					AlterExtensionContentsStmt *n = makeNode(AlterExtensionContentsStmt);
+					n->extname = $3;
+					n->action = $4;
+					n->objtype = OBJECT_AGGREGATE;
+					n->object = (Node *) $6;
+					$$ = (Node *)n;
+				}
+			| ALTER EXTENSION name add_drop CAST '(' Typename AS Typename ')'
+				{
+					AlterExtensionContentsStmt *n = makeNode(AlterExtensionContentsStmt);
+					n->extname = $3;
+					n->action = $4;
+					n->objtype = OBJECT_CAST;
+					n->object = (Node *) list_make2($7, $9);
+					$$ = (Node *) n;
+				}
+			| ALTER EXTENSION name add_drop DOMAIN_P Typename
+				{
+					AlterExtensionContentsStmt *n = makeNode(AlterExtensionContentsStmt);
+					n->extname = $3;
+					n->action = $4;
+					n->objtype = OBJECT_DOMAIN;
+					n->object = (Node *) $6;
+					$$ = (Node *)n;
+				}
+			| ALTER EXTENSION name add_drop FUNCTION function_with_argtypes
+				{
+					AlterExtensionContentsStmt *n = makeNode(AlterExtensionContentsStmt);
+					n->extname = $3;
+					n->action = $4;
+					n->objtype = OBJECT_FUNCTION;
+					n->object = (Node *) $6;
+					$$ = (Node *)n;
+				}
+			| ALTER EXTENSION name add_drop OPERATOR operator_with_argtypes
+				{
+					AlterExtensionContentsStmt *n = makeNode(AlterExtensionContentsStmt);
+					n->extname = $3;
+					n->action = $4;
+					n->objtype = OBJECT_OPERATOR;
+					n->object = (Node *) $6;
+					$$ = (Node *)n;
+				}
+			| ALTER EXTENSION name add_drop OPERATOR CLASS any_name USING name
+				{
+					AlterExtensionContentsStmt *n = makeNode(AlterExtensionContentsStmt);
+					n->extname = $3;
+					n->action = $4;
+					n->objtype = OBJECT_OPCLASS;
+					n->object = (Node *) lcons(makeString($9), $7);
+					$$ = (Node *)n;
+				}
+			| ALTER EXTENSION name add_drop OPERATOR FAMILY any_name USING name
+				{
+					AlterExtensionContentsStmt *n = makeNode(AlterExtensionContentsStmt);
+					n->extname = $3;
+					n->action = $4;
+					n->objtype = OBJECT_OPFAMILY;
+					n->object = (Node *) lcons(makeString($9), $7);
+					$$ = (Node *)n;
+				}
+			| ALTER EXTENSION name add_drop PROCEDURE function_with_argtypes
+				{
+					AlterExtensionContentsStmt *n = makeNode(AlterExtensionContentsStmt);
+					n->extname = $3;
+					n->action = $4;
+					n->objtype = OBJECT_PROCEDURE;
+					n->object = (Node *) $6;
+					$$ = (Node *)n;
+				}
+			| ALTER EXTENSION name add_drop ROUTINE function_with_argtypes
+				{
+					AlterExtensionContentsStmt *n = makeNode(AlterExtensionContentsStmt);
+					n->extname = $3;
+					n->action = $4;
+					n->objtype = OBJECT_ROUTINE;
+					n->object = (Node *) $6;
+					$$ = (Node *)n;
+				}
+			| ALTER EXTENSION name add_drop TRANSFORM FOR Typename LANGUAGE name
+				{
+					AlterExtensionContentsStmt *n = makeNode(AlterExtensionContentsStmt);
+					n->extname = $3;
+					n->action = $4;
+					n->objtype = OBJECT_TRANSFORM;
+					n->object = (Node *) list_make2($7, makeString($9));
+					$$ = (Node *)n;
+				}
+			| ALTER EXTENSION name add_drop TYPE_P Typename
+				{
+					AlterExtensionContentsStmt *n = makeNode(AlterExtensionContentsStmt);
+					n->extname = $3;
+					n->action = $4;
+					n->objtype = OBJECT_TYPE;
+					n->object = (Node *) $6;
+					$$ = (Node *)n;
+				}
+		;
+
 
 /*****************************************************************************
  *
@@ -3822,6 +4071,28 @@ CreateGroupStmt:
 				}
 		;
 
+
+/*****************************************************************************
+ *
+ * Alter a postgresql group
+ *
+ *****************************************************************************/
+
+AlterGroupStmt:
+			ALTER GROUP RoleSpec add_drop USER role_list
+				{
+					AlterRoleStmt *n = makeNode(AlterRoleStmt);
+					n->role = $3;
+					n->action = $4;
+					n->options = list_make1(makeDefElem("rolemembers",
+														(Node *)$6, @6));
+					$$ = (Node *)n;
+				}
+		;
+
+add_drop:	ADD_P									{ $$ = +1; }
+			| DROP									{ $$ = -1; }
+		;
 
 /*****************************************************************************
  *
@@ -4784,6 +5055,99 @@ part_elem: ColId opt_collate opt_class
 		;       
 
 
+
+/*****************************************************************************
+ *
+ * ALTER DEFAULT PRIVILEGES statement
+ *
+ *****************************************************************************/
+
+AlterDefaultPrivilegesStmt:
+			ALTER DEFAULT PRIVILEGES DefACLOptionList DefACLAction
+				{
+					AlterDefaultPrivilegesStmt *n = makeNode(AlterDefaultPrivilegesStmt);
+					n->options = $4;
+					n->action = (GrantStmt *) $5;
+					$$ = (Node*)n;
+				}
+		;
+
+DefACLOptionList:
+			DefACLOptionList DefACLOption			{ $$ = lappend($1, $2); }
+			| /* EMPTY */							{ $$ = NIL; }
+		;
+
+DefACLOption:
+			IN SCHEMA name_list
+				{
+					$$ = makeDefElem("schemas", (Node *)$3, @1);
+				}
+			| FOR ROLE role_list
+				{
+					$$ = makeDefElem("roles", (Node *)$3, @1);
+				}
+			| FOR USER role_list
+				{
+					$$ = makeDefElem("roles", (Node *)$3, @1);
+				}
+		;
+
+/*
+ * This should match GRANT/REVOKE, except that individual target objects
+ * are not mentioned and we only allow a subset of object types.
+ */
+DefACLAction:
+			GRANT privileges ON defacl_privilege_target TO grantee_list
+			opt_grant_grant_option
+				{
+					GrantStmt *n = makeNode(GrantStmt);
+					n->is_grant = true;
+					n->privileges = $2;
+					n->targtype = ACL_TARGET_DEFAULTS;
+					n->objtype = $4;
+					n->objects = NIL;
+					n->grantees = $6;
+					n->grant_option = $7;
+					$$ = (Node*)n;
+				}
+			| REVOKE privileges ON defacl_privilege_target
+			FROM grantee_list opt_drop_behavior
+				{
+					GrantStmt *n = makeNode(GrantStmt);
+					n->is_grant = false;
+					n->grant_option = false;
+					n->privileges = $2;
+					n->targtype = ACL_TARGET_DEFAULTS;
+					n->objtype = $4;
+					n->objects = NIL;
+					n->grantees = $6;
+					n->behavior = $7;
+					$$ = (Node *)n;
+				}
+			| REVOKE GRANT OPTION FOR privileges ON defacl_privilege_target
+			FROM grantee_list opt_drop_behavior
+				{
+					GrantStmt *n = makeNode(GrantStmt);
+					n->is_grant = false;
+					n->grant_option = true;
+					n->privileges = $5;
+					n->targtype = ACL_TARGET_DEFAULTS;
+					n->objtype = $7;
+					n->objects = NIL;
+					n->grantees = $9;
+					n->behavior = $10;
+					$$ = (Node *)n;
+				}
+		;
+
+defacl_privilege_target:
+			TABLES			{ $$ = OBJECT_TABLE; }
+			| FUNCTIONS		{ $$ = OBJECT_FUNCTION; }
+			| ROUTINES		{ $$ = OBJECT_FUNCTION; }
+			| SEQUENCES		{ $$ = OBJECT_SEQUENCE; }
+			| TYPES_P		{ $$ = OBJECT_TYPE; }
+			| SCHEMAS		{ $$ = OBJECT_SCHEMA; }
+		;
 
 /*****************************************************************************
  *
@@ -6612,6 +6976,64 @@ opt_restart_seqs:
 			CONTINUE_P IDENTITY_P		{ $$ = false; }
 			| RESTART IDENTITY_P		{ $$ = true; }
 			| /* EMPTY */				{ $$ = false; }
+		;
+
+
+/*****************************************************************************
+ *
+ *	ALTER TYPE enumtype ADD ...
+ *
+ *****************************************************************************/
+
+AlterEnumStmt:
+		ALTER TYPE_P any_name ADD_P VALUE_P opt_if_not_exists Sconst
+			{
+				AlterEnumStmt *n = makeNode(AlterEnumStmt);
+				n->typeName = $3;
+				n->oldVal = NULL;
+				n->newVal = $7;
+				n->newValNeighbor = NULL;
+				n->newValIsAfter = true;
+				n->skipIfNewValExists = $6;
+				$$ = (Node *) n;
+			}
+		 | ALTER TYPE_P any_name ADD_P VALUE_P opt_if_not_exists Sconst BEFORE Sconst
+			{
+				AlterEnumStmt *n = makeNode(AlterEnumStmt);
+				n->typeName = $3;
+				n->oldVal = NULL;
+				n->newVal = $7;
+				n->newValNeighbor = $9;
+				n->newValIsAfter = false;
+				n->skipIfNewValExists = $6;
+				$$ = (Node *) n;
+			}
+		 | ALTER TYPE_P any_name ADD_P VALUE_P opt_if_not_exists Sconst AFTER Sconst
+			{
+				AlterEnumStmt *n = makeNode(AlterEnumStmt);
+				n->typeName = $3;
+				n->oldVal = NULL;
+				n->newVal = $7;
+				n->newValNeighbor = $9;
+				n->newValIsAfter = true;
+				n->skipIfNewValExists = $6;
+				$$ = (Node *) n;
+			}
+		 | ALTER TYPE_P any_name RENAME VALUE_P Sconst TO Sconst
+			{
+				AlterEnumStmt *n = makeNode(AlterEnumStmt);
+				n->typeName = $3;
+				n->oldVal = $6;
+				n->newVal = $8;
+				n->newValNeighbor = NULL;
+				n->newValIsAfter = false;
+				n->skipIfNewValExists = false;
+				$$ = (Node *) n;
+			}
+		 ;
+
+opt_if_not_exists: IF NOT EXISTS              { $$ = true; }
+		| /* EMPTY */                          { $$ = false; }
 		;
 
 
@@ -9482,6 +9904,65 @@ CreateOptRoleElem:
 			| IN GROUP role_list
 				{
 					$$ = makeDefElem("addroleto", (Node *)$3, @1);
+				}
+		;
+
+/*****************************************************************************
+ *
+ *		QUERY:
+ *             CREATE FOREIGN DATA WRAPPER name options
+ *
+ *****************************************************************************/
+
+CreateFdwStmt: CREATE FOREIGN DATA_P WRAPPER name opt_fdw_options create_generic_options
+				{
+					CreateFdwStmt *n = makeNode(CreateFdwStmt);
+					n->fdwname = $5;
+					n->func_options = $6;
+					n->options = $7;
+					$$ = (Node *) n;
+				}
+		;
+
+fdw_option:
+			HANDLER handler_name				{ $$ = makeDefElem("handler", (Node *)$2, @1); }
+			| NO HANDLER						{ $$ = makeDefElem("handler", NULL, @1); }
+			| VALIDATOR handler_name			{ $$ = makeDefElem("validator", (Node *)$2, @1); }
+			| NO VALIDATOR						{ $$ = makeDefElem("validator", NULL, @1); }
+		;
+
+fdw_options:
+			fdw_option							{ $$ = list_make1($1); }
+			| fdw_options fdw_option			{ $$ = lappend($1, $2); }
+		;
+
+opt_fdw_options:
+			fdw_options							{ $$ = $1; }
+			| /*EMPTY*/							{ $$ = NIL; }
+		;
+
+/*****************************************************************************
+ *
+ *		QUERY :
+ *				ALTER FOREIGN DATA WRAPPER name options
+ *
+ ****************************************************************************/
+
+AlterFdwStmt: ALTER FOREIGN DATA_P WRAPPER name opt_fdw_options alter_generic_options
+				{
+					AlterFdwStmt *n = makeNode(AlterFdwStmt);
+					n->fdwname = $5;
+					n->func_options = $6;
+					n->options = $7;
+					$$ = (Node *) n;
+				}
+			| ALTER FOREIGN DATA_P WRAPPER name fdw_options
+				{
+					AlterFdwStmt *n = makeNode(AlterFdwStmt);
+					n->fdwname = $5;
+					n->func_options = $6;
+					n->options = NIL;
+					$$ = (Node *) n;
 				}
 		;
 
