@@ -199,60 +199,67 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 /* keywords in alphabetical order */ 
 %token <keyword> ABORT_P ACCESS ACTION ADD_P ADMIN AFTER AGGREGATE ALL ALSO ALTER AND ANY ALWAYS ARRAY 
                  AS ASC ASCENDING ASSIGNMENT ASYMMETRIC AT ATOMIC ATTACH AUTHORIZATION
-				 ANALYSE ANALYZE ATTRIBUTE
+				 ANALYSE ANALYZE ATTRIBUTE ASSERTION ASENSITIVE ABSOLUTE_P
 
-                 BIGINT BEFORE BEGIN_P BETWEEN BINARY BIT BOOLEAN_P BOTH BREADTH BY
+                 BACKWARD BIGINT BEFORE BEGIN_P BETWEEN BINARY BIT BOOLEAN_P BOTH BREADTH BY
 
                  CACHE CALL CALLED CASE CAST CASCADE CHAIN CHECK CROSS CLUSTER COALESCE COLLATE COLLATION COMMENTS COMMIT COMMITTED COMPRESSION CONNECTION CONVERSION_P
 				 CONCURRENTLY CONTENT_P CONFLICT CONTAINS CONSTRAINT CONSTRAINTS COPY COST CREATE CUBE CURRENT 
                  CURRENT_CATALOG CURRENT_DATE CURRENT_ROLE CURRENT_SCHEMA CURRENT_TIME CHAR_P CHARACTER CATALOG_P
                  CURRENT_TIMESTAMP CURRENT_USER CYCLE CYPHER COLUMN CASCADED CSV CLASS CONTINUE_P COLUMNS CONFIGURATION
+                 CURSOR COMMENT CLOSE CHECKPOINT CHARACTERISTICS
 
                  DATA_P DATABASE DECADE_P DEC DECIMAL_P DEFAULT DEFAULTS DEFERRABLE DEFERRED DEFINER DELETE DELIMITER DELIMITERS DEPTH DESC DESCENDING DETACH DISTINCT 
-				 DO DOMAIN_P DOCUMENT_P DOUBLE_P DROP DISABLE_P DAY_P DICTIONARY DEPENDS
+				 DO DOMAIN_P DOCUMENT_P DOUBLE_P DROP DISABLE_P DAY_P DICTIONARY DEPENDS DISCARD DEALLOCATE DECLARE
 
                  EACH ENCODING ENCRYPTED ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXCLUDING EXISTS EXTENSION EXTRACT EXTERNAL
-                 EVENT EXECUTE ENABLE_P EXPLAIN EXPRESSION
+                 EVENT EXECUTE ENABLE_P EXPLAIN EXPRESSION EXCLUSIVE ENUM_P
 
                  GENERATED GLOBAL GRANT GRANTED GRAPH GREATEST GROUP GROUPS GROUPING
 
-                 FAMILY FALSE_P FETCH FILTER FIRST_P FINALIZE FLOAT_P FOLLOWING FOR FORCE FOREIGN FREEZE FROM FULL FUNCTION FUNCTIONS
+                 FAMILY FALSE_P FETCH FILTER FIRST_P FINALIZE FLOAT_P FOLLOWING FOR FORCE FOREIGN FORWARD FREEZE FROM FULL FUNCTION FUNCTIONS
 
-                 HAVING HEADER_P HOUR_P
+                 HANDLER HAVING HEADER_P HOUR_P HOLD
 
                  IDENTITY_P IF ILIKE IN INCLUDING INDEX INDEXES IMMEDIATE IMMUTABLE IMPLICIT_P INCLUDE INCREMENT INHERIT INHERITS INITIALLY INNER 
 				 INSTEAD INOUT INPUT_P INT_P INTEGER_P INTERSECT INSERT INTERVAL INTO INVOKER IS ISNULL ISOLATION
+				 IMPORT_P INSENSITIVE INLINE_P
 
                  JOIN
 
                  KEY
 
-                 LANGUAGE LARGE_P LAST_P LATERAL_P LEADING LEAKPROOF LEAST LEFT LEVEL LIKE LIMIT LOCATION LOCAL LOCALTIME LOCALTIMESTAMP
-				 LOCK_P LOCKED LOGGED
+                 LABEL LANGUAGE LARGE_P LAST_P LATERAL_P LEADING LEAKPROOF LEAST LEFT LEVEL LIKE LIMIT LOCATION LOCAL LOCALTIME LOCALTIMESTAMP
+				 LOAD LOCK_P LOCKED LOGGED LISTEN
 
-                 MATERIALIZED MATCH MAXVALUE MERGE METHOD MINVALUE MINUTE_P MONTH_P
+                 MATERIALIZED MATCH MAPPING MAXVALUE MERGE METHOD MINVALUE MINUTE_P MONTH_P MODE MOVE
 
-                 NAME_P NATIONAL NATURAL NCHAR NEXT NEW NFC NFD NFKC NFKD NO NONE NORMALIZE NORMALIZED NOT NOTHING NOTNULL NOWAIT NULL_P NULLIF NULLS_LA NUMERIC
+                 NAME_P NAMES NATIONAL NATURAL NCHAR NEXT NEW NFC NFD NFKC NFKD NO NONE NORMALIZE NORMALIZED NOT NOTHING NOTNULL NOWAIT NULL_P NULLIF NULLS_LA NUMERIC
+				 NOTIFY 
 
-                 OBJECT_P OPERATOR_P OF OFFSET OIDS ON ONLY OPTION OPTIONS OPTIONAL OTHERS OR ORDINALITY OLD ORDER OUT_P OUTER OVER OVERRIDING OVERLAPS OVERLAY OWNED OWNER
+                 OBJECT_P OPERATOR_P OF OFF OFFSET OIDS ON ONLY OPTION OPTIONS OPTIONAL OTHERS OR ORDINALITY OLD ORDER OUT_P OUTER OVER OVERRIDING OVERLAPS OVERLAY OWNED OWNER
 
                  PARALLEL PARSER PARTIAL PARTITION PASSING PASSWORD PLACING POLICY POSITION PUBLICATION PRECEDING PRECISION PRESERVE PREPARE PREPARED PRIMARY PRIVILEGES PROCEDURAL PROCEDURE PROCEDURES PROGRAM
+                 PRIOR PLANS
 
 				 QUOTE
 
                  RANGE READ REVOKE RIGHT REAL RECHECK RECURSIVE REINDEX REF_P REFERENCING REFERENCES REFRESH RELEASE REMOVE REPEATABLE REPLICA RESET RESTART RESTRICT REPLACE RETURN RETURNING RETURNS ROLLBACK 
-				 RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS RENAME
+				 RULE ROLE ROLLUP ROUTINE ROUTINES ROW ROWS RENAME RELATIVE_P REASSIGN
 
                  SAVEPOINT SCHEMA SERIALIZABLE SEARCH SECURITY SECOND_P SERVER SELECT SEQUENCE SEQUENCES SESSION SESSION_USER SET SETOF SETS SHARE
 				 SIMPLE SKIP SMALLINT SOME STABLE START STARTS STATEMENT STATEMENTS STATISTICS STDIN STDOUT STANDALONE_P
 				 STORED STORAGE STRICT_P STRIP_P SUBSCRIPTION SUBSTRING SUPPORT SYMMETRIC SYSID SYSTEM_P SQL_P
- 
+				 SNAPSHOT SIMILAR SHOW SCHEMAS SCROLL
+
                  TABLE TABLES TABLESAMPLE TABLESPACE TEMP TEMPLATE TEMPORARY TEXT_P TIME TIES THEN TIMESTAMP TO TRAILING TRANSACTION TRANSFORM TREAT TRIGGER TRIM TRUE_P
-				 TYPE_P TRUNCATE
+				 TYPE_P TRUNCATE TYPES_P TRUSTED
 
                  UNBOUNDED UNCOMMITTED UNENCRYPTED UNION UNIQUE UNKNOWN UNLOGGED UNTIL UPDATE UNWIND USE USER USING
+				 UNLISTEN UESCAPE
 
                  VARCHAR VACUUM VALIDATE VALID VALUE_P VALUES VARIADIC VARYING VERBOSE VIEW VERSION_P VOLATILE
+                 VALIDATOR VIEWS
 
                  WHEN WHERE WHITESPACE_P WINDOW WITH WITHIN WITHOUT WORK WRAPPER WRITE
 
@@ -13170,27 +13177,360 @@ generic_reset:
 /* "Unreserved" keywords --- available for use as any kind of name.
  */
 unreserved_keyword:
-			DATA_P
+			  ABORT_P
+			| ABSOLUTE_P
+			| ACCESS
+			| ACTION
+			| ADD_P
+			| ADMIN
+			| AFTER
+			| AGGREGATE
+			| ALSO
+			| ALTER
+			| ALWAYS
+			| ASENSITIVE
+			| ASSERTION
+			| ASSIGNMENT
+			| AT
+			| ATOMIC
+			| ATTACH
+			| ATTRIBUTE
+			| BACKWARD
+			| BEFORE
+			| BEGIN_P
+			| BREADTH
+			| BY
+			| CACHE
+			| CALL
+			| CALLED
+			| CASCADE
+			| CASCADED
+			| CATALOG_P
+			| CHAIN
+			| CHARACTERISTICS
+			| CHECKPOINT
+			| CLASS
+			| CLOSE
+			| CLUSTER
+			| COLUMNS
+			| COMMENT
+			| COMMENTS
+			| COMMIT
+			| COMMITTED
+			| COMPRESSION
+			| CONFIGURATION
+			| CONFLICT
+			| CONNECTION
+			| CONSTRAINTS
+			| CONTENT_P
+			| CONTINUE_P
+			| CONVERSION_P
+			| COPY
+			| COST
+			| CSV
+			| CUBE
+			| CURRENT
+			| CURSOR
+			| CYCLE
+			| DATA_P
+			| DATABASE
+			| DAY_P
+			| DEALLOCATE
+			| DECLARE
+			| DEFAULTS
+			| DEFERRED
+			| DEFINER
+			| DELETE
+			| DELIMITER
+			| DELIMITERS
+			| DEPENDS
+			| DEPTH
+			| DETACH
+			| DICTIONARY
+			| DISABLE_P
+			| DISCARD
 			| DOCUMENT_P
+			| DOMAIN_P
+			| DOUBLE_P
+			| DROP
+			| EACH
+			| ENABLE_P
+			| ENCODING
+			| ENCRYPTED
+			| ENUM_P
+			| ESCAPE
+			| EVENT
+			| EXCLUDE
+			| EXCLUDING
+			| EXCLUSIVE
+			| EXECUTE
+			| EXPLAIN
+			| EXPRESSION
+			| EXTENSION
+			| EXTERNAL
+			| FAMILY
+			| FILTER
+			| FINALIZE
+			| FIRST_P
+			| FOLLOWING
+			| FORCE
+			| FORWARD
 			| FUNCTION
+			| FUNCTIONS
+			| GENERATED
+			| GLOBAL
+			| GRANTED
+			| GROUPS
+			| HANDLER
+			| HEADER_P
+			| HOLD
+			| HOUR_P
+			| IDENTITY_P
+			| IF
+			| IMMEDIATE
+			| IMMUTABLE
+			| IMPLICIT_P
+			| IMPORT_P
+			| INCLUDE
+			| INCLUDING
+			| INCREMENT
 			| INDEX
+			| INDEXES
+			| INHERIT
+			| INHERITS
+			| INLINE_P
 			| INPUT_P
-			| INTERVAL
+			| INSENSITIVE
+			| INSERT
+			| INSTEAD
+			| INVOKER
+			| ISOLATION
 			| KEY
+			| LABEL
+			| LANGUAGE
+			| LARGE_P
+			| LAST_P
+			| LEAKPROOF
 			| LEVEL
-			| LIKE
+			| LISTEN
+			| LOAD
+			| LOCAL
+			| LOCATION
+			| LOCK_P
+			| LOCKED
+			| LOGGED
+			| MAPPING
+			| MATCH
+			| MATERIALIZED
 			| MAXVALUE
+			| METHOD
+			| MINUTE_P
 			| MINVALUE
+			| MODE
+			| MONTH_P
+			| MOVE
 			| NAME_P
+			| NAMES
+			| NEW
+			| NEXT
+			| NFC
+			| NFD
+			| NFKC
+			| NFKD
+			| NO
+			| NORMALIZED
+			| NOTHING
+			| NOTIFY
+			| NOWAIT
+			| NULLS_LA
+			| OBJECT_P
+			| OF
+			| OFF
+			| OIDS
+			| OLD
+			| OPERATOR_P
+			| OPTION
+			| OPTIONS
+			| ORDINALITY
+			| OTHERS
+			| OVER
+			| OVERRIDING
+			| OWNED
+			| OWNER
+			| PARALLEL
+			| PARSER
+			| PARTIAL
+			| PARTITION
+			| PASSING
+			| PASSWORD
+			| PLANS
+			| POLICY
+			| PRECEDING
+			| PREPARE
+			| PREPARED
+			| PRESERVE
+			| PRIOR
+			| PRIVILEGES
+			| PROCEDURAL
 			| PROCEDURE
 			| PROCEDURES
+			| PROGRAM
+			| PUBLICATION
+			| QUOTE
 			| RANGE
+			| READ
+			| REASSIGN
+			| RECHECK
+			| RECURSIVE
+			| REF_P
+			| REFERENCING
+			| REFRESH
+			| REINDEX
+			| RELATIVE_P
+			| RELEASE
+			| RENAME
+			| REPEATABLE
+			| REPLACE
+			| REPLICA
+			| RESET
+			| RESTART
+			| RESTRICT
+			| RETURN
+			| RETURNS
+			| REVOKE
+			| ROLE
+			| ROLLBACK
+			| ROLLUP
+			| ROUTINE
+			| ROUTINES
+			| ROWS
+			| RULE
+			| SAVEPOINT
+			| SCHEMA
+			| SCHEMAS
+			| SCROLL
+			| SEARCH
+			| SECOND_P
+			| SECURITY
+			| SEQUENCE
+			| SEQUENCES
+			| SERIALIZABLE
+			| SERVER
+			| SESSION
+			| SET
+			| SETS
+			| SHARE
+			| SHOW
+			| SIMPLE
+			| SKIP
+			| SNAPSHOT
 			| SQL_P
+			| STABLE
+			| STANDALONE_P
+			| START
+			| STATEMENT
+			| STATISTICS
+			| STDIN
+			| STDOUT
+			| STORAGE
+			| STORED
+			| STRICT_P
+			| STRIP_P
+			| SUBSCRIPTION
+			| SUPPORT
+			| SYSID
+			| SYSTEM_P
+			| TABLES
 			| TABLESPACE
+			| TEMP
+			| TEMPLATE
+			| TEMPORARY
+			| TEXT_P
+			| TIES
+			| TRANSACTION
+			| TRANSFORM
+			| TRIGGER
+			| TRUNCATE
+			| TRUSTED
 			| TYPE_P
-			| VERBOSE
-;
+			| TYPES_P
+			| UESCAPE
+			| UNBOUNDED
+			| UNCOMMITTED
+			| UNENCRYPTED
+			| UNKNOWN
+			| UNLISTEN
+			| UNLOGGED
+			| UNTIL
+			| UPDATE
+			| VACUUM
+			| VALID
+			| VALIDATE
+			| VALIDATOR
+			| VALUE_P
+			| VARYING
+			| VERSION_P
+			| VIEW
+			| VIEWS
+			| VOLATILE
+			| WHITESPACE_P
+			| WITHIN
+			| WITHOUT
+			| WORK
+			| WRAPPER
+			| WRITE
+			| XML_P
+			| YEAR_P
+			| YES_P
+			| ZONE
+		;
 
+/* Type/function identifier --- keywords that can be type or function names.
+ *
+ * Most of these are keywords that are used as operators in expressions;
+ * in general such keywords can't be column names because they would be
+ * ambiguous with variables, but they are unambiguous as function identifiers.
+ *
+ * Do not include POSITION, SUBSTRING, etc here since they have explicit
+ * productions in a_expr to support the goofy SQL9x argument syntax.
+ * - thomas 2000-11-28
+ */
+type_func_name_keyword:
+			  AUTHORIZATION
+			| BINARY
+			| COLLATION
+			| CONCURRENTLY
+			| CROSS
+			| CURRENT_SCHEMA
+			| FREEZE
+			| FULL
+			| ILIKE
+			| INNER
+			| IS
+			| ISNULL
+			| JOIN
+			| LEFT
+			| LIKE
+			| NATURAL
+			| NOTNULL
+			| OUTER
+			| OVERLAPS
+			| RIGHT
+			| SIMILAR
+			| TABLESAMPLE
+			| VERBOSE
+		;
+
+/* Column identifier --- keywords that can be column, table, etc names.
+ *
+ * Many of these keywords will in fact be recognized as type or function
+ * names too; but they have special productions for the purpose, and so
+ * can't be treated as "generic" type or function names.
+ *
+ * The type names appearing here are not usable as function names
+ * because they can be followed by '(' in typename productions, which
+ * looks too much like a function call for an LR(1) parser.
+ */
 col_name_keyword:
 			  BETWEEN
 			| BIGINT
@@ -13232,6 +13572,19 @@ col_name_keyword:
 			| TRIM
 			| VALUES
 			| VARCHAR
+			| XMLATTRIBUTES
+			| XMLCONCAT
+			| XMLELEMENT
+			| XMLEXISTS
+			| XMLFOREST
+			| XMLNAMESPACES
+			| XMLPARSE
+			| XMLPI
+			| XMLROOT
+			| XMLSERIALIZE
+			| XMLTABLE
+		;
+
 /*
  * While all keywords can be used as column labels when preceded by AS,
  * not all of them can be used as a "bare" column label without AS.
@@ -13242,66 +13595,434 @@ col_name_keyword:
  * in kwlist.h if it is included here, or AS_LABEL if it is not.
  */
 bare_label_keyword:
-		DATA_P
-		| DEFAULT
-		| DOCUMENT_P
-        | FALSE_P
-		| FUNCTION
-		| INDEX
-		| INPUT_P
-		| INTERVAL
-		| KEY
-		| LEVEL
-		| LIKE
-		| MAXVALUE
-		| MINVALUE
-		| NAME_P
-		| PROCEDURE
-		| PROCEDURES
-		| SQL_P
-		| TABLESPACE
-		| TRUE_P
-		| TYPE_P
-		| VARCHAR
-		| VERBOSE
-;
-
-/* Type/function identifier --- keywords that can be type or function names.
- *
- * Most of these are keywords that are used as operators in expressions;
- * in general such keywords can't be column names because they would be
- * ambiguous with variables, but they are unambiguous as function identifiers.
- *
- * Do not include POSITION, SUBSTRING, etc here since they have explicit
- * productions in a_expr to support the goofy SQL9x argument syntax.
- * - thomas 2000-11-28
- */
-type_func_name_keyword:
-			  AUTHORIZATION
+			  ABORT_P
+			| ABSOLUTE_P
+			| ACCESS
+			| ACTION
+			| ADD_P
+			| ADMIN
+			| AFTER
+			| AGGREGATE
+			| ALL
+			| ALSO
+			| ALTER
+			| ALWAYS
+			| ANALYSE
+			| ANALYZE
+			| AND
+			| ANY
+			| ASC
+			| ASENSITIVE
+			| ASSERTION
+			| ASSIGNMENT
+			| ASYMMETRIC
+			| AT
+			| ATOMIC
+			| ATTACH
+			| ATTRIBUTE
+			| AUTHORIZATION
+			| BACKWARD
+			| BEFORE
+			| BEGIN_P
+			| BETWEEN
+			| BIGINT
 			| BINARY
+			| BIT
+			| BOOLEAN_P
+			| BOTH
+			| BREADTH
+			| BY
+			| CACHE
+			| CALL
+			| CALLED
+			| CASCADE
+			| CASCADED
+			| CASE
+			| CAST
+			| CATALOG_P
+			| CHAIN
+			| CHARACTERISTICS
+			| CHECK
+			| CHECKPOINT
+			| CLASS
+			| CLOSE
+			| CLUSTER
+			| COALESCE
+			| COLLATE
 			| COLLATION
+			| COLUMN
+			| COLUMNS
+			| COMMENT
+			| COMMENTS
+			| COMMIT
+			| COMMITTED
+			| COMPRESSION
 			| CONCURRENTLY
+			| CONFIGURATION
+			| CONFLICT
+			| CONNECTION
+			| CONSTRAINT
+			| CONSTRAINTS
+			| CONTENT_P
+			| CONTINUE_P
+			| CONVERSION_P
+			| COPY
+			| COST
 			| CROSS
+			| CSV
+			| CUBE
+			| CURRENT
+			| CURRENT_CATALOG
+			| CURRENT_DATE
+			| CURRENT_ROLE
 			| CURRENT_SCHEMA
+			| CURRENT_TIME
+			| CURRENT_TIMESTAMP
+			| CURRENT_USER
+			| CURSOR
+			| CYCLE
+			| DATA_P
+			| DATABASE
+			| DEALLOCATE
+			| DEC
+			| DECIMAL_P
+			| DECLARE
+			| DEFAULT
+			| DEFAULTS
+			| DEFERRABLE
+			| DEFERRED
+			| DEFINER
+			| DELETE
+			| DELIMITER
+			| DELIMITERS
+			| DEPENDS
+			| DEPTH
+			| DESC
+			| DETACH
+			| DICTIONARY
+			| DISABLE_P
+			| DISCARD
+			| DISTINCT
+			| DO
+			| DOCUMENT_P
+			| DOMAIN_P
+			| DOUBLE_P
+			| DROP
+			| EACH
+			| ELSE
+			| ENABLE_P
+			| ENCODING
+			| ENCRYPTED
+			| END_P
+			| ENUM_P
+			| ESCAPE
+			| EVENT
+			| EXCLUDE
+			| EXCLUDING
+			| EXCLUSIVE
+			| EXECUTE
+			| EXISTS
+			| EXPLAIN
+			| EXPRESSION
+			| EXTENSION
+			| EXTERNAL
+			| EXTRACT
+			| FALSE_P
+			| FAMILY
+			| FINALIZE
+			| FIRST_P
+			| FLOAT_P
+			| FOLLOWING
+			| FORCE
+			| FOREIGN
+			| FORWARD
 			| FREEZE
 			| FULL
+			| FUNCTION
+			| FUNCTIONS
+			| GENERATED
+			| GLOBAL
+			| GRANTED
+			| GREATEST
+			| GROUPING
+			| GROUPS
+			| HANDLER
+			| HEADER_P
+			| HOLD
+			| IDENTITY_P
+			| IF
 			| ILIKE
+			| IMMEDIATE
+			| IMMUTABLE
+			| IMPLICIT_P
+			| IMPORT_P
+			| IN
+			| INCLUDE
+			| INCLUDING
+			| INCREMENT
+			| INDEX
+			| INDEXES
+			| INHERIT
+			| INHERITS
+			| INITIALLY
+			| INLINE_P
 			| INNER
+			| INOUT
+			| INPUT_P
+			| INSENSITIVE
+			| INSERT
+			| INSTEAD
+			| INT_P
+			| INTEGER_P
+			| INTERVAL
+			| INVOKER
 			| IS
-			| ISNULL
+			| ISOLATION
 			| JOIN
+			| KEY
+			| LABEL
+			| LANGUAGE
+			| LARGE_P
+			| LAST_P
+			| LATERAL_P
+			| LEADING
+			| LEAKPROOF
+			| LEAST
 			| LEFT
+			| LEVEL
 			| LIKE
+			| LISTEN
+			| LOAD
+			| LOCAL
+			| LOCALTIME
+			| LOCALTIMESTAMP
+			| LOCATION
+			| LOCK_P
+			| LOCKED
+			| LOGGED
+			| MAPPING
+			| MATCH
+			| MATERIALIZED
+			| MAXVALUE
+			| METHOD
+			| MINVALUE
+			| MODE
+			| MOVE
+			| NAME_P
+			| NAMES
+			| NATIONAL
 			| NATURAL
-			| NOTNULL
+			| NCHAR
+			| NEW
+			| NEXT
+			| NFC
+			| NFD
+			| NFKC
+			| NFKD
+			| NO
+			| NONE
+			| NORMALIZE
+			| NORMALIZED
+			| NOT
+			| NOTHING
+			| NOTIFY
+			| NOWAIT
+			| NULL_P
+			| NULLIF
+			| NULLS_LA
+			| NUMERIC
+			| OBJECT_P
+			| OF
+			| OFF
+			| OIDS
+			| OLD
+			| ONLY
+			| OPERATOR_P
+			| OPTION
+			| OPTIONS
+			| OR
+			| ORDINALITY
+			| OTHERS
+			| OUT_P
 			| OUTER
-			| OVERLAPS
+			| OVERLAY
+			| OVERRIDING
+			| OWNED
+			| OWNER
+			| PARALLEL
+			| PARSER
+			| PARTIAL
+			| PARTITION
+			| PASSING
+			| PASSWORD
+			| PLACING
+			| PLANS
+			| POLICY
+			| POSITION
+			| PRECEDING
+			| PREPARE
+			| PREPARED
+			| PRESERVE
+			| PRIMARY
+			| PRIOR
+			| PRIVILEGES
+			| PROCEDURAL
+			| PROCEDURE
+			| PROCEDURES
+			| PROGRAM
+			| PUBLICATION
+			| QUOTE
+			| RANGE
+			| READ
+			| REAL
+			| REASSIGN
+			| RECHECK
+			| RECURSIVE
+			| REF_P
+			| REFERENCES
+			| REFERENCING
+			| REFRESH
+			| REINDEX
+			| RELATIVE_P
+			| RELEASE
+			| RENAME
+			| REPEATABLE
+			| REPLACE
+			| REPLICA
+			| RESET
+			| RESTART
+			| RESTRICT
+			| RETURN
+			| RETURNS
+			| REVOKE
 			| RIGHT
-			//| SIMILAR_P
+			| ROLE
+			| ROLLBACK
+			| ROLLUP
+			| ROUTINE
+			| ROUTINES
+			| ROW
+			| ROWS
+			| RULE
+			| SAVEPOINT
+			| SCHEMA
+			| SCHEMAS
+			| SCROLL
+			| SEARCH
+			| SECURITY
+			| SELECT
+			| SEQUENCE
+			| SEQUENCES
+			| SERIALIZABLE
+			| SERVER
+			| SESSION
+			| SESSION_USER
+			| SET
+			| SETOF
+			| SETS
+			| SHARE
+			| SHOW
+			| SIMILAR
+			| SIMPLE
+			| SKIP
+			| SMALLINT
+			| SNAPSHOT
+			| SOME
+			| SQL_P
+			| STABLE
+			| STANDALONE_P
+			| START
+			| STATEMENT
+			| STATISTICS
+			| STDIN
+			| STDOUT
+			| STORAGE
+			| STORED
+			| STRICT_P
+			| STRIP_P
+			| SUBSCRIPTION
+			| SUBSTRING
+			| SUPPORT
+			| SYMMETRIC
+			| SYSID
+			| SYSTEM_P
+			| TABLE
+			| TABLES
 			| TABLESAMPLE
+			| TABLESPACE
+			| TEMP
+			| TEMPLATE
+			| TEMPORARY
+			| TEXT_P
+			| THEN
+			| TIES
+			| TIME
+			| TIMESTAMP
+			| TRAILING
+			| TRANSACTION
+			| TRANSFORM
+			| TREAT
+			| TRIGGER
+			| TRIM
+			| TRUE_P
+			| TRUNCATE
+			| TRUSTED
+			| TYPE_P
+			| TYPES_P
+			| UESCAPE
+			| UNBOUNDED
+			| UNCOMMITTED
+			| UNENCRYPTED
+			| UNIQUE
+			| UNKNOWN
+			| UNLISTEN
+			| UNLOGGED
+			| UNTIL
+			| UPDATE
+			| USER
+			| USING
+			| VACUUM
+			| VALID
+			| VALIDATE
+			| VALIDATOR
+			| VALUE_P
+			| VALUES
+			| VARCHAR
+			| VARIADIC
 			| VERBOSE
+			| VERSION_P
+			| VIEW
+			| VIEWS
+			| VOLATILE
+			| WHEN
+			| WHITESPACE_P
+			| WORK
+			| WRAPPER
+			| WRITE
+			| XML_P
+			| XMLATTRIBUTES
+			| XMLCONCAT
+			| XMLELEMENT
+			| XMLEXISTS
+			| XMLFOREST
+			| XMLNAMESPACES
+			| XMLPARSE
+			| XMLPI
+			| XMLROOT
+			| XMLSERIALIZE
+			| XMLTABLE
+			| YES_P
+			| ZONE
 		;
 
+
+
+/* Reserved keyword --- these keywords are usable only as a ColLabel.
+ *
+ * Keywords appear here if they could not be distinguished from variable,
+ * type, or function names in some contexts.  Don't put things here unless
+ * forced to.
+ */
 reserved_keyword:
 			  ALL
 			| ANALYSE
@@ -13326,10 +14047,61 @@ reserved_keyword:
 			| CURRENT_TIME
 			| CURRENT_TIMESTAMP
 			| CURRENT_USER
-			| DEFAULT        
-		| FALSE_P
-		| TRUE_P
-
+			| DEFAULT
+			| DEFERRABLE
+			| DESC
+			| DISTINCT
+			| DO
+			| ELSE
+			| END_P
+			| EXCEPT
+			| FALSE_P
+			| FETCH
+			| FOR
+			| FOREIGN
+			| FROM
+			| GRANT
+			| GROUP
+			| HAVING
+			| IN
+			| INITIALLY
+			| INTERSECT
+			| INTO
+			| LATERAL_P
+			| LEADING
+			| LIMIT
+			| LOCALTIME
+			| LOCALTIMESTAMP
+			| NOT
+			| NULL_P
+			| OFFSET
+			| ON
+			| ONLY
+			| OR
+			| ORDER
+			| PLACING
+			| PRIMARY
+			| REFERENCES
+			| RETURNING
+			| SELECT
+			| SESSION_USER
+			| SOME
+			| SYMMETRIC
+			| TABLE
+			| THEN
+			| TO
+			| TRAILING
+			| TRUE_P
+			| UNION
+			| UNIQUE
+			| USER
+			| USING
+			| VARIADIC
+			| WHEN
+			| WHERE
+			| WINDOW
+			| WITH
+		;
 /*
  * SET and REMOVE clause
  */
