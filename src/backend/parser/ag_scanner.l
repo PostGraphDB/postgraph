@@ -308,6 +308,7 @@ typedef struct strbuf
     int length;
 } strbuf;
 
+static void strbuf_trunc_buf(strbuf *sb, const int len);
 static void strbuf_init(strbuf *sb, int capacity);
 static void strbuf_cleanup(strbuf *sb);
 static void strbuf_append_buf(strbuf *sb, const char *b, const int len);
@@ -809,49 +810,58 @@ ag_token token;
 
 {dolqdelim}		{
 					//SET_YYLLOC();
-					//yyextra->dolqstart = pstrdup(yytext);
+					yyextra.dolqstart = pstrdup(yytext);
 					BEGIN(xdolq);
 					//startlit();
 				}
 {dolqfailed}	{
 					//SET_YYLLOC();
 					/* throw back all but the initial "$" */
-					//yyless(1);
+					yyless(1);
 					/* and treat it as {other} */
 					//return yytext[0];
+                    token.type = AG_TOKEN_CHAR;
+                    token.value.c = yytext[0];
+                    token.location = get_location();
+                    return token;
 				}
 <xdolq>{dolqdelim} {
-					//if (strcmp(yytext, yyextra->dolqstart) == 0)
-					//{
-						//pfree(yyextra->dolqstart);
-						//yyextra->dolqstart = NULL;
+					if (strcmp(yytext, yyextra.dolqstart) == 0)
+					{
+						pfree(yyextra.dolqstart);
+						yyextra.dolqstart = NULL;
 						BEGIN(INITIAL);
 						/*yylval->str = litbufdup(yyscanner);
 						return SCONST;*/
 
-    token.type = AG_TOKEN_STRING;
-    token.value.s = strbuf_get_str(&yyextra.literal_buf);
-    token.location = get_location();
-    return token;
-					//}
-					//else
-					//{
+                        token.type = AG_TOKEN_STRING;
+                        token.value.s = strbuf_get_str(&yyextra.literal_buf);
+                        token.location = get_location();
+                        return token;
+					}
+					else
+					{
 						/*
 						 * When we fail to match $...$ to dolqstart, transfer
 						 * the $... part to the output, but put back the final
 						 * $ for rescanning.  Consider $delim$...$junk$delim$
 						 */
 						//addlit(yytext, yyleng - 1, yyscanner);
-						//yyless(yyleng - 1);
-					//}
+						strbuf_trunc_buf(&yyextra.literal_buf, 1);
+                        yyless(yyleng - 1);
+					}
 				}
+
 <xdolq>{dolqinside} {
-					//addlit(yytext, yyleng, yyscanner);
-				}
+    strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
+}
+
 <xdolq>{dolqfailed} {
-					//addlit(yytext, yyleng, yyscanner);
-				}
+    strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
+}
+
 <xdolq>.		{
+            strbuf_append_char(&yyextra.literal_buf, yytext[0]);
 				}
 <xdolq><<EOF>>	{     ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
                     scan_errmsg("unterminated dollar quoted string"),
@@ -1048,6 +1058,11 @@ static void strbuf_cleanup(strbuf *sb)
 {
     if (sb->buffer)
         pfree(sb->buffer);
+}
+
+static void strbuf_trunc_buf(strbuf *sb, const int len)
+{
+    sb->length -= len;
 }
 
 static void strbuf_append_buf(strbuf *sb, const char *b, const int len)
