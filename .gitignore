@@ -6,3 +6,6 @@ build.sh
 .DS_Store
 .vscode
 postgraph--*.sql
+src/backend/parser/temp_rules
+src/backend/parser/temp.text
+src/backend/parser/tmp_postgres
