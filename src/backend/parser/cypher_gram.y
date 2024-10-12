@@ -177,6 +177,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
     struct VariableSetStmt *vsetstmt;
 	struct JoinExpr *jexpr;
 	struct IndexElem *ielem;
+	struct StatsElem			*selem;
 	struct PartitionSpec		*partspec;
 	struct PartitionBoundSpec	*partboundspec;
 	struct RoleSpec *rolespec;
@@ -282,7 +283,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 			 AlterGroupStmt 
 			 AlterRoleStmt AlterRoleSetStmt AlterOwnerStmt AlterObjectSchemaStmt AlterOperatorStmt
 			 AlterTableStmt AlterTblSpcStmt AnalyzeStmt AlterOpFamilyStmt AlterTypeStmt
-			 CreateConversionStmt CreateOpFamilyStmt CallStmt
+			 CreateConversionStmt CreateOpFamilyStmt CallStmt CreateStatsStmt
 			 CopyStmt ClusterStmt CreateAsStmt CreateOpClassStmt CreateGroupStmt CreatePolicyStmt
 			 CreateTransformStmt DefACLAction
              CreateCastStmt CreatedbStmt CreateEventTrigStmt CreateSchemaStmt
@@ -593,7 +594,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 			 old_aggr_definition old_aggr_list
 			 oper_argtypes
 			 opt_column_list
-			 sort_clause opt_sort_clause sortby_list index_params
+			 sort_clause opt_sort_clause sortby_list index_params stats_params
 			 opt_include opt_c_include index_including_params
              qualified_name_list any_name any_name_list type_name_list
 			 any_operator
@@ -663,6 +664,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
                alter_extension_opt_item create_extension_opt_item
 %type <list>	func_alias_clause
 %type <sortby>	sortby
+%type <selem>	stats_param
 %type <integer>	 OptTemp opt_asc_desc
 
 %type <typnam>	Typename SimpleTypename ConstTypename
@@ -900,6 +902,7 @@ stmt:
 	| CreateFunctionStmt
 	| CreatePolicyStmt
 	| CreateRoleStmt
+	| CreateStatsStmt
 	| CreateTransformStmt
 	| CreateOpClassStmt
 	| CreateSchemaStmt
@@ -3019,6 +3022,79 @@ opt_with_data:
 			| /*EMPTY*/								{ $$ = true; }
 		;
 
+
+
+/*****************************************************************************
+ *
+ *		QUERY :
+ *				CREATE STATISTICS [IF NOT EXISTS] stats_name [(stat types)]
+ *					ON expression-list FROM from_list
+ *
+ * Note: the expectation here is that the clauses after ON are a subset of
+ * SELECT syntax, allowing for expressions and joined tables, and probably
+ * someday a WHERE clause.  Much less than that is currently implemented,
+ * but the grammar accepts it and then we'll throw FEATURE_NOT_SUPPORTED
+ * errors as necessary at execution.
+ *
+ *****************************************************************************/
+
+CreateStatsStmt:
+			CREATE STATISTICS any_name
+			opt_name_list ON stats_params FROM from_list
+				{
+					CreateStatsStmt *n = makeNode(CreateStatsStmt);
+					n->defnames = $3;
+					n->stat_types = $4;
+					n->exprs = $6;
+					n->relations = $8;
+					n->stxcomment = NULL;
+					n->if_not_exists = false;
+					$$ = (Node *)n;
+				}
+			| CREATE STATISTICS IF NOT EXISTS any_name
+			opt_name_list ON stats_params FROM from_list
+				{
+					CreateStatsStmt *n = makeNode(CreateStatsStmt);
+					n->defnames = $6;
+					n->stat_types = $7;
+					n->exprs = $9;
+					n->relations = $11;
+					n->stxcomment = NULL;
+					n->if_not_exists = true;
+					$$ = (Node *)n;
+				}
+			;
+
+/*
+ * Statistics attributes can be either simple column references, or arbitrary
+ * expressions in parens.  For compatibility with index attributes permitted
+ * in CREATE INDEX, we allow an expression that's just a function call to be
+ * written without parens.
+ */
+
+stats_params:	stats_param							{ $$ = list_make1($1); }
+			| stats_params ',' stats_param			{ $$ = lappend($1, $3); }
+		;
+
+stats_param:	ColId
+				{
+					$$ = makeNode(StatsElem);
+					$$->name = $1;
+					$$->expr = NULL;
+				}
+			| func_expr_windowless
+				{
+					$$ = makeNode(StatsElem);
+					$$->name = NULL;
+					$$->expr = $1;
+				}
+			| '(' a_expr ')'
+				{
+					$$ = makeNode(StatsElem);
+					$$->name = NULL;
+					$$->expr = $2;
+				}
+		;
 
 
 /*****************************************************************************
@@ -6164,7 +6240,7 @@ ExplainableStmt:
 			| InsertStmt
 			| UpdateStmt
 			| DeleteStmt
-			//| DeclareCursorStmt
+			//| DeclareCursorStmt TODO
 			| CreateAsStmt
 			//| CreateMatViewStmt
 			//| RefreshMatViewStmt
