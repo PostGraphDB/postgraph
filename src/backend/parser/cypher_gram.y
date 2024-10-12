@@ -290,8 +290,8 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 			 CreateTrigStmt CreatePLangStmt CreateSeqStmt CreateRoleStmt 
              CreateExtensionStmt CreateFunctionStmt CreateGraphStmt 
 			 CreateTableStmt CreateTableSpaceStmt CreateFdwStmt
-			 CreateUserStmt
-			 DeclareCursorStmt
+			 CreateUserStmt ConstraintsSetStmt CheckPointStmt
+			 DeclareCursorStmt DiscardStmt
              DefineStmt DeleteStmt DoStmt DropCastStmt DropdbStmt DropGraphStmt
 			 DropStmt DropTableSpaceStmt DropTransformStmt DropOpClassStmt DropOpFamilyStmt
 			 DropRoleStmt
@@ -653,7 +653,8 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <node>	RowSecurityOptionalWithCheck RowSecurityOptionalExpr
 %type <list>	RowSecurityDefaultToRole RowSecurityOptionalToRole
 
-
+%type <list>	constraints_set_list
+%type <boolean> constraints_set_mode
 %type <string>	 OptTableSpace OptConsTableSpace
 %type <rolespec> OptTableSpaceOwner
 %type <integer>	opt_check_option
@@ -895,7 +896,9 @@ stmt:
 	| AlterTypeStmt
 	| AnalyzeStmt
 	| CallStmt
+	| CheckPointStmt
 	| CreateConversionStmt
+	| ConstraintsSetStmt
 	| CopyStmt
 	| ClusterStmt
 	| CreateAsStmt
@@ -923,6 +926,7 @@ stmt:
 	| DeclareCursorStmt
     | DefineStmt 
     | DeleteStmt
+	| DiscardStmt
 	| DoStmt
 	| DropdbStmt
     | DropGraphStmt
@@ -5226,10 +5230,7 @@ def_arg:	func_type						{ $$ = (Node *)$1; }
 			| all_op					{ $$ = (Node *)$1; }
 			| NumericOnly					{ $$ = (Node *)$1; }
 			| Sconst						{ $$ = (Node *)makeString($1); }
-			//| NONE							{ $$ = (Node *)makeString(pstrdup($1)); }
-			// XXX Temporary
-			| TRUE_P	{ $$ = (Node *)makeBoolAConst(true, @1); }
-			| FALSE_P	{ $$ = (Node *)makeBoolAConst(false, @1); }
+			| NONE							{ $$ = (Node *)makeString(pstrdup($1)); }
 		;
 
 
@@ -8448,7 +8449,7 @@ DefineStmt:
 					n->params	= $6;
 					$$ = (Node *)n;
 				}
-			/*| CREATE TEXT_P SEARCH PARSER any_name definition
+			/*| CREATE TEXT_P SEARCH PARSER any_name definition TODO
 				{
 					DefineStmt *n = makeNode(DefineStmt);
 					n->kind = OBJECT_TSPARSER;
@@ -11032,7 +11033,78 @@ opt_slice_bound:
 		;
 
 
+ConstraintsSetStmt:
+			SET CONSTRAINTS constraints_set_list constraints_set_mode
+				{
+					ConstraintsSetStmt *n = makeNode(ConstraintsSetStmt);
+					n->constraints = $3;
+					n->deferred = $4;
+					$$ = (Node *) n;
+				}
+		;
 
+constraints_set_list:
+			ALL										{ $$ = NIL; }
+			| qualified_name_list					{ $$ = $1; }
+		;
+
+constraints_set_mode:
+			DEFERRED								{ $$ = true; }
+			| IMMEDIATE								{ $$ = false; }
+		;
+
+
+/*
+ * Checkpoint statement
+ */
+CheckPointStmt:
+			CHECKPOINT
+				{
+					CheckPointStmt *n = makeNode(CheckPointStmt);
+					$$ = (Node *)n;
+				}
+		;
+
+
+/*****************************************************************************
+ *
+ * DISCARD { ALL | TEMP | PLANS | SEQUENCES }
+ *
+ *****************************************************************************/
+
+DiscardStmt:
+			DISCARD ALL
+				{
+					DiscardStmt *n = makeNode(DiscardStmt);
+					n->target = DISCARD_ALL;
+					$$ = (Node *) n;
+				}
+			| DISCARD TEMP
+				{
+					DiscardStmt *n = makeNode(DiscardStmt);
+					n->target = DISCARD_TEMP;
+					$$ = (Node *) n;
+				}
+			| DISCARD TEMPORARY
+				{
+					DiscardStmt *n = makeNode(DiscardStmt);
+					n->target = DISCARD_TEMP;
+					$$ = (Node *) n;
+				}
+			| DISCARD PLANS
+				{
+					DiscardStmt *n = makeNode(DiscardStmt);
+					n->target = DISCARD_PLANS;
+					$$ = (Node *) n;
+				}
+			| DISCARD SEQUENCES
+				{
+					DiscardStmt *n = makeNode(DiscardStmt);
+					n->target = DISCARD_SEQUENCES;
+					$$ = (Node *) n;
+				}
+
+		;
 
 /*****************************************************************************
  *
