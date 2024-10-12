@@ -283,7 +283,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 			 AlterGroupStmt
 			 AlterRoleStmt AlterRoleSetStmt AlterOwnerStmt AlterObjectSchemaStmt AlterOperatorStmt
 			 AlterTableStmt AlterTblSpcStmt AnalyzeStmt AlterOpFamilyStmt AlterTypeStmt
-			 CreateConversionStmt CreateOpFamilyStmt CallStmt CreateStatsStmt
+			 CreateConversionStmt CreateOpFamilyStmt CallStmt CreateStatsStmt ClosePortalStmt
 			 CopyStmt ClusterStmt CreateAsStmt CreateOpClassStmt CreateGroupStmt CreatePolicyStmt
 			 CreateTransformStmt DefACLAction 
              CreateCastStmt CreatedbStmt CreateEventTrigStmt CreateSchemaStmt
@@ -615,6 +615,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 			 opt_type_modifiers
 			 def_list operator_def_list
              execute_param_clause using_clause
+			 opt_enum_val_list enum_val_list
              indirection opt_indirection
 			 attrs
              var_list
@@ -900,6 +901,7 @@ stmt:
 	| CreateConversionStmt
 	| ConstraintsSetStmt
 	| CopyStmt
+	| ClosePortalStmt
 	| ClusterStmt
 	| CreateAsStmt
 	| CreateCastStmt
@@ -2857,6 +2859,29 @@ opt_nowait_or_skip:
 			| /*EMPTY*/						{ $$ = LockWaitBlock; }
 		;
 
+
+
+/*****************************************************************************
+ *
+ *		QUERY :
+ *				close <portalname>
+ *
+ *****************************************************************************/
+
+ClosePortalStmt:
+			CLOSE cursor_name
+				{
+					ClosePortalStmt *n = makeNode(ClosePortalStmt);
+					n->portalname = $2;
+					$$ = (Node *)n;
+				}
+			| CLOSE ALL
+				{
+					ClosePortalStmt *n = makeNode(ClosePortalStmt);
+					n->portalname = NULL;
+					$$ = (Node *)n;
+				}
+		;
 
 /*****************************************************************************
  *
@@ -5252,6 +5277,16 @@ old_aggr_elem:  IDENTIFIER '=' def_arg
 				}
 		;
 
+opt_enum_val_list:
+		enum_val_list							{ $$ = $1; }
+		| /*EMPTY*/								{ $$ = NIL; }
+		;
+
+enum_val_list:	Sconst
+				{ $$ = list_make1(makeString($1)); }
+			| enum_val_list ',' Sconst
+				{ $$ = lappend($1, makeString($3)); }
+		;
 
 OptInherit: INHERITS '(' qualified_name_list ')'	{ $$ = $3; }
 			| /*EMPTY*/								{ $$ = NIL; }
@@ -8435,13 +8470,13 @@ DefineStmt:
 					n->coldeflist = $6;
 					$$ = (Node *)n;
 				}
-			/*| CREATE TYPE_P any_name AS ENUM_P '(' opt_enum_val_list ')'
+			| CREATE TYPE_P any_name AS ENUM_P '(' opt_enum_val_list ')'
 				{
 					CreateEnumStmt *n = makeNode(CreateEnumStmt);
 					n->typeName = $3;
 					n->vals = $7;
 					$$ = (Node *)n;
-				}*/
+				}
 			| CREATE TYPE_P any_name AS RANGE definition
 				{
 					CreateRangeStmt *n = makeNode(CreateRangeStmt);
@@ -8449,7 +8484,7 @@ DefineStmt:
 					n->params	= $6;
 					$$ = (Node *)n;
 				}
-			/*| CREATE TEXT_P SEARCH PARSER any_name definition TODO
+			| CREATE TEXT_P SEARCH PARSER any_name definition
 				{
 					DefineStmt *n = makeNode(DefineStmt);
 					n->kind = OBJECT_TSPARSER;
@@ -8522,7 +8557,7 @@ DefineStmt:
 					n->definition = list_make1(makeDefElem("from", (Node *) $8, @8));
 					n->if_not_exists = true;
 					$$ = (Node *)n;
-				}*/
+				}
 		;
 		
 definition: '(' def_list ')'						{ $$ = $2; }
