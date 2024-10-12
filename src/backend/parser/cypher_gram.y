@@ -280,7 +280,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 	         AlterSeqStmt AlterCollationStmt AlterSystemStmt CreateDomainStmt AlterDomainStmt
              AlterDatabaseStmt AlterDatabaseSetStmt AlterEventTrigStmt AlterObjectDependsStmt
 			 AlterEnumStmt AlterExtensionStmt AlterExtensionContentsStmt AlterFdwStmt
-			 AlterGroupStmt 
+			 AlterGroupStmt
 			 AlterRoleStmt AlterRoleSetStmt AlterOwnerStmt AlterObjectSchemaStmt AlterOperatorStmt
 			 AlterTableStmt AlterTblSpcStmt AnalyzeStmt AlterOpFamilyStmt AlterTypeStmt
 			 CreateConversionStmt CreateOpFamilyStmt CallStmt CreateStatsStmt
@@ -305,6 +305,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 			 ReindexStmt RemoveFuncStmt ReturnStmt RenameStmt RevokeStmt
 			 RuleActionStmt RuleActionStmtOrEmpty RuleStmt
              SelectStmt
+			 NotifyStmt ListenStmt UnlistenStmt
 			 TransactionStmt TransactionStmtLegacy TruncateStmt
              UpdateStmt
 			 PreparableStmt
@@ -662,7 +663,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <integer> OnCommitOption
 
 %type <defelt>	def_elem reloption_elem old_aggr_elem operator_def_elem
-%type <string> Sconst 
+%type <string> Sconst notify_payload
 %type <string> ColId  ColLabel BareColLabel
 %type <string> NonReservedWord NonReservedWord_or_Sconst name
 %type <list> alter_extension_opt_list create_extension_opt_list
@@ -884,6 +885,7 @@ stmt:
 	| AlterObjectDependsStmt
 	| AlterObjectSchemaStmt
 	| AlterOpFamilyStmt
+	| AlterOperatorStmt
 	| AlterOwnerStmt
 	| AlterPolicyStmt
 	| AlterRoleStmt
@@ -918,6 +920,7 @@ stmt:
 	| CreateTableSpaceStmt
 	| CreateTrigStmt
 	| CreateUserStmt
+	| DeclareCursorStmt
     | DefineStmt 
     | DeleteStmt
 	| DoStmt
@@ -934,8 +937,10 @@ stmt:
 	| FetchStmt
 	| GrantStmt 
 	| IndexStmt
-    | InsertStmt 
+    | InsertStmt
+	| ListenStmt 
 	| LockStmt
+	| NotifyStmt
 	| PrepareStmt
 	| ReindexStmt
 	| RemoveFuncStmt
@@ -946,6 +951,7 @@ stmt:
 	| TransactionStmt
 	| TransactionStmtLegacy
 	| TruncateStmt
+	| UnlistenStmt
     | UseGraphStmt 
     | UpdateStmt 
 	| VacuumStmt
@@ -1612,7 +1618,7 @@ table_ref:	relation_expr opt_alias_clause
 					n->coldeflist = lsecond($3);
 					$$ = (Node *) n;
 				}
-			/*| xmltable opt_alias_clause TODO
+			| xmltable opt_alias_clause
 				{
 					RangeTableFunc *n = (RangeTableFunc *) $1;
 					n->alias = $2;
@@ -1624,7 +1630,7 @@ table_ref:	relation_expr opt_alias_clause
 					n->lateral = true;
 					n->alias = $3;
 					$$ = (Node *) n;
-				}*/
+				}
 			| select_with_parens opt_alias_clause
 				{
 					RangeSubselect *n = makeNode(RangeSubselect);
@@ -2020,14 +2026,14 @@ where_clause:
 /* variant for UPDATE and DELETE */
 where_or_current_clause:
 			WHERE a_expr							{ $$ = $2; }
-			/*| WHERE CURRENT_P OF cursor_name TODO
+			| WHERE CURRENT OF cursor_name
 				{
 					CurrentOfExpr *n = makeNode(CurrentOfExpr);
 					
 					n->cursor_name = $4;
 					n->cursor_param = 0;
 					$$ = (Node *) n;
-				}*/
+				}
 			| /*EMPTY*/								{ $$ = NULL; }
 		;
 
@@ -2140,8 +2146,7 @@ xmltable_column_el:
 							if (fc->coldefexpr != NULL)
 								ereport(ERROR,
 										(errcode(ERRCODE_SYNTAX_ERROR),
-										 errmsg("only one DEFAULT value is allowed"),
-										 parser_errposition(defel->location)));
+										 errmsg("only one DEFAULT value is allowed")));
 							fc->coldefexpr = defel->arg;
 						}
 						else if (strcmp(defel->defname, "path") == 0)
@@ -2149,8 +2154,7 @@ xmltable_column_el:
 							if (fc->colexpr != NULL)
 								ereport(ERROR,
 										(errcode(ERRCODE_SYNTAX_ERROR),
-										 errmsg("only one PATH value per column is allowed"),
-										 parser_errposition(defel->location)));
+										 errmsg("only one PATH value per column is allowed")));
 							fc->colexpr = defel->arg;
 						}
 						else if (strcmp(defel->defname, "is_not_null") == 0)
@@ -2158,8 +2162,7 @@ xmltable_column_el:
 							if (nullability_seen)
 								ereport(ERROR,
 										(errcode(ERRCODE_SYNTAX_ERROR),
-										 errmsg("conflicting or redundant NULL / NOT NULL declarations for column \"%s\"", fc->colname),
-										 parser_errposition(defel->location)));
+										 errmsg("conflicting or redundant NULL / NOT NULL declarations for column \"%s\"", fc->colname)));
 							fc->is_not_null = intVal(defel->arg);
 							nullability_seen = true;
 						}
@@ -2168,8 +2171,7 @@ xmltable_column_el:
 							ereport(ERROR,
 									(errcode(ERRCODE_SYNTAX_ERROR),
 									 errmsg("unrecognized column option \"%s\"",
-											defel->defname),
-									 parser_errposition(defel->location)));
+											defel->defname)));
 						}
 					}
 					$$ = (Node *) fc;
@@ -6527,16 +6529,16 @@ object_type_any_name:
 			TABLE									{ $$ = OBJECT_TABLE; }
 			| SEQUENCE								{ $$ = OBJECT_SEQUENCE; }
 			| VIEW									{ $$ = OBJECT_VIEW; }
-			//| MATERIALIZED VIEW						{ $$ = OBJECT_MATVIEW; }
+			| MATERIALIZED VIEW						{ $$ = OBJECT_MATVIEW; }
 			| INDEX									{ $$ = OBJECT_INDEX; }
 			| FOREIGN TABLE							{ $$ = OBJECT_FOREIGN_TABLE; }
-			//| COLLATION								{ $$ = OBJECT_COLLATION; }
-			//| CONVERSION_P							{ $$ = OBJECT_CONVERSION; }
-			//| STATISTICS							{ $$ = OBJECT_STATISTIC_EXT; }
-			/*| TEXT_P SEARCH PARSER					{ $$ = OBJECT_TSPARSER; }
+			| COLLATION								{ $$ = OBJECT_COLLATION; }
+			| CONVERSION_P							{ $$ = OBJECT_CONVERSION; }
+			| STATISTICS							{ $$ = OBJECT_STATISTIC_EXT; }
+			| TEXT_P SEARCH PARSER					{ $$ = OBJECT_TSPARSER; }
 			| TEXT_P SEARCH DICTIONARY				{ $$ = OBJECT_TSDICTIONARY; }
 			| TEXT_P SEARCH TEMPLATE				{ $$ = OBJECT_TSTEMPLATE; }
-			| TEXT_P SEARCH CONFIGURATION			{ $$ = OBJECT_TSCONFIGURATION; }*/
+			| TEXT_P SEARCH CONFIGURATION			{ $$ = OBJECT_TSCONFIGURATION; }
 		;
 
 /*
@@ -7691,6 +7693,53 @@ table_func_column_list:
 				}
 		;
 
+
+/*****************************************************************************
+ *
+ *		QUERY:
+ *				NOTIFY <identifier> can appear both in rule bodies and
+ *				as a query-level command
+ *
+ *****************************************************************************/
+
+NotifyStmt: NOTIFY ColId notify_payload
+				{
+					NotifyStmt *n = makeNode(NotifyStmt);
+					n->conditionname = $2;
+					n->payload = $3;
+					$$ = (Node *)n;
+				}
+		;
+
+notify_payload:
+			',' Sconst							{ $$ = $2; }
+			| /*EMPTY*/							{ $$ = NULL; }
+		;
+
+ListenStmt: LISTEN ColId
+				{
+					ListenStmt *n = makeNode(ListenStmt);
+					n->conditionname = $2;
+					$$ = (Node *)n;
+				}
+		;
+
+UnlistenStmt:
+			UNLISTEN ColId
+				{
+					UnlistenStmt *n = makeNode(UnlistenStmt);
+					n->conditionname = $2;
+					$$ = (Node *)n;
+				}
+			| UNLISTEN '*'
+				{
+					UnlistenStmt *n = makeNode(UnlistenStmt);
+					n->conditionname = NULL;
+					$$ = (Node *)n;
+				}
+		;
+
+
 /*****************************************************************************
  *
  *		Transactions:
@@ -7904,7 +7953,7 @@ RuleActionStmt:
 			| InsertStmt
 			| UpdateStmt
 			| DeleteStmt
-			//| NotifyStmt TODO
+			| NotifyStmt
 		;
 
 RuleActionStmtOrEmpty:
@@ -9701,7 +9750,7 @@ AlterObjectSchemaStmt:
  *****************************************************************************/
 
 AlterOperatorStmt:
-			ALTER OPERATOR operator_with_argtypes SET '(' operator_def_list ')'
+			ALTER OPERATOR_P operator_with_argtypes SET '(' operator_def_list ')'
 				{
 					AlterOperatorStmt *n = makeNode(AlterOperatorStmt);
 					n->opername = $3;
