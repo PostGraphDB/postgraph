@@ -285,7 +285,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 			 AlterTableStmt AlterTblSpcStmt AnalyzeStmt AlterOpFamilyStmt AlterTypeStmt
 			 CreateConversionStmt CreateOpFamilyStmt CallStmt CreateStatsStmt
 			 CopyStmt ClusterStmt CreateAsStmt CreateOpClassStmt CreateGroupStmt CreatePolicyStmt
-			 CreateTransformStmt DefACLAction
+			 CreateTransformStmt DefACLAction 
              CreateCastStmt CreatedbStmt CreateEventTrigStmt CreateSchemaStmt
 			 CreateTrigStmt CreatePLangStmt CreateSeqStmt CreateRoleStmt 
              CreateExtensionStmt CreateFunctionStmt CreateGraphStmt 
@@ -300,6 +300,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 			 LockStmt 
              UseGraphStmt
 			 ReindexStmt RemoveFuncStmt ReturnStmt RenameStmt RevokeStmt
+			 RuleActionStmt RuleActionStmtOrEmpty RuleStmt
              SelectStmt
 			 TransactionStmt TransactionStmtLegacy TruncateStmt
              UpdateStmt
@@ -468,6 +469,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <defelt>	createdb_opt_item 
 %type <string>		createdb_opt_name 
 
+%type <integer>	event
 %type <integer>	object_type_any_name object_type_name object_type_name_on_any_name
 				drop_type_name
 
@@ -592,7 +594,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 			 aggr_args aggr_args_list
 			 func_as createfunc_opt_list opt_createfunc_opt_list alterfunc_opt_list
 			 old_aggr_definition old_aggr_list
-			 oper_argtypes
+			 oper_argtypes  RuleActionList RuleActionMulti
 			 opt_column_list
 			 sort_clause opt_sort_clause sortby_list index_params stats_params
 			 opt_include opt_c_include index_including_params
@@ -932,6 +934,7 @@ stmt:
 	| RemoveFuncStmt
 	| RenameStmt
 	| RevokeStmt
+	| RuleStmt
     | SelectStmt 
 	| TransactionStmt
 	| TransactionStmtLegacy
@@ -1525,7 +1528,7 @@ table_ref:	relation_expr opt_alias_clause
 					n->coldeflist = lsecond($3);
 					$$ = (Node *) n;
 				}
-			/*| xmltable opt_alias_clause
+			/*| xmltable opt_alias_clause TODO
 				{
 					RangeTableFunc *n = (RangeTableFunc *) $1;
 					n->alias = $2;
@@ -1933,7 +1936,7 @@ where_clause:
 /* variant for UPDATE and DELETE */
 where_or_current_clause:
 			WHERE a_expr							{ $$ = $2; }
-			/*| WHERE CURRENT_P OF cursor_name
+			/*| WHERE CURRENT_P OF cursor_name TODO
 				{
 					CurrentOfExpr *n = makeNode(CurrentOfExpr);
 					
@@ -7731,6 +7734,78 @@ opt_transaction_chain:
 			| AND NO CHAIN	{ $$ = false; }
 			| /* EMPTY */	{ $$ = false; }
 		;
+
+
+
+/*****************************************************************************
+ *
+ *		QUERY:	Define Rewrite Rule
+ *
+ *****************************************************************************/
+
+RuleStmt:	CREATE opt_or_replace RULE name AS
+			ON event TO qualified_name where_clause
+			DO opt_instead RuleActionList
+				{
+					RuleStmt *n = makeNode(RuleStmt);
+					n->replace = $2;
+					n->relation = $9;
+					n->rulename = $4;
+					n->whereClause = $10;
+					n->event = $7;
+					n->instead = $12;
+					n->actions = $13;
+					$$ = (Node *)n;
+				}
+		;
+
+RuleActionList:
+			NOTHING									{ $$ = NIL; }
+			| RuleActionStmt						{ $$ = list_make1($1); }
+			| '(' RuleActionMulti ')'				{ $$ = $2; }
+		;
+
+/* the thrashing around here is to discard "empty" statements... */
+RuleActionMulti:
+			RuleActionMulti ';' RuleActionStmtOrEmpty
+				{ if ($3 != NULL)
+					$$ = lappend($1, $3);
+				  else
+					$$ = $1;
+				}
+			| RuleActionStmtOrEmpty
+				{ if ($1 != NULL)
+					$$ = list_make1($1);
+				  else
+					$$ = NIL;
+				}
+		;
+
+RuleActionStmt:
+			SelectStmt
+			| InsertStmt
+			| UpdateStmt
+			| DeleteStmt
+			//| NotifyStmt TODO
+		;
+
+RuleActionStmtOrEmpty:
+			RuleActionStmt							{ $$ = $1; }
+			|	/*EMPTY*/							{ $$ = NULL; }
+		;
+
+event:		SELECT									{ $$ = CMD_SELECT; }
+			| UPDATE								{ $$ = CMD_UPDATE; }
+			| DELETE   							{ $$ = CMD_DELETE; }
+			| INSERT								{ $$ = CMD_INSERT; }
+		 ;
+
+opt_instead:
+			INSTEAD									{ $$ = true; }
+			| ALSO									{ $$ = false; }
+			| /*EMPTY*/								{ $$ = false; }
+		;
+
 
 
 
