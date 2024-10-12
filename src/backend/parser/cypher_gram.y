@@ -282,7 +282,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 			 AlterGroupStmt 
 			 AlterRoleStmt AlterRoleSetStmt AlterOwnerStmt AlterObjectSchemaStmt AlterOperatorStmt
 			 AlterTableStmt AlterTblSpcStmt AnalyzeStmt AlterOpFamilyStmt AlterTypeStmt
-			 CreateConversionStmt CreateOpFamilyStmt
+			 CreateConversionStmt CreateOpFamilyStmt CallStmt
 			 CopyStmt ClusterStmt CreateAsStmt CreateOpClassStmt CreateGroupStmt CreatePolicyStmt
 			 CreateTransformStmt DefACLAction
              CreateCastStmt CreatedbStmt CreateEventTrigStmt CreateSchemaStmt
@@ -883,6 +883,7 @@ stmt:
 	| AlterTblSpcStmt
 	| AlterTypeStmt
 	| AnalyzeStmt
+	| CallStmt
 	| CreateConversionStmt
 	| CopyStmt
 	| ClusterStmt
@@ -939,6 +940,22 @@ stmt:
 	| /*EMPTY*/
 		{ $$ = NULL; }
     ;
+
+
+/*****************************************************************************
+ *
+ * CALL statement
+ *
+ *****************************************************************************/
+
+CallStmt:	CALL func_application
+				{
+					CallStmt *n = makeNode(CallStmt);
+					n->funccall = castNode(FuncCall, $2);
+					$$ = (Node *)n;
+				}
+		;
+
 
 cypher_stmt:
     single_query
