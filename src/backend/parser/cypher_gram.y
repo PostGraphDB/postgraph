@@ -295,7 +295,8 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 			 DropRoleStmt
 			 ExplainStmt ExplainableStmt
              GrantStmt
-			 IndexStmt InsertStmt 
+			 IndexStmt InsertStmt
+			 LockStmt 
              UseGraphStmt
 			 ReindexStmt RemoveFuncStmt ReturnStmt RenameStmt RevokeStmt
              SelectStmt
@@ -337,11 +338,19 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <boolean>	TransitionRowOrTable TransitionOldOrNew
 %type <node>	TriggerTransition
 
-%type <integer>	cast_context
+%type <integer>	opt_lock lock_type cast_context
 %type <string>		utility_option_name
 %type <defelt>	utility_option_elem
 %type <list>	utility_option_list
 %type <node>	utility_option_arg
+%type <boolean> opt_or_replace opt_no
+                opt_grant_grant_option 
+				opt_nowait opt_if_exists
+				opt_with_data
+				opt_transaction_chain
+				optional_opt
+%type <integer>	opt_nowait_or_skip
+
 
 %type <boolean> opt_instead
 %type <boolean> opt_unique opt_concurrently opt_verbose opt_full
@@ -446,8 +455,6 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <jexpr>	joined_table
 %type <ielem>	index_elem index_elem_options
 
-%type <integer>	opt_nowait_or_skip
-
 %type <integer>	for_locking_strength
 %type <node>	for_locking_item
 %type <list>	for_locking_clause opt_for_locking_clause for_locking_items
@@ -509,12 +516,6 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 
 %type <defelt>	transaction_mode_item
 
-%type <boolean> opt_or_replace opt_no
-                opt_grant_grant_option 
-				opt_nowait opt_if_exists
-				opt_with_data
-				opt_transaction_chain
-				optional_opt
 
 /* CREATE clause */
 %type <node> create
@@ -923,6 +924,7 @@ stmt:
 	| GrantStmt 
 	| IndexStmt
     | InsertStmt 
+	| LockStmt
 	| ReindexStmt
 	| RemoveFuncStmt
 	| RenameStmt
@@ -2682,6 +2684,48 @@ CreateGraphStmt:
         }
         ;
 
+
+/*****************************************************************************
+ *
+ *		QUERY:
+ *				LOCK TABLE
+ *
+ *****************************************************************************/
+
+LockStmt:	LOCK_P opt_table relation_expr_list opt_lock opt_nowait
+				{
+					LockStmt *n = makeNode(LockStmt);
+
+					n->relations = $3;
+					n->mode = $4;
+					n->nowait = $5;
+					$$ = (Node *)n;
+				}
+		;
+
+opt_lock:	IN lock_type MODE				{ $$ = $2; }
+			| /*EMPTY*/						{ $$ = AccessExclusiveLock; }
+		;
+
+lock_type:	ACCESS SHARE					{ $$ = AccessShareLock; }
+			| ROW SHARE						{ $$ = RowShareLock; }
+			| ROW EXCLUSIVE					{ $$ = RowExclusiveLock; }
+			| SHARE UPDATE EXCLUSIVE		{ $$ = ShareUpdateExclusiveLock; }
+			| SHARE							{ $$ = ShareLock; }
+			| SHARE ROW EXCLUSIVE			{ $$ = ShareRowExclusiveLock; }
+			| EXCLUSIVE						{ $$ = ExclusiveLock; }
+			| ACCESS EXCLUSIVE				{ $$ = AccessExclusiveLock; }
+		;
+
+opt_nowait:	NOWAIT							{ $$ = true; }
+			| /*EMPTY*/						{ $$ = false; }
+		;
+
+opt_nowait_or_skip:
+			NOWAIT							{ $$ = LockWaitError; }
+			| SKIP LOCKED					{ $$ = LockWaitSkip; }
+			| /*EMPTY*/						{ $$ = LockWaitBlock; }
+		;
 
 
 /*****************************************************************************
