@@ -41,7 +41,9 @@
  */
 typedef struct cypher_yy_extra
 {
-
+	/* state variables for literal-lexing warnings */
+	bool		warn_on_first_escape;
+	bool		saw_non_ascii;
     List *result;
 } cypher_yy_extra;
 

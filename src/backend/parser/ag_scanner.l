@@ -35,6 +35,26 @@
 #include "parser/scansup.h"
 
 #include "parser/ag_scanner.h"
+#define YYLTYPE  int
+
+
+/*
+ * Advance yylloc by the given number of bytes.
+ */
+#define ADVANCE_YYLLOC(delta)  ( *(yylloc) += (delta) )
+
+/*
+ * Sometimes, we do want yylloc to point into the middle of a token; this is
+ * useful for instance to throw an error about an escape sequence within a
+ * string literal.  But if we find no error there, we want to revert yylloc
+ * to the token start, so that that's the location reported to the parser.
+ * Use PUSH_YYLLOC/POP_YYLLOC to save/restore yylloc around such code.
+ * (Currently the implied "stack" is just one location, but someday we might
+ * need to nest these.)
+ */
+#define PUSH_YYLLOC()	(yyextra->save_yylloc = *(yylloc))
+#define POP_YYLLOC()	(*(yylloc) = yyextra->save_yylloc)
+
 }
 
 %option 8bit
@@ -178,14 +198,6 @@ hexintfail 0[Xx]
  * dot_dot can be matched next.
  */
 decimal     {digitseq}\.{digit}*|\.{digitseq}
-inetseq     ({digitseq}\.{digit}+\.{digitseq}\.{digitseq}(\/{digitseq})?)|{digitseq}\.{digit}+\.{digitseq}(\/{digitseq})?
-
-inetseqfail  {digitseq}\.{digit}+\.
-inetseqfail2 {digitseq}\.{digit}+\.{digitseq}
-inetseqfail3 {digitseq}\.{digit}+\.{digitseq}\.
-inetseqfail4 {digitseq}\.{digit}+\.{digitseq}\.{digitseq}\/
-inetseqfail5 {digitseq}\.{digit}+\.{digitseq}\/
-
 decimalfail {digitseq}\.\.
 
 /*
@@ -224,6 +236,7 @@ xbinside		[^']*
 /* Hexadecimal number */
 xhstart			[xX]{squote}
 xhinside		[^']*
+
 
 
 dolq_start		[A-Za-z\200-\377_]
@@ -314,6 +327,8 @@ typedef struct ag_yy_extra
      * large to fit in "int" type
      */
     strbuf literal_buf;
+	int			literallen;		/* actual current string length */
+	int			literalalloc;	/* current allocated buffer size */
 
     // for Unicode surrogate pair
     pg_wchar high_surrogate;
@@ -322,6 +337,21 @@ typedef struct ag_yy_extra
     // for the location of the current token and the actual position of it
     const char *scan_buf;
     int last_loc;
+
+	/*
+	 * Random assorted scanner state.
+	 */
+	int			state_before_str_stop;	/* start cond. before end quote */
+	int			xcdepth;		/* depth of nesting in slash-star comments */
+	char	   *dolqstart;		/* current $foo$ quote start string */
+	YYLTYPE		save_yylloc;	/* one-element stack for PUSH_YYLLOC() */
+
+	/* first part of UTF16 surrogate pair for Unicode escapes */
+	int32		utf16_first_part;
+
+	/* state variables for literal-lexing warnings */
+	bool		warn_on_first_escape;
+	bool		saw_non_ascii;
 } ag_yy_extra;
 
 static void integer_literal_to_token(const char *s, ag_token *token,
@@ -426,13 +456,6 @@ ag_token token;
     token.location = get_location();
     return token;
 }
-{inetseq} {
-    update_location();
-    token.type = AG_TOKEN_INET;
-    token.value.s = yytext;
-    token.location = get_location();
-    return token;
-}
 
 {decimalfail} {
     // return dot_dot back to the input stream
@@ -444,29 +467,6 @@ ag_token token;
     integer_literal_to_token(yytext, &token, &yyextra);
     token.location = get_location();
     return token;
-}
-
-{inetseqfail} {
-    // return dot_dot back to the input stream
-    yyless(yyleng - 1);
-
-    update_location();
-    
-    // consume digitseq
-    integer_literal_to_token(yytext, &token, &yyextra);
-    token.location = get_location();
-    return token;
-}
-
-
-{inetseqfail2} |
-{inetseqfail3} |
-{inetseqfail4} |
-{inetseqfail5} {
-    update_location();
-    ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
-                    scan_errmsg("invalid scientific notation literal"),
-                    scan_errposition()));
 }
 
 
@@ -742,12 +742,11 @@ ag_token token;
 					 */
 					//SET_YYLLOC();
 					BEGIN(xb);
-					//startlit();
-					//addlitchar('x', scanner);
-                    //strbuf_append_char(&yyextra.literal_buf, '\\');
-                    strbuf_append_char(&yyextra.literal_buf, 'x');
+                    strbuf_append_char(&yyextra.literal_buf, 'b');
 				}
-
+<xb>{xbinside}	{
+        strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
+				}
 <xb><<EOF>>		{ 
     ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
                     scan_errmsg("unterminated hexadecimal string literal"),
@@ -764,12 +763,11 @@ ag_token token;
      */
 
     token.type = AG_TOKEN_BCONST;
-    //token.value.s = strbuf_get_str(&yyextra.literal_buf);
-    //token.value.s = copy_string(strbuf_get_str(&yyextra.literal_buf), yyleng);
     token.value.s = strbuf_get_str(&yyextra.literal_buf);
     token.location = get_location();
     return token;
 }
+
 
 {xhstart}		{
 					/* Hexadecimal bit type.
@@ -778,20 +776,13 @@ ag_token token;
 					 * In the meantime, place a leading "x" on the string
 					 * to mark it for the input routine as a hex string.
 					 */
-					//SET_YYLLOC();
 					BEGIN(xh);
-					//startlit();
-					//addlitchar('x', scanner);
-                    //strbuf_append_char(&yyextra.literal_buf, '\\');
                     strbuf_append_char(&yyextra.literal_buf, 'x');
 				}
-                /*
+                
 <xh>{xhinside}	{
-   // strbuf_append_buf(&yyextra.literal_buf, 'x', 1);
         strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
-					//addlit(yytext, yyleng, scanner);
-				}
-                */
+}
 <xh><<EOF>>		{ 
     ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
                     scan_errmsg("unterminated hexadecimal string literal"),
@@ -892,7 +883,7 @@ ag_token token;
      * rules verify the code point values. So, quoted strings are always valid.
      */
 
-    token.type = AG_TOKEN_IDENTIFIER;
+    token.type = AG_TOKEN_CS_IDENTIFIER;
     token.value.s = strbuf_get_str(&yyextra.literal_buf);
     token.location = get_location();
     return token;
@@ -1040,13 +1031,6 @@ ag_token token;
     token.value.c = '\0';
     token.location = get_location();
     return token;
-}
-
-other	{
-    ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
-                    errmsg("bad input character '%s' at line %d", yytext, yylineno),
-                    scan_errposition()));
-
 }
 
 %%
