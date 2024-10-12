@@ -295,12 +295,13 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
              DefineStmt DeleteStmt DoStmt DropCastStmt DropdbStmt DropGraphStmt
 			 DropStmt DropTableSpaceStmt DropTransformStmt DropOpClassStmt DropOpFamilyStmt
 			 DropRoleStmt
-			 ExplainStmt ExplainableStmt
+			 ExplainStmt ExplainableStmt ExecuteStmt
 			 FetchStmt
              GrantStmt
 			 IndexStmt InsertStmt
 			 LockStmt 
              UseGraphStmt
+			 PrepareStmt
 			 ReindexStmt RemoveFuncStmt ReturnStmt RenameStmt RevokeStmt
 			 RuleActionStmt RuleActionStmtOrEmpty RuleStmt
              SelectStmt
@@ -612,7 +613,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
              set_clause_list set_clause
 			 opt_type_modifiers
 			 def_list operator_def_list
-             using_clause
+             execute_param_clause using_clause
              indirection opt_indirection
 			 attrs
              var_list
@@ -620,6 +621,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 			 create_generic_options
 			 table_func_column_list
 			 OptTableFuncElementList TableFuncElementList
+			 prep_type_clause
 			 alter_generic_options
 			 relation_expr_list dostmt_opt_list
 			 transform_element_list transform_type_list
@@ -927,12 +929,14 @@ stmt:
 	| DropStmt 
 	| DropTableSpaceStmt
 	| DropTransformStmt
+	| ExecuteStmt
 	| ExplainStmt
 	| FetchStmt
 	| GrantStmt 
 	| IndexStmt
     | InsertStmt 
 	| LockStmt
+	| PrepareStmt
 	| ReindexStmt
 	| RemoveFuncStmt
 	| RenameStmt
@@ -1418,6 +1422,34 @@ opt_all_clause:
 			| /*EMPTY*/
 		;
 
+
+opt_name_list:
+			'(' name_list ')'						{ $$ = $2; }
+			| /*EMPTY*/								{ $$ = NIL; }
+		;
+
+
+/*****************************************************************************
+ *
+ *		QUERY:
+ *				PREPARE <plan_name> [(args, ...)] AS <query>
+ *
+ *****************************************************************************/
+
+PrepareStmt: PREPARE name prep_type_clause AS PreparableStmt
+				{
+					PrepareStmt *n = makeNode(PrepareStmt);
+					n->name = $2;
+					n->argtypes = $3;
+					n->query = $5;
+					$$ = (Node *) n;
+				}
+		;
+
+prep_type_clause: '(' type_list ')'			{ $$ = $2; }
+				| /* EMPTY */				{ $$ = NIL; }
+		;
+
 PreparableStmt:
 			SelectStmt
 			| InsertStmt
@@ -1425,11 +1457,60 @@ PreparableStmt:
 			| DeleteStmt					/* by default all are $$=$1 */
 		;
 
+/*****************************************************************************
+ *
+ * EXECUTE <plan_name> [(params, ...)]
+ * CREATE TABLE <name> AS EXECUTE <plan_name> [(params, ...)]
+ *
+ *****************************************************************************/
 
-opt_name_list:
-			'(' name_list ')'						{ $$ = $2; }
-			| /*EMPTY*/								{ $$ = NIL; }
+ExecuteStmt: EXECUTE name execute_param_clause
+				{
+					ExecuteStmt *n = makeNode(ExecuteStmt);
+					n->name = $2;
+					n->params = $3;
+					$$ = (Node *) n;
+				}
+			| CREATE OptTemp TABLE create_as_target AS
+				EXECUTE name execute_param_clause opt_with_data
+				{
+					CreateTableAsStmt *ctas = makeNode(CreateTableAsStmt);
+					ExecuteStmt *n = makeNode(ExecuteStmt);
+					n->name = $7;
+					n->params = $8;
+					ctas->query = (Node *) n;
+					ctas->into = $4;
+					ctas->objtype = OBJECT_TABLE;
+					ctas->is_select_into = false;
+					ctas->if_not_exists = false;
+					/* cram additional flags into the IntoClause */
+					$4->rel->relpersistence = $2;
+					$4->skipData = !($9);
+					$$ = (Node *) ctas;
+				}
+			| CREATE OptTemp TABLE IF NOT EXISTS create_as_target AS
+				EXECUTE name execute_param_clause opt_with_data
+				{
+					CreateTableAsStmt *ctas = makeNode(CreateTableAsStmt);
+					ExecuteStmt *n = makeNode(ExecuteStmt);
+					n->name = $10;
+					n->params = $11;
+					ctas->query = (Node *) n;
+					ctas->into = $7;
+					ctas->objtype = OBJECT_TABLE;
+					ctas->is_select_into = false;
+					ctas->if_not_exists = true;
+					/* cram additional flags into the IntoClause */
+					$7->rel->relpersistence = $2;
+					$7->skipData = !($12);
+					$$ = (Node *) ctas;
+				}
 		;
+
+execute_param_clause: '(' expr_list ')'				{ $$ = $2; }
+					| /* EMPTY */					{ $$ = NIL; }
+					;
+
 /*****************************************************************************
  *
  *	target list for SELECT
@@ -6284,7 +6365,7 @@ ExplainableStmt:
 			| CreateAsStmt
 			//| CreateMatViewStmt TODO
 			//| RefreshMatViewStmt
-			//| ExecuteStmt					
+			| ExecuteStmt					
 		;
 
 opt_recheck:	RECHECK
