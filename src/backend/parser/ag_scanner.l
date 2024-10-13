@@ -156,6 +156,23 @@
 %x xus
 %x xeu
 
+/*
+ * In order to make the world safe for Windows and Mac clients as well as
+ * Unix ones, we accept either \n or \r as a newline.  A DOS-style \r\n
+ * sequence will be seen as two successive newlines, but that doesn't cause
+ * any problems.  Comments that start with -- and extend to the next
+ * newline are treated as equivalent to a single whitespace character.
+ *
+ * NOTE a fine point: if there is no newline following --, we will absorb
+ * everything to the end of the input as a comment.  This is correct.  Older
+ * versions of Postgres failed to recognize -- as a comment if the input
+ * did not end with a newline.
+ *
+ * XXX perhaps \f (formfeed) should be treated as a newline as well?
+ *
+ * XXX if you change the set of whitespace characters, fix scanner_isspace()
+ * to agree.
+ */
 
 space			[ \t\n\r\f]
 horiz_space		[ \t\f]
@@ -190,41 +207,6 @@ quotecontinue	{whitespace_with_newline}{squote}
 quotecontinuefail	{whitespace}*"-"?
 
 /*
- * Comment rule for multi-line comment in Cypher does not match comments that
- * end with an odd number of "*"s before the closing sequence.
- * Therefore, the rule has been modified so that it can match such comments.
- */
-%x mlcomment
-mlcstart  "/*"
-mlcchars  [^*]+|\*+
-mlcstop    \*+\/
-slcomment "//"[^\n\r]*
-
-/*
- * For numbers, unary plus and minus are handled as operators later in Cypher
- * grammar although JSON numbers may be prefixed with an optional minus sign.
- *
- * JSON does not support octal and hexadecimal integer literals.
- */
-
-digit    [0-9]
-hexdigit [0-9A-Fa-f]
-
-/*
- * digitseq pattern covers DecimalInteger and OctalInteger rules in Cypher.
- * Integer in JSON is represented in "0|[1-9][0-9]*" pattern that is covered by
- * digitseq pattern.
- */
-digitseq {digit}+
-
-/*
- * hexint pattern covers HexInteger rule in Cypher and also accepts "0X" prefix
- * for convenience.
- */
-hexint     0[Xx]{hexdigit}+
-hexintfail 0[Xx]
-
-/*
  * These patterns cover StringLiteral rule in Cypher and JSON strings.
  * The escape sequence "\/" has been added for JSON strings.
  *
@@ -236,7 +218,6 @@ hexintfail 0[Xx]
  *
  * qstru start condition is for Unicode low surrogates.
  */
-%x dqstr sqstr qstru
 dquote        \"
 
 xdstart			{dquote}
@@ -244,16 +225,25 @@ xdstop			{dquote}
 xddouble		{dquote}{dquote}
 xdinside		[^"]+
 
+
 /* Quoted identifier with Unicode escapes */
 xuistart		[uU]&{dquote}
 
 /* Quoted string with Unicode escapes */
-xusstart		[uU]&{quote}
+xusstart		[uU]&{squote}
 
 /* error rule to avoid backup */
 xufailed		[uU]&
 
-/* Hexadecimal number */
+/* Bit string
+ * It is tempting to scan the string for only those characters
+ * which are allowed. However, this leads to silently swallowed
+ * characters if illegal characters are included in the string.
+ * For example, if xbinside is [01] then B'ABCD' is interpreted
+ * as a zero-length string, and the ABCD' is lost!
+ * Better to pass the string forward and let the input routines
+ * validate the contents.
+ */
 xbstart			[bB]{squote}
 xbinside		[^']*
 
@@ -279,35 +269,58 @@ xeunicodefail	[\\](u[0-9A-Fa-f]{0,3}|U[0-9A-Fa-f]{0,7})
 xqstart			{squote}
 xqdouble		{squote}{squote}
 xqinside		[^']+
-
+xescape \\
+/* $foo$ style quotes ("dollar quoting")
+ * The quoted string starts with $foo$ where "foo" is an optional string
+ * in the form of an identifier, except that it may not contain "$",
+ * and extends to the first occurrence of an identical string.
+ * There is *no* processing of the quoted text.
+ *
+ * {dolqfailed} is an error rule to avoid scanner backup when {dolqdelim}
+ * fails to match its trailing "$".
+ */
 dolq_start		[A-Za-z\200-\377_]
 dolq_cont		[A-Za-z\200-\377_0-9]
 dolqdelim              \$({dolq_start}{dolq_cont}*)?\$
 dolqfailed		\${dolq_start}{dolq_cont}*
 dolqinside             [^$]+
 
-sqchars       [^'\\]+
-esascii       \\[^0-7]
-esasciifail   \\[^Uu]?
-esunicode     \\(U{hexdigit}{8}|u{hexdigit}{4})
-esunicodefail \\(U{hexdigit}{0,7}|u{hexdigit}{0,3})
-doublequote {squote}{squote}
-escapecode     \\{digit}{3}
-escapecodefail     \\{digit}{0,2}
-hexcode     \\(x{hexdigit}+|X{hexdigit}+)
-hexcodefail \\(X|x)
-any           (?s:.)
+/* C-style comments
+ *
+ * The "extended comment" syntax closely resembles allowable operator syntax.
+ * The tricky part here is to get lex to recognize a string starting with
+ * slash-star as a comment, when interpreting it as an operator would produce
+ * a longer match --- remember lex will prefer a longer match!  Also, if we
+ * have something like plus-slash-star, lex will think this is a 3-character
+ * operator whereas we want to see it as a + operator and a comment start.
+ * The solution is two-fold:
+ * 1. append {op_chars}* to xcstart so that it matches as much text as
+ *    {operator} would. Then the tie-breaker (first matching rule of same
+ *    length) ensures xcstart wins.  We put back the extra stuff with yyless()
+ *    in case it contains a star-slash that should terminate the comment.
+ * 2. In the operator rule, check for slash-star within the operator, and
+ *    if found throw it back with yyless().  This handles the plus-slash-star
+ *    problem.
+ * Dash-dash comments have similar interactions with the operator rule.
+ */
+xcstart			\/\*[\~\!\@\#\^\&\|\`\?\+\-\*\/\%\<\>\=]*
+xcstop			\*+\/
+xcinside		[^*/]+
+
+/*
+ * For numbers, unary plus and minus are handled as operators later in Cypher
+ * grammar although JSON numbers may be prefixed with an optional minus sign.
+ *
+ * JSON does not support octal and hexadecimal integer literals.
+ */
+
+digit    [0-9]
+digitseq {digit}+
 
 /* id pattern is for UnescapedSymbolicName rule in Cypher. */
 id      {idstart}{idcont}*
 idstart [A-Z_a-z\x80-\xFF]
 idcont  [$0-9A-Z_a-z\x80-\xFF]
-
-/* These are for EscapedSymbolicName rule in Cypher. */
-%x bqid
-bquote   `
-bqchars  [^`]+
-esbquote {bquote}{bquote}
 
 dot_dot  ".."
 typecast "::"
@@ -316,7 +329,7 @@ colon_equals ":="
  * These are tokens that are used as operators and language constructs in
  * Cypher, and some of them are structural characters in JSON.
  */
-eq_gt "=>"
+eq_gt  "=>"
 lt_gt    "<>"|"!="
 lt_eq    "<="
 gt_eq    ">="
@@ -350,17 +363,7 @@ real      ({digitseq}|{decimal})[Ee][+-]?{digitseq}
 realfail1 ({digitseq}|{decimal})[Ee]
 realfail2 ({digitseq}|{decimal})[Ee][+-]
 
-/*
- * Parameter rule in Cypher is "$" followed by SymbolicName or DecimalInteger
- * rule. However, according to "Cypher Query Language Reference",
- *
- *     Parameters may consist of letters and numbers, and any combination of
- *     these, but cannot start with a number or a currency symbol.
- *
- * So, a modified version of Parameter rule that follows the above explanation
- * has been used.
- */
-param (\${id})|(\${digitseq})
+param \${digitseq}
 
 other .
 
@@ -383,6 +386,7 @@ static void strbuf_ensure_capacity(strbuf *sb, int len);
 static const char *strbuf_get_str(strbuf *sb);
 static void strbuf_reset(strbuf *sb);
 char *copy_string(const char *ident, int len);
+
 
 typedef struct ag_yy_extra
 {
@@ -436,6 +440,8 @@ typedef struct ag_yy_extra
 	bool		warn_on_first_escape;
 	bool		saw_non_ascii;
 } ag_yy_extra;
+
+static unsigned char unescape_single_char(unsigned char c, ag_yy_extra *extra);
 
 static void integer_literal_to_token(const char *s, ag_token *token,
                                      ag_yy_extra *extra);
@@ -491,54 +497,61 @@ ag_token token;
     // ignore
 }
 
-{mlcstart} {
-    // update location in case of unterminated comment
-    update_location();
-    BEGIN(mlcomment);
-}
 
-<mlcomment>{mlcchars} {
-    // ignore
-}
+{xcstart}		{
+					/* Set location in case of syntax error in comment */
+					//SET_YYLLOC();
+					yyextra.xcdepth = 0;
+					BEGIN(xc);
+					/* Put back any characters past slash-star; see above */
+					yyless(2);
+				}
 
-<mlcomment>{mlcstop} {
-    BEGIN(INITIAL);
-}
+<xc>{
+    {xcstart}		{
+					(yyextra.xcdepth)++;
+					/* Put back any characters past slash-star; see above */
+					yyless(2);
+				}
 
-<mlcomment><<EOF>> {
-    ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
-                    scan_errmsg("unterminated /* comment"),
-                    scan_errposition()));
-}
+{xcstop}		{
+					if (yyextra.xcdepth <= 0)
+						BEGIN(INITIAL);
+					else
+						(yyextra.xcdepth)--;
+				}
 
-{slcomment} {
-    // ignore
-}
+{xcinside}		{
+					/* ignore */
+				}
+\*+				{
+					/* ignore */
+				}
 
+<<EOF>>			{
 
-{digitseq} |
-{hexint} {
+                    ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                        scan_errmsg("unterminated /* comment"),
+                        scan_errposition()));
+				}
+} /* <xc> */
+
+{digitseq} {
     update_location();
     integer_literal_to_token(yytext, &token, &yyextra);
     token.location = get_location();
     return token;
 }
 
-{hexintfail} {
-    update_location();
-    ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
-                    scan_errmsg("invalid hexadecimal integer literal"),
-                    scan_errposition()));
-}
-
-{decimal} |
-{real} {
+{real} |
+{decimal} {
     update_location();
     token.type = AG_TOKEN_DECIMAL;
     token.value.s = yytext;
     token.location = get_location();
     return token;
 }
+
 
 {decimalfail} {
     // return dot_dot back to the input stream
@@ -561,251 +574,17 @@ ag_token token;
                     scan_errposition()));
 }
 
-
-{squote} {
+{xbstart} {
     update_location();
+	/* Hexadecimal bit type.
+	 * At some point we should simply pass the string
+	 * forward to the parser and label it there.
+	 * In the meantime, place a leading "x" on the string
+     * to mark it for the input routine as a hex string.
+	 */
+	BEGIN(xb);
     strbuf_reset(&yyextra.literal_buf);
-    BEGIN(sqstr);
 }
-
-
-<sqstr>{sqchars} {
-    strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
-}
-
-<dqstr,sqstr>{esascii} {
-    char c;
-
-    switch (yytext[1])
-    {
-    case 'b':
-        c = '\b';
-        break;
-    case 'f':
-        c = '\f';
-        break;
-    case 'n':
-        c = '\n';
-        break;
-    case 'r':
-        c = '\r';
-        break;
-    case 't':
-        c = '\t';
-        break;
-    default:
-        // '"', '\'', '/', and '\\'
-        c = yytext[1];
-        break;
-    }
-
-    strbuf_append_char(&yyextra.literal_buf, c);
-}
-
-<dqstr,sqstr>{esasciifail} {
-    if (yyleng == 1)
-    {
-        /*
-         * This happens when the scanner meets "\"<<EOF>>. Just consume "\"
-         * so that <dqstr,sqstr,qstru><<EOF>> rule can do the rest.
-         */
-        strbuf_append_char(&yyextra.literal_buf, '\\');
-    }
-    else
-    {
-        update_location();
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
-                 scan_errmsg("invalid escape sequence"),
-                 errdetail("Valid escape sequences are \\\", \\', \\/, \\\\, \\d, \\b, \\f, \\n, \\r, \\t, \\w, \\uXXXX, and \\UXXXXXXXX."),
-                 scan_errposition()));
-    }
-}
-<dqstr,sqstr>{doublequote} {
-    strbuf_append_char(&yyextra.literal_buf, '\'');
-}
-
-<dqstr,sqstr>{esunicode} {
-    pg_wchar c;
-
-    // It is unnecessary to check endptr and errno here.
-    c = strtoul(yytext + 2, NULL, 16);
-    if (c > 0x10FFFF)
-    {
-        // c is greater than the maximum value of a Unicode code point.
-        update_location();
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
-                 scan_errmsg("invalid Unicode escape value"),
-                 errdetail("Unicode escape values cannot be greater than 10FFFF, which is the maximum value of a code point."),
-                 scan_errposition()));
-    }
-    else if (c > 0x7F)
-    {
-        if (GetDatabaseEncoding() != PG_UTF8)
-        {
-            update_location();
-            ereport(ERROR,
-                    (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
-                     scan_errmsg("unsupported Unicode escape value"),
-                     errdetail("Unicode escape values cannot be used for code point values above 007F when the server encoding is not UTF8."),
-                     scan_errposition()));
-        }
-
-        if (is_high_surrogate(c))
-        {
-            yyextra.high_surrogate = c;
-            yyextra.start_cond = YY_START;
-            BEGIN(qstru);
-        }
-        else if (is_low_surrogate(c))
-        {
-            update_location();
-            ereport(ERROR,
-                    (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
-                     scan_errmsg("invalid Unicode surrogate pair"),
-                     errdetail("A low surrogate must follow a high surrogate."),
-                     scan_errposition()));
-        }
-        else
-        {
-            strbuf_append_codepoint(&yyextra.literal_buf, c);
-        }
-    }
-    else if (c > 0)
-    {
-        // c is an ASCII character.
-        strbuf_append_char(&yyextra.literal_buf, (char)c);
-    }
-    else
-    {
-        /*
-         * U+0000 NUL is the minimum value of a Unicode code point.
-         * However, it is invalid in quoted strings as well as query strings.
-         */
-        update_location();
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
-                 scan_errmsg("unsupported Unicode escape value"),
-                 errdetail("Unicode code point value 0000 is not allowed in quoted strings."),
-                 scan_errposition()));
-    }
-}
-
-<qstru>{esunicode} {
-    pg_wchar c;
-
-    c = strtoul(yytext + 2, NULL, 16);
-    if (is_low_surrogate(c))
-    {
-        c = surrogate_pair_to_codepoint(yyextra.high_surrogate, c);
-        // 0x010000 <= c <= 0x10FFFF always holds for surrogate pairs.
-        strbuf_append_codepoint(&yyextra.literal_buf, c);
-        BEGIN(yyextra.start_cond);
-    }
-    else
-    {
-        update_location();
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
-                 scan_errmsg("invalid Unicode surrogate pair"),
-                 errdetail("A low surrogate must follow a high surrogate."),
-                 scan_errposition()));
-    }
-}
-
-<qstru>{escapecode} {
-    pg_wchar c;
-
-    c = strtoul(yytext + 2, NULL, 16);
-    if (is_low_surrogate(c))
-    {
-        c = surrogate_pair_to_codepoint(yyextra.high_surrogate, c);
-        // 0x010000 <= c <= 0x10FFFF always holds for surrogate pairs.
-        strbuf_append_codepoint(&yyextra.literal_buf, c);
-        BEGIN(yyextra.start_cond);
-    }
-    else
-    {
-        update_location();
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
-                 scan_errmsg("invalid escapecode surrogate pair"),
-                 errdetail("A low surrogate must follow a high surrogate."),
-                 scan_errposition()));
-    }
-}
-
-<qstru>{hexcode} {
-    pg_wchar c;
-
-    c = strtoul(yytext + 2, NULL, 16);
-    if (is_low_surrogate(c))
-    {
-        c = surrogate_pair_to_codepoint(yyextra.high_surrogate, c);
-        // 0x010000 <= c <= 0x10FFFF always holds for surrogate pairs.
-        strbuf_append_codepoint(&yyextra.literal_buf, c);
-        BEGIN(yyextra.start_cond);
-    }
-    else
-    {
-        update_location();
-        ereport(ERROR,
-                (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
-                 scan_errmsg("invalid Hexcode surrogate pair"),
-                 errdetail("A low surrogate must follow a high surrogate."),
-                 scan_errposition()));
-    }
-}
-
-<dqstr,sqstr,qstru>{hexcodefail} {
-    update_location();
-    ereport(ERROR,
-            (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
-             scan_errmsg("invalid Unicode escape sequence"),
-             errhint("Unicode escape sequences must be \\uXXXX or \\UXXXXXXXX."),
-             scan_errposition()));
-}
-
-<dqstr,sqstr,qstru>{escapecodefail} {
-    update_location();
-    ereport(ERROR,
-            (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
-             scan_errmsg("invalid Unicode escape sequence"),
-             errhint("Unicode escape sequences must be \\uXXXX or \\UXXXXXXXX."),
-             scan_errposition()));
-}
-
-<dqstr,sqstr,qstru>{esunicodefail} {
-    update_location();
-    ereport(ERROR,
-            (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
-             scan_errmsg("invalid Unicode escape sequence"),
-             errhint("Unicode escape sequences must be \\uXXXX or \\UXXXXXXXX."),
-             scan_errposition()));
-}
-
-<qstru>{any} {
-    update_location();
-    ereport(ERROR, (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
-                    scan_errmsg("invalid Unicode surrogate pair"),
-                    errdetail("A low surrogate must follow a high surrogate."),
-                    scan_errposition()));
-}
-
-
-{xbstart}		{
-					/* Hexadecimal bit type.
-					 * At some point we should simply pass the string
-					 * forward to the parser and label it there.
-					 * In the meantime, place a leading "x" on the string
-					 * to mark it for the input routine as a hex string.
-					 */
-					//SET_YYLLOC();
-					BEGIN(xb);
-                     strbuf_reset(&yyextra.literal_buf);
-                    //strbuf_append_char(&yyextra.literal_buf, 'b');
-				}
 
 <xb><<EOF>>		{ 
     ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
@@ -814,6 +593,7 @@ ag_token token;
     }
 
 {xhstart}		{
+    update_location();
 					/* Hexadecimal bit type.
 					 * At some point we should simply pass the string
 					 * forward to the parser and label it there.
@@ -827,6 +607,7 @@ ag_token token;
 
 <xh>{xhinside}	|
 <xb>{xbinside}	{
+    update_location();
         strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
 }
 
@@ -836,15 +617,38 @@ ag_token token;
                     scan_errposition()));
     }
 
-{xestart}		{
-					yyextra.warn_on_first_escape = false;
+{xqstart}		{
+    update_location();
+					yyextra.warn_on_first_escape = true;
 					yyextra.saw_non_ascii = false;
 					//SET_YYLLOC();
-					BEGIN(xe);
-                     strbuf_reset(&yyextra.literal_buf);
+					if (yyextra.standard_conforming_strings)
+						BEGIN(xq);
+					else
+						BEGIN(xe);
+
+                    strbuf_reset(&yyextra.literal_buf);
 					//startlit();
 				}
+{xusstart}		{
+    update_location();
+	if (!yyextra.standard_conforming_strings)
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("unsafe use of string constant with Unicode escapes"),
+				 errdetail("String constants with Unicode escapes cannot be used when standard_conforming_strings is off."),
+				 scan_errposition()));
+	BEGIN(xus);
+}
+{xestart} {
+    update_location();
+	yyextra.warn_on_first_escape = false;
+	yyextra.saw_non_ascii = false;
+	BEGIN(xe);
+    strbuf_reset(&yyextra.literal_buf);
+}
 <xqs>{quotecontinue} {
+
 					/*
 					 * Found a quote continuation, so return to the in-quote
 					 * state and continue scanning the literal.  Nothing is
@@ -927,10 +731,11 @@ ag_token token;
 				}
 <xq,xus>{xqinside}  {
     strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
-				}
+}
 
 
 <xui>{dquote}	{
+
 					BEGIN(INITIAL);
 					if (yyextra.literal_buf.length == 0)
                          ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
@@ -1066,7 +871,7 @@ ag_token token;
                         errhint("Use the escape string syntax for escapes, e.g., E'\\r\\n'.")));
                     yyextra.warn_on_first_escape = false;		/* warn only once per string */
 
-                    strbuf_append_char(&yyextra.literal_buf, yytext[1]);
+                    strbuf_append_char(&yyextra.literal_buf, unescape_single_char(yytext[1], yyscanner));
 				}
 <xe>{xeoctesc}  {
 					unsigned char c = strtoul(yytext + 1, NULL, 8);
@@ -1138,159 +943,118 @@ ag_token token;
 
 
 {dolqdelim}		{
-					//SET_YYLLOC();
-					yyextra.dolqstart = pstrdup(yytext);
-					BEGIN(xdolq);
-					//startlit();
-				}
-{dolqfailed}	{
-					//SET_YYLLOC();
-					/* throw back all but the initial "$" */
-					yyless(1);
-					/* and treat it as {other} */
-					//return yytext[0];
-                    token.type = AG_TOKEN_CHAR;
-                    token.value.c = yytext[0];
-                    token.location = get_location();
-                    return token;
-				}
+	yyextra.dolqstart = pstrdup(yytext);
+	BEGIN(xdolq);
+}
+{dolqfailed} {
+	/* throw back all but the initial "$" */
+	yyless(1);
+	/* and treat it as {other} */
+	token.type = AG_TOKEN_CHAR;
+    token.value.c = yytext[0];
+    token.location = get_location();
+    return token;
+}
 <xdolq>{dolqdelim} {
-					if (strcmp(yytext, yyextra.dolqstart) == 0)
-					{
-						pfree(yyextra.dolqstart);
-						yyextra.dolqstart = NULL;
-						BEGIN(INITIAL);
-						/*yylval->str = litbufdup(yyscanner);
-						return SCONST;*/
-
-                        token.type = AG_TOKEN_STRING;
-                        token.value.s = strbuf_get_str(&yyextra.literal_buf);
-                        token.location = get_location();
-                        return token;
-					}
-					else
-					{
-						/*
-						 * When we fail to match $...$ to dolqstart, transfer
-						 * the $... part to the output, but put back the final
-						 * $ for rescanning.  Consider $delim$...$junk$delim$
-						 */
-						//addlit(yytext, yyleng - 1, yyscanner);
-						strbuf_trunc_buf(&yyextra.literal_buf, 1);
-                        yyless(yyleng - 1);
-					}
-				}
+	if (strcmp(yytext, yyextra.dolqstart) == 0) {
+		pfree(yyextra.dolqstart);
+		yyextra.dolqstart = NULL;
+		BEGIN(INITIAL);
+        token.type = AG_TOKEN_STRING;
+        token.value.s = strbuf_get_str(&yyextra.literal_buf);
+        token.location = get_location();
+        return token;
+	} else {
+	    /*
+		 * When we fail to match $...$ to dolqstart, transfer
+		 * the $... part to the output, but put back the final
+		 * $ for rescanning.  Consider $delim$...$junk$delim$
+		 */
+		strbuf_trunc_buf(&yyextra.literal_buf, 1);
+        yyless(yyleng - 1);
+	}
+}
 
 <xdolq>{dolqinside} {
     strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
 }
 
 <xdolq>{dolqfailed} {
+    update_location();
     strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
 }
 
 <xdolq>.		{
-            strbuf_append_char(&yyextra.literal_buf, yytext[0]);
-				}
-<xdolq><<EOF>>	{     ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+    update_location();
+    strbuf_append_char(&yyextra.literal_buf, yytext[0]);
+}
+<xdolq><<EOF>>	{
+    ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
                     scan_errmsg("unterminated dollar quoted string"),
-                    scan_errposition())); }
+                    scan_errposition())); 
+}
 
+{xdstart} {
+    update_location();
+	BEGIN(xd);
+    strbuf_reset(&yyextra.literal_buf);
+}
+{xuistart} {
+    update_location();
+	BEGIN(xui);
+    strbuf_reset(&yyextra.literal_buf);
+}
+<xd>{xdstop} {
+	char *ident;
 
-
-
-{xdstart}		{
-					//SET_YYLLOC();
-					BEGIN(xd);
-                     strbuf_reset(&yyextra.literal_buf);
-					//startlit();
-				}
-{xuistart}		{
-					//SET_YYLLOC();
-					BEGIN(xui);
-                     strbuf_reset(&yyextra.literal_buf);
-					//startlit();
-				}
-<xd>{xdstop}	{
-					char	   *ident;
-
-					BEGIN(INITIAL);
-					if (yyextra.literal_buf.length == 0)
-                        ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
-                            scan_errmsg("zero-length delimited identifier"),
-                            scan_errposition()));
+	BEGIN(INITIAL);
+	if (yyextra.literal_buf.length == 0)
+        ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                        scan_errmsg("zero-length delimited identifier"),
+                        scan_errposition()));
             
-					ident = strbuf_get_str(&yyextra.literal_buf);
-					if (yyextra.literal_buf.length >= NAMEDATALEN)
-						truncate_identifier(ident, yyextra.literal_buf.length, true);
+	ident = strbuf_get_str(&yyextra.literal_buf);
+	if (yyextra.literal_buf.length >= NAMEDATALEN)
+		truncate_identifier(ident, yyextra.literal_buf.length, true);
 
-                    token.type = AG_TOKEN_CS_IDENTIFIER;
-                    token.value.s = ident;
-                    token.location = get_location();
-                    strbuf_reset(&yyextra.literal_buf);
-                    return token;
-
-				}
+    token.type = AG_TOKEN_CS_IDENTIFIER;
+    token.value.s = ident;
+    token.location = get_location();
+    strbuf_reset(&yyextra.literal_buf);
+    return token;
+}
 <xui>{dquote}	{
-					BEGIN(INITIAL);
-					if (yyextra.literal_buf.length == 0)
-                        ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
-                            scan_errmsg("zero-length delimited identifier"),
-                            scan_errposition()));
-					/* can't truncate till after we de-escape the ident */
-                    token.type = AG_TOKEN_CS_IDENTIFIER;
-                    token.value.s = strbuf_get_str(&yyextra.literal_buf);
-                    token.location = get_location();
-                    strbuf_reset(&yyextra.literal_buf);
-                    return token;
-				}
+    BEGIN(INITIAL);
+    if (yyextra.literal_buf.length == 0)
+        ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                        scan_errmsg("zero-length delimited identifier"),
+                        scan_errposition()));
+	/* can't truncate till after we de-escape the ident */
+    token.type = AG_TOKEN_CS_IDENTIFIER;
+    token.value.s = strbuf_get_str(&yyextra.literal_buf);
+    token.location = get_location();
+    strbuf_reset(&yyextra.literal_buf);
+    return token;
+}
 <xd,xui>{xddouble}	{
-                    strbuf_append_char(&yyextra.literal_buf, '"');
-				}
+    strbuf_append_char(&yyextra.literal_buf, '"');
+}
 <xd,xui>{xdinside}	{
-                    strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
-	            }
-<xd,xui><<EOF>>		{
-                        ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
-                            scan_errmsg("unterminated quoted identifier"),
-                            scan_errposition()));
+    strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
 }
 
 {xufailed}	{
-					char	   *ident;
+	char *ident;
 
-					//SET_YYLLOC();
-					/* throw back all but the initial u/U */
-					yyless(1);
-					/* and treat it as {identifier} */
-					ident = downcase_truncate_identifier(yytext, yyleng, true);
-                    token.type = AG_TOKEN_IDENTIFIER;
-                    token.value.s = ident;
-                    token.location = get_location();
-                    strbuf_reset(&yyextra.literal_buf);
-                    return token;
-	        }
-
-<sqstr>{squote} {
-    BEGIN(INITIAL);
-
-    /*
-     * In quoted strings, only Unicode escape sequences need to be verified,
-     * and the actions for <dqstr,sqstr>{esunicode} and <qstru>{esunicode}
-     * rules verify the code point values. So, quoted strings are always valid.
-     */
-
-    token.type = AG_TOKEN_STRING;
-    token.value.s = strbuf_get_str(&yyextra.literal_buf);
+	/* throw back all but the initial u/U */
+	yyless(1);
+	/* and treat it as {identifier} */
+	ident = downcase_truncate_identifier(yytext, yyleng, true);
+    token.type = AG_TOKEN_IDENTIFIER;
+    token.value.s = ident;
     token.location = get_location();
+    strbuf_reset(&yyextra.literal_buf);
     return token;
-}
-
-
-<dqstr,sqstr,qstru><<EOF>> {
-    ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
-                    scan_errmsg("unterminated quoted string"),
-                    scan_errposition()));
 }
 
 {id} {
@@ -1300,43 +1064,6 @@ ag_token token;
     token.location = get_location();
     strbuf_reset(&yyextra.literal_buf);
     return token;
-}
-
-{bquote} {
-    update_location();
-    strbuf_reset(&yyextra.literal_buf);
-    BEGIN(bqid);
-}
-
-<bqid>{bqchars} {
-    strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
-}
-
-<bqid>{esbquote} {
-    strbuf_append_char(&yyextra.literal_buf, '`');
-}
-
-<bqid>{bquote} {
-    BEGIN(INITIAL);
-
-    if (yyextra.literal_buf.length == 0)
-    {
-        ereport(ERROR, (errcode(ERRCODE_INVALID_NAME),
-                        scan_errmsg("zero-length quoted identifier"),
-                        scan_errposition()));
-    }
-
-    token.type = AG_TOKEN_IDENTIFIER;
-    token.value.s = strbuf_get_str(&yyextra.literal_buf);
-    token.location = get_location();
-    strbuf_reset(&yyextra.literal_buf);
-    return token;
-}
-
-<bqid><<EOF>> {
-    ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
-                    scan_errmsg("unterminated quoted identifier"),
-                    scan_errposition()));
 }
 
 {param} {
@@ -1665,45 +1392,14 @@ static void integer_literal_to_token(const char *s, ag_token *token,
     errno = 0;
     i = strtoint(s, &endptr, 0);
 
-    /*
-     * This is only needed for invalid octal integer literals. (e.g. "08")
-     * Other cases cannot happen because of digitseq and hexint rules.
-     */
-    if (*endptr != '\0')
-    {
-        ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
-                        _scan_errmsg("invalid octal integer literal", extra),
-                        _scan_errposition(extra->last_loc, extra)));
-    }
-
     // Treat it as a decimal if it is too large to be an "int" value.
-    if (errno == ERANGE)
+    if (*endptr != '\0' || errno == ERANGE)
     {
-        /*
-         * Accessing s[0] and s[1] is safe because ERANGE is returned only if
-         * there are 10 or more characters in s. In this case, the shortest
-         * integer literals for decimal, hexadecimal, and octal integers are
-         * "2147483648", "0x80000000", and "020000000000" respectively.
-         */
-        if (s[0] == '0')
-        {
-            strbuf_reset(&extra->literal_buf);
 
-            /*
-             * No matter how many characters s has, if all digits in s are
-             * zeros, strtoint() returns 0 without an error.
-             * So, _numstr_to_decimal() assumes that there is at least one
-             * non-zero digit in s.
-             */
-            if (s[1] == 'X' || s[1] == 'x')
-                hexadecimal_to_decimal(s + 2, &extra->literal_buf);
-            else
-                octal_to_decimal(s + 1, &extra->literal_buf);
-
-            s = strbuf_get_str(&extra->literal_buf);
-        }
+        //s = strbuf_get_str(&extra->literal_buf);
+        
         token->type = AG_TOKEN_DECIMAL;
-        token->value.s = s;
+        token->value.s = pstrdup(s);
         return;
     }
 
@@ -1982,6 +1678,7 @@ ag_scanner_t ag_scanner_create(const char *s, const ScanKeywordList *keywordlist
 	extra.backslash_quote = backslash_quote;
 	extra.escape_string_warning = escape_string_warning;
 	extra.standard_conforming_strings = standard_conforming_strings;
+	extra.xcdepth = 0;
 
     ag_yyset_extra(extra, yyscanner);
 
@@ -2070,3 +1767,27 @@ ag_yyfree(void *ptr, ag_scanner_t yyscanner)
 }
 
 
+
+static unsigned char
+unescape_single_char(unsigned char c, ag_yy_extra *extra)
+{
+	switch (c)
+	{
+		case 'b':
+			return '\b';
+		case 'f':
+			return '\f';
+		case 'n':
+			return '\n';
+		case 'r':
+			return '\r';
+		case 't':
+			return '\t';
+		default:
+			/* check for backslash followed by non-7-bit-ASCII */
+			if (c == '\0' || IS_HIGHBIT_SET(c))
+				extra->saw_non_ascii = true;
+
+			return c;
+	}
+}
