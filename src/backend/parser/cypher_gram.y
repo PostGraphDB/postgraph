@@ -5335,7 +5335,7 @@ Iconst:		INTEGER									{ $$ = $1; };
 /* Note: any simple identifier will be returned as a type name! */
 def_arg:	func_type						{ $$ = (Node *)$1; }
 			| reserved_keyword				{ $$ = (Node *)makeString(pstrdup($1)); }
-			| all_op					{ $$ = (Node *)$1; }
+			| qual_all_Op					{ $$ = (Node *)$1; }
 			| NumericOnly					{ $$ = (Node *)$1; }
 			| Sconst						{ $$ = (Node *)makeString($1); }
 			| NONE							{ $$ = (Node *)makeString(pstrdup($1)); }
@@ -7562,19 +7562,7 @@ opt_if_not_exists: IF NOT EXISTS              { $$ = true; }
  *****************************************************************************/
 
 CreateOpClassStmt:
-			CREATE OPERATOR CLASS any_name opt_default FOR TYPE_P Typename
-			USING name opt_opfamily AS opclass_item_list
-				{
-					CreateOpClassStmt *n = makeNode(CreateOpClassStmt);
-					n->opclassname = $4;
-					n->isDefault = $5;
-					n->datatype = $8;
-					n->amname = $10;
-					n->opfamilyname = $11;
-					n->items = $13;
-					$$ = (Node *) n;
-				}
-			| CREATE RIGHT_ARROW CLASS any_name opt_default FOR TYPE_P Typename
+			CREATE OPERATOR_P CLASS any_name opt_default FOR TYPE_P Typename
 			USING name opt_opfamily AS opclass_item_list
 				{
 					CreateOpClassStmt *n = makeNode(CreateOpClassStmt);
@@ -7594,7 +7582,7 @@ opclass_item_list:
 		;
 
 opclass_item:
-			OPERATOR Iconst any_operator opclass_purpose opt_recheck
+			OPERATOR_P Iconst any_operator opclass_purpose opt_recheck
 				{
 					CreateOpClassItem *n = makeNode(CreateOpClassItem);
 					ObjectWithArgs *owa = makeNode(ObjectWithArgs);
@@ -7606,29 +7594,7 @@ opclass_item:
 					n->order_family = $4;
 					$$ = (Node *) n;
 				}
-			| OPERATOR Iconst operator_with_argtypes opclass_purpose
-			  opt_recheck
-				{
-					CreateOpClassItem *n = makeNode(CreateOpClassItem);
-					n->itemtype = OPCLASS_ITEM_OPERATOR;
-					n->name = $3;
-					n->number = $2;
-					n->order_family = $4;
-					$$ = (Node *) n;
-				}
-			| RIGHT_ARROW Iconst any_operator opclass_purpose opt_recheck
-				{
-					CreateOpClassItem *n = makeNode(CreateOpClassItem);
-					ObjectWithArgs *owa = makeNode(ObjectWithArgs);
-					owa->objname = $3;
-					owa->objargs = NIL;
-					n->itemtype = OPCLASS_ITEM_OPERATOR;
-					n->name = owa;
-					n->number = $2;
-					n->order_family = $4;
-					$$ = (Node *) n;
-				}
-			| RIGHT_ARROW Iconst operator_with_argtypes opclass_purpose
+			| OPERATOR_P Iconst operator_with_argtypes opclass_purpose
 			  opt_recheck
 				{
 					CreateOpClassItem *n = makeNode(CreateOpClassItem);
@@ -7695,14 +7661,7 @@ opt_recheck:	RECHECK
 
 
 CreateOpFamilyStmt:
-			CREATE OPERATOR FAMILY any_name USING name
-				{
-					CreateOpFamilyStmt *n = makeNode(CreateOpFamilyStmt);
-					n->opfamilyname = $4;
-					n->amname = $6;
-					$$ = (Node *) n;
-				}
-		| 	CREATE RIGHT_ARROW FAMILY any_name USING name
+			CREATE OPERATOR_P FAMILY any_name USING name
 				{
 					CreateOpFamilyStmt *n = makeNode(CreateOpFamilyStmt);
 					n->opfamilyname = $4;
@@ -7714,7 +7673,7 @@ CreateOpFamilyStmt:
 
 
 AlterOpFamilyStmt:
-			ALTER OPERATOR FAMILY any_name USING name ADD_P opclass_item_list
+			ALTER OPERATOR_P FAMILY any_name USING name ADD_P opclass_item_list
 				{
 					AlterOpFamilyStmt *n = makeNode(AlterOpFamilyStmt);
 					n->opfamilyname = $4;
@@ -7723,25 +7682,7 @@ AlterOpFamilyStmt:
 					n->items = $8;
 					$$ = (Node *) n;
 				}
-			| ALTER OPERATOR FAMILY any_name USING name DROP opclass_drop_list
-				{
-					AlterOpFamilyStmt *n = makeNode(AlterOpFamilyStmt);
-					n->opfamilyname = $4;
-					n->amname = $6;
-					n->isDrop = true;
-					n->items = $8;
-					$$ = (Node *) n;
-				}
-			| ALTER RIGHT_ARROW FAMILY any_name USING name ADD_P opclass_item_list
-				{
-					AlterOpFamilyStmt *n = makeNode(AlterOpFamilyStmt);
-					n->opfamilyname = $4;
-					n->amname = $6;
-					n->isDrop = false;
-					n->items = $8;
-					$$ = (Node *) n;
-				}
-			| ALTER RIGHT_ARROW FAMILY any_name USING name DROP opclass_drop_list
+			| ALTER OPERATOR_P FAMILY any_name USING name DROP opclass_drop_list
 				{
 					AlterOpFamilyStmt *n = makeNode(AlterOpFamilyStmt);
 					n->opfamilyname = $4;
