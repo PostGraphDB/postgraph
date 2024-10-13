@@ -16009,6 +16009,7 @@ col_name_keyword:
 			| CHAR_P
 			| CHARACTER
 			| COALESCE
+			| CONTAINS
 			| DEC
 			| DECIMAL_P
 			| EXISTS
@@ -16132,6 +16133,7 @@ bare_label_keyword:
 			| CONFIGURATION
 			| CONFLICT
 			| CONNECTION
+			| CONTAINS
 			| CONSTRAINT
 			| CONSTRAINTS
 			| CONTENT_P
