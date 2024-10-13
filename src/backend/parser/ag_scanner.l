@@ -798,30 +798,12 @@ ag_token token;
 					BEGIN(xb);
                     //strbuf_append_char(&yyextra.literal_buf, 'b');
 				}
-<xb>{xbinside}	{
-        strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
-				}
+
 <xb><<EOF>>		{ 
     ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
                     scan_errmsg("unterminated hexadecimal string literal"),
                     scan_errposition()));
     }
-
-<xb>{squote} {
-    BEGIN(INITIAL);
-
-    /*
-     * In quoted strings, only Unicode escape sequences need to be verified,
-     * and the actions for <dqstr,sqstr>{esunicode} and <qstru>{esunicode}
-     * rules verify the code point values. So, quoted strings are always valid.
-     */
-
-    token.type = AG_TOKEN_BCONST;
-    token.value.s = strbuf_get_str(&yyextra.literal_buf);
-    token.location = get_location();
-    return token;
-}
-
 
 {xhstart}		{
 					/* Hexadecimal bit type.
@@ -833,34 +815,17 @@ ag_token token;
 					BEGIN(xh);
                     strbuf_append_char(&yyextra.literal_buf, 'x');
 				}
-                
-<xh>{xhinside}	{
+
+<xh>{xhinside}	|
+<xb>{xbinside}	{
         strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
 }
+
 <xh><<EOF>>		{ 
     ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
                     scan_errmsg("unterminated hexadecimal string literal"),
                     scan_errposition()));
     }
-
-<xh>{squote} {
-    BEGIN(INITIAL);
-
-    /*
-     * In quoted strings, only Unicode escape sequences need to be verified,
-     * and the actions for <dqstr,sqstr>{esunicode} and <qstru>{esunicode}
-     * rules verify the code point values. So, quoted strings are always valid.
-     */
-
-    token.type = AG_TOKEN_XCONST;
-    //token.value.s = strbuf_get_str(&yyextra.literal_buf);
-    //token.value.s = copy_string(strbuf_get_str(&yyextra.literal_buf), yyleng);
-    token.value.s = strbuf_get_str(&yyextra.literal_buf);
-    token.location = get_location();
-    return token;
-}
-
-
 
 {xestart}		{
 					yyextra.warn_on_first_escape = false;
@@ -877,8 +842,7 @@ ag_token token;
 					 */
 					BEGIN(yyextra.state_before_str_stop);
 				}
-<xqs>{quotecontinuefail} |
-<xqs>{other} |
+
 <xb,xh,xq,xe,xus>{squote} {
 					/*
 					 * When we are scanning a quoted string and see an end
@@ -906,18 +870,17 @@ ag_token token;
 					switch (yyextra.state_before_str_stop)
 					{
 						case xb:
-
                            token.type = AG_TOKEN_BCONST;
                            token.value.s = strbuf_get_str(&yyextra.literal_buf);
                            token.location = get_location();
+                           strbuf_reset(&yyextra.literal_buf);
                            return token;
 						case xh:
                             token.type = AG_TOKEN_XCONST;
                             token.value.s = strbuf_get_str(&yyextra.literal_buf);
                             token.location = get_location();
+                            strbuf_reset(&yyextra.literal_buf);
                             return token;
-							//yylval->str = litbufdup(yyscanner);
-						    //return XCONST;
 						case xq:
 						case xe:
 							/*
@@ -928,27 +891,23 @@ ag_token token;
 								pg_verifymbstr(yyextra.literal_buf.buffer,
 											   yyextra.literal_buf.length,
 											   false);
-							//yylval->str = litbufdup(yyscanner);
-							//return SCONST;
+
                             token.type = AG_TOKEN_STRING;
                             token.value.s = strbuf_get_str(&yyextra.literal_buf);
                             token.location = get_location();
+                            strbuf_reset(&yyextra.literal_buf);
                             return token;
 						case xus:
                             token.type = AG_TOKEN_STRING;
                             token.value.s = strbuf_get_str(&yyextra.literal_buf);
                             token.location = get_location();
+                            strbuf_reset(&yyextra.literal_buf);
                             return token;
-							//yylval->str = litbufdup(yyscanner);
-							//return USCONST;
+
 						default:{
-                            token.type = AG_TOKEN_STRING;
-                            token.value.s = strbuf_get_str(&yyextra.literal_buf);
-                            token.location = get_location();
-                            return token;
-                            /*ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                            ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
                                 scan_errmsg("unhandled previous state in xqs"),
-                                scan_errposition()));*/
+                                scan_errposition()));
                         }
 					}
 				}
