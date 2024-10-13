@@ -21,7 +21,9 @@
 
 #include "postgraph.h"
 
+#include "access/tableam.h"
 #include "catalog/index.h"
+#include "catalog/pg_am.h"
 #include "catalog/pg_class.h"
 #include "nodes/makefuncs.h"
 #include "nodes/nodes.h"
@@ -309,10 +311,11 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 			 NotifyStmt ListenStmt UnlistenStmt
 			 TransactionStmt TransactionStmtLegacy TruncateStmt
              UpdateStmt
-			 PreparableStmt
+			 PreparableStmt CreateAmStmt
              VacuumStmt VariableResetStmt VariableSetStmt
 			 ViewStmt
 			 DropSubscriptionStmt AlterSubscriptionStmt CreateSubscriptionStmt
+			 DropUserMappingStmt CreateUserMappingStmt AlterUserMappingStmt
 
 %type <node> select_no_parens select_with_parens select_clause
              simple_select
@@ -486,7 +489,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <list>	OptSchemaEltList
 %type <string>		RoleId 
 %type <string>		unicode_normal_form
-%type <rolespec> RoleSpec 
+%type <rolespec> auth_ident RoleSpec 
 
 %type <node> cypher_query_start
 %type <list> cypher_query_body
@@ -576,6 +579,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <string>		opt_existing_window_name
 %type <integer>    opt_window_exclusion_clause
 %type <string> all_op
+%type <chr>		am_type
 /* names */
 
 %type <defelt>	drop_option
@@ -892,6 +896,7 @@ stmt:
 	| AlterSeqStmt 
 	| AlterSubscriptionStmt
 	| AlterSystemStmt
+	| AlterUserMappingStmt
 	| AlterObjectDependsStmt
 	| AlterObjectSchemaStmt
 	| AlterOpFamilyStmt
@@ -912,6 +917,7 @@ stmt:
 	| CopyStmt
 	| ClosePortalStmt
 	| ClusterStmt
+	| CreateAmStmt
 	| CreateAsStmt
 	| CreateCastStmt
 	| CreatedbStmt
@@ -928,6 +934,7 @@ stmt:
 	| CreateStatsStmt
 	| CreateSubscriptionStmt
 	| CreateTransformStmt
+	| CreateUserMappingStmt
 	| CreateOpClassStmt
 	| CreateSchemaStmt
 	| CreateSeqStmt
@@ -953,6 +960,7 @@ stmt:
 	| DropSubscriptionStmt
 	| DropTableSpaceStmt
 	| DropTransformStmt
+	| DropUserMappingStmt
 	| ExecuteStmt
 	| ExplainStmt
 	| FetchStmt
@@ -8500,6 +8508,27 @@ opt_check_option:
 		| /* EMPTY */					{ $$ = NO_CHECK_OPTION; }
 		;
 
+/*****************************************************************************
+ *
+ *		QUERY:
+ *             CREATE ACCESS METHOD name HANDLER handler_name
+ *
+ *****************************************************************************/
+
+CreateAmStmt: CREATE ACCESS METHOD name TYPE_P am_type HANDLER handler_name
+				{
+					CreateAmStmt *n = makeNode(CreateAmStmt);
+					n->amname = $4;
+					n->handler_name = $8;
+					n->amtype = $6;
+					$$ = (Node *) n;
+				}
+		;
+
+am_type:
+			INDEX			{ $$ = AMTYPE_INDEX; }
+		|	TABLE			{ $$ = AMTYPE_TABLE; }
+		;
 
 /*****************************************************************************
  *
@@ -12676,6 +12705,81 @@ opt_ordinality: WITH ORDINALITY					{ $$ = true; }
 		;
 
 
+/*****************************************************************************
+ *
+ *		QUERY:
+ *             CREATE USER MAPPING FOR auth_ident SERVER name [OPTIONS]
+ *
+ *****************************************************************************/
+
+CreateUserMappingStmt: CREATE USER MAPPING FOR auth_ident SERVER name create_generic_options
+				{
+					CreateUserMappingStmt *n = makeNode(CreateUserMappingStmt);
+					n->user = $5;
+					n->servername = $7;
+					n->options = $8;
+					n->if_not_exists = false;
+					$$ = (Node *) n;
+				}
+				| CREATE USER MAPPING IF NOT EXISTS FOR auth_ident SERVER name create_generic_options
+				{
+					CreateUserMappingStmt *n = makeNode(CreateUserMappingStmt);
+					n->user = $8;
+					n->servername = $10;
+					n->options = $11;
+					n->if_not_exists = true;
+					$$ = (Node *) n;
+				}
+		;
+
+/* User mapping authorization identifier */
+auth_ident: RoleSpec			{ $$ = $1; }
+			| USER				{ $$ = makeRoleSpec(ROLESPEC_CURRENT_USER, @1); }
+		;
+
+/*****************************************************************************
+ *
+ *		QUERY :
+ *				DROP USER MAPPING FOR auth_ident SERVER name
+ *
+ * XXX you'd think this should have a CASCADE/RESTRICT option, even if it's
+ * only pro forma; but the SQL standard doesn't show one.
+ ****************************************************************************/
+
+DropUserMappingStmt: DROP USER MAPPING FOR auth_ident SERVER name
+				{
+					DropUserMappingStmt *n = makeNode(DropUserMappingStmt);
+					n->user = $5;
+					n->servername = $7;
+					n->missing_ok = false;
+					$$ = (Node *) n;
+				}
+				|  DROP USER MAPPING IF EXISTS FOR auth_ident SERVER name
+				{
+					DropUserMappingStmt *n = makeNode(DropUserMappingStmt);
+					n->user = $7;
+					n->servername = $9;
+					n->missing_ok = true;
+					$$ = (Node *) n;
+				}
+		;
+
+/*****************************************************************************
+ *
+ *		QUERY :
+ *				ALTER USER MAPPING FOR auth_ident SERVER name OPTIONS
+ *
+ ****************************************************************************/
+
+AlterUserMappingStmt: ALTER USER MAPPING FOR auth_ident SERVER name alter_generic_options
+				{
+					AlterUserMappingStmt *n = makeNode(AlterUserMappingStmt);
+					n->user = $5;
+					n->servername = $7;
+					n->options = $8;
+					$$ = (Node *) n;
+				}
+		;
 
 /*****************************************************************************
  *
