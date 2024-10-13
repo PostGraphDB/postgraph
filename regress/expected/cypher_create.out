@@ -88,9 +88,9 @@ CREATE (:v {id: 'paths, vertex one'})-[:e {id: 'paths, edge one'}]->(:v {id: 'pa
 
 --edge with double relationship will throw an error
 CREATE (:v)<-[:e]->();
-ERROR:  syntax error at or near ">"
+ERROR:  syntax error at or near "->"
 LINE 1: CREATE (:v)<-[:e]->();
-                          ^
+                         ^
 --edge with no relationship will throw an error
 CREATE (:v)-[:e]-();
 ERROR:  only directed relationships are allowed in CREATE

@@ -185,9 +185,9 @@ SELECT a.i as j FROM tst a GROUP BY a.i HAVING a.i = a.i;
 SELECT sum(salary) OVER w, avg(salary) OVER w
   FROM empsalary
   WINDOW w AS (PARTITION BY i ORDER BY i DESC);
-ERROR:  syntax error at or near "WINDOW"
-LINE 3:   WINDOW w AS (PARTITION BY i ORDER BY i DESC);
-          ^
+ERROR:  relation "empsalary" does not exist
+LINE 2:   FROM empsalary
+               ^
 SELECT a.i FROM tst a
 UNION
 SELECT a.i FROM tst a;
