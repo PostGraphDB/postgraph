@@ -18,6 +18,8 @@
 #ifndef AG_AG_SCANNER_H
 #define AG_AG_SCANNER_H
 
+#include "common/kwlookup.h"
+
 /*
  * AG_TOKEN_NULL indicates the end of a scan. The name came from YY_NULL.
  *
@@ -75,7 +77,7 @@ typedef struct ag_token
 // an opaque data structure encapsulating the current state of the scanner
 typedef void *ag_scanner_t;
 
-ag_scanner_t ag_scanner_create(const char *s);
+ag_scanner_t ag_scanner_create(const char *s, const ScanKeywordList *keywordlist, const uint16 *keyword_tokens);
 void ag_scanner_destroy(ag_scanner_t scanner);
 ag_token ag_scanner_next_token(ag_scanner_t scanner);
 

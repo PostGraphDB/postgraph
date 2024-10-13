@@ -33,6 +33,7 @@
 #include "common/string.h"
 #include "mb/pg_wchar.h"
 #include "parser/scansup.h"
+#include "common/kwlookup.h"
 
 #include "parser/ag_scanner.h"
 #define YYLTYPE  int
@@ -244,7 +245,8 @@ xbinside		[^']*
 xhstart			[xX]{squote}
 xhinside		[^']*
 
-
+/* National character */
+xnstart			[nN]{squote}
 
 dolq_start		[A-Za-z\200-\377_]
 dolq_cont		[A-Za-z\200-\377_0-9]
@@ -328,6 +330,12 @@ char *copy_string(const char *ident, int len);
 
 typedef struct ag_yy_extra
 {
+	/*
+	 * The keyword list to use, and the associated grammar token codes.
+	 */
+	const ScanKeywordList *keywordlist;
+	const uint16 *keyword_tokens;
+
     /*
      * accumulate matched strings to build a complete literal if multiple rules
      * are needed to scan it, or keep a decimal integer literal that is
@@ -798,6 +806,41 @@ ag_token token;
 }
 
 
+{xnstart}		{
+					/* National character.
+					 * We will pass this along as a normal character string,
+					 * but preceded with an internally-generated "NCHAR".
+					 */
+					int		kwnum;
+
+					//SET_YYLLOC();
+					yyless(1);	/* eat only 'n' this time */
+
+					kwnum = ScanKeywordLookup("nchar",
+											  yyextra.keywordlist);
+					if (kwnum >= 0)
+					{
+						//yylval->keyword = GetScanKeyword(kwnum,
+						//								 yyextra->keywordlist);
+						//return yyextra->keyword_tokens[kwnum];
+
+                        token.type = AG_TOKEN_IDENTIFIER;
+                        token.value.s = yyextra.keyword_tokens[kwnum];
+                        token.location = get_location();
+                        return token;
+					}
+					else
+					{
+						/* If NCHAR isn't a keyword, just return "n" */
+                        token.type = AG_TOKEN_IDENTIFIER;
+                        token.value.s = pstrdup("n");
+                        token.location = get_location();
+                        return token;
+
+					}
+
+
+				}
 
 
 {dolqdelim}		{
@@ -1539,7 +1582,7 @@ static int _scan_errposition(const int location, const ag_yy_extra *extra)
     return errposition(pos);
 }
 
-ag_scanner_t ag_scanner_create(const char *s)
+ag_scanner_t ag_scanner_create(const char *s, const ScanKeywordList *keywordlist, const uint16 *keyword_tokens)
 {
     Size len;
     char *buf;
@@ -1563,6 +1606,9 @@ ag_scanner_t ag_scanner_create(const char *s)
     extra.start_cond = INITIAL;
     extra.scan_buf = buf;
     extra.last_loc = 0;
+	extra.keywordlist = keywordlist;
+	extra.keyword_tokens = keyword_tokens;
+
     ag_yyset_extra(extra, yyscanner);
 
     ag_yy_scan_buffer(buf, len + 2, yyscanner);

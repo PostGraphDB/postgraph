@@ -134,13 +134,14 @@ void cypher_yyerror(YYLTYPE *llocp, ag_scanner_t scanner,
 /* declaration to make mac os x compiler happy */
 int cypher_yyparse(ag_scanner_t scanner, cypher_yy_extra *extra);
 
+
 List *parse_cypher(const char *s)
 {
     ag_scanner_t scanner;
     cypher_yy_extra extra;
     int yyresult;
 
-    scanner = ag_scanner_create(s);
+    scanner = ag_scanner_create(s, &CypherKeyword, &CypherKeywordTokens);
     extra.result = NIL;
 
     yyresult = cypher_yyparse(scanner, &extra);
