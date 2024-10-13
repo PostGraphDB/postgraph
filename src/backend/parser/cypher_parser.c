@@ -48,6 +48,7 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner)
         GT_EQ,
         DOT_DOT,
         TYPECAST,
+        COLON_EQUALS,
 	    OPERATOR,
         RIGHT_ARROW,
         PLUS_EQ,
@@ -108,6 +109,7 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner)
     case AG_TOKEN_GT_EQ:
     case AG_TOKEN_DOT_DOT:
     case AG_TOKEN_PLUS_EQ:
+    case AG_TOKEN_COLON_EQUALS:
         break;
     case AG_TOKEN_TYPECAST:
         break;

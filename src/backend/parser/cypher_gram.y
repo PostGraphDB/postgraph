@@ -199,7 +199,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %token <string> XCONST BCONST 
 
 /* operators that have more than 1 character */
-%token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ
+%token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ COLON_EQUALS
 
 /* keywords in alphabetical order */ 
 %token <keyword> ABORT_P ACCESS ACTION ADD_P ADMIN AFTER AGGREGATE ALL ALSO ALTER AND ANY ALWAYS ARRAY 
@@ -218,7 +218,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 				 DO DOMAIN_P DOCUMENT_P DOUBLE_P DROP DISABLE_P DAY_P DICTIONARY DEPENDS DISCARD DEALLOCATE DECLARE
 
                  EACH ENCODING ENCRYPTED ELSE END_P ENDS ESCAPE EXCEPT EXCLUDE EXCLUDING EXISTS EXTENSION EXTRACT EXTERNAL
-                 EVENT EXECUTE ENABLE_P EXPLAIN EXPRESSION EXCLUSIVE ENUM_P
+                 EVENT EXECUTE ENABLE_P EXPLAIN EXPRESSION EXCLUSIVE ENUM_P 
 
                  GENERATED GLOBAL GRANT GRANTED GRAPH GREATEST GROUP GROUPS GROUPING
 
@@ -741,18 +741,25 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %left AND
 %left XOR
 %right NOT
-%left '=' NOT_EQ '<' LT_EQ '>' GT_EQ '~' '!'
-%left OPERATOR RIGHT_ARROW
+%nonassoc IN IS
+%nonassoc '=' NOT_EQ '<' LT_EQ '>' GT_EQ '~' '!'
+%nonassoc CONTAINS ENDS EQ_TILDE STARTS LIKE ILIKE SIMILAR
+%nonassoc ESCAPE
+%nonassoc	UNBOUNDED		/* ideally would have same precedence as IDENT */
+%nonassoc	IDENTIFIER PARTITION RANGE ROWS GROUPS PRECEDING FOLLOWING CUBE ROLLUP
+
+%left OPERATOR RIGHT_ARROW COLON_EQUALS
 %left '+' '-'
 %left '*' '/' '%'
 %left '^' '&' '|'
-%nonassoc IN IS
+
 %right UNARY_MINUS
-%nonassoc CONTAINS ENDS EQ_TILDE STARTS LIKE ILIKE SIMILAR
-%nonassoc ESCAPE
-%left '[' ']' '(' ')'
-%left '.'
+%left '[' ']' 
+%left '(' ')'
 %left TYPECAST
+%left '.'
+
+%left		JOIN CROSS LEFT FULL RIGHT INNER_P NATURAL
 
 %{
 // logical operators
@@ -14655,11 +14662,11 @@ func_arg_expr:  a_expr
 				{
 					$$ = $1;
 				}
-			| param_name ':' '=' a_expr
+			| param_name COLON_EQUALS a_expr
 				{
 					NamedArgExpr *na = makeNode(NamedArgExpr);
 					na->name = $1;
-					na->arg = (Expr *) $4;
+					na->arg = (Expr *) $3;
 					na->argnumber = -1;		/* until determined */
 					na->location = @1;
 					$$ = (Node *) na;
@@ -17395,7 +17402,7 @@ window_definition:
    ;           
 over_clause:
     OVER window_specification { $$ = $2; }
-    | OVER symbolic_name
+    | OVER ColId
         {
             WindowDef *n = makeNode(WindowDef);
             n->name = $2;

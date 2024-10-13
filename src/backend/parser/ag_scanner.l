@@ -224,32 +224,6 @@ digitseq {digit}+
 hexint     0[Xx]{hexdigit}+
 hexintfail 0[Xx]
 
-
-/*
- * decimal pattern covers RegularDecimalReal rule in Cypher and also accepts
- * "{digitseq}\." pattern (e.g. "1.") which RegularDecimalReal rule doesn't.
- * Decimal in JSON is represented in "(0|[1-9][0-9]*)\.[0-9]+" pattern that is
- * covered by decimal pattern.
- *
- * decimalfail pattern is for ranges (e.g. "0..1"). The action for the pattern
- * consumes digitseq and returns dot_dot back to the input stream so that
- * dot_dot can be matched next.
- */
-decimal     {digitseq}\.{digit}*|\.{digitseq}
-decimalfail {digitseq}\.\.
-
-/*
- * decimalsci pattern covers ExponentDecimalReal rule in Cypher. It also
- * accepts coefficients in "{digitseq}\." pattern and explicit positive
- * exponents ("+") which ExponentDecimalReal rule doesn't.
- * Scientific notation in JSON is represented in
- * "(0|[1-9][0-9]*)(\.[0-9]+)?[Ee][+-]?[0-9]+" pattern that is covered by
- * decimalsci pattern.
- */
-decimalsci      ({digitseq}|{decimal})[Ee][+-]?{digitseq}
-decimalscifail1 ({digitseq}|{decimal})[Ee]
-decimalscifail2 ({digitseq}|{decimal})[Ee][+-]
-
 /*
  * These patterns cover StringLiteral rule in Cypher and JSON strings.
  * The escape sequence "\/" has been added for JSON strings.
@@ -300,10 +274,8 @@ dolqdelim              \$({dolq_start}{dolq_cont}*)?\$
 dolqfailed		\${dolq_start}{dolq_cont}*
 dolqinside             [^$]+
 
-
-
 sqchars       [^'\\]+
-esascii       \\["'/\\bfnrtdw1]
+esascii       \\[^0-7]
 esasciifail   \\[^Uu]?
 esunicode     \\(U{hexdigit}{8}|u{hexdigit}{4})
 esunicodefail \\(U{hexdigit}{0,7}|u{hexdigit}{0,3})
@@ -325,6 +297,46 @@ bquote   `
 bqchars  [^`]+
 esbquote {bquote}{bquote}
 
+dot_dot  ".."
+typecast "::"
+colon_equals ":="
+/*
+ * These are tokens that are used as operators and language constructs in
+ * Cypher, and some of them are structural characters in JSON.
+ */
+lt_gt    "<>"|"!="
+lt_eq    "<="
+gt_eq    ">="
+plus_eq  "+="
+
+self     [?&!@#%()*+,\-.~/:;<=>[\]^{|}]
+operator [\~\!\|\-\<\>\=\#\%\~\!\@\^\&\`\?\+\*\/]+
+
+/*
+ * decimal pattern covers RegularDecimalReal rule in Cypher and also accepts
+ * "{digitseq}\." pattern (e.g. "1.") which RegularDecimalReal rule doesn't.
+ * Decimal in JSON is represented in "(0|[1-9][0-9]*)\.[0-9]+" pattern that is
+ * covered by decimal pattern.
+ *
+ * decimalfail pattern is for ranges (e.g. "0..1"). The action for the pattern
+ * consumes digitseq and returns dot_dot back to the input stream so that
+ * dot_dot can be matched next.
+ */
+decimal     {digitseq}\.{digit}*|\.{digitseq}
+decimalfail {digitseq}\.\.
+
+/*
+ * real pattern covers ExponentDecimalReal rule in Cypher. It also
+ * accepts coefficients in "{digitseq}\." pattern and explicit positive
+ * exponents ("+") which ExponentDecimalReal rule doesn't.
+ * Scientific notation in JSON is represented in
+ * "(0|[1-9][0-9]*)(\.[0-9]+)?[Ee][+-]?[0-9]+" pattern that is covered by
+ * real pattern.
+ */
+real      ({digitseq}|{decimal})[Ee][+-]?{digitseq}
+realfail1 ({digitseq}|{decimal})[Ee]
+realfail2 ({digitseq}|{decimal})[Ee][+-]
+
 /*
  * Parameter rule in Cypher is "$" followed by SymbolicName or DecimalInteger
  * rule. However, according to "Cypher Query Language Reference",
@@ -337,21 +349,6 @@ esbquote {bquote}{bquote}
  */
 param (\${id})|(\${digitseq})
 
-/*
- * These are tokens that are used as operators and language constructs in
- * Cypher, and some of them are structural characters in JSON.
- */
-lt_gt    "<>"|"!="
-lt_eq    "<="
-gt_eq    ">="
-dot_dot  ".."
-plus_eq  "+="
-typecast "::"
-self     [?&!@#%()*+,\-.~/:;<=>[\]^{|}]
-operator [\~\!\|\-\<\>\=\#\%\~\!\@\^\&\`\?\+\*\/]+
-
-
-
 other .
 
 %{
@@ -362,9 +359,6 @@ typedef struct strbuf
     int capacity;
     int length;
 } strbuf;
-
-
-
 
 static void strbuf_trunc_buf(strbuf *sb, const int len);
 static void strbuf_init(strbuf *sb, int capacity);
@@ -525,7 +519,7 @@ ag_token token;
 }
 
 {decimal} |
-{decimalsci} {
+{real} {
     update_location();
     token.type = AG_TOKEN_DECIMAL;
     token.value.s = yytext;
@@ -546,8 +540,8 @@ ag_token token;
 }
 
 
-{decimalscifail1} |
-{decimalscifail2} {
+{realfail1} |
+{realfail2} {
     update_location();
     ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
                     scan_errmsg("invalid scientific notation literal"),
@@ -1349,6 +1343,14 @@ ag_token token;
 {dot_dot} {
     update_location();
     token.type = AG_TOKEN_DOT_DOT;
+    token.value.s = yytext;
+    token.location = get_location();
+    return token;
+}
+
+{colon_equals} {
+    update_location();
+    token.type = AG_TOKEN_COLON_EQUALS;
     token.value.s = yytext;
     token.location = get_location();
     return token;
