@@ -14125,7 +14125,7 @@ c_expr:		columnref								{ $$ = $1; }
 			| PARAMETER opt_indirection
 				{
 					ParamRef *p = makeNode(ParamRef);
-					p->number = $1;
+					p->number = atol($1);
 					p->location = @1;
 					if ($2)
 					{
@@ -17740,7 +17740,7 @@ expr_atom:
             cypher_param *n;
 
             n = make_ag_node(cypher_param);
-            n->name = $1;
+            n->name = atol($1);
             n->location = @1;
 
             $$ = (Node *)n;
