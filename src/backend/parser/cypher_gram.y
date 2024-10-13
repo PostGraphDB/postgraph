@@ -312,6 +312,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 			 PreparableStmt
              VacuumStmt VariableResetStmt VariableSetStmt
 			 ViewStmt
+			 DropSubscriptionStmt AlterSubscriptionStmt CreateSubscriptionStmt
 
 %type <node> select_no_parens select_with_parens select_clause
              simple_select
@@ -889,6 +890,7 @@ stmt:
 	| AlterFunctionStmt
 	| AlterGroupStmt
 	| AlterSeqStmt 
+	| AlterSubscriptionStmt
 	| AlterSystemStmt
 	| AlterObjectDependsStmt
 	| AlterObjectSchemaStmt
@@ -924,6 +926,7 @@ stmt:
 	| CreatePolicyStmt
 	| CreateRoleStmt
 	| CreateStatsStmt
+	| CreateSubscriptionStmt
 	| CreateTransformStmt
 	| CreateOpClassStmt
 	| CreateSchemaStmt
@@ -947,6 +950,7 @@ stmt:
 	| DropOpFamilyStmt 
 	| DropRoleStmt
 	| DropStmt 
+	| DropSubscriptionStmt
 	| DropTableSpaceStmt
 	| DropTransformStmt
 	| ExecuteStmt
@@ -8217,6 +8221,134 @@ opt_transaction_chain:
 			| /* EMPTY */	{ $$ = false; }
 		;
 
+/*****************************************************************************
+ *
+ * CREATE SUBSCRIPTION name ...
+ *
+ *****************************************************************************/
+
+CreateSubscriptionStmt:
+			CREATE SUBSCRIPTION name CONNECTION Sconst PUBLICATION name_list opt_definition
+				{
+					CreateSubscriptionStmt *n =
+						makeNode(CreateSubscriptionStmt);
+					n->subname = $3;
+					n->conninfo = $5;
+					n->publication = $7;
+					n->options = $8;
+					$$ = (Node *)n;
+				}
+		;
+
+/*****************************************************************************
+ *
+ * ALTER SUBSCRIPTION name ...
+ *
+ *****************************************************************************/
+
+AlterSubscriptionStmt:
+			ALTER SUBSCRIPTION name SET definition
+				{
+					AlterSubscriptionStmt *n =
+						makeNode(AlterSubscriptionStmt);
+					n->kind = ALTER_SUBSCRIPTION_OPTIONS;
+					n->subname = $3;
+					n->options = $5;
+					$$ = (Node *)n;
+				}
+			| ALTER SUBSCRIPTION name CONNECTION Sconst
+				{
+					AlterSubscriptionStmt *n =
+						makeNode(AlterSubscriptionStmt);
+					n->kind = ALTER_SUBSCRIPTION_CONNECTION;
+					n->subname = $3;
+					n->conninfo = $5;
+					$$ = (Node *)n;
+				}
+			| ALTER SUBSCRIPTION name REFRESH PUBLICATION opt_definition
+				{
+					AlterSubscriptionStmt *n =
+						makeNode(AlterSubscriptionStmt);
+					n->kind = ALTER_SUBSCRIPTION_REFRESH;
+					n->subname = $3;
+					n->options = $6;
+					$$ = (Node *)n;
+				}
+			| ALTER SUBSCRIPTION name ADD_P PUBLICATION name_list opt_definition
+				{
+					AlterSubscriptionStmt *n =
+						makeNode(AlterSubscriptionStmt);
+					n->kind = ALTER_SUBSCRIPTION_ADD_PUBLICATION;
+					n->subname = $3;
+					n->publication = $6;
+					n->options = $7;
+					$$ = (Node *)n;
+				}
+			| ALTER SUBSCRIPTION name DROP PUBLICATION name_list opt_definition
+				{
+					AlterSubscriptionStmt *n =
+						makeNode(AlterSubscriptionStmt);
+					n->kind = ALTER_SUBSCRIPTION_DROP_PUBLICATION;
+					n->subname = $3;
+					n->publication = $6;
+					n->options = $7;
+					$$ = (Node *)n;
+				}
+			| ALTER SUBSCRIPTION name SET PUBLICATION name_list opt_definition
+				{
+					AlterSubscriptionStmt *n =
+						makeNode(AlterSubscriptionStmt);
+					n->kind = ALTER_SUBSCRIPTION_SET_PUBLICATION;
+					n->subname = $3;
+					n->publication = $6;
+					n->options = $7;
+					$$ = (Node *)n;
+				}
+			| ALTER SUBSCRIPTION name ENABLE_P
+				{
+					AlterSubscriptionStmt *n =
+						makeNode(AlterSubscriptionStmt);
+					n->kind = ALTER_SUBSCRIPTION_ENABLED;
+					n->subname = $3;
+					n->options = list_make1(makeDefElem("enabled",
+											(Node *)makeInteger(true), @1));
+					$$ = (Node *)n;
+				}
+			| ALTER SUBSCRIPTION name DISABLE_P
+				{
+					AlterSubscriptionStmt *n =
+						makeNode(AlterSubscriptionStmt);
+					n->kind = ALTER_SUBSCRIPTION_ENABLED;
+					n->subname = $3;
+					n->options = list_make1(makeDefElem("enabled",
+											(Node *)makeInteger(false), @1));
+					$$ = (Node *)n;
+				}
+		;
+
+/*****************************************************************************
+ *
+ * DROP SUBSCRIPTION [ IF EXISTS ] name
+ *
+ *****************************************************************************/
+
+DropSubscriptionStmt: DROP SUBSCRIPTION name opt_drop_behavior
+				{
+					DropSubscriptionStmt *n = makeNode(DropSubscriptionStmt);
+					n->subname = $3;
+					n->missing_ok = false;
+					n->behavior = $4;
+					$$ = (Node *) n;
+				}
+				|  DROP SUBSCRIPTION IF EXISTS name opt_drop_behavior
+				{
+					DropSubscriptionStmt *n = makeNode(DropSubscriptionStmt);
+					n->subname = $5;
+					n->missing_ok = true;
+					n->behavior = $6;
+					$$ = (Node *) n;
+				}
+		;
 
 
 /*****************************************************************************
