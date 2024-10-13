@@ -43,6 +43,7 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner)
         IDENTIFIER,
         CS_IDENTIFIER,
         PARAMETER,
+        EQ_GT, 
         NOT_EQ,
         LT_EQ,
         GT_EQ,
@@ -104,6 +105,7 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner)
     case AG_TOKEN_PARAMETER:
         lvalp->string = pstrdup(token.value.s);
         break;
+    case AG_TOKEN_EQ_GT:
     case AG_TOKEN_LT_GT:
     case AG_TOKEN_LT_EQ:
     case AG_TOKEN_GT_EQ:

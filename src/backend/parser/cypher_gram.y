@@ -199,7 +199,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %token <string> XCONST BCONST 
 
 /* operators that have more than 1 character */
-%token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ COLON_EQUALS
+%token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ COLON_EQUALS EQ_GT
 
 /* keywords in alphabetical order */ 
 %token <keyword> ABORT_P ACCESS ACTION ADD_P ADMIN AFTER AGGREGATE ALL ALSO ALTER AND ANY ALWAYS ARRAY 
@@ -741,14 +741,15 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %left AND
 %left XOR
 %right NOT
-%nonassoc IN IS
+%nonassoc	IS ISNULL NOTNULL	/* IS sets precedence for IS NULL, etc */
 %nonassoc '=' NOT_EQ '<' LT_EQ '>' GT_EQ '~' '!'
-%nonassoc CONTAINS ENDS EQ_TILDE STARTS LIKE ILIKE SIMILAR
+%nonassoc IN BETWEEN LIKE ILIKE
+%nonassoc CONTAINS ENDS EQ_TILDE STARTS SIMILAR
 %nonassoc ESCAPE
 %nonassoc	UNBOUNDED		/* ideally would have same precedence as IDENT */
 %nonassoc	IDENTIFIER PARTITION RANGE ROWS GROUPS PRECEDING FOLLOWING CUBE ROLLUP
 
-%left OPERATOR RIGHT_ARROW COLON_EQUALS
+%left OPERATOR RIGHT_ARROW COLON_EQUALS OPERATOR_P
 %left '+' '-'
 %left '*' '/' '%'
 %left '^' '&' '|'
@@ -4779,7 +4780,7 @@ set_rest_more:	/* Generic SET syntaxes: */
 					n->kind = VAR_SET_DEFAULT;
 					n->name = "session_authorization";
 					$$ = n;
-				}/*
+				}
 			| XML_P OPTION document_or_content
 				{
 					VariableSetStmt *n = makeNode(VariableSetStmt);
@@ -4796,7 +4797,7 @@ set_rest_more:	/* Generic SET syntaxes: */
 					n->name = "TRANSACTION SNAPSHOT";
 					n->args = list_make1(makeStringConst($3, @3));
 					$$ = n;
-				}*/
+				}
 		;
 
 
@@ -9051,7 +9052,7 @@ TriggerFuncArg:
 				{
 					$$ = makeString(psprintf("%d", $1));
 				}
-			| Numeric								{ $$ = makeString($1); }
+			| NumericOnly								{ $$ = makeString($1); }
 			| Sconst								{ $$ = makeString($1); }
 			| ColLabel								{ $$ = makeString($1); }
 		;
@@ -14663,7 +14664,7 @@ func_arg_expr:  a_expr
 					na->location = @1;
 					$$ = (Node *) na;
 				}
-			| param_name GT_EQ a_expr
+			| param_name EQ_GT a_expr
 				{
 					NamedArgExpr *na = makeNode(NamedArgExpr);
 					na->name = $1;

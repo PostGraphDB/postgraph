@@ -37,6 +37,7 @@ typedef enum ag_token_type
     AG_TOKEN_IDENTIFIER,
     AG_TOKEN_CS_IDENTIFIER,
     AG_TOKEN_PARAMETER,
+    AG_TOKEN_EQ_GT,
     AG_TOKEN_LT_GT,
     AG_TOKEN_LT_EQ,
     AG_TOKEN_GT_EQ,
