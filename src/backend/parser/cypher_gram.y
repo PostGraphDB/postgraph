@@ -191,7 +191,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %token <string> IDENTIFIER CS_IDENTIFIER
 %token <string> INET
 %token <string> PARAMETER
-%token <string> OPERATOR
+%token <string> OPERATOR RIGHT_ARROW
 %token <string> XCONST BCONST 
 
 /* operators that have more than 1 character */
@@ -726,7 +726,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %left XOR
 %right NOT
 %left '=' NOT_EQ '<' LT_EQ '>' GT_EQ '~' '!'
-%left OPERATOR
+%left OPERATOR RIGHT_ARROW
 %left '+' '-'
 %left '*' '/' '%'
 %left '^' '&' '|'
@@ -2468,6 +2468,7 @@ sub_type:	ANY										{ $$ = ANY_SUBLINK; }
 		;
 
 all_Op:		OPERATOR										{ $$ = $1; }
+			| RIGHT_ARROW { $$ = $1; }
 			| MathOp								{ $$ = $1; }
 		;
 
@@ -2489,6 +2490,8 @@ qual_Op:	OPERATOR
 					{ $$ = list_make1(makeString($1)); }
 			| OPERATOR_P '(' any_operator ')'
 					{ $$ = $3; }
+			| RIGHT_ARROW
+					{ $$ = list_make1(makeString($1)); }
 		;
 
 qual_all_Op:
@@ -2501,8 +2504,8 @@ qual_all_Op:
 subquery_Op:
 			all_Op
 					{ $$ = list_make1(makeString($1)); }
-			//| OPERATOR '(' any_operator ')'
-			//		{ $$ = $3; }
+			| OPERATOR_P '(' any_operator ')'
+					{ $$ = $3; }
 			| LIKE
 					{ $$ = list_make1(makeString("~~")); }
 			| NOT LIKE
@@ -3540,6 +3543,33 @@ AlterExtensionContentsStmt:
 					$$ = (Node *)n;
 				}
 			| ALTER EXTENSION name add_drop OPERATOR FAMILY any_name USING name
+				{
+					AlterExtensionContentsStmt *n = makeNode(AlterExtensionContentsStmt);
+					n->extname = $3;
+					n->action = $4;
+					n->objtype = OBJECT_OPFAMILY;
+					n->object = (Node *) lcons(makeString($9), $7);
+					$$ = (Node *)n;
+				}
+			| ALTER EXTENSION name add_drop RIGHT_ARROW operator_with_argtypes
+				{
+					AlterExtensionContentsStmt *n = makeNode(AlterExtensionContentsStmt);
+					n->extname = $3;
+					n->action = $4;
+					n->objtype = OBJECT_OPERATOR;
+					n->object = (Node *) $6;
+					$$ = (Node *)n;
+				}
+			| ALTER EXTENSION name add_drop RIGHT_ARROW CLASS any_name USING name
+				{
+					AlterExtensionContentsStmt *n = makeNode(AlterExtensionContentsStmt);
+					n->extname = $3;
+					n->action = $4;
+					n->objtype = OBJECT_OPCLASS;
+					n->object = (Node *) lcons(makeString($9), $7);
+					$$ = (Node *)n;
+				}
+			| ALTER EXTENSION name add_drop RIGHT_ARROW FAMILY any_name USING name
 				{
 					AlterExtensionContentsStmt *n = makeNode(AlterExtensionContentsStmt);
 					n->extname = $3;
@@ -7360,7 +7390,7 @@ CommentStmt:
 					n->comment = $6;
 					$$ = (Node *) n;
 				}
-			| COMMENT ON OPERATOR operator_with_argtypes IS comment_text
+			| COMMENT ON OPERATOR_P operator_with_argtypes IS comment_text
 				{
 					CommentStmt *n = makeNode(CommentStmt);
 					n->objtype = OBJECT_OPERATOR;
@@ -7544,6 +7574,18 @@ CreateOpClassStmt:
 					n->items = $13;
 					$$ = (Node *) n;
 				}
+			| CREATE RIGHT_ARROW CLASS any_name opt_default FOR TYPE_P Typename
+			USING name opt_opfamily AS opclass_item_list
+				{
+					CreateOpClassStmt *n = makeNode(CreateOpClassStmt);
+					n->opclassname = $4;
+					n->isDefault = $5;
+					n->datatype = $8;
+					n->amname = $10;
+					n->opfamilyname = $11;
+					n->items = $13;
+					$$ = (Node *) n;
+				}
 		;
 
 opclass_item_list:
@@ -7565,6 +7607,28 @@ opclass_item:
 					$$ = (Node *) n;
 				}
 			| OPERATOR Iconst operator_with_argtypes opclass_purpose
+			  opt_recheck
+				{
+					CreateOpClassItem *n = makeNode(CreateOpClassItem);
+					n->itemtype = OPCLASS_ITEM_OPERATOR;
+					n->name = $3;
+					n->number = $2;
+					n->order_family = $4;
+					$$ = (Node *) n;
+				}
+			| RIGHT_ARROW Iconst any_operator opclass_purpose opt_recheck
+				{
+					CreateOpClassItem *n = makeNode(CreateOpClassItem);
+					ObjectWithArgs *owa = makeNode(ObjectWithArgs);
+					owa->objname = $3;
+					owa->objargs = NIL;
+					n->itemtype = OPCLASS_ITEM_OPERATOR;
+					n->name = owa;
+					n->number = $2;
+					n->order_family = $4;
+					$$ = (Node *) n;
+				}
+			| RIGHT_ARROW Iconst operator_with_argtypes opclass_purpose
 			  opt_recheck
 				{
 					CreateOpClassItem *n = makeNode(CreateOpClassItem);
@@ -7638,7 +7702,16 @@ CreateOpFamilyStmt:
 					n->amname = $6;
 					$$ = (Node *) n;
 				}
+		| 	CREATE RIGHT_ARROW FAMILY any_name USING name
+				{
+					CreateOpFamilyStmt *n = makeNode(CreateOpFamilyStmt);
+					n->opfamilyname = $4;
+					n->amname = $6;
+					$$ = (Node *) n;
+				}
 		;
+
+
 
 AlterOpFamilyStmt:
 			ALTER OPERATOR FAMILY any_name USING name ADD_P opclass_item_list
@@ -7651,6 +7724,24 @@ AlterOpFamilyStmt:
 					$$ = (Node *) n;
 				}
 			| ALTER OPERATOR FAMILY any_name USING name DROP opclass_drop_list
+				{
+					AlterOpFamilyStmt *n = makeNode(AlterOpFamilyStmt);
+					n->opfamilyname = $4;
+					n->amname = $6;
+					n->isDrop = true;
+					n->items = $8;
+					$$ = (Node *) n;
+				}
+			| ALTER RIGHT_ARROW FAMILY any_name USING name ADD_P opclass_item_list
+				{
+					AlterOpFamilyStmt *n = makeNode(AlterOpFamilyStmt);
+					n->opfamilyname = $4;
+					n->amname = $6;
+					n->isDrop = false;
+					n->items = $8;
+					$$ = (Node *) n;
+				}
+			| ALTER RIGHT_ARROW FAMILY any_name USING name DROP opclass_drop_list
 				{
 					AlterOpFamilyStmt *n = makeNode(AlterOpFamilyStmt);
 					n->opfamilyname = $4;
@@ -7675,6 +7766,14 @@ opclass_drop:
 					n->class_args = $4;
 					$$ = (Node *) n;
 				}
+			| RIGHT_ARROW Iconst '(' type_list ')'
+				{
+					CreateOpClassItem *n = makeNode(CreateOpClassItem);
+					n->itemtype = OPCLASS_ITEM_OPERATOR;
+					n->number = $2;
+					n->class_args = $4;
+					$$ = (Node *) n;
+				}
 			| FUNCTION Iconst '(' type_list ')'
 				{
 					CreateOpClassItem *n = makeNode(CreateOpClassItem);
@@ -7684,7 +7783,6 @@ opclass_drop:
 					$$ = (Node *) n;
 				}
 		;
-
 
 DropOpClassStmt:
 			DROP OPERATOR_P CLASS any_name USING name opt_drop_behavior
@@ -7710,7 +7808,7 @@ DropOpClassStmt:
 		;
 
 DropOpFamilyStmt:
-			DROP OPERATOR FAMILY any_name USING name opt_drop_behavior
+			DROP OPERATOR_P FAMILY any_name USING name opt_drop_behavior
 				{
 					DropStmt *n = makeNode(DropStmt);
 					n->objects = list_make1(lcons(makeString($6), $4));
@@ -7720,7 +7818,7 @@ DropOpFamilyStmt:
 					n->concurrent = false;
 					$$ = (Node *) n;
 				}
-			| DROP OPERATOR FAMILY IF EXISTS any_name USING name opt_drop_behavior
+			| DROP OPERATOR_P FAMILY IF EXISTS any_name USING name opt_drop_behavior
 				{
 					DropStmt *n = makeNode(DropStmt);
 					n->objects = list_make1(lcons(makeString($8), $6));
@@ -7881,7 +7979,7 @@ RemoveAggrStmt:
 		;
 
 RemoveOperStmt:
-			DROP OPERATOR operator_with_argtypes_list opt_drop_behavior
+			DROP OPERATOR_P operator_with_argtypes_list opt_drop_behavior
 				{
 					DropStmt *n = makeNode(DropStmt);
 					n->removeType = OBJECT_OPERATOR;
@@ -7891,7 +7989,7 @@ RemoveOperStmt:
 					n->concurrent = false;
 					$$ = (Node *)n;
 				}
-			| DROP OPERATOR IF EXISTS operator_with_argtypes_list opt_drop_behavior
+			| DROP OPERATOR_P IF EXISTS operator_with_argtypes_list opt_drop_behavior
 				{
 					DropStmt *n = makeNode(DropStmt);
 					n->removeType = OBJECT_OPERATOR;
@@ -9248,7 +9346,7 @@ RenameStmt: ALTER AGGREGATE aggregate_with_argtypes RENAME TO name
 					n->missing_ok = false;
 					$$ = (Node *)n;
 				}
-			| ALTER OPERATOR CLASS any_name USING name RENAME TO name
+			| ALTER OPERATOR_P CLASS any_name USING name RENAME TO name
 				{
 					RenameStmt *n = makeNode(RenameStmt);
 					n->renameType = OBJECT_OPCLASS;
@@ -9257,7 +9355,7 @@ RenameStmt: ALTER AGGREGATE aggregate_with_argtypes RENAME TO name
 					n->missing_ok = false;
 					$$ = (Node *)n;
 				}
-			| ALTER OPERATOR FAMILY any_name USING name RENAME TO name
+			| ALTER OPERATOR_P FAMILY any_name USING name RENAME TO name
 				{
 					RenameStmt *n = makeNode(RenameStmt);
 					n->renameType = OBJECT_OPFAMILY;
@@ -9820,7 +9918,7 @@ AlterObjectSchemaStmt:
 					n->missing_ok = false;
 					$$ = (Node *)n;
 				}
-			| ALTER OPERATOR operator_with_argtypes SET SCHEMA name
+			| ALTER OPERATOR_P operator_with_argtypes SET SCHEMA name
 				{
 					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
 					n->objectType = OBJECT_OPERATOR;
@@ -9829,7 +9927,7 @@ AlterObjectSchemaStmt:
 					n->missing_ok = false;
 					$$ = (Node *)n;
 				}
-			| ALTER OPERATOR CLASS any_name USING name SET SCHEMA name
+			| ALTER OPERATOR_P CLASS any_name USING name SET SCHEMA name
 				{
 					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
 					n->objectType = OBJECT_OPCLASS;
@@ -9838,7 +9936,7 @@ AlterObjectSchemaStmt:
 					n->missing_ok = false;
 					$$ = (Node *)n;
 				}
-			| ALTER OPERATOR FAMILY any_name USING name SET SCHEMA name
+			| ALTER OPERATOR_P FAMILY any_name USING name SET SCHEMA name
 				{
 					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
 					n->objectType = OBJECT_OPFAMILY;
@@ -10134,7 +10232,7 @@ AlterOwnerStmt: ALTER AGGREGATE aggregate_with_argtypes OWNER TO RoleSpec
 					n->newowner = $7;
 					$$ = (Node *)n;
 				}
-			| ALTER OPERATOR operator_with_argtypes OWNER TO RoleSpec
+			| ALTER OPERATOR_P operator_with_argtypes OWNER TO RoleSpec
 				{
 					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
 					n->objectType = OBJECT_OPERATOR;
@@ -10142,7 +10240,7 @@ AlterOwnerStmt: ALTER AGGREGATE aggregate_with_argtypes OWNER TO RoleSpec
 					n->newowner = $6;
 					$$ = (Node *)n;
 				}
-			| ALTER OPERATOR CLASS any_name USING name OWNER TO RoleSpec
+			| ALTER OPERATOR_P CLASS any_name USING name OWNER TO RoleSpec
 				{
 					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
 					n->objectType = OBJECT_OPCLASS;
@@ -10150,7 +10248,7 @@ AlterOwnerStmt: ALTER AGGREGATE aggregate_with_argtypes OWNER TO RoleSpec
 					n->newowner = $9;
 					$$ = (Node *)n;
 				}
-			| ALTER OPERATOR FAMILY any_name USING name OWNER TO RoleSpec
+			| ALTER OPERATOR_P FAMILY any_name USING name OWNER TO RoleSpec
 				{
 					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
 					n->objectType = OBJECT_OPFAMILY;
@@ -15800,7 +15898,7 @@ path_relationship:
 
             $$ = $2;
         }
-    | '-' path_relationship_body '-' '>'
+    | '-' path_relationship_body RIGHT_ARROW
         {
             cypher_relationship *n = (cypher_relationship *)$2;
 
@@ -15970,6 +16068,10 @@ cypher_a_expr:
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, $1, NULL, $2, @1);
         }
+    | cypher_a_expr RIGHT_ARROW cypher_a_expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, $2, $1, $3, @2);
+        }
     | cypher_a_expr '<' '-' '>' cypher_a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<->", $1, $5, @3);
@@ -16134,6 +16236,9 @@ all_op:
     {
         $$ = $1;
     }
+	| RIGHT_ARROW {
+		$$ == $1;
+	}
     | '<'
     {
         $$ = "<";

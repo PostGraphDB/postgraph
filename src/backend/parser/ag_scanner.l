@@ -149,7 +149,14 @@
 %x xeu
 
 
-whitespace [\t\n\v\f\r ]+
+space			[ \t\n\r\f]
+horiz_space		[ \t\f]
+newline			[\n\r]
+non_newline		[^\n\r]
+
+comment			("--"{non_newline}*)
+
+whitespace		({space}+|{comment})
 
 /*
  * Comment rule for multi-line comment in Cypher does not match comments that
@@ -292,9 +299,9 @@ gt_eq    ">="
 dot_dot  ".."
 plus_eq  "+="
 typecast "::"
-operator [&<=>|~!*?@#%]{2,3}|[@|?&#]|"?-|"|"?-"|"@-@"|"<->"|~|"##"|"#@%#"|"~>=~"
-operatorfail1 "@-"|"<-"
 self     [?&!@#%()*+,\-.~/:;<=>[\]^{|}]
+operator [\~\!\|\-\<\>\=\#\%\~\!\@\^\&\`\?\+\*\/]+
+
 
 
 other .
@@ -489,23 +496,6 @@ ag_token token;
     update_location();
     strbuf_reset(&yyextra.literal_buf);
     BEGIN(sqstr);
-}
-
-{squote} {
-    update_location();
-    strbuf_reset(&yyextra.literal_buf);
-    BEGIN(sqstr);
-
-    /*
-     * In quoted strings, only Unicode escape sequences need to be verified,
-     * and the actions for <dqstr,sqstr>{esunicode} and <qstru>{esunicode}
-     * rules verify the code point values. So, quoted strings are always valid.
-     */
-
-    token.type = AG_TOKEN_STRING;
-    token.value.s = strbuf_get_str(&yyextra.literal_buf);
-    token.location = get_location();
-    return token;
 }
 
 <dqstr>{dqchars} |
@@ -743,7 +733,7 @@ ag_token token;
 					 */
 					//SET_YYLLOC();
 					BEGIN(xb);
-                    strbuf_append_char(&yyextra.literal_buf, 'b');
+                    //strbuf_append_char(&yyextra.literal_buf, 'b');
 				}
 <xb>{xbinside}	{
         strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
@@ -806,6 +796,8 @@ ag_token token;
     token.location = get_location();
     return token;
 }
+
+
 
 
 {dolqdelim}		{
@@ -1005,20 +997,154 @@ ag_token token;
     return token;
 }
 
-{operatorfail1} {
-    update_location();
-    ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
-                    scan_errmsg("invalid literal"),
-                    scan_errposition()));
-}
-
 {operator} {
+
+                    /*
+					 * Check for embedded slash-star or dash-dash; those
+					 * are comment starts, so operator must stop there.
+					 * Note that slash-star or dash-dash at the first
+					 * character will match a prior rule, not this one.
+					 */
+					int			nchars = yyleng;
+					char	   *slashstar = strstr(yytext, "/*");
+					char	   *dashdash = strstr(yytext, "--");
+
+					if (slashstar && dashdash)
+					{
+						/* if both appear, take the first one */
+						if (slashstar > dashdash)
+							slashstar = dashdash;
+					}
+					else if (!slashstar)
+						slashstar = dashdash;
+					if (slashstar)
+						nchars = slashstar - yytext;
+
+					/*
+					 * For SQL compatibility, '+' and '-' cannot be the
+					 * last char of a multi-char operator unless the operator
+					 * contains chars that are not in SQL operators.
+					 * The idea is to lex '=-' as two operators, but not
+					 * to forbid operator names like '?-' that could not be
+					 * sequences of SQL operators.
+					 */
+					if (nchars > 1 &&
+						(yytext[nchars - 1] == '+' ||
+						 yytext[nchars - 1] == '-'))
+					{
+						int			ic;
+
+						for (ic = nchars - 2; ic >= 0; ic--)
+						{
+							char c = yytext[ic];
+							if (c == '~' || c == '!' || c == '@' ||
+								c == '#' || c == '^' || c == '&' ||
+								c == '|' || c == '`' || c == '?' ||
+								c == '%')
+								break;
+						}
+						if (ic < 0)
+						{
+							/*
+							 * didn't find a qualifying character, so remove
+							 * all trailing [+-]
+							 */
+							do {
+								nchars--;
+							} while (nchars > 1 &&
+								 (yytext[nchars - 1] == '+' ||
+								  yytext[nchars - 1] == '-'));
+						}
+					}
+
+					//SET_YYLLOC();
+
+					if (nchars < yyleng)
+					{
+						/* Strip the unwanted chars from the token */
+						yyless(nchars);
+						/*
+						 * If what we have left is only one char, and it's
+						 * one of the characters matching "self", then
+						 * return it as a character token the same way
+						 * that the "self" rule would have.
+						 */
+						if (nchars == 1 &&
+							strchr(",()[].;:+-*/%^<>=", yytext[0])) {
+							    token.type = AG_TOKEN_CHAR;
+                                token.value.c = yytext[0];
+								return token;
+                            }
+						/*
+						 * Likewise, if what we have left is two chars, and
+						 * those match the tokens ">=", "<=", "=>", "<>" or
+						 * "!=", then we must return the appropriate token
+						 * rather than the generic Op.
+						 */
+						if (nchars == 2)
+						{
+							if (yytext[0] == '=' && yytext[1] == '>'){
+                                token.type = AG_TOKEN_GT_EQ;
+								return token;
+                            }
+                            if (yytext[0] == '>' && yytext[1] == '='){
+                                token.type = AG_TOKEN_GT_EQ;
+								return token;
+							}
+                            if (yytext[0] == '<' && yytext[1] == '='){
+                                token.type = AG_TOKEN_LT_EQ;
+								return token;
+							}
+                            if (yytext[0] == '<' && yytext[1] == '>') {
+                                token.type = AG_TOKEN_LT_GT;
+								return token;
+							}
+                            if (yytext[0] == '!' && yytext[1] == '=') {
+                                token.type =  AG_TOKEN_LT_GT;
+								return token;
+                            }
+                            if (yytext[0] == '-' && yytext[1] == '>') {
+                                token.type = AG_TOKEN_RIGHT_ARROW;
+								return token;
+                            }
+						}
+					}
+
+					/*
+					 * Complain if operator is too long.  Unlike the case
+					 * for identifiers, we make this an error not a notice-
+					 * and-truncate, because the odds are we are looking at
+					 * a syntactic mistake anyway.
+					 */
+					if (nchars >= NAMEDATALEN)
+                        ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                                        scan_errmsg("operator too long"),
+                                        scan_errposition()));
+
+
     update_location();
-    token.type = AG_TOKEN_OPERATOR;
-    token.value.s = yytext;
-    token.location = get_location();
+    if (strlen(yytext) == 2 && !strcmp("->", yytext)){
+        token.type = AG_TOKEN_RIGHT_ARROW;
+
+        token.value.s = yytext;
+        token.location = get_location();
+    } else if (strlen(yytext) == 1 && ('-' == yytext[0] || '=' == yytext[0] || '<' == yytext[0] || '>' == yytext[0] || '*' == yytext[0])){
+        token.type = AG_TOKEN_CHAR;
+        token.value.c = yytext[0];
+        token.location = get_location();
+    } 
+     else {
+        token.type = AG_TOKEN_OPERATOR;
+
+        token.value.s = pstrdup(yytext);
+        token.location = get_location();
+    }
+
     return token;
 }
+
+
+
 
 {self} {
     update_location();
