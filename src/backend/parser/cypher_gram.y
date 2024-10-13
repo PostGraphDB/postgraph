@@ -7958,15 +7958,7 @@ opclass_drop_list:
 		;
 
 opclass_drop:
-			OPERATOR Iconst '(' type_list ')'
-				{
-					CreateOpClassItem *n = makeNode(CreateOpClassItem);
-					n->itemtype = OPCLASS_ITEM_OPERATOR;
-					n->number = $2;
-					n->class_args = $4;
-					$$ = (Node *) n;
-				}
-			| RIGHT_ARROW Iconst '(' type_list ')'
+			OPERATOR_P Iconst '(' type_list ')'
 				{
 					CreateOpClassItem *n = makeNode(CreateOpClassItem);
 					n->itemtype = OPCLASS_ITEM_OPERATOR;
