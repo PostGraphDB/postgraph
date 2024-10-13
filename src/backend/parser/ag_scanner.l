@@ -34,10 +34,16 @@
 #include "mb/pg_wchar.h"
 #include "parser/scansup.h"
 #include "common/kwlookup.h"
+#include "parser/parser.h"
 
 #include "parser/ag_scanner.h"
 #define YYLTYPE  int
 
+/* Likewise for a couple of other things we need. */
+#undef yylloc
+#define yylloc	(((struct yyguts_t *) yyscanner)->yylloc_r)
+#undef yyleng
+#define yyleng	(((struct yyguts_t *) yyscanner)->yyleng_r)
 
 /*
  * Advance yylloc by the given number of bytes.
@@ -53,8 +59,9 @@
  * (Currently the implied "stack" is just one location, but someday we might
  * need to nest these.)
  */
-#define PUSH_YYLLOC()	(yyextra->save_yylloc = *(yylloc))
-#define POP_YYLLOC()	(*(yylloc) = yyextra->save_yylloc)
+#define PUSH_YYLLOC()	(yyextra.save_yylloc = *(yylloc))
+#define POP_YYLLOC()	(*(yylloc) = &yyextra.save_yylloc)
+
 
 }
 
@@ -155,9 +162,32 @@ horiz_space		[ \t\f]
 newline			[\n\r]
 non_newline		[^\n\r]
 
+/*
+ * SQL requires at least one newline in the whitespace separating
+ * string literals that are to be concatenated.  Silly, but who are we
+ * to argue?  Note that {whitespace_with_newline} should not have * after
+ * it, whereas {whitespace} should generally have a * after it...
+ */
+
+special_whitespace		({space}+|{comment}{newline})
+horiz_whitespace		({horiz_space}|{comment})
+whitespace_with_newline	({horiz_whitespace}*{newline}{special_whitespace}*)
 comment			("--"{non_newline}*)
 
 whitespace		({space}+|{comment})
+
+squote        '
+/* If we see {quote} then {quotecontinue}, the quoted string continues */
+quotecontinue	{whitespace_with_newline}{squote}
+
+/*
+ * {quotecontinuefail} is needed to avoid lexer backup when we fail to match
+ * {quotecontinue}.  It might seem that this could just be {whitespace}*,
+ * but if there's a dash after {whitespace_with_newline}, it must be consumed
+ * to see if there's another dash --- which would start a {comment} and thus
+ * allow continuation of the {quotecontinue} token.
+ */
+quotecontinuefail	{whitespace}*"-"?
 
 /*
  * Comment rule for multi-line comment in Cypher does not match comments that
@@ -235,7 +265,7 @@ decimalscifail2 ({digitseq}|{decimal})[Ee][+-]
 %x dqstr sqstr qstru
 dquote        \"
 dqchars       [^"\\]+
-squote        '
+
 
 /* Hexadecimal number */
 xbstart			[bB]{squote}
@@ -247,6 +277,22 @@ xhinside		[^']*
 
 /* National character */
 xnstart			[nN]{squote}
+
+/* Quoted string that allows backslash escapes */
+xestart			[eE]{squote}
+xeinside		[^\\']+
+xeescape		[\\][^0-7]
+xeoctesc		[\\][0-7]{1,3}
+xehexesc		[\\]x[0-9A-Fa-f]{1,2}
+xeunicode		[\\](u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})
+xeunicodefail	[\\](u[0-9A-Fa-f]{0,3}|U[0-9A-Fa-f]{0,7})
+
+/* Extended quote
+ * xqdouble implements embedded quote, ''''
+ */
+xqstart			{squote}
+xqdouble		{squote}{squote}
+xqinside		[^']+
 
 dolq_start		[A-Za-z\200-\377_]
 dolq_cont		[A-Za-z\200-\377_0-9]
@@ -317,6 +363,9 @@ typedef struct strbuf
     int length;
 } strbuf;
 
+
+
+
 static void strbuf_trunc_buf(strbuf *sb, const int len);
 static void strbuf_init(strbuf *sb, int capacity);
 static void strbuf_cleanup(strbuf *sb);
@@ -335,6 +384,17 @@ typedef struct ag_yy_extra
 	 */
 	const ScanKeywordList *keywordlist;
 	const uint16 *keyword_tokens;
+
+	/*
+	 * Scanner settings to use.  These are initialized from the corresponding
+	 * GUC variables by scanner_init().  Callers can modify them after
+	 * scanner_init() if they don't want the scanner's behavior to follow the
+	 * prevailing GUC settings.
+	 */
+	int			backslash_quote;
+	bool		escape_string_warning;
+	bool		standard_conforming_strings;
+
 
     /*
      * accumulate matched strings to build a complete literal if multiple rules
@@ -805,6 +865,276 @@ ag_token token;
     return token;
 }
 
+
+
+{xestart}		{
+					yyextra.warn_on_first_escape = false;
+					yyextra.saw_non_ascii = false;
+					//SET_YYLLOC();
+					BEGIN(xe);
+					//startlit();
+				}
+<xqs>{quotecontinue} {
+					/*
+					 * Found a quote continuation, so return to the in-quote
+					 * state and continue scanning the literal.  Nothing is
+					 * added to the literal's contents.
+					 */
+					BEGIN(yyextra.state_before_str_stop);
+				}
+<xqs>{quotecontinuefail} |
+<xqs>{other} |
+<xb,xh,xq,xe,xus>{squote} {
+					/*
+					 * When we are scanning a quoted string and see an end
+					 * quote, we must look ahead for a possible continuation.
+					 * If we don't see one, we know the end quote was in fact
+					 * the end of the string.  To reduce the lexer table size,
+					 * we use a single "xqs" state to do the lookahead for all
+					 * types of strings.
+					 */
+					yyextra.state_before_str_stop = YYSTATE;
+					BEGIN(xqs);
+				}
+
+<xqs>{quotecontinuefail} |
+<xqs>{other} |
+<xqs><<EOF>>	{
+					/*
+					 * Failed to see a quote continuation.  Throw back
+					 * everything after the end quote, and handle the string
+					 * according to the state we were in previously.
+					 */
+					yyless(0);
+					BEGIN(INITIAL);
+
+					switch (yyextra.state_before_str_stop)
+					{
+						case xb:
+
+                           token.type = AG_TOKEN_BCONST;
+                           token.value.s = strbuf_get_str(&yyextra.literal_buf);
+                           token.location = get_location();
+                           return token;
+						case xh:
+                            token.type = AG_TOKEN_XCONST;
+                            token.value.s = strbuf_get_str(&yyextra.literal_buf);
+                            token.location = get_location();
+                            return token;
+							//yylval->str = litbufdup(yyscanner);
+						    //return XCONST;
+						case xq:
+						case xe:
+							/*
+							 * Check that the data remains valid, if it might
+							 * have been made invalid by unescaping any chars.
+							 */
+							if (yyextra.saw_non_ascii)
+								pg_verifymbstr(yyextra.literal_buf.buffer,
+											   yyextra.literal_buf.length,
+											   false);
+							//yylval->str = litbufdup(yyscanner);
+							//return SCONST;
+                            token.type = AG_TOKEN_STRING;
+                            token.value.s = strbuf_get_str(&yyextra.literal_buf);
+                            token.location = get_location();
+                            return token;
+						case xus:
+                            token.type = AG_TOKEN_STRING;
+                            token.value.s = strbuf_get_str(&yyextra.literal_buf);
+                            token.location = get_location();
+                            return token;
+							//yylval->str = litbufdup(yyscanner);
+							//return USCONST;
+						default:{
+                            token.type = AG_TOKEN_STRING;
+                            token.value.s = strbuf_get_str(&yyextra.literal_buf);
+                            token.location = get_location();
+                            return token;
+                            /*ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                                scan_errmsg("unhandled previous state in xqs"),
+                                scan_errposition()));*/
+                        }
+					}
+				}
+
+<xq,xe,xus>{xqdouble} {
+    strbuf_append_char(&yyextra.literal_buf, '\'');
+				}
+<xq,xus>{xqinside}  {
+    strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
+				}
+
+
+<xui>{dquote}	{
+					BEGIN(INITIAL);
+					if (yyextra.literal_buf.length == 0)
+                         ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                                scan_errmsg("zero-length delimited identifier"),
+                                scan_errposition()));
+					/* can't truncate till after we de-escape the ident */
+					//yylval->str = litbufdup(yyscanner);
+					//return UIDENT;
+
+                    token.type = AG_TOKEN_IDENTIFIER;
+                    token.value.s = strbuf_get_str(&yyextra.literal_buf);
+                    token.location = get_location();
+                    return token;
+				}
+
+<xe>{xeinside}  {
+    strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
+}
+<xe>{xeunicode} {
+					pg_wchar	c = strtoul(yytext + 2, NULL, 16);
+
+					/*
+					 * For consistency with other productions, issue any
+					 * escape warning with cursor pointing to start of string.
+					 * We might want to change that, someday.
+					 */
+                    if (yyextra.warn_on_first_escape && yyextra.escape_string_warning)
+                        ereport(WARNING,
+                                (errcode(ERRCODE_NONSTANDARD_USE_OF_ESCAPE_CHARACTER),
+                                errmsg("nonstandard use of escape in a string literal"),
+                        errhint("Use the escape string syntax for escapes, e.g., E'\\r\\n'.")));
+                    yyextra.warn_on_first_escape = false;		/* warn only once per string */
+
+					/* Remember start of overall string token ... */
+					//PUSH_YYLLOC();
+					/* ... and set the error cursor to point at this esc seq */
+					//SET_YYLLOC();
+
+					if (is_utf16_surrogate_first(c))
+					{
+						yyextra.utf16_first_part = c;
+						BEGIN(xeu);
+					}
+					else if (is_utf16_surrogate_second(c))
+                         ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                                scan_errmsg("invalid Unicode surrogate pair"),
+                                scan_errposition()));
+					else {
+                        char		buf[MAX_UNICODE_EQUIVALENT_STRING + 1];
+
+                        if (!is_valid_unicode_codepoint(c))
+                            ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                                            scan_errmsg("invalid Unicode escape value")));
+
+                        /*
+                        * We expect that pg_unicode_to_server() will complain about any
+                        * unconvertible code point, so we don't have to set saw_non_ascii.
+                        */
+                        pg_unicode_to_server(c, (unsigned char *) buf);
+
+                        strbuf_append_buf(&yyextra.literal_buf, buf, strlen(buf));
+                    }
+					/* Restore yylloc to be start of string token */
+					//POP_YYLLOC();
+	}
+<xd,xui><<EOF>>		{ ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                                scan_errmsg("unterminated quoted identifier"),
+                                scan_errposition()));
+}
+<xeu>{xeunicode} {
+					pg_wchar	c = strtoul(yytext + 2, NULL, 16);
+
+					/* Remember start of overall string token ... */
+					//PUSH_YYLLOC();
+					/* ... and set the error cursor to point at this esc seq */
+					//SET_YYLLOC();
+
+					if (!is_utf16_surrogate_second(c))
+                        ereport(ERROR,
+                                (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
+                                errmsg("invalid Unicode escape"),
+                                errhint("invalid Unicode surrogate pair")));
+
+					c = surrogate_pair_to_codepoint(yyextra.utf16_first_part, c);
+
+					//addunicode(c, yyscanner);
+	                char		buf[MAX_UNICODE_EQUIVALENT_STRING + 1];
+                	if (!is_valid_unicode_codepoint(c))
+                        ereport(ERROR,
+                                (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
+                                errmsg("invalid Unicode escape value"),
+                                errhint("invalid Unicode surrogate pair")));
+                    pg_unicode_to_server(c, (unsigned char *) buf);
+                    strbuf_append_char(&yyextra.literal_buf, c);
+					/* Restore yylloc to be start of string token */
+					//POP_YYLLOC();
+
+					BEGIN(xe);
+				}
+<xeu>. |
+<xeu>\n |
+<xeu><<EOF>>	{
+					/* Set the error cursor to point at missing esc seq */
+					
+                        ereport(ERROR,
+                                (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
+                                errmsg("invalid Unicode escape"),
+                                errhint("invalid Unicode surrogate pair")));
+				}
+<xe,xeu>{xeunicodefail}	{
+					/* Set the error cursor to point at malformed esc seq */
+					//SET_YYLLOC();
+					ereport(ERROR,
+							(errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
+							 errmsg("invalid Unicode escape"),
+							 errhint("Unicode escapes must be \\uXXXX or \\UXXXXXXXX.")));
+				}
+<xe>{xeescape}  {
+					if (yytext[1] == '\'')
+					{
+						if (yyextra.backslash_quote == BACKSLASH_QUOTE_OFF ||
+							(yyextra.backslash_quote == BACKSLASH_QUOTE_SAFE_ENCODING &&
+							 PG_ENCODING_IS_CLIENT_ONLY(pg_get_client_encoding())))
+							ereport(ERROR,
+									(errcode(ERRCODE_NONSTANDARD_USE_OF_ESCAPE_CHARACTER),
+									 errmsg("unsafe use of \\' in a string literal"),
+									 errhint("Use '' to write quotes in strings. \\' is insecure in client-only encodings.")));
+					}
+                    if (yyextra.warn_on_first_escape && yyextra.escape_string_warning)
+                        ereport(WARNING,
+                                (errcode(ERRCODE_NONSTANDARD_USE_OF_ESCAPE_CHARACTER),
+                                errmsg("nonstandard use of escape in a string literal"),
+                        errhint("Use the escape string syntax for escapes, e.g., E'\\r\\n'.")));
+                    yyextra.warn_on_first_escape = false;		/* warn only once per string */
+
+                    strbuf_append_char(&yyextra.literal_buf, yytext[1]);
+				}
+<xe>{xeoctesc}  {
+					unsigned char c = strtoul(yytext + 1, NULL, 8);
+
+                    if (yyextra.warn_on_first_escape && yyextra.escape_string_warning)
+                        ereport(WARNING,
+                                (errcode(ERRCODE_NONSTANDARD_USE_OF_ESCAPE_CHARACTER),
+                                errmsg("nonstandard use of escape in a string literal"),
+                        errhint("Use the escape string syntax for escapes, e.g., E'\\r\\n'.")));
+                    yyextra.warn_on_first_escape = false;		/* warn only once per string */
+					strbuf_append_char(&yyextra.literal_buf, c);
+                    if (c == '\0' || IS_HIGHBIT_SET(c))
+						yyextra.saw_non_ascii = true;
+				}
+<xe>{xehexesc}  {
+					unsigned char c = strtoul(yytext + 2, NULL, 16);
+
+                    if (yyextra.warn_on_first_escape && yyextra.escape_string_warning)
+                        ereport(WARNING,
+                                (errcode(ERRCODE_NONSTANDARD_USE_OF_ESCAPE_CHARACTER),
+                                errmsg("nonstandard use of escape in a string literal"),
+                        errhint("Use the escape string syntax for escapes, e.g., E'\\r\\n'.")));
+                    yyextra.warn_on_first_escape = false;		/* warn only once per string */
+
+                    strbuf_append_char(&yyextra.literal_buf, c);
+					if (c == '\0' || IS_HIGHBIT_SET(c))
+						yyextra.saw_non_ascii = true;
+				}
+<xe>. {
+	/* This is only needed for \ just before EOF */
+    strbuf_append_char(&yyextra.literal_buf, yytext[0]);
+}
 
 {xnstart}		{
 					/* National character.
@@ -1608,6 +1938,9 @@ ag_scanner_t ag_scanner_create(const char *s, const ScanKeywordList *keywordlist
     extra.last_loc = 0;
 	extra.keywordlist = keywordlist;
 	extra.keyword_tokens = keyword_tokens;
+	extra.backslash_quote = backslash_quote;
+	extra.escape_string_warning = escape_string_warning;
+	extra.standard_conforming_strings = standard_conforming_strings;
 
     ag_yyset_extra(extra, yyscanner);
 
@@ -1694,3 +2027,5 @@ ag_yyfree(void *ptr, ag_scanner_t yyscanner)
 	if (ptr)
 		pfree(ptr);
 }
+
+
