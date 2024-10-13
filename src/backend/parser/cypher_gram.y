@@ -14340,15 +14340,18 @@ func_expr: func_application within_group_clause filter_clause over_clause
 						if (n->agg_order != NIL)
 							ereport(ERROR,
 									(errcode(ERRCODE_SYNTAX_ERROR),
-									 errmsg("cannot use multiple ORDER BY clauses with WITHIN GROUP")));
+									 errmsg("cannot use multiple ORDER BY clauses with WITHIN GROUP"),
+									 scanner_errposition(@2, scanner)));
 						if (n->agg_distinct)
 							ereport(ERROR,
 									(errcode(ERRCODE_SYNTAX_ERROR),
-									 errmsg("cannot use DISTINCT with WITHIN GROUP")));
+									 errmsg("cannot use DISTINCT with WITHIN GROUP"),
+									 scanner_errposition(@2, scanner)));
 						if (n->func_variadic)
 							ereport(ERROR,
 									(errcode(ERRCODE_SYNTAX_ERROR),
-									 errmsg("cannot use VARIADC with WITHIN GROUP")));
+									 errmsg("cannot use VARIADC with WITHIN GROUP"),
+									 scanner_errposition(@2, scanner)));
 						n->agg_order = $2;
 						n->agg_within_group = true;
 					}

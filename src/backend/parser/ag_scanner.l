@@ -238,8 +238,20 @@ hexintfail 0[Xx]
  */
 %x dqstr sqstr qstru
 dquote        \"
-dqchars       [^"\\]+
 
+xdstart			{dquote}
+xdstop			{dquote}
+xddouble		{dquote}{dquote}
+xdinside		[^"]+
+
+/* Quoted identifier with Unicode escapes */
+xuistart		[uU]&{dquote}
+
+/* Quoted string with Unicode escapes */
+xusstart		[uU]&{quote}
+
+/* error rule to avoid backup */
+xufailed		[uU]&
 
 /* Hexadecimal number */
 xbstart			[bB]{squote}
@@ -549,11 +561,6 @@ ag_token token;
                     scan_errposition()));
 }
 
-{dquote} {
-    update_location();
-    strbuf_reset(&yyextra.literal_buf);
-    BEGIN(dqstr);
-}
 
 {squote} {
     update_location();
@@ -561,7 +568,7 @@ ag_token token;
     BEGIN(sqstr);
 }
 
-<dqstr>{dqchars} |
+
 <sqstr>{sqchars} {
     strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
 }
@@ -796,6 +803,7 @@ ag_token token;
 					 */
 					//SET_YYLLOC();
 					BEGIN(xb);
+                     strbuf_reset(&yyextra.literal_buf);
                     //strbuf_append_char(&yyextra.literal_buf, 'b');
 				}
 
@@ -813,6 +821,7 @@ ag_token token;
 					 * to mark it for the input routine as a hex string.
 					 */
 					BEGIN(xh);
+                     strbuf_reset(&yyextra.literal_buf);
                     strbuf_append_char(&yyextra.literal_buf, 'x');
 				}
 
@@ -832,6 +841,7 @@ ag_token token;
 					yyextra.saw_non_ascii = false;
 					//SET_YYLLOC();
 					BEGIN(xe);
+                     strbuf_reset(&yyextra.literal_buf);
 					//startlit();
 				}
 <xqs>{quotecontinue} {
@@ -1188,6 +1198,79 @@ ag_token token;
 
 
 
+
+{xdstart}		{
+					//SET_YYLLOC();
+					BEGIN(xd);
+                     strbuf_reset(&yyextra.literal_buf);
+					//startlit();
+				}
+{xuistart}		{
+					//SET_YYLLOC();
+					BEGIN(xui);
+                     strbuf_reset(&yyextra.literal_buf);
+					//startlit();
+				}
+<xd>{xdstop}	{
+					char	   *ident;
+
+					BEGIN(INITIAL);
+					if (yyextra.literal_buf.length == 0)
+                        ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                            scan_errmsg("zero-length delimited identifier"),
+                            scan_errposition()));
+            
+					ident = strbuf_get_str(&yyextra.literal_buf);
+					if (yyextra.literal_buf.length >= NAMEDATALEN)
+						truncate_identifier(ident, yyextra.literal_buf.length, true);
+
+                    token.type = AG_TOKEN_CS_IDENTIFIER;
+                    token.value.s = ident;
+                    token.location = get_location();
+                    strbuf_reset(&yyextra.literal_buf);
+                    return token;
+
+				}
+<xui>{dquote}	{
+					BEGIN(INITIAL);
+					if (yyextra.literal_buf.length == 0)
+                        ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                            scan_errmsg("zero-length delimited identifier"),
+                            scan_errposition()));
+					/* can't truncate till after we de-escape the ident */
+                    token.type = AG_TOKEN_CS_IDENTIFIER;
+                    token.value.s = strbuf_get_str(&yyextra.literal_buf);
+                    token.location = get_location();
+                    strbuf_reset(&yyextra.literal_buf);
+                    return token;
+				}
+<xd,xui>{xddouble}	{
+                    strbuf_append_char(&yyextra.literal_buf, '"');
+				}
+<xd,xui>{xdinside}	{
+                    strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
+	            }
+<xd,xui><<EOF>>		{
+                        ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
+                            scan_errmsg("unterminated quoted identifier"),
+                            scan_errposition()));
+}
+
+{xufailed}	{
+					char	   *ident;
+
+					//SET_YYLLOC();
+					/* throw back all but the initial u/U */
+					yyless(1);
+					/* and treat it as {identifier} */
+					ident = downcase_truncate_identifier(yytext, yyleng, true);
+                    token.type = AG_TOKEN_IDENTIFIER;
+                    token.value.s = ident;
+                    token.location = get_location();
+                    strbuf_reset(&yyextra.literal_buf);
+                    return token;
+	        }
+
 <sqstr>{squote} {
     BEGIN(INITIAL);
 
@@ -1203,20 +1286,6 @@ ag_token token;
     return token;
 }
 
-<dqstr>{dquote} {
-    BEGIN(INITIAL);
-
-    /*
-     * In quoted strings, only Unicode escape sequences need to be verified,
-     * and the actions for <dqstr,sqstr>{esunicode} and <qstru>{esunicode}
-     * rules verify the code point values. So, quoted strings are always valid.
-     */
-
-    token.type = AG_TOKEN_CS_IDENTIFIER;
-    token.value.s = strbuf_get_str(&yyextra.literal_buf);
-    token.location = get_location();
-    return token;
-}
 
 <dqstr,sqstr,qstru><<EOF>> {
     ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
@@ -1229,6 +1298,7 @@ ag_token token;
     token.type = AG_TOKEN_IDENTIFIER;
     token.value.s = downcase_truncate_identifier(yytext, yyleng, true);
     token.location = get_location();
+    strbuf_reset(&yyextra.literal_buf);
     return token;
 }
 
@@ -1259,6 +1329,7 @@ ag_token token;
     token.type = AG_TOKEN_IDENTIFIER;
     token.value.s = strbuf_get_str(&yyextra.literal_buf);
     token.location = get_location();
+    strbuf_reset(&yyextra.literal_buf);
     return token;
 }
 
