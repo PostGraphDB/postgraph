@@ -64,7 +64,7 @@ typedef struct cypher_yy_extra
 #include "parser/cypher_gram_def.h"
 
 // cypher_parser.c
-int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner);
+int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner, ag_yy_extra *extra);
 void cypher_yyerror(YYLTYPE *llocp, ag_scanner_t scanner,
                     cypher_yy_extra *extra, const char *msg);
 

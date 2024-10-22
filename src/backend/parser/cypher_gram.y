@@ -142,6 +142,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %pure-parser
 
 %lex-param {ag_scanner_t scanner}
+%lex-param {cypher_yy_extra *extra}
 %parse-param {ag_scanner_t scanner}
 %parse-param {cypher_yy_extra *extra}
 

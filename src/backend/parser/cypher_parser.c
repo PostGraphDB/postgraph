@@ -27,7 +27,236 @@
 #include "parser/cypher_keywords.h"
 #include "parser/cypher_parser.h"
 
-int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner)
+/*
+ * ecpg_isspace() --- return true if flex scanner considers char whitespace
+ */
+static bool
+ecpg_isspace(char ch)
+{
+	if (ch == ' ' ||
+		ch == '\t' ||
+		ch == '\n' ||
+		ch == '\r' ||
+		ch == '\f')
+		return true;
+	return false;
+}
+
+/* is Unicode code point acceptable? */
+static void
+check_unicode_value(pg_wchar c)
+{
+	if (!is_valid_unicode_codepoint(c))
+		ereport(ERROR,
+				(errcode(ERRCODE_SYNTAX_ERROR),
+				 errmsg("invalid Unicode escape value")));
+}
+/* convert hex digit (caller should have verified that) to value */
+static unsigned int
+hexval(unsigned char c)
+{
+	if (c >= '0' && c <= '9')
+		return c - '0';
+	if (c >= 'a' && c <= 'f')
+		return c - 'a' + 0xA;
+	if (c >= 'A' && c <= 'F')
+		return c - 'A' + 0xA;
+	elog(ERROR, "invalid hexadecimal digit");
+	return 0;					/* not reached */
+}
+/*
+ * check_uescapechar() and ecpg_isspace() should match their equivalents
+ * in pgc.l.
+ */
+
+/* is 'escape' acceptable as Unicode escape character (UESCAPE syntax) ? */
+static bool
+check_uescapechar(unsigned char escape)
+{
+	if (isxdigit(escape)
+		|| escape == '+'
+		|| escape == '\''
+		|| escape == '"'
+		|| ecpg_isspace(escape))
+		return false;
+	else
+		return true;
+}
+
+/* Support for scanner_errposition_callback function */
+typedef struct ScannerCallbackState
+{
+	ag_scanner_t yyscanner;
+	int			location;
+	ErrorContextCallback errcallback;
+} ScannerCallbackState;
+/*
+ * Process Unicode escapes in "str", producing a palloc'd plain string
+ *
+ * escape: the escape character to use
+ * position: start position of U&'' or U&"" string token
+ * yyscanner: context information needed for error reports
+ */
+static char *
+str_udeescape(const char *str, char escape,
+			  int position, ag_scanner_t yyscanner)
+{
+	const char *in;
+	char	   *new,
+			   *out;
+	size_t		new_len;
+	pg_wchar	pair_first = 0;
+	ScannerCallbackState scbstate;
+
+	/*
+	 * Guesstimate that result will be no longer than input, but allow enough
+	 * padding for Unicode conversion.
+	 */
+	new_len = strlen(str) + MAX_UNICODE_EQUIVALENT_STRING + 1;
+	new = palloc(new_len);
+
+	in = str;
+	out = new;
+	while (*in)
+	{
+		/* Enlarge string if needed */
+		size_t		out_dist = out - new;
+
+		if (out_dist > new_len - (MAX_UNICODE_EQUIVALENT_STRING + 1))
+		{
+			new_len *= 2;
+			new = repalloc(new, new_len);
+			out = new + out_dist;
+		}
+
+		if (in[0] == escape)
+		{
+			/*
+			 * Any errors reported while processing this escape sequence will
+			 * have an error cursor pointing at the escape.
+			 */
+			setup_scanner_errposition_callback(&scbstate, yyscanner,
+											   in - str + position + 3);	/* 3 for U&" */
+			if (in[1] == escape)
+			{
+				if (pair_first)
+					goto invalid_pair;
+				*out++ = escape;
+				in += 2;
+			}
+			else if (isxdigit((unsigned char) in[1]) &&
+					 isxdigit((unsigned char) in[2]) &&
+					 isxdigit((unsigned char) in[3]) &&
+					 isxdigit((unsigned char) in[4]))
+			{
+				pg_wchar	unicode;
+
+				unicode = (hexval(in[1]) << 12) +
+					(hexval(in[2]) << 8) +
+					(hexval(in[3]) << 4) +
+					hexval(in[4]);
+				check_unicode_value(unicode);
+				if (pair_first)
+				{
+					if (is_utf16_surrogate_second(unicode))
+					{
+						unicode = surrogate_pair_to_codepoint(pair_first, unicode);
+						pair_first = 0;
+					}
+					else
+						goto invalid_pair;
+				}
+				else if (is_utf16_surrogate_second(unicode))
+					goto invalid_pair;
+
+				if (is_utf16_surrogate_first(unicode))
+					pair_first = unicode;
+				else
+				{
+					pg_unicode_to_server(unicode, (unsigned char *) out);
+					out += strlen(out);
+				}
+				in += 5;
+			}
+			else if (in[1] == '+' &&
+					 isxdigit((unsigned char) in[2]) &&
+					 isxdigit((unsigned char) in[3]) &&
+					 isxdigit((unsigned char) in[4]) &&
+					 isxdigit((unsigned char) in[5]) &&
+					 isxdigit((unsigned char) in[6]) &&
+					 isxdigit((unsigned char) in[7]))
+			{
+				pg_wchar	unicode;
+
+				unicode = (hexval(in[2]) << 20) +
+					(hexval(in[3]) << 16) +
+					(hexval(in[4]) << 12) +
+					(hexval(in[5]) << 8) +
+					(hexval(in[6]) << 4) +
+					hexval(in[7]);
+				check_unicode_value(unicode);
+				if (pair_first)
+				{
+					if (is_utf16_surrogate_second(unicode))
+					{
+						unicode = surrogate_pair_to_codepoint(pair_first, unicode);
+						pair_first = 0;
+					}
+					else
+						goto invalid_pair;
+				}
+				else if (is_utf16_surrogate_second(unicode))
+					goto invalid_pair;
+
+				if (is_utf16_surrogate_first(unicode))
+					pair_first = unicode;
+				else
+				{
+					pg_unicode_to_server(unicode, (unsigned char *) out);
+					out += strlen(out);
+				}
+				in += 8;
+			}
+			else
+				ereport(ERROR,
+						(errcode(ERRCODE_SYNTAX_ERROR),
+						 errmsg("invalid Unicode escape"),
+						 errhint("Unicode escapes must be \\XXXX or \\+XXXXXX.")));
+
+			cancel_scanner_errposition_callback(&scbstate);
+		}
+		else
+		{
+			if (pair_first)
+				goto invalid_pair;
+
+			*out++ = *in++;
+		}
+	}
+
+	/* unfinished surrogate pair? */
+	if (pair_first)
+		goto invalid_pair;
+
+	*out = '\0';
+	return new;
+
+	/*
+	 * We might get here with the error callback active, or not.  Call
+	 * scanner_errposition to make sure an error cursor appears; if the
+	 * callback is active, this is duplicative but harmless.
+	 */
+invalid_pair:
+	ereport(ERROR,
+			(errcode(ERRCODE_SYNTAX_ERROR),
+			 errmsg("invalid Unicode surrogate pair"),
+			 scanner_errposition(in - str + position + 3,	/* 3 for U&" */
+								 yyscanner)));
+	return NULL;				/* keep compiler quiet */
+}
+
+
+int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner, ag_yy_extra *extra)
 {
     /*
      * This list must match ag_token_type.
@@ -55,10 +284,32 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner)
         PLUS_EQ,
 	INET
     };
-
+   // ag_yy_extra *extra = ag_yyget_extra(scanner);
     ag_token token;
 
-    token = ag_scanner_next_token(scanner);
+	int			cur_token;
+	int			next_token;
+	int			cur_token_length;
+	YYLTYPE		cur_yylloc;
+
+	// Get next token --- we might already have it
+	if (extra->have_lookahead)
+	{
+		token = extra->lookahead_token;
+		//lvalp->core_yystype = extra->lookahead_yylval;
+		//*llocp = extra->lookahead_yylloc;
+		//if (extra->lookahead_end) 
+		//	*(extra->lookahead_end) = extra->lookahead_hold_char;
+		extra->have_lookahead = false;
+	}
+	else
+        token = ag_scanner_next_token(scanner);
+
+	//cur_token = core_yylex(&(lvalp->core_yystype), llocp, yyscanner);
+
+    // token = ag_scanner_next_token(scanner);
+
+   // token = ag_scanner_next_token(scanner);
 
     switch (token.type)
     {
@@ -67,8 +318,61 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner)
     case AG_TOKEN_INTEGER:
         lvalp->integer = token.value.i;
         break;
+        case AG_TOKEN_STRING:
+        {
+            ag_token next_token = ag_scanner_next_token(scanner);
+            if (next_token.type == AG_TOKEN_IDENTIFIER)
+                truncate_identifier(next_token.value.s, strlen(next_token.value.s), true);
+            if (next_token.type == AG_TOKEN_IDENTIFIER && !strcmp("uescape", next_token.value.s))
+            {
+				/* Yup, so get third token, which had better be SCONST */
+				const char *escstr;
+
+				/* Again save and restore *llocp */
+				cur_yylloc = *llocp;
+          
+                //*(extra->lookahead_end) = extra->lookahead_hold_char;
+
+				/* Get third token */
+				next_token = ag_scanner_next_token(scanner);
+                /* If we throw error here, it will point to third token */
+				if (next_token.type != AG_TOKEN_STRING)
+					scanner_yyerror("UESCAPE must be followed by a simple string literal",
+									scanner);
+
+				escstr = next_token.value.s;
+				if (strlen(escstr) != 1 || !check_uescapechar(escstr[0]))
+					scanner_yyerror("invalid Unicode escape character",
+									scanner);
+
+				/* Now restore *llocp; errors will point to first token */
+				*llocp = cur_yylloc;
+
+				/* Apply Unicode conversion */
+				lvalp->string  =
+					str_udeescape(pstrdup(token.value.s),
+								  escstr[0],
+								  *llocp,
+								  scanner);
+
+				/*
+				 * We don't need to revert the un-truncation of UESCAPE.  What
+				 * we do want to do is clear have_lookahead, thereby consuming
+				 * all three tokens.
+				 */
+				extra->have_lookahead = false;                              
+            }
+            else {
+		        extra->lookahead_token = next_token;
+                extra->have_lookahead = true;
+        	    lvalp->string = pstrdup(token.value.s);
+            }
+            break;
+        }
+
+
     case AG_TOKEN_DECIMAL:
-    case AG_TOKEN_STRING:
+
     case AG_TOKEN_INET:
     case AG_TOKEN_OPERATOR:
     case AG_TOKEN_XCONST:
@@ -76,10 +380,11 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner)
     case AG_TOKEN_RIGHT_ARROW:
 	lvalp->string = pstrdup(token.value.s);
         break;
-    case AG_TOKEN_CS_IDENTIFIER:
+    case AG_TOKEN_CS_IDENTIFIER: {
         token.type = AG_TOKEN_IDENTIFIER;
 	    lvalp->string = pstrdup(token.value.s);
         break;
+    }
     case AG_TOKEN_IDENTIFIER:
     {
         int kwnum;
@@ -97,6 +402,7 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner)
             return CypherKeywordTokens[kwnum];
         }
 
+        
         ident = pstrdup(token.value.s);
         truncate_identifier(ident, strlen(ident), true);
         lvalp->string = ident;

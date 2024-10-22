@@ -19,6 +19,7 @@
 #define AG_AG_SCANNER_H
 
 #include "common/kwlookup.h"
+#include "mb/pg_wchar.h"
 
 /*
  * AG_TOKEN_NULL indicates the end of a scan. The name came from YY_NULL.
@@ -78,6 +79,78 @@ typedef struct ag_token
 
 // an opaque data structure encapsulating the current state of the scanner
 typedef void *ag_scanner_t;
+
+typedef struct strbuf
+{
+    char *buffer;
+    int capacity;
+    int length;
+} strbuf;
+
+typedef struct ag_yy_extra
+{
+	/*
+	 * The keyword list to use, and the associated grammar token codes.
+	 */
+	const ScanKeywordList *keywordlist;
+	const uint16 *keyword_tokens;
+
+	/*
+	 * Scanner settings to use.  These are initialized from the corresponding
+	 * GUC variables by scanner_init().  Callers can modify them after
+	 * scanner_init() if they don't want the scanner's behavior to follow the
+	 * prevailing GUC settings.
+	 */
+	int			backslash_quote;
+	bool		escape_string_warning;
+	bool		standard_conforming_strings;
+
+
+    /*
+     * accumulate matched strings to build a complete literal if multiple rules
+     * are needed to scan it, or keep a decimal integer literal that is
+     * converted from a hexadecimal or an octal integer literal if it is too
+     * large to fit in "int" type
+     */
+    strbuf literal_buf;
+	int			literallen;		/* actual current string length */
+	int			literalalloc;	/* current allocated buffer size */
+
+    // for Unicode surrogate pair
+    pg_wchar high_surrogate;
+    int start_cond;
+
+    // for the location of the current token and the actual position of it
+    const char *scan_buf;
+    int last_loc;
+
+	/*
+	 * Random assorted scanner state.
+	 */
+	int			state_before_str_stop;	/* start cond. before end quote */
+	int			xcdepth;		/* depth of nesting in slash-star comments */
+	char	   *dolqstart;		/* current $foo$ quote start string */
+	//YYLTYPE		save_yylloc;	/* one-element stack for PUSH_YYLLOC() */
+
+	/* first part of UTF16 surrogate pair for Unicode escapes */
+	int32		utf16_first_part;
+
+	/*
+	 * State variables for base_yylex().
+	 */
+	bool		have_lookahead; /* is lookahead info valid? */
+	ag_token lookahead_token;	/* one-token lookahead */
+	//core_YYSTYPE lookahead_yylval;	/* yylval for lookahead token */
+	//YYLTYPE		lookahead_yylloc;	/* yylloc for lookahead token */
+	char	   *lookahead_end;	/* end of current token */
+	char		lookahead_hold_char;	/* to be put back at *lookahead_end */
+
+	bool		warn_on_first_escape;
+	bool		saw_non_ascii;
+    List *result;
+} ag_yy_extra;
+
+#define cypher_yyget_extra(scanner) (*((ag_yy_extra **) (scanner)))
 
 ag_scanner_t ag_scanner_create(const char *s, const ScanKeywordList *keywordlist, const uint16 *keyword_tokens);
 void ag_scanner_destroy(ag_scanner_t scanner);
