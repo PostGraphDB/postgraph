@@ -5207,7 +5207,7 @@ table_access_method_clause:
 /* WITHOUT OIDS is legacy only */
 OptWith:
 			WITH reloptions				{ $$ = $2; }
-			/*| WITHOUT OIDS				{ $$ = NIL; }*/
+			| WITHOUT OIDS				{ $$ = NIL; }
 			| /*EMPTY*/					{ $$ = NIL; }
 		;
 
