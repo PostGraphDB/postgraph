@@ -366,7 +366,13 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner, ag_yy_ext
             else {
 		        extra->lookahead_token = next_token;
                 extra->have_lookahead = true;
-        	    lvalp->string = pstrdup(token.value.s);
+        	    lvalp->string = 
+									/*str_udeescape(pstrdup(token.value.s),
+								  '\\',
+								  *llocp,
+								  yscanner);
+				*/
+				pstrdup(token.value.s);
             }
             break;
         }

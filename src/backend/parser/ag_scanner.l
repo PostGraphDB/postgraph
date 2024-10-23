@@ -455,7 +455,7 @@ ag_token token;
 
 {xcstart}		{
 					/* Set location in case of syntax error in comment */
-					//SET_YYLLOC();
+					update_location();
 					yyextra.xcdepth = 0;
 					BEGIN(xc);
 					/* Put back any characters past slash-star; see above */
@@ -576,7 +576,7 @@ ag_token token;
     update_location();
 					yyextra.warn_on_first_escape = true;
 					yyextra.saw_non_ascii = false;
-					//SET_YYLLOC();
+					update_location();
 					if (yyextra.standard_conforming_strings)
 						BEGIN(xq);
 					else
@@ -727,7 +727,7 @@ ag_token token;
 					/* Remember start of overall string token ... */
 					PUSH_YYLLOC();
 					/* ... and set the error cursor to point at this esc seq */
-					SET_YYLLOC();
+					update_location();
 
 					if (is_utf16_surrogate_first(c))
 					{
@@ -743,7 +743,8 @@ ag_token token;
 
                         if (!is_valid_unicode_codepoint(c))
                             ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
-                                            scan_errmsg("invalid Unicode escape value")));
+                                            scan_errmsg("invalid Unicode escape value"),
+                                             scan_errposition()));
 
                         /*
                         * We expect that pg_unicode_to_server() will complain about any
@@ -772,7 +773,8 @@ ag_token token;
                         ereport(ERROR,
                                 (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
                                 errmsg("invalid Unicode escape"),
-                                errhint("invalid Unicode surrogate pair")));
+                                errhint("invalid Unicode surrogate pair"),
+                                             scan_errposition()));
 
 					c = surrogate_pair_to_codepoint(yyextra.utf16_first_part, c);
 
@@ -782,7 +784,8 @@ ag_token token;
                         ereport(ERROR,
                                 (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
                                 errmsg("invalid Unicode escape value"),
-                                errhint("invalid Unicode surrogate pair")));
+                                errhint("invalid Unicode surrogate pair"),
+                                             scan_errposition()));
                     pg_unicode_to_server(c, (unsigned char *) buf);
                     strbuf_append_char(&yyextra.literal_buf, c);
 					/* Restore yylloc to be start of string token */
@@ -794,19 +797,21 @@ ag_token token;
 <xeu>\n |
 <xeu><<EOF>>	{
 					/* Set the error cursor to point at missing esc seq */
-					
+					update_location();
                         ereport(ERROR,
                                 (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
                                 errmsg("invalid Unicode escape"),
-                                errhint("invalid Unicode surrogate pair")));
+                                errhint("invalid Unicode surrogate pair"),
+                                             scan_errposition()));
 				}
 <xe,xeu>{xeunicodefail}	{
 					/* Set the error cursor to point at malformed esc seq */
-					SET_YYLLOC();
+					update_location();
 					ereport(ERROR,
 							(errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
 							 errmsg("invalid Unicode escape"),
-							 errhint("Unicode escapes must be \\uXXXX or \\UXXXXXXXX.")));
+							 errhint("Unicode escapes must be \\uXXXX or \\UXXXXXXXX."),
+                                             scan_errposition()));
 				}
 <xe>{xeescape}  {
 					if (yytext[1] == '\'')
@@ -819,6 +824,16 @@ ag_token token;
 									 errmsg("unsafe use of \\' in a string literal"),
 									 errhint("Use '' to write quotes in strings. \\' is insecure in client-only encodings.")));
 					}
+                     else if (yytext[1] == '\\')
+                    {
+                        if (yyextra.warn_on_first_escape && yyextra.escape_string_warning)
+                            ereport(WARNING,
+                                    (errcode(ERRCODE_NONSTANDARD_USE_OF_ESCAPE_CHARACTER),
+                                    errmsg("nonstandard use of \\\\ in a string literal"),
+                                    errhint("Use the escape string syntax for backslashes, e.g., E'\\\\'."),
+                                    scan_errposition()));
+                        yyextra.warn_on_first_escape = false;	/* warn only once per string */
+                    } 
                     if (yyextra.warn_on_first_escape && yyextra.escape_string_warning)
                         ereport(WARNING,
                                 (errcode(ERRCODE_NONSTANDARD_USE_OF_ESCAPE_CHARACTER),
@@ -850,9 +865,7 @@ ag_token token;
                                     errhint("Use the escape string syntax for backslashes, e.g., E'\\\\'."),
                                     scan_errposition()));
                         yyextra.warn_on_first_escape = false;	/* warn only once per string */
-                    } else {
-
-                        if (yyextra.warn_on_first_escape && yyextra.escape_string_warning)
+                    } else if (yyextra.warn_on_first_escape && yyextra.escape_string_warning) {
                             ereport(WARNING,
                                     (errcode(ERRCODE_NONSTANDARD_USE_OF_ESCAPE_CHARACTER),
                                     errmsg("nonstandard use of escape in a string literal"),
@@ -889,7 +902,7 @@ ag_token token;
 					 */
 					int		kwnum;
 
-					//SET_YYLLOC();
+					update_location();
 					yyless(1);	/* eat only 'n' this time */
 
 					kwnum = ScanKeywordLookup("nchar",
@@ -920,10 +933,12 @@ ag_token token;
 
 
 {dolqdelim}		{
+    update_location();
 	yyextra.dolqstart = pstrdup(yytext);
 	BEGIN(xdolq);
 }
 {dolqfailed} {
+    update_location();
 	/* throw back all but the initial "$" */
 	yyless(1);
 	/* and treat it as {other} */
