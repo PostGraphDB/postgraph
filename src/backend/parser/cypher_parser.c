@@ -258,6 +258,7 @@ invalid_pair:
 
 int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner, ag_yy_extra *extra)
 {
+
     /*
      * This list must match ag_token_type.
      * 0 means end-of-input.
@@ -303,7 +304,7 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner, ag_yy_ext
 		extra->have_lookahead = false;
 	}
 	else
-        token = ag_scanner_next_token(scanner);
+        token = ag_scanner_next_token(lvalp, llocp, scanner);
 
 	//cur_token = core_yylex(&(lvalp->core_yystype), llocp, yyscanner);
 
@@ -320,7 +321,7 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner, ag_yy_ext
         break;
         case AG_TOKEN_STRING:
         {
-            ag_token next_token = ag_scanner_next_token(scanner);
+            ag_token next_token = ag_scanner_next_token(lvalp, llocp, scanner);
             if (next_token.type == AG_TOKEN_IDENTIFIER)
                 truncate_identifier(next_token.value.s, strlen(next_token.value.s), true);
             if (next_token.type == AG_TOKEN_IDENTIFIER && !strcmp("uescape", next_token.value.s))
@@ -334,7 +335,7 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner, ag_yy_ext
                 //*(extra->lookahead_end) = extra->lookahead_hold_char;
 
 				/* Get third token */
-				next_token = ag_scanner_next_token(scanner);
+				next_token = ag_scanner_next_token(lvalp, llocp, scanner);
                 /* If we throw error here, it will point to third token */
 				if (next_token.type != AG_TOKEN_STRING)
 					scanner_yyerror("UESCAPE must be followed by a simple string literal",
@@ -400,7 +401,7 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner, ag_yy_ext
             lvalp->keyword = GetScanKeyword(kwnum, &CypherKeyword);
             *llocp = token.location;
             if (CypherKeywordTokens[kwnum] == WITH) {
-                ag_token next_token = ag_scanner_next_token(scanner);
+                ag_token next_token = ag_scanner_next_token(lvalp, llocp, scanner);
 		        extra->lookahead_token = next_token;
                 extra->have_lookahead = true;
                 if (next_token.type == AG_TOKEN_IDENTIFIER)
@@ -453,17 +454,18 @@ void cypher_yyerror(YYLTYPE *llocp, ag_scanner_t scanner,
 }
 
 /* declaration to make mac os x compiler happy */
-int cypher_yyparse(ag_scanner_t scanner, cypher_yy_extra *extra);
+int cypher_yyparse(ag_scanner_t scanner, ag_yy_extra *extra);
 
 
 List *parse_cypher(const char *s)
 {
     ag_scanner_t scanner;
-    cypher_yy_extra extra;
+    ag_yy_extra extra;
     int yyresult;
 
-    scanner = ag_scanner_create(pstrdup(s), &CypherKeyword, &CypherKeywordTokens);
+    scanner = ag_scanner_create(pstrdup(s), &CypherKeyword, &CypherKeywordTokens, &extra);
     extra.result = NIL;
+    extra.have_lookahead = false;
 
     yyresult = cypher_yyparse(scanner, &extra);
 

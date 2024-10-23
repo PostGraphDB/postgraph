@@ -46,6 +46,15 @@
 #define yyleng	(((struct yyguts_t *) yyscanner)->yyleng_r)
 
 /*
+ * Each call to yylex must set yylloc to the location of the found token
+ * (expressed as a byte offset from the start of the input text).
+ * When we parse a token that requires multiple lexer rules to process,
+ * this should be done in the first such rule, else yylloc will point
+ * into the middle of the token.
+ */
+#define SET_YYLLOC()  (*(yylloc) = yytext - yyextra.scan_buf)
+
+/*
  * Advance yylloc by the given number of bytes.
  */
 #define ADVANCE_YYLLOC(delta)  ( *(yylloc) += (delta) )
@@ -65,6 +74,8 @@
 
 }
 
+%option bison-bridge
+%option bison-locations
 %option 8bit
 %option never-interactive
 %option noyywrap
@@ -426,7 +437,7 @@ static int _scan_errposition(const int location, const ag_yy_extra *extra);
  * referenced internally. "yyscan_t" is OK because it is actually "void *"
  * and is the same with "ag_scanner_t".
  */
-#define YY_DECL ag_token ag_scanner_next_token(yyscan_t yyscanner)
+#define YY_DECL ag_token ag_scanner_next_token(YYSTYPE *yylval_param, YYLTYPE *yylloc_param, ag_scanner_t yyscanner)
 #define NDIGITS_PER_REMAINDER 9
 %}
 
@@ -714,9 +725,9 @@ ag_token token;
                     yyextra.warn_on_first_escape = false;		/* warn only once per string */
 
 					/* Remember start of overall string token ... */
-					//PUSH_YYLLOC();
+					PUSH_YYLLOC();
 					/* ... and set the error cursor to point at this esc seq */
-					//SET_YYLLOC();
+					SET_YYLLOC();
 
 					if (is_utf16_surrogate_first(c))
 					{
@@ -743,7 +754,7 @@ ag_token token;
                         strbuf_append_buf(&yyextra.literal_buf, buf, strlen(buf));
                     }
 					/* Restore yylloc to be start of string token */
-					//POP_YYLLOC();
+					POP_YYLLOC();
 	}
 <xd,xui><<EOF>>		{ ereport(ERROR, (errcode(ERRCODE_SYNTAX_ERROR),
                                 scan_errmsg("unterminated quoted identifier"),
@@ -753,9 +764,9 @@ ag_token token;
 					pg_wchar	c = strtoul(yytext + 2, NULL, 16);
 
 					/* Remember start of overall string token ... */
-					//PUSH_YYLLOC();
+					PUSH_YYLLOC();
 					/* ... and set the error cursor to point at this esc seq */
-					//SET_YYLLOC();
+					SET_YYLLOC();
 
 					if (!is_utf16_surrogate_second(c))
                         ereport(ERROR,
@@ -775,7 +786,7 @@ ag_token token;
                     pg_unicode_to_server(c, (unsigned char *) buf);
                     strbuf_append_char(&yyextra.literal_buf, c);
 					/* Restore yylloc to be start of string token */
-					//POP_YYLLOC();
+					POP_YYLLOC();
 
 					BEGIN(xe);
 				}
@@ -791,7 +802,7 @@ ag_token token;
 				}
 <xe,xeu>{xeunicodefail}	{
 					/* Set the error cursor to point at malformed esc seq */
-					//SET_YYLLOC();
+					SET_YYLLOC();
 					ereport(ERROR,
 							(errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
 							 errmsg("invalid Unicode escape"),
@@ -1615,12 +1626,12 @@ static int _scan_errposition(const int location, const ag_yy_extra *extra)
     return errposition(pos);
 }
 
-ag_scanner_t ag_scanner_create(const char *s, const ScanKeywordList *keywordlist, const uint16 *keyword_tokens)
+ag_scanner_t ag_scanner_create(const char *s, const ScanKeywordList *keywordlist, const uint16 *keyword_tokens, ag_yy_extra *extra)
 {
     Size len;
     char *buf;
     yyscan_t yyscanner;
-    ag_yy_extra extra;
+    
     int ret;
 
     // The last two YY_END_OF_BUFFER_CHAR are required by flex.
@@ -1634,21 +1645,21 @@ ag_scanner_t ag_scanner_create(const char *s, const ScanKeywordList *keywordlist
     if (ret)
         elog(ERROR, "ag_yylex_init() failed: %m");
 
-    strbuf_init(&extra.literal_buf, 1024);
-    extra.high_surrogate = 0;
-    extra.start_cond = INITIAL;
-    extra.scan_buf = buf;
-    extra.last_loc = 0;
-	extra.keywordlist = keywordlist;
-	extra.keyword_tokens = keyword_tokens;
-	extra.backslash_quote = backslash_quote;
-	extra.escape_string_warning = escape_string_warning;
-	extra.standard_conforming_strings = standard_conforming_strings;
-	extra.xcdepth = 0;
+    strbuf_init(&extra->literal_buf, 1024);
+    extra->high_surrogate = 0;
+    extra->start_cond = INITIAL;
+    extra->scan_buf = buf;
+    extra->last_loc = 0;
+	extra->keywordlist = keywordlist;
+	extra->keyword_tokens = keyword_tokens;
+	extra->backslash_quote = backslash_quote;
+	extra->escape_string_warning = escape_string_warning;
+	extra->standard_conforming_strings = standard_conforming_strings;
+	extra->xcdepth = 0;
 
-    extra.have_lookahead = false;
+    extra->have_lookahead = false;
 
-    ag_yyset_extra(extra, yyscanner);
+    ag_yyset_extra(*extra, yyscanner);
 
     ag_yy_scan_buffer(buf, len + 2, yyscanner);
 

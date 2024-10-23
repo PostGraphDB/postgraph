@@ -21,6 +21,53 @@
 #include "common/kwlookup.h"
 #include "mb/pg_wchar.h"
 
+#define YYLTYPE  int
+/*
+ * Set the type of YYSTYPE.
+ */
+#define YYSTYPE cypher_YYSTYPE
+
+typedef union cypher_YYSTYPE
+{
+    int integer;
+    char *string;
+    const char *keyword;
+	char chr;
+    bool boolean;
+    Node *node;
+    List *list;
+	struct FunctionParameter   *fun_param;
+	struct ObjectWithArgs		*objwithargs;
+    struct WindowDef *windef;
+    struct DefElem *defelt;
+
+    struct TypeName *typnam;
+	struct PartitionElem *partelem;
+    struct Value *value;
+    struct ResTarget *target;
+    struct Alias *alias;
+    struct RangeVar *range;
+	struct IntoClause *into;
+	struct WithClause *with;
+	struct InferClause			*infer;
+	struct PrivTarget	*privtarget;
+	struct AccessPriv			*accesspriv;
+    struct SortBy *sortby;
+	struct OnConflictClause	*onconflict;
+    struct InsertStmt *istmt;
+    struct VariableSetStmt *vsetstmt;
+	struct JoinExpr *jexpr;
+	struct IndexElem *ielem;
+	struct StatsElem			*selem;
+	struct PartitionSpec		*partspec;
+	struct PartitionBoundSpec	*partboundspec;
+	struct RoleSpec *rolespec;
+	struct SelectLimit	*selectlimit;
+    struct GroupClause  *groupclause;
+	struct ImportQual	*importqual;
+
+} cypher_YYSTYPE;
+
 /*
  * AG_TOKEN_NULL indicates the end of a scan. The name came from YY_NULL.
  *
@@ -130,7 +177,7 @@ typedef struct ag_yy_extra
 	int			state_before_str_stop;	/* start cond. before end quote */
 	int			xcdepth;		/* depth of nesting in slash-star comments */
 	char	   *dolqstart;		/* current $foo$ quote start string */
-	//YYLTYPE		save_yylloc;	/* one-element stack for PUSH_YYLLOC() */
+	YYLTYPE		save_yylloc;	/* one-element stack for PUSH_YYLLOC() */
 
 	/* first part of UTF16 surrogate pair for Unicode escapes */
 	int32		utf16_first_part;
@@ -140,8 +187,7 @@ typedef struct ag_yy_extra
 	 */
 	bool		have_lookahead; /* is lookahead info valid? */
 	ag_token lookahead_token;	/* one-token lookahead */
-	//core_YYSTYPE lookahead_yylval;	/* yylval for lookahead token */
-	//YYLTYPE		lookahead_yylloc;	/* yylloc for lookahead token */
+	YYLTYPE		lookahead_yylloc;	/* yylloc for lookahead token */
 	char	   *lookahead_end;	/* end of current token */
 	char		lookahead_hold_char;	/* to be put back at *lookahead_end */
 
@@ -152,9 +198,9 @@ typedef struct ag_yy_extra
 
 #define cypher_yyget_extra(scanner) (*((ag_yy_extra **) (scanner)))
 
-ag_scanner_t ag_scanner_create(const char *s, const ScanKeywordList *keywordlist, const uint16 *keyword_tokens);
+ag_scanner_t ag_scanner_create(const char *s, const ScanKeywordList *keywordlist, const uint16 *keyword_tokens, ag_yy_extra *extra);
 void ag_scanner_destroy(ag_scanner_t scanner);
-ag_token ag_scanner_next_token(ag_scanner_t scanner);
+ag_token ag_scanner_next_token(YYSTYPE * yylval_param, YYLTYPE * yylloc_param, ag_scanner_t yyscanner);
 
 int ag_scanner_errmsg(const char *msg, ag_scanner_t *scanner);
 int ag_scanner_errposition(const int location, ag_scanner_t *scanner);
