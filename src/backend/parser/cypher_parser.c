@@ -282,7 +282,7 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner, ag_yy_ext
 	    OPERATOR,
         RIGHT_ARROW,
         PLUS_EQ,
-	INET
+	    INET,
     };
    // ag_yy_extra *extra = ag_yyget_extra(scanner);
     ag_token token;
@@ -399,6 +399,17 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner, ag_yy_ext
              */
             lvalp->keyword = GetScanKeyword(kwnum, &CypherKeyword);
             *llocp = token.location;
+            if (CypherKeywordTokens[kwnum] == WITH) {
+                ag_token next_token = ag_scanner_next_token(scanner);
+		        extra->lookahead_token = next_token;
+                extra->have_lookahead = true;
+                if (next_token.type == AG_TOKEN_IDENTIFIER)
+                    truncate_identifier(next_token.value.s, strlen(next_token.value.s), true);
+                if (next_token.type == AG_TOKEN_IDENTIFIER && (!strcmp("time", next_token.value.s) || !strcmp("ordinality", next_token.value.s)))
+                {
+                    return WITH_LA;
+                }
+            }
             return CypherKeywordTokens[kwnum];
         }
 
@@ -451,7 +462,7 @@ List *parse_cypher(const char *s)
     cypher_yy_extra extra;
     int yyresult;
 
-    scanner = ag_scanner_create(s, &CypherKeyword, &CypherKeywordTokens);
+    scanner = ag_scanner_create(pstrdup(s), &CypherKeyword, &CypherKeywordTokens);
     extra.result = NIL;
 
     yyresult = cypher_yyparse(scanner, &extra);

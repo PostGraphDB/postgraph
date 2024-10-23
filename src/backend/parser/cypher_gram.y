@@ -240,7 +240,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 
                  MATERIALIZED MATCH MAPPING MAXVALUE MERGE METHOD MINVALUE MINUTE_P MONTH_P MODE MOVE
 
-                 NAME_P NAMES NATIONAL NATURAL NCHAR NEXT NEW NFC NFD NFKC NFKD NO NONE NORMALIZE NORMALIZED NOT NOTHING NOTNULL NOWAIT NULL_P NULLIF NULLS_LA NUMERIC
+                 NAME_P NAMES NATIONAL NATURAL NCHAR NEXT NEW NFC NFD NFKC NFKD NO NONE NORMALIZE NORMALIZED NOT NOTHING NOTNULL NOWAIT NULL_P NULLIF NUMERIC
 				 NOTIFY 
 
                  OBJECT_P OPERATOR_P OF OFF OFFSET OIDS ON ONLY OPTION OPTIONS OPTIONAL OTHERS OR ORDINALITY OLD ORDER OUT_P OUTER OVER OVERRIDING OVERLAPS OVERLAY OWNED OWNER
@@ -735,26 +735,28 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <list>		hash_partbound
 %type <defelt>		hash_partbound_elem
 
-/* precedence: lowest to highest */
-%nonassoc	SET				/* see relation_expr_opt_alias */
-%left UNION INTERSECT EXCEPT
-%left OR
-%left AND
-%left XOR
-%right NOT
-%nonassoc	IS ISNULL NOTNULL	/* IS sets precedence for IS NULL, etc */
-%nonassoc '=' NOT_EQ '<' LT_EQ '>' GT_EQ '~' '!'
-%nonassoc IN BETWEEN LIKE ILIKE
-%nonassoc CONTAINS ENDS EQ_TILDE STARTS SIMILAR
-%nonassoc ESCAPE
-%nonassoc	UNBOUNDED		/* ideally would have same precedence as IDENT */
-%nonassoc	IDENTIFIER PARTITION RANGE ROWS GROUPS PRECEDING FOLLOWING CUBE ROLLUP
+%token		NOT_LA NULLS_LA WITH_LA
 
-%left OPERATOR RIGHT_ARROW COLON_EQUALS OPERATOR_P
+/* precedence: lowest to highest */
+%nonassoc SET				/* see relation_expr_opt_alias */
+%left UNION EXCEPT
+%left INTERSECT
+%left OR XOR
+%left AND
+%right NOT
+%nonassoc IS ISNULL NOTNULL	/* IS sets precedence for IS NULL, etc */
+%nonassoc '<' '>' '=' NOT_EQ LT_EQ GT_EQ
+%nonassoc BETWEEN IN LIKE ILIKE SIMILAR
+%nonassoc ESCAPE
+%nonassoc UNBOUNDED		/* ideally would have same precedence as IDENT */
+%nonassoc IDENTIFIER PARTITION RANGE ROWS GROUPS PRECEDING FOLLOWING CUBE ROLLUP
+%left OPERATOR RIGHT_ARROW OPERATOR_P
 %left '+' '-'
 %left '*' '/' '%'
-%left '^' '&' '|'
-
+%left '^'
+/* Unary Operators */
+%left		AT				/* sets precedence for AT TIME ZONE */
+%left		COLLATE
 %right UNARY_MINUS
 %left '[' ']' 
 %left '(' ')'
@@ -898,10 +900,10 @@ stmtmulti:	stmtmulti ';' stmt
  * query
  */
 stmt:
-    cypher_stmt { $$ = (Node *)$1; }
-	| CreateGraphStmt
-	| DropGraphStmt
-	| UseGraphStmt
+			cypher_stmt { $$ = (Node *)$1; }
+			| CreateGraphStmt
+			| DropGraphStmt
+			| UseGraphStmt
 			| TransactionStmtLegacy
 			| AlterEventTrigStmt
 			| AlterCollationStmt
@@ -1301,6 +1303,13 @@ simple_select:
  */
 with_clause:
 		WITH cte_list
+			{
+				$$ = makeNode(WithClause);
+				$$->ctes = $2;
+				$$->recursive = false;
+				$$->location = @1;
+			}
+		| WITH_LA cte_list
 			{
 				$$ = makeNode(WithClause);
 				$$->ctes = $2;
@@ -4219,7 +4228,7 @@ single_query:
     ;
     
 cypher_query_start:
-    create
+    create 
     | match
     | CYPHER with { $$ = $2; }
     | merge
@@ -4237,10 +4246,10 @@ cypher_query_body:
     {
         $$ = lappend($1, $2);
     }
-    | // Empty 
-    { 
+   // | // Empty 
+    /*{ 
         $$ = NIL; 
-    }
+    }*/
     ;
 
 clause:
@@ -6446,6 +6455,7 @@ AlterTSConfigurationStmt:
 
 /* Use this if TIME or ORDINALITY after WITH should be taken as an identifier */
 any_with:	WITH
+		| WITH_LA
 		;
 
 
@@ -10968,6 +10978,7 @@ CreateRoleStmt:
 		;
 
 opt_with:	WITH
+            | WITH_LA
 			| /*EMPTY*/
 		;
 
@@ -13220,7 +13231,7 @@ opt_col_def_list: AS '(' TableFuncElementList ')'	{ $$ = $3; }
 			| /*EMPTY*/								{ $$ = NIL; }
 		;
 
-opt_ordinality: WITH ORDINALITY					{ $$ = true; }
+opt_ordinality: WITH_LA ORDINALITY					{ $$ = true; }
 			| /*EMPTY*/								{ $$ = false; }
 		;
 
@@ -15399,7 +15410,7 @@ ConstInterval:
 				;
 
 opt_timezone:
-			WITH TIME ZONE						{ $$ = true; }
+			WITH_LA TIME ZONE						{ $$ = true; }
 			| WITHOUT TIME ZONE						{ $$ = false; }
 			| /*EMPTY*/								{ $$ = false; }
 		;
@@ -15813,7 +15824,7 @@ unreserved_keyword:
 			| NOTHING
 			| NOTIFY
 			| NOWAIT
-			| NULLS_LA
+			//| NULLS_LA
 			| OBJECT_P
 			| OF
 			| OFF
@@ -16304,7 +16315,7 @@ bare_label_keyword:
 			| NOWAIT
 			| NULL_P
 			| NULLIF
-			| NULLS_LA
+			//| NULLS_LA
 			| NUMERIC
 			| OBJECT_P
 			| OF
@@ -17073,7 +17084,7 @@ cypher_a_expr:
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~", $1, $3, @2);
         }
-    | cypher_a_expr '[' cypher_a_expr ']'  %prec UMINUS
+    | cypher_a_expr '[' cypher_a_expr ']'  %prec UNARY_MINUS
         {
             A_Indices *i;
 
