@@ -133,6 +133,11 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 			   bool *deferrable, bool *initdeferred, bool *not_valid,
 			   bool *no_inherit, ag_scanner_t yyscanner);
 static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
+
+A_Expr *
+makeSimpleCypherA_Expr(A_Expr_Kind kind, char *name,
+				 Node *lexpr, Node *rexpr, int location);
+
 #define parser_yyerror(msg)  scanner_yyerror(msg, yyscanner)
 #define parser_errposition(pos)  scanner_errposition(pos, yyscanner)
 %}
@@ -299,7 +304,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 
 /* query */
 %type <node> stmt
-%type <list> single_query  cypher_stmt
+%type <list> cypher_query  cypher_stmt
 
 %type <node> parse_toplevel stmtmulti toplevel_stmt schema_stmt routine_body_stmt
 		AlterEventTrigStmt AlterCollationStmt
@@ -586,7 +591,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <string> label_opt 
 
 /* expression */
-%type <node> cypher_a_expr expr_opt expr_atom expr_literal map list cypher_in_expr
+%type <node> cypher_a_expr cypher_b_expr expr_opt cypher_expr_atom expr_literal map list cypher_in_expr
              
 
 %type <node> expr_case expr_case_when expr_case_default values_clause
@@ -609,7 +614,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <defelt>	drop_option
 
 %type <string> property_key_name cypher_var_name var_name_opt label_name
-%type <string> symbolic_name schema_name temporal_cast attr_name 
+%type <string> symbolic_name schema_name attr_name 
 
 %type <node>	fetch_args select_limit_value
 				offset_clause select_offset_value
@@ -919,14 +924,15 @@ stmtmulti:	stmtmulti ';' toplevel_stmt
 toplevel_stmt:
 		stmt
 		| TransactionStmtLegacy
+		| cypher_stmt { $$ = (Node *)$1; } 
     ;
 
 /*
  * query
  */
 stmt:
-			/*cypher_stmt { $$ = (Node *)$1; }
-			| */CreateGraphStmt
+           	CYPHER cypher_stmt { $$ = (Node *)$2; } 
+			| CreateGraphStmt
 			| DropGraphStmt
 			| UseGraphStmt
 			| AlterEventTrigStmt
@@ -1073,7 +1079,7 @@ CallStmt:	CALL func_application
 
 
 cypher_stmt:
-    single_query
+    cypher_query
         {
             $$ = $1;
         }
@@ -1081,7 +1087,7 @@ cypher_stmt:
         {
             $$ = $2;
         }
-    | cypher_stmt UNION all_or_distinct cypher_stmt
+   /* | cypher_stmt UNION all_or_distinct cypher_stmt
         {
             $$ = list_make1(make_set_op(SETOP_UNION, $3, $1, $4));
         }
@@ -1092,7 +1098,7 @@ cypher_stmt:
     | cypher_stmt EXCEPT all_or_distinct cypher_stmt
         {
             $$ = list_make1(make_set_op(SETOP_EXCEPT, $3, $1, $4));
-        }
+        }*/
     ;
 
 /*****************************************************************************
@@ -4236,30 +4242,30 @@ all_or_distinct:
     }
 
 /*
- * The overall structure of single_query looks like below.
+ * The overall structure of cypher_query looks like below.
  *
  * ( reading_clause* updating_clause* with )*
  * reading_clause* ( updating_clause+ | updating_clause* return )
  */
-single_query:
+cypher_query:
     cypher_query_start 
     {
         $$ = list_make1($1);
     }
-    | cypher_query_start cypher_query_body
+  /*  | cypher_query_start cypher_query_body
     {
         $$ = lcons($1, $2);
-    }
+    }*/
     ;
     
 cypher_query_start:
-    create 
+    /*create 
     | match
     | CYPHER with { $$ = $2; }
     | merge
     | CYPHER call_stmt { $$ = $2; }
-    | return
-    | unwind
+    |*/ return
+   // | unwind
 ;
 
 cypher_query_body:
@@ -4898,37 +4904,37 @@ expr_list:	a_expr
 
 
 return:
-    RETURN DISTINCT return_item_list group_by_opt having_opt window_clause order_by_opt skip_opt limit_opt
+    RETURN DISTINCT return_item_list //group_by_opt having_opt window_clause order_by_opt skip_opt limit_opt
         {
             cypher_return *n;
 
             n = make_ag_node(cypher_return);
             n->distinct = true;
             n->items = $3;
-            n->real_group_clause = $4;
+          /*  n->real_group_clause = $4;
             n->having = $5;
             n->window_clause = $6;
             n->order_by = $7;
             n->skip = $8;
             n->limit = $9;
             n->where = NULL;
-
+*/
             $$ = (Node *)n;
         }
-    | RETURN return_item_list group_by_opt having_opt window_clause order_by_opt skip_opt limit_opt
+    | RETURN return_item_list //group_by_opt having_opt window_clause order_by_opt skip_opt limit_opt
         {
             cypher_return *n;
 
             n = make_ag_node(cypher_return);
             n->distinct = false;
             n->items = $2;
-            n->real_group_clause = $3;
+           /* n->real_group_clause = $3;
             n->having = $4;
             n->window_clause = $5;
             n->order_by = $6;
             n->skip = $7;
             n->limit = $8;
-            n->where = NULL;
+            n->where = NULL;*/
 
             $$ = (Node *)n;
         }
@@ -16935,7 +16941,7 @@ properties_opt:
  * expression
  */
 cypher_a_expr:
-   /* cypher_a_expr OR cypher_a_expr
+    cypher_a_expr OR cypher_a_expr
         {
             $$ = make_or_expr($1, $3, @2);
         }
@@ -16953,67 +16959,67 @@ cypher_a_expr:
         }
     | cypher_a_expr '=' cypher_a_expr
         {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "=", $1, $3, @2);
+            $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, "=", $1, $3, @2);
         }
     | cypher_a_expr LIKE cypher_a_expr
         {   
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~~~", $1, $3, @2);
+            $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, "~~~", $1, $3, @2);
         } 
     | cypher_a_expr NOT LIKE cypher_a_expr
         {   
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "!~~", $1, $4, @2);
+            $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, "!~~", $1, $4, @2);
         }  
     | cypher_a_expr ILIKE cypher_a_expr
         {   
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~~*", $1, $3, @2);
+            $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, "~~*", $1, $3, @2);
         } 
     | cypher_a_expr NOT ILIKE cypher_a_expr
         {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "!~~*", $1, $4, @2);
-        }  
+            $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, "!~~*", $1, $4, @2);
+        } 
     | cypher_a_expr NOT_EQ cypher_a_expr
         {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<>", $1, $3, @2);
+            $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, "<>", $1, $3, @2);
         }
     | cypher_a_expr '<' cypher_a_expr
         {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<", $1, $3, @2);
+            $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, "<", $1, $3, @2);
         }
     | cypher_a_expr LT_EQ cypher_a_expr
         {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<=", $1, $3, @2);
+            $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, "<=", $1, $3, @2);
         }
     | cypher_a_expr '>' cypher_a_expr
         {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, ">", $1, $3, @2);
+            $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, ">", $1, $3, @2);
         }
     | cypher_a_expr GT_EQ cypher_a_expr
         {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, ">=", $1, $3, @2);
+            $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, ">=", $1, $3, @2);
         }
     | cypher_a_expr '+' cypher_a_expr
         {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "+", $1, $3, @2);
+            $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, "+", $1, $3, @2);
         }
     | cypher_a_expr '-' cypher_a_expr
         {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "-", $1, $3, @2);
+            $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, "-", $1, $3, @2);
         }
     | cypher_a_expr '*' cypher_a_expr
         {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "*", $1, $3, @2);
+            $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, "*", $1, $3, @2);
         }
     | cypher_a_expr '/' cypher_a_expr
         {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "/", $1, $3, @2);
+            $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, "/", $1, $3, @2);
         }
     | cypher_a_expr '%' cypher_a_expr
         {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "%", $1, $3, @2);
+            $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, "%", $1, $3, @2);
         }
     | cypher_a_expr '^' cypher_a_expr
         {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "^", $1, $3, @2);
+            $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, "^", $1, $3, @2);
         }
     | cypher_a_expr OPERATOR cypher_a_expr
         {
@@ -17027,11 +17033,7 @@ cypher_a_expr:
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, $2, $1, $3, @2);
         }
-    | cypher_a_expr '<' '-' '>' cypher_a_expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<->", $1, $5, @3);
-        }
-    | cypher_a_expr IN cypher_a_expr
+    | cypher_a_expr IN cypher_in_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "@=", $1, $3, @2);
         }
@@ -17062,11 +17064,7 @@ cypher_a_expr:
             $$ = do_negate($2, @1);
         
         }
-    | '~' cypher_a_expr %prec UNARY_MINUS
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~", NULL, $2, @1);
-        }
-    | cypher_a_expr STARTS WITH cypher_a_expr %prec STARTS
+	   /* | cypher_a_expr STARTS WITH cypher_b_expr %prec STARTS
         {
             cypher_string_match *n;
 
@@ -17077,8 +17075,8 @@ cypher_a_expr:
             n->location = @2;
 
             $$ = (Node *)n;
-        }
-    | cypher_a_expr ENDS WITH cypher_a_expr %prec ENDS
+        }*/
+   /* | cypher_a_expr ENDS WITH cypher_a_expr %prec ENDS
         {
             cypher_string_match *n;
 
@@ -17101,11 +17099,7 @@ cypher_a_expr:
             n->location = @2;
 
             $$ = (Node *)n;
-        }
-    | cypher_a_expr '~' cypher_a_expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~", $1, $3, @2);
-        }
+        }*/
     | cypher_a_expr '[' cypher_a_expr ']'  %prec UNARY_MINUS
         {
             A_Indices *i;
@@ -17127,63 +17121,35 @@ cypher_a_expr:
             i->uidx = $5;
 
             $$ = append_indirection($1, (Node *)i);
-        }
+        }/*
     | cypher_a_expr '.' cypher_a_expr
         {
             $$ = append_indirection($1, $3);
-        }
+        }*/
     | cypher_a_expr TYPECAST schema_name
         {
             $$ = make_typecast_expr($1, $3, @2);
         }
-    | temporal_cast cypher_a_expr %prec TYPECAST
+    
+    /* | cypher_a_expr all_op sub_type '(' cypher_stmt ')' %prec OPERATOR
         {
-            $$ = make_typecast_expr($2, $1, @1);
-        }
-    | cypher_a_expr all_op ALL cypher_in_expr //%prec OPERATOR
-        {
-            cypher_sub_pattern *sub = $4;
-            sub->kind = CSP_ALL;
+            cypher_sub_pattern *sub;
+
+            sub = make_ag_node(cypher_sub_pattern);
+            sub->pattern = $5;
+            sub->kind = $3;
 
             SubLink *n = makeNode(SubLink);
-            n->subLinkType = ALL_SUBLINK;
+            n->subLinkType = $3;
             n->subLinkId = 0;
             n->testexpr = $1;
             n->operName = list_make2(makeString("postgraph"), makeString($2));
             n->subselect = (Node *) sub;
-            n->location = @1;
+            n->location = @2;
             $$ = (Node *) n;
-
         }
-    | cypher_a_expr all_op ANY cypher_in_expr //%prec OPERATOR
-        {
-            cypher_sub_pattern *sub = $4;
-
-            SubLink *n = makeNode(SubLink);
-            n->subLinkType = ANY_SUBLINK;
-            n->subLinkId = 0;
-            n->testexpr = $1;
-            n->operName = list_make2(makeString("postgraph"), makeString($2));
-            n->subselect = (Node *) sub;
-            n->location = @1;
-            $$ = (Node *) n;
-
-        }
-    | cypher_a_expr all_op SOME cypher_in_expr //%prec OPERATOR
-        {
-            cypher_sub_pattern *sub = $4;
-
-            SubLink *n = makeNode(SubLink);
-            n->subLinkType = ANY_SUBLINK;
-            n->subLinkId = 0;
-            n->testexpr = $1;
-            n->operName = list_make2(makeString("postgraph"), makeString($2));
-            n->subselect = (Node *) sub;
-            n->location = @1;
-            $$ = (Node *) n;
-
-        }*/
-    | expr_atom
+  */
+    | cypher_expr_atom
     ;
 
 all_op:
@@ -17241,14 +17207,6 @@ all_op:
     | '^'
         {
             $$ = "^";
-        }
-    | '~'
-        {
-            $$ = "~";
-        }
-    | '<' '-' '>'
-        {
-            $$ = "<->";
         }
 ;
 
@@ -17719,38 +17677,6 @@ cypher_expr_func_subexpr:
             $$ = makeFuncCall(list_make1(makeString("overlaps")), list_make4($2, $4, $8, $10), COERCE_SQL_SYNTAX, @6);
         }
     ;
-
-temporal_cast:
-    TIMESTAMP
-        {
-            $$ = pnstrdup("timestamp", 9);
-        }
-    | TIMESTAMP WITHOUT TIME ZONE
-        {
-            $$ = pnstrdup("timestamp", 9);
-        }
-    | TIMESTAMP WITH TIME ZONE
-        {
-            $$ = pnstrdup("timestamptz", 11);
-        }
-    | TIME
-        {
-            $$ = pnstrdup("time", 4); 
-        }
-    | TIME WITHOUT TIME ZONE
-        {
-            $$ = pnstrdup("time", 4);
-        }
-    | TIME WITH TIME ZONE
-        {
-            $$ = pnstrdup("timetz", 6);
-        }
-    | INTERVAL
-        {
-            $$ = pnstrdup("interval", 8);
-        }
-    ;
-
                                         
 cypher_in_expr:
     '(' cypher_stmt ')'
@@ -17765,9 +17691,237 @@ cypher_in_expr:
        //| '(' expr_list ')' { $$ = (Node *)$2; }
    ;    
 
-expr_atom:
+cypher_b_expr:
+   cypher_a_expr OR cypher_a_expr
+        {
+            $$ = make_or_expr($1, $3, @2);
+        }
+    | cypher_a_expr AND cypher_a_expr
+        {
+            $$ = make_and_expr($1, $3, @2);
+        }
+    | cypher_a_expr XOR cypher_a_expr
+        {
+            $$ = make_xor_expr($1, $3, @2);
+        }
+    | NOT cypher_a_expr
+        {
+            $$ = make_not_expr($2, @1);
+        }
+    | cypher_a_expr '=' cypher_a_expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "=", $1, $3, @2);
+        }
+    | cypher_a_expr LIKE cypher_a_expr
+        {   
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~~~", $1, $3, @2);
+        } 
+    | cypher_a_expr NOT LIKE cypher_a_expr
+        {   
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "!~~", $1, $4, @2);
+        }  
+    | cypher_a_expr ILIKE cypher_a_expr
+        {   
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~~*", $1, $3, @2);
+        } 
+    | cypher_a_expr NOT ILIKE cypher_a_expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "!~~*", $1, $4, @2);
+        }  
+    | cypher_a_expr NOT_EQ cypher_a_expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<>", $1, $3, @2);
+        }
+    | cypher_a_expr '<' cypher_a_expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<", $1, $3, @2);
+        }
+    | cypher_a_expr LT_EQ cypher_a_expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<=", $1, $3, @2);
+        }
+    | cypher_a_expr '>' cypher_a_expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, ">", $1, $3, @2);
+        }
+    | cypher_a_expr GT_EQ cypher_a_expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, ">=", $1, $3, @2);
+        }
+    | cypher_a_expr '+' cypher_a_expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "+", $1, $3, @2);
+        }
+    | cypher_a_expr '-' cypher_a_expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "-", $1, $3, @2);
+        }
+    | cypher_a_expr '*' cypher_a_expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "*", $1, $3, @2);
+        }
+    | cypher_a_expr '/' cypher_a_expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "/", $1, $3, @2);
+        }
+    | cypher_a_expr '%' cypher_a_expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "%", $1, $3, @2);
+        }
+    | cypher_a_expr '^' cypher_a_expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "^", $1, $3, @2);
+        }
+    | cypher_a_expr OPERATOR cypher_a_expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, $2, $1, $3, @2);
+        }
+    | OPERATOR cypher_a_expr %prec UNARY_MINUS
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, $1, NULL, $2, @1);
+        }
+    | cypher_a_expr RIGHT_ARROW cypher_a_expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, $2, $1, $3, @2);
+        }
+    /*| cypher_a_expr IN cypher_a_expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "@=", $1, $3, @2);
+        }*/
+    | cypher_a_expr IS NULL_P %prec IS
+        {
+            NullTest *n;
+
+            n = makeNode(NullTest);
+            n->arg = (Expr *)$1;
+            n->nulltesttype = IS_NULL;
+            n->location = @2;
+
+            $$ = (Node *)n;
+        }
+    | cypher_a_expr IS NOT NULL_P %prec IS
+        {
+            NullTest *n;
+
+            n = makeNode(NullTest);
+            n->arg = (Expr *)$1;
+            n->nulltesttype = IS_NOT_NULL;
+            n->location = @2;
+
+            $$ = (Node *)n;
+        }
+    | '-' cypher_a_expr %prec UNARY_MINUS
+        {
+            $$ = do_negate($2, @1);
+        
+        }
+   /* | cypher_a_expr ENDS WITH cypher_a_expr %prec ENDS
+        {
+            cypher_string_match *n;
+
+            n = make_ag_node(cypher_string_match);
+            n->operation = CSMO_ENDS_WITH;
+            n->lhs = $1;
+            n->rhs = $4;
+            n->location = @2;
+
+            $$ = (Node *)n;
+        }
+    | cypher_a_expr CONTAINS cypher_a_expr
+        {
+            cypher_string_match *n;
+
+            n = make_ag_node(cypher_string_match);
+            n->operation = CSMO_CONTAINS;
+            n->lhs = $1;
+            n->rhs = $3;
+            n->location = @2;
+
+            $$ = (Node *)n;
+        }
+    | cypher_a_expr '~' cypher_a_expr
+        {
+            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~", $1, $3, @2);
+        }
+    | cypher_a_expr '[' cypher_a_expr ']'  %prec UNARY_MINUS
+        {
+            A_Indices *i;
+
+            i = makeNode(A_Indices);
+            i->is_slice = false;
+            i->lidx = NULL;
+            i->uidx = $3;
+
+            $$ = append_indirection($1, (Node *)i);
+        }
+    | cypher_a_expr '[' expr_opt DOT_DOT expr_opt ']'
+        {
+            A_Indices *i;
+
+            i = makeNode(A_Indices);
+            i->is_slice = true;
+            i->lidx = $3;
+            i->uidx = $5;
+
+            $$ = append_indirection($1, (Node *)i);
+        }
+    | cypher_a_expr '.' cypher_a_expr
+        {
+            $$ = append_indirection($1, $3);
+        }
+    | cypher_a_expr TYPECAST schema_name
+        {
+            $$ = make_typecast_expr($1, $3, @2);
+        }
+    | cypher_a_expr all_op ALL cypher_in_expr //%prec OPERATOR
+        {
+            cypher_sub_pattern *sub = $4;
+            sub->kind = CSP_ALL;
+
+            SubLink *n = makeNode(SubLink);
+            n->subLinkType = ALL_SUBLINK;
+            n->subLinkId = 0;
+            n->testexpr = $1;
+            n->operName = list_make2(makeString("postgraph"), makeString($2));
+            n->subselect = (Node *) sub;
+            n->location = @1;
+            $$ = (Node *) n;
+
+        }
+    | cypher_a_expr all_op ANY cypher_in_expr //%prec OPERATOR
+        {
+            cypher_sub_pattern *sub = $4;
+
+            SubLink *n = makeNode(SubLink);
+            n->subLinkType = ANY_SUBLINK;
+            n->subLinkId = 0;
+            n->testexpr = $1;
+            n->operName = list_make2(makeString("postgraph"), makeString($2));
+            n->subselect = (Node *) sub;
+            n->location = @1;
+            $$ = (Node *) n;
+
+        }
+    | cypher_a_expr all_op SOME cypher_in_expr //%prec OPERATOR
+        {
+            cypher_sub_pattern *sub = $4;
+
+            SubLink *n = makeNode(SubLink);
+            n->subLinkType = ANY_SUBLINK;
+            n->subLinkId = 0;
+            n->testexpr = $1;
+            n->operName = list_make2(makeString("postgraph"), makeString($2));
+            n->subselect = (Node *) sub;
+            n->location = @1;
+            $$ = (Node *) n;
+
+        }*/
+    | cypher_expr_atom
+	;
+cypher_expr_atom:
     expr_literal
-    | PARAMETER
+
+    /*| PARAMETER
         {
             cypher_param *n;
 
@@ -17776,7 +17930,7 @@ expr_atom:
             n->location = @1;
 
             $$ = (Node *)n;
-        }
+        }*/
     | '(' cypher_a_expr ')'
         {
             $$ = $2;
@@ -19097,4 +19251,22 @@ extractAggrArgTypes(List *aggrargs)
 {
 	Assert(list_length(aggrargs) == 2);
 	return extractArgTypes((List *) linitial(aggrargs));
+}
+
+/*
+ * makeSimpleA_Expr -
+ *		As above, given a simple (unqualified) operator name
+ */
+A_Expr *
+makeSimpleCypherA_Expr(A_Expr_Kind kind, char *name,
+				 Node *lexpr, Node *rexpr, int location)
+{
+	A_Expr	   *a = makeNode(A_Expr);
+
+	a->kind = kind;
+	a->name = list_make2(makeString("postgraph"), makeString((char *) name));
+	a->lexpr = lexpr;
+	a->rexpr = rexpr;
+	a->location = location;
+	return a;
 }
