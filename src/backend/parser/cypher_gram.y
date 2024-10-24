@@ -4259,12 +4259,12 @@ cypher_query:
     ;
     
 cypher_query_start:
-    /*create 
-    | match
+    create 
+    /*| match
     | CYPHER with { $$ = $2; }
     | merge
-    | CYPHER call_stmt { $$ = $2; }
-    |*/ return
+    | CYPHER call_stmt { $$ = $2; }*/
+    | return
    // | unwind
 ;
 
@@ -16924,7 +16924,7 @@ properties_opt:
             $$ = NULL;
         }
     | map
-    | PARAMETER
+    /*| PARAMETER
         {
             cypher_param *n;
 
@@ -16933,7 +16933,7 @@ properties_opt:
             n->location = @1;
 
             $$ = (Node *)n;
-        }
+        }*/
 
     ;
 
