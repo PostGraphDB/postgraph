@@ -314,7 +314,7 @@ dolqinside             [^$]+
  *    problem.
  * Dash-dash comments have similar interactions with the operator rule.
  */
-xcstart			\/\*[\~\!\@\#\^\&\|\`\?\+\-\*\/\%\<\>\=]*
+xcstart			\/\*{op_chars}*
 xcstop			\*+\/
 xcinside		[^*/]+
 
@@ -329,12 +329,13 @@ digit    [0-9]
 digitseq {digit}+
 
 /* id pattern is for UnescapedSymbolicName rule in Cypher. */
-id      {idstart}{idcont}*
 idstart [A-Z_a-z\x80-\xFF]
 idcont  [$0-9A-Z_a-z\x80-\xFF]
 
-dot_dot  ".."
+id      {idstart}{idcont}*
+
 typecast "::"
+dot_dot  ".."
 colon_equals ":="
 /*
  * These are tokens that are used as operators and language constructs in
@@ -346,8 +347,9 @@ lt_eq    "<="
 gt_eq    ">="
 plus_eq  "+="
 
-self     [?&!@#%()*+,\-.~/:;<=>[\]^{|}]
-operator [\~\!\|\-\<\>\=\#\%\~\!\@\^\&\`\?\+\*\/]+
+self	 [,()\[\].;\:\+\-\*\/\%\^\<\>\=]
+op_chars [\~\!\@\#\^\&\|\`\?\+\-\*\/\%\<\>\=]
+operator {op_chars}+
 
 /*
  * decimal pattern covers RegularDecimalReal rule in Cypher and also accepts
@@ -479,6 +481,12 @@ ag_token token;
 {xcinside}		{
 					/* ignore */
 				}
+
+
+{op_chars}		{
+					/* ignore */
+				}
+
 \*+				{
 					/* ignore */
 				}
@@ -667,7 +675,7 @@ ag_token token;
                             strbuf_reset(&yyextra.literal_buf);
                             return token;
 						case xus:
-                            token.type = AG_TOKEN_STRING;
+                            token.type = AG_TOKEN_USCONST;
                             token.value.s = strbuf_get_str(&yyextra.literal_buf);
                             token.location = get_location();
                             strbuf_reset(&yyextra.literal_buf);
@@ -687,7 +695,6 @@ ag_token token;
 <xq,xus>{xqinside}  {
     strbuf_append_buf(&yyextra.literal_buf, yytext, yyleng);
 }
-
 
 <xui>{dquote}	{
 
@@ -772,8 +779,8 @@ ag_token token;
 					if (!is_utf16_surrogate_second(c))
                         ereport(ERROR,
                                 (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
-                                errmsg("invalid Unicode escape"),
-                                errhint("invalid Unicode surrogate pair"),
+                                errmsg("invalid Unicode surrogate pair"),
+                                //errhint("invalid Unicode surrogate pair"),
                                              scan_errposition()));
 
 					c = surrogate_pair_to_codepoint(yyextra.utf16_first_part, c);
@@ -800,8 +807,8 @@ ag_token token;
 					update_location();
                         ereport(ERROR,
                                 (errcode(ERRCODE_INVALID_ESCAPE_SEQUENCE),
-                                errmsg("invalid Unicode escape"),
-                                errhint("invalid Unicode surrogate pair"),
+                                errmsg("invalid Unicode surrogate pair"),
+                                //errhint("invalid Unicode surrogate pair"),
                                              scan_errposition()));
 				}
 <xe,xeu>{xeunicodefail}	{
@@ -1022,7 +1029,7 @@ ag_token token;
                         scan_errmsg("zero-length delimited identifier"),
                         scan_errposition()));
 	/* can't truncate till after we de-escape the ident */
-    token.type = AG_TOKEN_CS_IDENTIFIER;
+    token.type = AG_TOKEN_UIDENT;
     token.value.s = strbuf_get_str(&yyextra.literal_buf);
     token.location = get_location();
     strbuf_reset(&yyextra.literal_buf);
@@ -1061,7 +1068,7 @@ ag_token token;
 {param} {
     update_location();
     token.type = AG_TOKEN_PARAMETER;
-    token.value.s = yytext + 1;
+    token.value.i = atol(yytext + 1);
     token.location = get_location();
     return token;
 }
@@ -1254,26 +1261,30 @@ ag_token token;
                                         scan_errmsg("operator too long"),
                                         scan_errposition()));
 
+                    update_location();
+                    if (nchars == 2 && !strcmp("->", yytext)){
+                        token.type = AG_TOKEN_RIGHT_ARROW;
+                        token.value.s = yytext;
+                        token.location = get_location();
+                        return token;
+                    } if (yyleng == 1)
+                        if ('-' == yytext[0] || '=' == yytext[0] || '<' == yytext[0] || 
+                            '>' == yytext[0] || '*' == yytext[0] || '^' == yytext[0] ||
+                            '%' == yytext[0] || '/' == yytext[0] || '+' == yytext[0] ||
+                            '-' == yytext[0]) {
+                            token.type = AG_TOKEN_CHAR;
+                            token.value.c = yytext[0];
+                            token.location = get_location();
+                            return token;
+                    } 
 
-    update_location();
-    if (strlen(yytext) == 2 && !strcmp("->", yytext)){
-        token.type = AG_TOKEN_RIGHT_ARROW;
+                    token.type = AG_TOKEN_OPERATOR;
 
-        token.value.s = yytext;
-        token.location = get_location();
-    } else if (strlen(yytext) == 1 && ('-' == yytext[0] || '=' == yytext[0] || '<' == yytext[0] || '>' == yytext[0] || '*' == yytext[0])){
-        token.type = AG_TOKEN_CHAR;
-        token.value.c = yytext[0];
-        token.location = get_location();
-    } 
-     else {
-        token.type = AG_TOKEN_OPERATOR;
+                    token.value.s = pstrdup(yytext);
+                    token.location = get_location();
+                    
 
-        token.value.s = pstrdup(yytext);
-        token.location = get_location();
-    }
-
-    return token;
+                    return token;
 }
 
 

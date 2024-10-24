@@ -197,7 +197,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %token <string> INET
 %token <string> PARAMETER
 %token <string> OPERATOR RIGHT_ARROW
-%token <string> XCONST BCONST 
+%token <string> XCONST BCONST USCONST UIDENT
 
 /* operators that have more than 1 character */
 %token NOT_EQ LT_EQ GT_EQ DOT_DOT TYPECAST PLUS_EQ COLON_EQUALS EQ_GT
@@ -301,7 +301,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <node> stmt
 %type <list> single_query  cypher_stmt
 
-%type <node> parse_toplevel stmtmulti schema_stmt routine_body_stmt
+%type <node> parse_toplevel stmtmulti toplevel_stmt schema_stmt routine_body_stmt
 		AlterEventTrigStmt AlterCollationStmt
 		AlterDatabaseStmt AlterDatabaseSetStmt AlterDomainStmt AlterEnumStmt
 		AlterFdwStmt AlterForeignServerStmt AlterGroupStmt
@@ -610,7 +610,6 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 
 %type <string> property_key_name cypher_var_name var_name_opt label_name
 %type <string> symbolic_name schema_name temporal_cast attr_name 
-%type <keyword> cypher_reserved_keyword safe_keywords conflicted_keywords
 
 %type <node>	fetch_args select_limit_value
 				offset_clause select_offset_value
@@ -776,15 +775,15 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %left '*' '/' '%'
 %left '^'
 /* Unary Operators */
-%left		AT				/* sets precedence for AT TIME ZONE */
-%left		COLLATE
+%left AT				/* sets precedence for AT TIME ZONE */
+%left COLLATE
 %right UNARY_MINUS
 %left '[' ']' 
 %left '(' ')'
 %left TYPECAST
 %left '.'
 
-%left		JOIN CROSS LEFT FULL RIGHT INNER_P NATURAL
+%left JOIN CROSS LEFT FULL RIGHT INNER NATURAL
 
 %{
 // logical operators
@@ -896,7 +895,7 @@ parse_toplevel:
  * we'd get -1 for the location in such cases.
  * We also take care to discard empty statements entirely.
  */
-stmtmulti:	stmtmulti ';' stmt
+stmtmulti:	stmtmulti ';' toplevel_stmt
 				{
 					if ($1 != NIL)
 					{
@@ -908,7 +907,7 @@ stmtmulti:	stmtmulti ';' stmt
 					else
 						$$ = $1;
 				}
-			| stmt 
+			| toplevel_stmt 
 				{
 					if ($1 != NULL)
 						$$ = list_make1(makeRawStmt($1, 0));
@@ -917,15 +916,19 @@ stmtmulti:	stmtmulti ';' stmt
 				}
 		;
 
+toplevel_stmt:
+		stmt
+		| TransactionStmtLegacy
+    ;
+
 /*
  * query
  */
 stmt:
-			cypher_stmt { $$ = (Node *)$1; }
-			| CreateGraphStmt
+			/*cypher_stmt { $$ = (Node *)$1; }
+			| */CreateGraphStmt
 			| DropGraphStmt
 			| UseGraphStmt
-			| TransactionStmtLegacy
 			| AlterEventTrigStmt
 			| AlterCollationStmt
 			| AlterDatabaseStmt
@@ -3109,7 +3112,8 @@ CopyStmt:	COPY opt_binary qualified_name opt_column_list
 					if (!n->is_from && n->whereClause != NULL)
 						ereport(ERROR,
 								(errcode(ERRCODE_SYNTAX_ERROR),
-								 errmsg("WHERE clause not allowed with COPY TO")));
+								 errmsg("WHERE clause not allowed with COPY TO"),
+                                ag_scanner_errposition(@11, scanner)));
 
 					n->options = NIL;
 					/* Concatenate user-supplied flags */
@@ -4267,10 +4271,6 @@ cypher_query_body:
     {
         $$ = lappend($1, $2);
     }
-   // | // Empty 
-    /*{ 
-        $$ = NIL; 
-    }*/
     ;
 
 clause:
@@ -4366,9 +4366,9 @@ cypher_range_idx:
     ;
 
 cypher_range_idx_opt:
-                        cypher_range_idx
-                        | /* EMPTY */                   { $$ = NULL; }
-                ;
+        cypher_range_idx
+        | /* EMPTY */                   { $$ = NULL; }
+    ;
 
 /*
  * RETURN and WITH clause
@@ -4602,7 +4602,8 @@ CreateSchemaStmt:
 					if ($9 != NIL)
 						ereport(ERROR,
 								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-								 errmsg("CREATE SCHEMA IF NOT EXISTS cannot include schema elements")));
+								 errmsg("CREATE SCHEMA IF NOT EXISTS cannot include schema elements"),
+								 ag_scanner_errposition(@9, scanner)));
 					n->schemaElts = $9;
 					n->if_not_exists = true;
 					$$ = (Node *)n;
@@ -4616,7 +4617,8 @@ CreateSchemaStmt:
 					if ($7 != NIL)
 						ereport(ERROR,
 								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-								 errmsg("CREATE SCHEMA IF NOT EXISTS cannot include schema elements")));
+								 errmsg("CREATE SCHEMA IF NOT EXISTS cannot include schema elements"),
+								 ag_scanner_errposition(@7, scanner)));
 					n->schemaElts = $7;
 					n->if_not_exists = true;
 					$$ = (Node *)n;
@@ -6105,7 +6107,7 @@ func_return:
  * is next best choice.
  */
 func_type:	Typename								{ $$ = $1; }
-			/*| type_function_name attrs '%' TYPE_P
+			| type_function_name attrs '%' TYPE_P
 				{
 					$$ = makeTypeNameFromNameList(lcons(makeString($1), $2));
 					$$->pct_type = true;
@@ -6117,7 +6119,7 @@ func_type:	Typename								{ $$ = $1; }
 					$$->pct_type = true;
 					$$->setof = true;
 					$$->location = @2;
-				}*/
+				}
 		;
 
 func_arg_with_default:
@@ -7256,7 +7258,8 @@ ColConstraintElem:
 					if ($2 != ATTRIBUTE_IDENTITY_ALWAYS)
 						ereport(ERROR,
 								(errcode(ERRCODE_SYNTAX_ERROR),
-								 errmsg("for a generated column, GENERATED ALWAYS must be specified")));
+								 errmsg("for a generated column, GENERATED ALWAYS must be specified"),
+								 scanner_errposition(@2, scanner)));
 
 					$$ = (Node *)n;
 				}
@@ -8232,7 +8235,8 @@ oper_argtypes:
 				   ereport(ERROR,
 						   (errcode(ERRCODE_SYNTAX_ERROR),
 							errmsg("missing argument"),
-							errhint("Use NONE to denote the missing argument of a unary operator.")));
+							errhint("Use NONE to denote the missing argument of a unary operator."),
+							ag_scanner_errposition(@3, scanner)));
 				}
 			| '(' Typename ',' Typename ')'
 					{ $$ = list_make2($2, $4); }
@@ -9084,7 +9088,7 @@ TriggerFuncArg:
 				{
 					$$ = makeString(psprintf("%d", $1));
 				}
-			| NumericOnly								{ $$ = makeString($1); }
+			| DECIMAL								{ $$ = makeString($1); }
 			| Sconst								{ $$ = makeString($1); }
 			| ColLabel								{ $$ = makeString($1); }
 		;
@@ -9110,13 +9114,15 @@ ConstraintAttributeSpec:
 					if ((newspec & (CAS_NOT_DEFERRABLE | CAS_INITIALLY_DEFERRED)) == (CAS_NOT_DEFERRABLE | CAS_INITIALLY_DEFERRED))
 						ereport(ERROR,
 								(errcode(ERRCODE_SYNTAX_ERROR),
-								 errmsg("constraint declared INITIALLY DEFERRED must be DEFERRABLE")));
+								 errmsg("constraint declared INITIALLY DEFERRED must be DEFERRABLE"),
+								 scanner_errposition(@2, scanner)));
 					/* generic message for other conflicts */
 					if ((newspec & (CAS_NOT_DEFERRABLE | CAS_DEFERRABLE)) == (CAS_NOT_DEFERRABLE | CAS_DEFERRABLE) ||
 						(newspec & (CAS_INITIALLY_IMMEDIATE | CAS_INITIALLY_DEFERRED)) == (CAS_INITIALLY_IMMEDIATE | CAS_INITIALLY_DEFERRED))
 						ereport(ERROR,
 								(errcode(ERRCODE_SYNTAX_ERROR),
-								 errmsg("conflicting constraint properties")));
+								 errmsg("conflicting constraint properties"),
+								 scanner_errposition(@2, scanner)));
 					$$ = newspec;
 				}
 		;
@@ -13699,23 +13705,23 @@ a_expr:		c_expr									{ $$ = $1; }
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "+", NULL, $2, @1); }
 			| '-' a_expr					%prec UNARY_MINUS
 				{ $$ = doNegate($2, @1); }
-			| a_expr '+' a_expr
+			| a_expr '+' a_expr %prec '+'
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "+", $1, $3, @2); }
-			| a_expr '-' a_expr
+			| a_expr '-' a_expr %prec '-'
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "-", $1, $3, @2); }
-			| a_expr '*' a_expr
+			| a_expr '*' a_expr %prec '*'
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "*", $1, $3, @2); }
-			| a_expr '/' a_expr
+			| a_expr '/' a_expr %prec '/'
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "/", $1, $3, @2); }
-			| a_expr '%' a_expr
+			| a_expr '%' a_expr %prec '%'
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "%", $1, $3, @2); }
-			| a_expr '^' a_expr
+			| a_expr '^' a_expr %prec '^'
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "^", $1, $3, @2); }
-			| a_expr '<' a_expr
+			| a_expr '<' a_expr %prec '<'
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "<", $1, $3, @2); }
-			| a_expr '>' a_expr
+			| a_expr '>' a_expr %prec '>'
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, ">", $1, $3, @2); }
-			| a_expr '=' a_expr
+			| a_expr '=' a_expr %prec '='
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "=", $1, $3, @2); }
 			| a_expr LT_EQ a_expr
 				{ $$ = (Node *) makeSimpleA_Expr(AEXPR_OP, "<=", $1, $3, @2); }
@@ -14151,7 +14157,7 @@ c_expr:		columnref								{ $$ = $1; }
 			| PARAMETER opt_indirection
 				{
 					ParamRef *p = makeNode(ParamRef);
-					p->number = atol($1);
+					p->number = $1;//atol($1);
 					p->location = @1;
 					if ($2)
 					{
@@ -15170,13 +15176,8 @@ Numeric:	INT_P
 					$$ = SystemTypeName("int4");
 					$$->location = @1;
 				}
-			| INTEGER
+			| INTEGER_P
 				{
-					$$ = SystemTypeName("int4");
-					$$->location = @1;
-				}
-				| INTEGER_P
-								{
 					$$ = SystemTypeName("int4");
 					$$->location = @1;
 				}
@@ -16934,7 +16935,7 @@ properties_opt:
  * expression
  */
 cypher_a_expr:
-    cypher_a_expr OR cypher_a_expr
+   /* cypher_a_expr OR cypher_a_expr
         {
             $$ = make_or_expr($1, $3, @2);
         }
@@ -17181,7 +17182,7 @@ cypher_a_expr:
             n->location = @1;
             $$ = (Node *) n;
 
-        }
+        }*/
     | expr_atom
     ;
 
@@ -17999,7 +18000,7 @@ cypher_func_name:
      * rule schema_name '.' symbolic_name for func_name
      * NOTE: This rule is incredibly stupid and needs to go
      */
-    | safe_keywords '.' symbolic_name
+    | bare_label_keyword '.' symbolic_name
         {
             $$ = list_make2(makeString((char *)$1), makeString($3));
         }
@@ -18052,74 +18053,11 @@ symbolic_name:
 
 schema_name:
     symbolic_name
-    | cypher_reserved_keyword
+    | reserved_keyword
         {
             /* we don't need to copy it, as it already has been */
             $$ = (char *) $1;
         }
-    ;
-
-cypher_reserved_keyword:
-    safe_keywords
-    | conflicted_keywords
-    ;
-
-/*
- * All keywords need to be copied and properly terminated with a null before
- * using them, pnstrdup effectively does this for us.
- */
-
-safe_keywords:
-    //ALL          { $$ = pnstrdup($1, 3); }
-    //|
-    AND        { $$ = pnstrdup($1, 3); }
-    | AS         { $$ = pnstrdup($1, 2); }
-    | ASC        { $$ = pnstrdup($1, 3); }
-    | ASCENDING  { $$ = pnstrdup($1, 9); }
-    | BY         { $$ = pnstrdup($1, 2); }
-    | CALL       { $$ = pnstrdup($1, 4); }
-    | CASE       { $$ = pnstrdup($1, 4); }
-    | COALESCE   { $$ = pnstrdup($1, 8); }
-    | CONTAINS   { $$ = pnstrdup($1, 8); }
-    | CREATE     { $$ = pnstrdup($1, 6); }
-    | DELETE     { $$ = pnstrdup($1, 6); }
-    | DESC       { $$ = pnstrdup($1, 4); }
-    | DESCENDING { $$ = pnstrdup($1, 10); }
-    | DETACH     { $$ = pnstrdup($1, 6); }
-    | DISTINCT   { $$ = pnstrdup($1, 8); }
-    | ELSE       { $$ = pnstrdup($1, 4); }
-    | ENDS       { $$ = pnstrdup($1, 4); }
-    | EXISTS     { $$ = pnstrdup($1, 6); }
-    | INTERVAL   { $$ = pnstrdup($1, 8); }
-    | IN         { $$ = pnstrdup($1, 2); }
-    | IS         { $$ = pnstrdup($1, 2); }
-    | LIMIT      { $$ = pnstrdup($1, 6); }
-    | MATCH      { $$ = pnstrdup($1, 6); }
-    | MERGE      { $$ = pnstrdup($1, 6); }
-    | NOT        { $$ = pnstrdup($1, 3); }
-    | OPTIONAL   { $$ = pnstrdup($1, 8); }
-    | OR         { $$ = pnstrdup($1, 2); }
-    | ORDER      { $$ = pnstrdup($1, 5); }
-    | REMOVE     { $$ = pnstrdup($1, 6); }
-    | RETURN     { $$ = pnstrdup($1, 6); }
-    | SKIP       { $$ = pnstrdup($1, 4); }
-    | STARTS     { $$ = pnstrdup($1, 6); }
-    | TIME       { $$ = pnstrdup($1, 4); }
-    | TIMESTAMP  { $$ = pnstrdup($1, 9); }
-    | THEN       { $$ = pnstrdup($1, 4); }
-    | UNION      { $$ = pnstrdup($1, 5); }
-    | WHEN       { $$ = pnstrdup($1, 4); }
-    | WHERE      { $$ = pnstrdup($1, 5); }
-    | XOR        { $$ = pnstrdup($1, 3); }
-    | YIELD      { $$ = pnstrdup($1, 5); }
-    ;
-
-conflicted_keywords:
-    END_P     { $$ = pnstrdup($1, 5); }
-    | FALSE_P { $$ = pnstrdup($1, 7); }
-    | NULL_P  { $$ = pnstrdup($1, 6); }
-    | TRUE_P  { $$ = pnstrdup($1, 6); }
-  //  | WITH       { $$ = pnstrdup($1, 4); }
     ;
 
 %%

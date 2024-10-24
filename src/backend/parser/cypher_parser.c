@@ -268,8 +268,10 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner, ag_yy_ext
         INTEGER,
         DECIMAL,
         STRING,
+		USCONST,
         XCONST,
         BCONST,
+		UIDENT,
         IDENTIFIER,
         CS_IDENTIFIER,
         PARAMETER,
@@ -316,10 +318,75 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner, ag_yy_ext
     {
     case AG_TOKEN_NULL:
         break;
+
+	case AG_TOKEN_PARAMETER:
     case AG_TOKEN_INTEGER:
         lvalp->integer = token.value.i;
         break;
-        case AG_TOKEN_STRING:
+	case AG_TOKEN_USCONST:
+	case AG_TOKEN_UIDENT:
+    case AG_TOKEN_CS_IDENTIFIER: {
+            ag_token next_token = ag_scanner_next_token(lvalp, llocp, scanner);
+            if (next_token.type == AG_TOKEN_IDENTIFIER)
+                truncate_identifier(next_token.value.s, strlen(next_token.value.s), true);
+            if (next_token.type == AG_TOKEN_IDENTIFIER && !strcmp("uescape", next_token.value.s))
+            {
+				/* Yup, so get third token, which had better be SCONST */
+				const char *escstr;
+
+				/* Again save and restore *llocp */
+				cur_yylloc = *llocp;
+          
+                //*(extra->lookahead_end) = extra->lookahead_hold_char;
+
+				/* Get third token */
+				next_token = ag_scanner_next_token(lvalp, llocp, scanner);
+                /* If we throw error here, it will point to third token */
+				if (next_token.type != AG_TOKEN_STRING)
+					scanner_yyerror("UESCAPE must be followed by a simple string literal",
+									scanner);
+
+				escstr = next_token.value.s;
+				if (strlen(escstr) != 1 || !check_uescapechar(escstr[0]))
+					scanner_yyerror("invalid Unicode escape character",
+									scanner);
+
+				/* Now restore *llocp; errors will point to first token */
+				*llocp = cur_yylloc;
+
+				/* Apply Unicode conversion */
+				lvalp->string  =
+					str_udeescape(pstrdup(token.value.s),
+								  escstr[0],
+								  *llocp,
+								  scanner);
+
+				/*
+				 * We don't need to revert the un-truncation of UESCAPE.  What
+				 * we do want to do is clear have_lookahead, thereby consuming
+				 * all three tokens.
+				 */
+				extra->have_lookahead = false;                              
+            }
+            else {
+		        extra->lookahead_token = next_token;
+                extra->have_lookahead = true;
+        	    lvalp->string = str_udeescape(pstrdup(token.value.s),
+								  '\\',
+								  *llocp,
+								  scanner);
+				
+				pstrdup(token.value.s);
+            }
+        if (token.type == AG_TOKEN_USCONST)
+			token.type = AG_TOKEN_STRING;
+		else {
+        	token.type = AG_TOKEN_IDENTIFIER;
+		}
+		lvalp->string = pstrdup(token.value.s);
+        break;
+    }
+    case AG_TOKEN_STRING:
         {
             ag_token next_token = ag_scanner_next_token(lvalp, llocp, scanner);
             if (next_token.type == AG_TOKEN_IDENTIFIER)
@@ -387,11 +454,7 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner, ag_yy_ext
     case AG_TOKEN_RIGHT_ARROW:
 	lvalp->string = pstrdup(token.value.s);
         break;
-    case AG_TOKEN_CS_IDENTIFIER: {
-        token.type = AG_TOKEN_IDENTIFIER;
-	    lvalp->string = pstrdup(token.value.s);
-        break;
-    }
+
     case AG_TOKEN_IDENTIFIER:
     {
         int kwnum;
@@ -426,9 +489,9 @@ int cypher_yylex(YYSTYPE *lvalp, YYLTYPE *llocp, ag_scanner_t scanner, ag_yy_ext
         lvalp->string = ident;
         break;
     }
-    case AG_TOKEN_PARAMETER:
+   /* case AG_TOKEN_PARAMETER:
         lvalp->string = pstrdup(token.value.s);
-        break;
+        break;*/
     case AG_TOKEN_EQ_GT:
     case AG_TOKEN_LT_GT:
     case AG_TOKEN_LT_EQ:
