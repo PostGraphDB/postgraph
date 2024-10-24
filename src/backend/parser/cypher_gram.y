@@ -134,7 +134,7 @@ static void processCASbits(int cas_bits, int location, const char *constrType,
 			   bool *no_inherit, ag_scanner_t yyscanner);
 static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 
-A_Expr *
+static A_Expr *
 makeSimpleCypherA_Expr(A_Expr_Kind kind, char *name,
 				 Node *lexpr, Node *rexpr, int location);
 
@@ -4252,16 +4252,16 @@ cypher_query:
     {
         $$ = list_make1($1);
     }
-  /*  | cypher_query_start cypher_query_body
+    | cypher_query_start cypher_query_body
     {
         $$ = lcons($1, $2);
-    }*/
+    }
     ;
     
 cypher_query_start:
     create 
-    /*| match
-    | CYPHER with { $$ = $2; }
+    | match
+    /*| CYPHER with { $$ = $2; }
     | merge
     | CYPHER call_stmt { $$ = $2; }*/
     | return
@@ -5169,7 +5169,6 @@ with:
 /*
  * MATCH clause
  */
-
 match:
     optional_opt MATCH pattern cypher_where_opt order_by_opt
         {
@@ -5983,14 +5982,14 @@ function_with_argtypes:
 			 * Because of reduce/reduce conflicts, we can't use func_name
 			 * below, but we can write it out the long way, which actually
 			 * allows more cases.
-			 *//*
+			 */
 			| type_func_name_keyword
 				{
 					ObjectWithArgs *n = makeNode(ObjectWithArgs);
 					n->objname = list_make1(makeString(pstrdup($1)));
 					n->args_unspecified = true;
 					$$ = n;
-				}*/
+				}
 			| ColId
 				{
 					ObjectWithArgs *n = makeNode(ObjectWithArgs);
@@ -17023,19 +17022,19 @@ cypher_a_expr:
         }
     | cypher_a_expr OPERATOR cypher_a_expr
         {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, $2, $1, $3, @2);
+            $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, $2, $1, $3, @2);
         }
     | OPERATOR cypher_a_expr
         {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, $1, NULL, $2, @1);
+            $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, $1, NULL, $2, @1);
         }
     | cypher_a_expr RIGHT_ARROW cypher_a_expr
         {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, $2, $1, $3, @2);
+            $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, $2, $1, $3, @2);
         }
     | cypher_a_expr IN cypher_in_expr
         {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "@=", $1, $3, @2);
+            $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, "@=", $1, $3, @2);
         }
     | cypher_a_expr IS NULL_P %prec IS
         {
@@ -17121,11 +17120,11 @@ cypher_a_expr:
             i->uidx = $5;
 
             $$ = append_indirection($1, (Node *)i);
-        }/*
-    | cypher_a_expr '.' cypher_a_expr
+        }
+    | cypher_a_expr '.' attr_name %prec '.'
         {
-            $$ = append_indirection($1, $3);
-        }*/
+             $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, "->", $1, makeString($3), @2);
+        }
     | cypher_a_expr TYPECAST schema_name
         {
             $$ = make_typecast_expr($1, $3, @2);
@@ -17946,7 +17945,7 @@ cypher_expr_atom:
             
             $$ = (Node *)n;
         }   
-    | cypher_expr_func
+    //| cypher_expr_func
     | EXISTS '(' anonymous_path ')'
         {
             cypher_sub_pattern *sub;
@@ -19257,7 +19256,7 @@ extractAggrArgTypes(List *aggrargs)
  * makeSimpleA_Expr -
  *		As above, given a simple (unqualified) operator name
  */
-A_Expr *
+static A_Expr *
 makeSimpleCypherA_Expr(A_Expr_Kind kind, char *name,
 				 Node *lexpr, Node *rexpr, int location)
 {

@@ -231,6 +231,20 @@ Query *transform_cypher_clause(cypher_parsestate *cpstate, cypher_clause *clause
     return result;
 }
 
+static A_Expr *
+makeSimpleCypherA_Expr(A_Expr_Kind kind, char *name,
+				 Node *lexpr, Node *rexpr, int location)
+{
+	A_Expr	   *a = makeNode(A_Expr);
+
+	a->kind = kind;
+	a->name = list_make2(makeString("postgraph"), makeString((char *) name));
+	a->lexpr = lexpr;
+	a->rexpr = rexpr;
+	a->location = location;
+	return a;
+}
+
 /*
  * Transform the UNION operator/clause. Creates a cypher_union
  * node and the necessary information needed in the execution
@@ -2993,7 +3007,7 @@ static FuncCall *prevent_duplicate_edges(cypher_parsestate *cpstate, List *entit
                     Node *left = make_qual(cpstate, entity_i, AG_EDGE_COLNAME_ID);
                     Node *right = make_qual(cpstate, entity_j, AG_EDGE_COLNAME_ID);
 
-                    edges = lappend (edges, makeSimpleA_Expr(AEXPR_OP, "<>", left, right, -1));
+                    edges = lappend (edges, makeSimpleCypherA_Expr(AEXPR_OP, "<>", left, right, -1));
                 }
 
             }
@@ -3152,16 +3166,16 @@ static List *join_to_entity(cypher_parsestate *cpstate, transform_entity *entity
     if (entity->type == ENT_VERTEX) {
         Node *id_qual = make_qual(cpstate, entity, AG_EDGE_COLNAME_ID);
 
-        expr = makeSimpleA_Expr(AEXPR_OP, "=", qual, (Node *)id_qual, -1);
+        expr = makeSimpleCypherA_Expr(AEXPR_OP, "=", qual, (Node *)id_qual, -1);
 
         quals = lappend(quals, expr);
     } else if (entity->type == ENT_EDGE) {
         List *edge_quals = make_edge_quals(cpstate, entity, side);
 
         if (list_length(edge_quals) > 1)
-            expr = makeSimpleA_Expr(AEXPR_IN, "=", qual, (Node *)edge_quals, -1);
+            expr = makeSimpleCypherA_Expr(AEXPR_IN, "=", qual, (Node *)edge_quals, -1);
         else
-            expr = makeSimpleA_Expr(AEXPR_OP, "=", qual, linitial(edge_quals), -1);
+            expr = makeSimpleCypherA_Expr(AEXPR_OP, "=", qual, linitial(edge_quals), -1);
 
         quals = lappend(quals, expr);
     } else {
@@ -3229,7 +3243,7 @@ static A_Expr *filter_vertices_on_label_id(cypher_parsestate *cpstate, Node *id_
 
     fc = makeFuncCall(list_make2(catalog, extract_label_id), list_make1(id_field), COERCE_EXPLICIT_CALL, -1);
 
-    return makeSimpleA_Expr(AEXPR_OP, "=", (Node *)fc, (Node *)n, -1);
+    return makeSimpleCypherA_Expr(AEXPR_OP, "=", (Node *)fc, (Node *)n, -1);
 }
 
 /*

@@ -232,6 +232,8 @@ transform_cypher_expr_recurse(cypher_parsestate *cpstate, Node *expr) {
         return transform_sub_link(cpstate, (SubLink *)expr);
     case T_SQLValueFunction:
         return transformSQLValueFunction(cpstate, (SQLValueFunction *)expr);
+    case T_String:
+        return makeConst(GTYPEOID, -1, InvalidOid, -1, string_to_gtype(strVal(expr)), false, false);
     default:
         ereport(ERROR, (errmsg_internal("unrecognized node type: %d", nodeTag(expr))));
     }
