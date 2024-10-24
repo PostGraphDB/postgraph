@@ -1,0 +1,178 @@
+/*
+ * Copyright (C) 2024 PostGraphDB
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */ 
+LOAD 'postgraph';
+SET search_path TO postgraph;
+CREATE GRAPH set_op;
+NOTICE:  graph "set_op" has been created
+ create_graph 
+--------------
+ 
+(1 row)
+
+USE GRAPH set_op;
+ use_graph 
+-----------
+ 
+(1 row)
+
+CREATE ();
+--
+(0 rows)
+
+MATCH (n) RETURN n UNION MATCH (n) RETURN n;
+                           n                            
+--------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {}}
+(1 row)
+
+MATCH (n) RETURN n UNION ALL MATCH (n) RETURN n;
+                           n                            
+--------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {}}
+ {"id": 281474976710657, "label": "", "properties": {}}
+(2 rows)
+
+MATCH (n) RETURN n UNION RETURN 1;
+ERROR:  UNION could not convert type gtype to vertex
+LINE 1: MATCH (n) RETURN n UNION RETURN 1;
+                                        ^
+MATCH (n) RETURN n UNION RETURN NULL;
+ERROR:  UNION could not convert type gtype to vertex
+LINE 1: MATCH (n) RETURN n UNION RETURN NULL;
+                                        ^
+RETURN [1,2,3] UNION RETURN 1;
+ ?column?  
+-----------
+ [1, 2, 3]
+ 1
+(2 rows)
+
+RETURN NULL UNION RETURN NULL;
+ ?column? 
+----------
+ 
+(1 row)
+
+RETURN NULL UNION ALL RETURN NULL;
+ ?column? 
+----------
+ 
+ 
+(2 rows)
+
+MATCH (n) RETURN n UNION MATCH (n) RETURN n UNION MATCH (n) RETURN n;
+                           n                            
+--------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {}}
+(1 row)
+
+MATCH (n) RETURN n UNION ALL MATCH (n) RETURN n UNION ALL MATCH(n) RETURN n;
+                           n                            
+--------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {}}
+ {"id": 281474976710657, "label": "", "properties": {}}
+ {"id": 281474976710657, "label": "", "properties": {}}
+(3 rows)
+
+MATCH (n) RETURN n UNION ALL MATCH (n) RETURN n UNION MATCH(n) RETURN n;
+                           n                            
+--------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {}}
+(1 row)
+
+MATCH (n) RETURN n UNION MATCH (n) RETURN n UNION ALL MATCH(n) RETURN n;
+                           n                            
+--------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {}}
+ {"id": 281474976710657, "label": "", "properties": {}}
+(2 rows)
+
+RETURN NULL UNION ALL RETURN NULL UNION ALL RETURN NULL;
+ ?column? 
+----------
+ 
+ 
+ 
+(3 rows)
+
+RETURN NULL UNION ALL RETURN NULL UNION RETURN NULL;
+ ?column? 
+----------
+ 
+(1 row)
+
+RETURN NULL UNION RETURN NULL UNION ALL RETURN NULL;
+ ?column? 
+----------
+ 
+ 
+(2 rows)
+
+RETURN 1.0::int UNION RETURN 1::float UNION ALL RETURN 2.0::float;
+ERROR:  syntax error at or near "int"
+LINE 1: RETURN 1.0::int UNION RETURN 1::float UNION ALL RETURN 2.0::...
+                    ^
+RETURN 1.0::int UNION RETURN 1.0::float UNION ALL RETURN 1::int;
+ERROR:  syntax error at or near "int"
+LINE 1: RETURN 1.0::int UNION RETURN 1.0::float UNION ALL RETURN 1::...
+                    ^
+RETURN 1.0::float UNION RETURN 1::int UNION RETURN 1::float;
+ERROR:  syntax error at or near "float"
+LINE 1: RETURN 1.0::float UNION RETURN 1::int UNION RETURN 1::float;
+                    ^
+-- Intersect
+MATCH (n) RETURN n INTERSECT MATCH (m) RETURN m;
+                           n                            
+--------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {}}
+(1 row)
+
+MATCH (n) RETURN n INTERSECT ALL MATCH (m) RETURN m;
+                           n                            
+--------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {}}
+(1 row)
+
+-- Except
+MATCH (n) RETURN n EXCEPT MATCH (m) RETURN m;
+ n 
+---
+(0 rows)
+
+MATCH (n) RETURN n EXCEPT ALL MATCH (m) RETURN m;
+ n 
+---
+(0 rows)
+
+-- Operator Precedence
+RETURN 2.0::int UNION (RETURN 1::float UNION ALL RETURN 1.0::float);
+ERROR:  syntax error at or near "int"
+LINE 1: RETURN 2.0::int UNION (RETURN 1::float UNION ALL RETURN 1.0:...
+                    ^
+(RETURN 2.0::int UNION RETURN 1::float ) UNION ALL RETURN 1.0::float;
+ERROR:  syntax error at or near "int"
+LINE 1: (RETURN 2.0::int UNION RETURN 1::float ) UNION ALL RETURN 1....
+                     ^
+-- Errors
+MATCH (n) RETURN n UNION ALL MATCH (m) RETURN n;
+ERROR:  could not find rte for n
+LINE 1: MATCH (n) RETURN n UNION ALL MATCH (m) RETURN n;
+                                                      ^
+DROP GRAPH set_op;
+ERROR:  syntax error at or near ";"
+LINE 1: DROP GRAPH set_op;
+                         ^

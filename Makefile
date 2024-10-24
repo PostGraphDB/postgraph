@@ -90,7 +90,8 @@ REGRESS = new_cypher \
           expr \
           cypher_create \
           cypher_match \
-          order_by
+          order_by \
+          cypher_setop
 
 srcdir=`pwd`
 POSTGIS_DIR ?= postgis_dir

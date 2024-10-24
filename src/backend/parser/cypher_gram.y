@@ -1087,7 +1087,7 @@ cypher_stmt:
         {
             $$ = $2;
         }
-   /* | cypher_stmt UNION all_or_distinct cypher_stmt
+    | cypher_stmt UNION all_or_distinct cypher_stmt
         {
             $$ = list_make1(make_set_op(SETOP_UNION, $3, $1, $4));
         }
@@ -1098,7 +1098,7 @@ cypher_stmt:
     | cypher_stmt EXCEPT all_or_distinct cypher_stmt
         {
             $$ = list_make1(make_set_op(SETOP_EXCEPT, $3, $1, $4));
-        }*/
+        }
     ;
 
 /*****************************************************************************
