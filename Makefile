@@ -88,6 +88,7 @@ DATA = postgraph--0.1.0.sql
 
 REGRESS = new_cypher \
           expr \
+          lists \
           cypher_create \
           cypher_match \
           order_by \
@@ -127,7 +128,7 @@ src/include/parser/cypher_kwlist_d.h: src/include/parser/cypher_kwlist.h $(GEN_K
 
 src/include/parser/cypher_gram_def.h: src/backend/parser/cypher_gram.c
 
-src/backend/parser/cypher_gram.c: BISONFLAGS += --defines=src/include/parser/cypher_gram_def.h -Wcounterexamples 
+src/backend/parser/cypher_gram.c: BISONFLAGS += --defines=src/include/parser/cypher_gram_def.h -Wconflicts-sr
 
 src/backend/parser/cypher_parser.o: src/backend/parser/cypher_gram.c
 src/backend/parser/cypher_keywords.o: src/backend/parser/cypher_gram.c

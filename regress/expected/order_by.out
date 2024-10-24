@@ -48,9 +48,9 @@ CREATE ({i: 1.0});
 (0 rows)
 
 CREATE ({i: 1::numeric});
-ERROR:  syntax error at or near "numeric"
-LINE 1: CREATE ({i: 1::numeric});
-                       ^
+--
+(0 rows)
+
 CREATE ({i: true});
 --
 (0 rows)
@@ -68,23 +68,29 @@ CREATE ({i: [1]});
 (0 rows)
 
 MATCH (u) RETURN u.i ORDER BY u.i;
-ERROR:  operator does not exist: postgraph.vertex -> postgraph.gtype
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+ERROR:  syntax error at or near "ORDER"
+LINE 1: MATCH (u) RETURN u.i ORDER BY u.i;
+                             ^
 MATCH (u) RETURN u.i ORDER BY u.i DESC;
-ERROR:  operator does not exist: postgraph.vertex -> postgraph.gtype
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+ERROR:  syntax error at or near "ORDER"
+LINE 1: MATCH (u) RETURN u.i ORDER BY u.i DESC;
+                             ^
 MATCH (u) RETURN u.i ORDER BY u.i ASC;
-ERROR:  operator does not exist: postgraph.vertex -> postgraph.gtype
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+ERROR:  syntax error at or near "ORDER"
+LINE 1: MATCH (u) RETURN u.i ORDER BY u.i ASC;
+                             ^
 MATCH (x) RETURN x.j ORDER BY x.j NULLS FIRST;
-ERROR:  operator does not exist: postgraph.vertex -> postgraph.gtype
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+ERROR:  syntax error at or near "ORDER"
+LINE 1: MATCH (x) RETURN x.j ORDER BY x.j NULLS FIRST;
+                             ^
 MATCH (x) RETURN x.j ORDER BY x.j NULLS LAST;
-ERROR:  operator does not exist: postgraph.vertex -> postgraph.gtype
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+ERROR:  syntax error at or near "ORDER"
+LINE 1: MATCH (x) RETURN x.j ORDER BY x.j NULLS LAST;
+                             ^
 MATCH (x) RETURN x.i ORDER BY x.i USING <;
-ERROR:  operator does not exist: postgraph.vertex -> postgraph.gtype
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+ERROR:  syntax error at or near "ORDER"
+LINE 1: MATCH (x) RETURN x.i ORDER BY x.i USING <;
+                             ^
 DROP GRAPH order_by CASCADE;
 NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table order_by._ag_label_vertex

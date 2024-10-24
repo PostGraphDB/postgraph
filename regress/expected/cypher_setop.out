@@ -123,17 +123,25 @@ RETURN NULL UNION RETURN NULL UNION ALL RETURN NULL;
 (2 rows)
 
 RETURN 1.0::int UNION RETURN 1::float UNION ALL RETURN 2.0::float;
-ERROR:  syntax error at or near "int"
-LINE 1: RETURN 1.0::int UNION RETURN 1::float UNION ALL RETURN 2.0::...
-                    ^
+ ?column? 
+----------
+ 1
+ 2.0
+(2 rows)
+
 RETURN 1.0::int UNION RETURN 1.0::float UNION ALL RETURN 1::int;
-ERROR:  syntax error at or near "int"
-LINE 1: RETURN 1.0::int UNION RETURN 1.0::float UNION ALL RETURN 1::...
-                    ^
+ ?column? 
+----------
+ 1
+ 1
+(2 rows)
+
 RETURN 1.0::float UNION RETURN 1::int UNION RETURN 1::float;
-ERROR:  syntax error at or near "float"
-LINE 1: RETURN 1.0::float UNION RETURN 1::int UNION RETURN 1::float;
-                    ^
+ ?column? 
+----------
+ 1.0
+(1 row)
+
 -- Intersect
 MATCH (n) RETURN n INTERSECT MATCH (m) RETURN m;
                            n                            
@@ -160,13 +168,20 @@ MATCH (n) RETURN n EXCEPT ALL MATCH (m) RETURN m;
 
 -- Operator Precedence
 RETURN 2.0::int UNION (RETURN 1::float UNION ALL RETURN 1.0::float);
-ERROR:  syntax error at or near "int"
-LINE 1: RETURN 2.0::int UNION (RETURN 1::float UNION ALL RETURN 1.0:...
-                    ^
+ ?column? 
+----------
+ 1.0
+ 2
+(2 rows)
+
 (RETURN 2.0::int UNION RETURN 1::float ) UNION ALL RETURN 1.0::float;
-ERROR:  syntax error at or near "int"
-LINE 1: (RETURN 2.0::int UNION RETURN 1::float ) UNION ALL RETURN 1....
-                     ^
+ ?column? 
+----------
+ 1.0
+ 2
+ 1.0
+(3 rows)
+
 -- Errors
 MATCH (n) RETURN n UNION ALL MATCH (m) RETURN n;
 ERROR:  could not find rte for n

@@ -48,9 +48,13 @@ CREATE (:v {prop_key: 'value'});
 (0 rows)
 
 MATCH (n:v) RETURN n;
-ERROR:  syntax error at or near "MATCH"
-LINE 1: MATCH (n:v) RETURN n;
-        ^
+                                     n                                      
+----------------------------------------------------------------------------
+ {"id": 844424930131969, "label": "v", "properties": {}}
+ {"id": 844424930131970, "label": "v", "properties": {}}
+ {"id": 844424930131971, "label": "v", "properties": {"prop_key": "value"}}
+(3 rows)
+
 -- Left relationship
 CREATE (:v {id:'right rel, initial node'})-[:e {id:'right rel'}]->(:v {id:'right rel, end node'});
 --
@@ -98,13 +102,56 @@ ERROR:  relationships must be specify a label in CREATE.
 LINE 1: CREATE (:v)-[]->(:v);
                     ^
 MATCH (n) RETURN n;
-ERROR:  syntax error at or near "MATCH"
-LINE 1: MATCH (n) RETURN n;
-        ^
+                                            n                                            
+-----------------------------------------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {}}
+ {"id": 844424930131969, "label": "v", "properties": {}}
+ {"id": 844424930131970, "label": "v", "properties": {}}
+ {"id": 844424930131971, "label": "v", "properties": {"prop_key": "value"}}
+ {"id": 844424930131972, "label": "v", "properties": {"id": "right rel, initial node"}}
+ {"id": 844424930131973, "label": "v", "properties": {"id": "right rel, end node"}}
+ {"id": 844424930131974, "label": "v", "properties": {"id": "left rel, initial node"}}
+ {"id": 844424930131975, "label": "v", "properties": {"id": "left rel, end node"}}
+ {"id": 844424930131976, "label": "v", "properties": {"id": "path, initial node"}}
+ {"id": 844424930131977, "label": "v", "properties": {"id": "path, middle node"}}
+ {"id": 844424930131978, "label": "v", "properties": {"id": "path, last node"}}
+ {"id": 844424930131979, "label": "v", "properties": {"id": "divergent, initial node"}}
+ {"id": 844424930131980, "label": "v", "properties": {"id": "divergent middle node"}}
+ {"id": 844424930131981, "label": "v", "properties": {"id": "divergent, end node"}}
+ {"id": 844424930131982, "label": "v", "properties": {"id": "convergent, initial node"}}
+ {"id": 844424930131983, "label": "v", "properties": {"id": "convergent middle node"}}
+ {"id": 844424930131984, "label": "v", "properties": {"id": "convergent, end node"}}
+ {"id": 844424930131985, "label": "v", "properties": {"id": "paths, vertex one"}}
+ {"id": 844424930131986, "label": "v", "properties": {"id": "paths, vertex two"}}
+ {"id": 844424930131987, "label": "v", "properties": {"id": "paths, vertex three"}}
+ {"id": 844424930131988, "label": "v", "properties": {"id": "paths, vertex four"}}
+(21 rows)
+
 MATCH ()-[e]-() RETURN e;
-ERROR:  syntax error at or near "MATCH"
-LINE 1: MATCH ()-[e]-() RETURN e;
-        ^
+                                                                      e                                                                       
+----------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": 1125899906842625, "start_id": 844424930131972, "end_id": 844424930131973, "label": "e", "properties": {"id": "right rel"}}
+ {"id": 1125899906842625, "start_id": 844424930131972, "end_id": 844424930131973, "label": "e", "properties": {"id": "right rel"}}
+ {"id": 1125899906842626, "start_id": 844424930131975, "end_id": 844424930131974, "label": "e", "properties": {"id": "left rel"}}
+ {"id": 1125899906842626, "start_id": 844424930131975, "end_id": 844424930131974, "label": "e", "properties": {"id": "left rel"}}
+ {"id": 1125899906842627, "start_id": 844424930131977, "end_id": 844424930131978, "label": "e", "properties": {"id": "path, edge two"}}
+ {"id": 1125899906842627, "start_id": 844424930131977, "end_id": 844424930131978, "label": "e", "properties": {"id": "path, edge two"}}
+ {"id": 1125899906842628, "start_id": 844424930131976, "end_id": 844424930131977, "label": "e", "properties": {"id": "path, edge one"}}
+ {"id": 1125899906842628, "start_id": 844424930131976, "end_id": 844424930131977, "label": "e", "properties": {"id": "path, edge one"}}
+ {"id": 1125899906842629, "start_id": 844424930131980, "end_id": 844424930131981, "label": "e", "properties": {"id": "divergent, edge two"}}
+ {"id": 1125899906842629, "start_id": 844424930131980, "end_id": 844424930131981, "label": "e", "properties": {"id": "divergent, edge two"}}
+ {"id": 1125899906842630, "start_id": 844424930131980, "end_id": 844424930131979, "label": "e", "properties": {"id": "divergent, edge one"}}
+ {"id": 1125899906842630, "start_id": 844424930131980, "end_id": 844424930131979, "label": "e", "properties": {"id": "divergent, edge one"}}
+ {"id": 1125899906842631, "start_id": 844424930131984, "end_id": 844424930131983, "label": "e", "properties": {"id": "convergent, edge two"}}
+ {"id": 1125899906842631, "start_id": 844424930131984, "end_id": 844424930131983, "label": "e", "properties": {"id": "convergent, edge two"}}
+ {"id": 1125899906842632, "start_id": 844424930131982, "end_id": 844424930131983, "label": "e", "properties": {"id": "convergent, edge one"}}
+ {"id": 1125899906842632, "start_id": 844424930131982, "end_id": 844424930131983, "label": "e", "properties": {"id": "convergent, edge one"}}
+ {"id": 1125899906842633, "start_id": 844424930131985, "end_id": 844424930131986, "label": "e", "properties": {"id": "paths, edge one"}}
+ {"id": 1125899906842633, "start_id": 844424930131985, "end_id": 844424930131986, "label": "e", "properties": {"id": "paths, edge one"}}
+ {"id": 1125899906842634, "start_id": 844424930131987, "end_id": 844424930131988, "label": "e", "properties": {"id": "paths, edge two"}}
+ {"id": 1125899906842634, "start_id": 844424930131987, "end_id": 844424930131988, "label": "e", "properties": {"id": "paths, edge two"}}
+(20 rows)
+
 CREATE (:n_var {var_name: 'Node A'});
 --
 (0 rows)
@@ -118,82 +165,178 @@ CREATE (:n_var {var_name: 'Node C'});
 (0 rows)
 
 MATCH (a:n_var), (b:n_var) WHERE a.var_name <> b.var_name CREATE (a)-[:e_var {var_name: a.name + ' -> ' + b.name}]->(b);
-ERROR:  syntax error at or near "MATCH"
-LINE 1: MATCH (a:n_var), (b:n_var) WHERE a.var_name <> b.var_name CR...
-        ^
+ERROR:  syntax error at or near "name"
+LINE 1: ...ame <> b.var_name CREATE (a)-[:e_var {var_name: a.name + ' -...
+                                                             ^
 MATCH (a:n_var) CREATE (a)-[:e_var {var_name: a.var_name + ' -> ' + a.var_name}]->(a);
-ERROR:  syntax error at or near "MATCH"
-LINE 1: MATCH (a:n_var) CREATE (a)-[:e_var {var_name: a.var_name + '...
-        ^
+--
+(0 rows)
+
 MATCH (a:n_var) CREATE (a)-[:e_var {var_name: a.var_name + ' -> new node'}]->(:n_other_node);
-ERROR:  syntax error at or near "MATCH"
-LINE 1: MATCH (a:n_var) CREATE (a)-[:e_var {var_name: a.var_name + '...
-        ^
+--
+(0 rows)
+
 MATCH (a:n_var) WHERE a.var_name = 'Node A' CREATE (a)-[b:e_var]->();
-ERROR:  syntax error at or near "MATCH"
-LINE 1: MATCH (a:n_var) WHERE a.var_name = 'Node A' CREATE (a)-[b:e_...
-        ^
+--
+(0 rows)
+
 CREATE (a)-[:b_var]->() RETURN a, id(a);
-ERROR:  syntax error at or near "RETURN"
+ERROR:  syntax error at or near "("
 LINE 1: CREATE (a)-[:b_var]->() RETURN a, id(a);
-                                ^
+                                            ^
 CREATE ()-[b:e_var]->() RETURN b, id(b);
-ERROR:  syntax error at or near "RETURN"
+ERROR:  syntax error at or near "("
 LINE 1: CREATE ()-[b:e_var]->() RETURN b, id(b);
-                                ^
+                                            ^
 CREATE (a)-[b:e_var {id: 0}]->() RETURN a, b, b.id, b.id + 1;
-ERROR:  syntax error at or near "RETURN"
-LINE 1: CREATE (a)-[b:e_var {id: 0}]->() RETURN a, b, b.id, b.id + 1...
-                                         ^
+                           a                            |                                                              b                                                              | ?column? | ?column? 
+--------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------+----------+----------
+ {"id": 281474976710659, "label": "", "properties": {}} | {"id": 1688849860263944, "start_id": 281474976710659, "end_id": 281474976710660, "label": "e_var", "properties": {"id": 0}} | 0        | 1
+(1 row)
+
 MATCH (a:n_var) CREATE (a)-[b:e_var]->(a) RETURN a, b;
-ERROR:  syntax error at or near "MATCH"
-LINE 1: MATCH (a:n_var) CREATE (a)-[b:e_var]->(a) RETURN a, b;
-        ^
+                                        a                                         |                                                           b                                                            
+----------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------
+ {"id": 1407374883553281, "label": "n_var", "properties": {"var_name": "Node A"}} | {"id": 1688849860263945, "start_id": 1407374883553281, "end_id": 1407374883553281, "label": "e_var", "properties": {}}
+ {"id": 1407374883553282, "label": "n_var", "properties": {"var_name": "Node B"}} | {"id": 1688849860263946, "start_id": 1407374883553282, "end_id": 1407374883553282, "label": "e_var", "properties": {}}
+ {"id": 1407374883553283, "label": "n_var", "properties": {"var_name": "Node C"}} | {"id": 1688849860263947, "start_id": 1407374883553283, "end_id": 1407374883553283, "label": "e_var", "properties": {}}
+(3 rows)
+
 MATCH (a:n_var) CREATE (a)-[b:e_var]->(c) RETURN a, b, c;
-ERROR:  syntax error at or near "MATCH"
-LINE 1: MATCH (a:n_var) CREATE (a)-[b:e_var]->(c) RETURN a, b, c;
-        ^
+                                        a                                         |                                                           b                                                           |                           c                            
+----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------
+ {"id": 1407374883553281, "label": "n_var", "properties": {"var_name": "Node A"}} | {"id": 1688849860263948, "start_id": 1407374883553281, "end_id": 281474976710661, "label": "e_var", "properties": {}} | {"id": 281474976710661, "label": "", "properties": {}}
+ {"id": 1407374883553282, "label": "n_var", "properties": {"var_name": "Node B"}} | {"id": 1688849860263949, "start_id": 1407374883553282, "end_id": 281474976710662, "label": "e_var", "properties": {}} | {"id": 281474976710662, "label": "", "properties": {}}
+ {"id": 1407374883553283, "label": "n_var", "properties": {"var_name": "Node C"}} | {"id": 1688849860263950, "start_id": 1407374883553283, "end_id": 281474976710663, "label": "e_var", "properties": {}} | {"id": 281474976710663, "label": "", "properties": {}}
+(3 rows)
+
 CREATE (a)-[:e_var]->() RETURN a;
-ERROR:  syntax error at or near "RETURN"
-LINE 1: CREATE (a)-[:e_var]->() RETURN a;
-                                ^
+                           a                            
+--------------------------------------------------------
+ {"id": 281474976710664, "label": "", "properties": {}}
+(1 row)
+
 CREATE ()-[b:e_var]->() RETURN b;
-ERROR:  syntax error at or near "RETURN"
-LINE 1: CREATE ()-[b:e_var]->() RETURN b;
-                                ^
+                                                          b                                                           
+----------------------------------------------------------------------------------------------------------------------
+ {"id": 1688849860263952, "start_id": 281474976710666, "end_id": 281474976710667, "label": "e_var", "properties": {}}
+(1 row)
+
 CREATE p=()-[:e_var]->() RETURN p;
-ERROR:  syntax error at or near "RETURN"
-LINE 1: CREATE p=()-[:e_var]->() RETURN p;
-                                 ^
+                                                                                                                   p                                                                                                                    
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 281474976710668, "label": "", "properties": {}}, {"id": 1688849860263953, "start_id": 281474976710668, "end_id": 281474976710669, "label": "e_var", "properties": {}}, {"id": 281474976710669, "label": "", "properties": {}}]
+(1 row)
+
 CREATE p=(a {id:0})-[:e_var]->(a) RETURN p;
-ERROR:  syntax error at or near "RETURN"
-LINE 1: CREATE p=(a {id:0})-[:e_var]->(a) RETURN p;
-                                          ^
+                                                                                                                          p                                                                                                                           
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 281474976710670, "label": "", "properties": {"id": 0}}, {"id": 1688849860263954, "start_id": 281474976710670, "end_id": 281474976710670, "label": "e_var", "properties": {}}, {"id": 281474976710670, "label": "", "properties": {"id": 0}}]
+(1 row)
+
 MATCH (a:n_var) CREATE p=(a)-[:e_var]->(a) RETURN p;
-ERROR:  syntax error at or near "MATCH"
-LINE 1: MATCH (a:n_var) CREATE p=(a)-[:e_var]->(a) RETURN p;
-        ^
+                                                                                                                                              p                                                                                                                                               
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 1407374883553281, "label": "n_var", "properties": {"var_name": "Node A"}}, {"id": 1688849860263955, "start_id": 1407374883553281, "end_id": 1407374883553281, "label": "e_var", "properties": {}}, {"id": 1407374883553281, "label": "n_var", "properties": {"var_name": "Node A"}}]
+ [{"id": 1407374883553282, "label": "n_var", "properties": {"var_name": "Node B"}}, {"id": 1688849860263956, "start_id": 1407374883553282, "end_id": 1407374883553282, "label": "e_var", "properties": {}}, {"id": 1407374883553282, "label": "n_var", "properties": {"var_name": "Node B"}}]
+ [{"id": 1407374883553283, "label": "n_var", "properties": {"var_name": "Node C"}}, {"id": 1688849860263957, "start_id": 1407374883553283, "end_id": 1407374883553283, "label": "e_var", "properties": {}}, {"id": 1407374883553283, "label": "n_var", "properties": {"var_name": "Node C"}}]
+(3 rows)
+
 CREATE p=(a)-[:e_var]->(), (a)-[b:e_var]->(a) RETURN p, b;
-ERROR:  syntax error at or near "RETURN"
-LINE 1: CREATE p=(a)-[:e_var]->(), (a)-[b:e_var]->(a) RETURN p, b;
-                                                      ^
+                                                                                                                   p                                                                                                                    |                                                          b                                                           
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------
+ [{"id": 281474976710671, "label": "", "properties": {}}, {"id": 1688849860263958, "start_id": 281474976710671, "end_id": 281474976710672, "label": "e_var", "properties": {}}, {"id": 281474976710672, "label": "", "properties": {}}] | {"id": 1688849860263959, "start_id": 281474976710671, "end_id": 281474976710671, "label": "e_var", "properties": {}}
+(1 row)
+
 MATCH (a:n_var) WHERE a.var_name = 'Node Z' CREATE (a)-[:e_var {var_name: a.var_name + ' -> doesnt exist'}]->(:n_other_node) RETURN a;
-ERROR:  syntax error at or near "MATCH"
-LINE 1: MATCH (a:n_var) WHERE a.var_name = 'Node Z' CREATE (a)-[:e_v...
-        ^
+ a 
+---
+(0 rows)
+
 MATCH (n:n_var) RETURN n;
-ERROR:  syntax error at or near "MATCH"
-LINE 1: MATCH (n:n_var) RETURN n;
-        ^
+                                        n                                         
+----------------------------------------------------------------------------------
+ {"id": 1407374883553281, "label": "n_var", "properties": {"var_name": "Node A"}}
+ {"id": 1407374883553282, "label": "n_var", "properties": {"var_name": "Node B"}}
+ {"id": 1407374883553283, "label": "n_var", "properties": {"var_name": "Node C"}}
+(3 rows)
+
 MATCH ()-[e:e_var]->() RETURN e;
-ERROR:  syntax error at or near "MATCH"
-LINE 1: MATCH ()-[e:e_var]->() RETURN e;
-        ^
+                                                                           e                                                                            
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": 1688849860263937, "start_id": 1407374883553281, "end_id": 1407374883553281, "label": "e_var", "properties": {"var_name": "Node A -> Node A"}}
+ {"id": 1688849860263938, "start_id": 1407374883553282, "end_id": 1407374883553282, "label": "e_var", "properties": {"var_name": "Node B -> Node B"}}
+ {"id": 1688849860263939, "start_id": 1407374883553283, "end_id": 1407374883553283, "label": "e_var", "properties": {"var_name": "Node C -> Node C"}}
+ {"id": 1688849860263940, "start_id": 1407374883553281, "end_id": 1970324836974593, "label": "e_var", "properties": {"var_name": "Node A -> new node"}}
+ {"id": 1688849860263941, "start_id": 1407374883553282, "end_id": 1970324836974594, "label": "e_var", "properties": {"var_name": "Node B -> new node"}}
+ {"id": 1688849860263942, "start_id": 1407374883553283, "end_id": 1970324836974595, "label": "e_var", "properties": {"var_name": "Node C -> new node"}}
+ {"id": 1688849860263943, "start_id": 1407374883553281, "end_id": 281474976710658, "label": "e_var", "properties": {}}
+ {"id": 1688849860263944, "start_id": 281474976710659, "end_id": 281474976710660, "label": "e_var", "properties": {"id": 0}}
+ {"id": 1688849860263945, "start_id": 1407374883553281, "end_id": 1407374883553281, "label": "e_var", "properties": {}}
+ {"id": 1688849860263946, "start_id": 1407374883553282, "end_id": 1407374883553282, "label": "e_var", "properties": {}}
+ {"id": 1688849860263947, "start_id": 1407374883553283, "end_id": 1407374883553283, "label": "e_var", "properties": {}}
+ {"id": 1688849860263948, "start_id": 1407374883553281, "end_id": 281474976710661, "label": "e_var", "properties": {}}
+ {"id": 1688849860263949, "start_id": 1407374883553282, "end_id": 281474976710662, "label": "e_var", "properties": {}}
+ {"id": 1688849860263950, "start_id": 1407374883553283, "end_id": 281474976710663, "label": "e_var", "properties": {}}
+ {"id": 1688849860263951, "start_id": 281474976710664, "end_id": 281474976710665, "label": "e_var", "properties": {}}
+ {"id": 1688849860263952, "start_id": 281474976710666, "end_id": 281474976710667, "label": "e_var", "properties": {}}
+ {"id": 1688849860263953, "start_id": 281474976710668, "end_id": 281474976710669, "label": "e_var", "properties": {}}
+ {"id": 1688849860263954, "start_id": 281474976710670, "end_id": 281474976710670, "label": "e_var", "properties": {}}
+ {"id": 1688849860263955, "start_id": 1407374883553281, "end_id": 1407374883553281, "label": "e_var", "properties": {}}
+ {"id": 1688849860263956, "start_id": 1407374883553282, "end_id": 1407374883553282, "label": "e_var", "properties": {}}
+ {"id": 1688849860263957, "start_id": 1407374883553283, "end_id": 1407374883553283, "label": "e_var", "properties": {}}
+ {"id": 1688849860263958, "start_id": 281474976710671, "end_id": 281474976710672, "label": "e_var", "properties": {}}
+ {"id": 1688849860263959, "start_id": 281474976710671, "end_id": 281474976710671, "label": "e_var", "properties": {}}
+(23 rows)
+
 --Validate every vertex has the correct label
 MATCH (n) RETURN n;
-ERROR:  syntax error at or near "MATCH"
-LINE 1: MATCH (n) RETURN n;
-        ^
+                                            n                                            
+-----------------------------------------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {}}
+ {"id": 281474976710658, "label": "", "properties": {}}
+ {"id": 281474976710659, "label": "", "properties": {}}
+ {"id": 281474976710660, "label": "", "properties": {}}
+ {"id": 281474976710661, "label": "", "properties": {}}
+ {"id": 281474976710662, "label": "", "properties": {}}
+ {"id": 281474976710663, "label": "", "properties": {}}
+ {"id": 281474976710664, "label": "", "properties": {}}
+ {"id": 281474976710665, "label": "", "properties": {}}
+ {"id": 281474976710666, "label": "", "properties": {}}
+ {"id": 281474976710667, "label": "", "properties": {}}
+ {"id": 281474976710668, "label": "", "properties": {}}
+ {"id": 281474976710669, "label": "", "properties": {}}
+ {"id": 281474976710670, "label": "", "properties": {"id": 0}}
+ {"id": 281474976710671, "label": "", "properties": {}}
+ {"id": 281474976710672, "label": "", "properties": {}}
+ {"id": 844424930131969, "label": "v", "properties": {}}
+ {"id": 844424930131970, "label": "v", "properties": {}}
+ {"id": 844424930131971, "label": "v", "properties": {"prop_key": "value"}}
+ {"id": 844424930131972, "label": "v", "properties": {"id": "right rel, initial node"}}
+ {"id": 844424930131973, "label": "v", "properties": {"id": "right rel, end node"}}
+ {"id": 844424930131974, "label": "v", "properties": {"id": "left rel, initial node"}}
+ {"id": 844424930131975, "label": "v", "properties": {"id": "left rel, end node"}}
+ {"id": 844424930131976, "label": "v", "properties": {"id": "path, initial node"}}
+ {"id": 844424930131977, "label": "v", "properties": {"id": "path, middle node"}}
+ {"id": 844424930131978, "label": "v", "properties": {"id": "path, last node"}}
+ {"id": 844424930131979, "label": "v", "properties": {"id": "divergent, initial node"}}
+ {"id": 844424930131980, "label": "v", "properties": {"id": "divergent middle node"}}
+ {"id": 844424930131981, "label": "v", "properties": {"id": "divergent, end node"}}
+ {"id": 844424930131982, "label": "v", "properties": {"id": "convergent, initial node"}}
+ {"id": 844424930131983, "label": "v", "properties": {"id": "convergent middle node"}}
+ {"id": 844424930131984, "label": "v", "properties": {"id": "convergent, end node"}}
+ {"id": 844424930131985, "label": "v", "properties": {"id": "paths, vertex one"}}
+ {"id": 844424930131986, "label": "v", "properties": {"id": "paths, vertex two"}}
+ {"id": 844424930131987, "label": "v", "properties": {"id": "paths, vertex three"}}
+ {"id": 844424930131988, "label": "v", "properties": {"id": "paths, vertex four"}}
+ {"id": 1407374883553281, "label": "n_var", "properties": {"var_name": "Node A"}}
+ {"id": 1407374883553282, "label": "n_var", "properties": {"var_name": "Node B"}}
+ {"id": 1407374883553283, "label": "n_var", "properties": {"var_name": "Node C"}}
+ {"id": 1970324836974593, "label": "n_other_node", "properties": {}}
+ {"id": 1970324836974594, "label": "n_other_node", "properties": {}}
+ {"id": 1970324836974595, "label": "n_other_node", "properties": {}}
+(42 rows)
+
 -- prepared statements
 /*
 PREPARE p_1 AS SELECT * FROM cypher('cypher_create', $$CREATE (v:new_vertex {key: 'value'}) RETURN v$$) AS (a vertex);
@@ -251,18 +394,12 @@ END;
 --
 -- Var 'a' cannot have properties in the create clause
 MATCH (a:n_var) WHERE a.var_name = 'Node A' CREATE (a {test:1})-[:e_var]->();
-ERROR:  syntax error at or near "MATCH"
-LINE 56: MATCH (a:n_var) WHERE a.var_name = 'Node A' CREATE (a {test:...
-         ^
+ERROR:  previously declared nodes in a create clause cannot have properties
 -- Var 'a' cannot change labels
 MATCH (a:n_var) WHERE a.var_name = 'Node A' CREATE (a:new_label)-[:e_var]->();
-ERROR:  syntax error at or near "MATCH"
-LINE 1: MATCH (a:n_var) WHERE a.var_name = 'Node A' CREATE (a:new_la...
-        ^
+ERROR:  previously declared variables cannot have a label
 MATCH (a:n_var)-[b]-() WHERE a.var_name = 'Node A' CREATE (a)-[b:e_var]->();
-ERROR:  syntax error at or near "MATCH"
-LINE 1: MATCH (a:n_var)-[b]-() WHERE a.var_name = 'Node A' CREATE (a...
-        ^
+ERROR:  variable b already exists
 --CREATE with joins
 /*
 SELECT *
@@ -273,12 +410,14 @@ FROM (CREATE (a) RETURN a) as q(a vertex),
 -- Clean up
 --
 DROP GRAPH cypher_create CASCADE;
-NOTICE:  drop cascades to 5 other objects
+NOTICE:  drop cascades to 7 other objects
 DETAIL:  drop cascades to table cypher_create._ag_label_vertex
 drop cascades to table cypher_create._ag_label_edge
 drop cascades to table cypher_create.v
 drop cascades to table cypher_create.e
 drop cascades to table cypher_create.n_var
+drop cascades to table cypher_create.e_var
+drop cascades to table cypher_create.n_other_node
 NOTICE:  graph "cypher_create" has been dropped
  drop_graph 
 ------------

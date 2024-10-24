@@ -17121,16 +17121,16 @@ cypher_a_expr:
 
             $$ = append_indirection($1, (Node *)i);
         }
-    | cypher_a_expr '.' attr_name %prec '.'
+    | cypher_a_expr '.' schema_name %prec '.'
         {
              $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, "->", $1, makeString($3), @2);
         }
-    | cypher_a_expr TYPECAST schema_name
+    | cypher_a_expr TYPECAST BareColLabel %prec TYPECAST
         {
-            $$ = make_typecast_expr($1, $3, @2);
+			$$ = make_typecast_expr($1, $3, @2);
         }
     
-    /* | cypher_a_expr all_op sub_type '(' cypher_stmt ')' %prec OPERATOR
+     | cypher_a_expr all_op sub_type '(' cypher_stmt ')' %prec OPERATOR
         {
             cypher_sub_pattern *sub;
 
@@ -17147,7 +17147,6 @@ cypher_a_expr:
             n->location = @2;
             $$ = (Node *) n;
         }
-  */
     | cypher_expr_atom
     ;
 
@@ -17783,10 +17782,10 @@ cypher_b_expr:
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, $2, $1, $3, @2);
         }
-    /*| cypher_a_expr IN cypher_a_expr
+    | cypher_a_expr IN cypher_a_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "@=", $1, $3, @2);
-        }*/
+        }
     | cypher_a_expr IS NULL_P %prec IS
         {
             NullTest *n;
@@ -17886,40 +17885,12 @@ cypher_b_expr:
             n->location = @1;
             $$ = (Node *) n;
 
-        }
-    | cypher_a_expr all_op ANY cypher_in_expr //%prec OPERATOR
-        {
-            cypher_sub_pattern *sub = $4;
-
-            SubLink *n = makeNode(SubLink);
-            n->subLinkType = ANY_SUBLINK;
-            n->subLinkId = 0;
-            n->testexpr = $1;
-            n->operName = list_make2(makeString("postgraph"), makeString($2));
-            n->subselect = (Node *) sub;
-            n->location = @1;
-            $$ = (Node *) n;
-
-        }
-    | cypher_a_expr all_op SOME cypher_in_expr //%prec OPERATOR
-        {
-            cypher_sub_pattern *sub = $4;
-
-            SubLink *n = makeNode(SubLink);
-            n->subLinkType = ANY_SUBLINK;
-            n->subLinkId = 0;
-            n->testexpr = $1;
-            n->operName = list_make2(makeString("postgraph"), makeString($2));
-            n->subselect = (Node *) sub;
-            n->location = @1;
-            $$ = (Node *) n;
-
         }*/
     | cypher_expr_atom
 	;
-cypher_expr_atom:
-    expr_literal
 
+cypher_expr_atom:
+	expr_literal
     /*| PARAMETER
         {
             cypher_param *n;
@@ -17985,6 +17956,17 @@ cypher_expr_atom:
             n->location = @1;
             $$ = (Node *) n;
         }
+	/*| EXISTS select_with_parens
+		{
+			SubLink *n = makeNode(SubLink);
+			n->subLinkType = EXISTS_SUBLINK;
+			n->subLinkId = 0;
+			n->testexpr = NULL;
+			n->operName = NIL;
+			n->subselect = $2;
+			n->location = @1;
+			$$ = (Node *)n;
+		}*/
     ;
 
 expr_literal:
