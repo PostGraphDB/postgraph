@@ -15,2634 +15,750 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 LOAD 'postgraph';
 SET search_path TO postgraph;
 set timezone TO 'GMT';
-CREATE GRAPH temporal;
-NOTICE:  graph "temporal" has been created
- create_graph 
---------------
- 
-(1 row)
 
+CREATE GRAPH temporal;
 USE GRAPH temporal;
- use_graph 
------------
- 
-(1 row)
 
 --
 -- Basic I/O
 --
 -- Timestamp
  RETURN '2023-06-23 13:39:40.00'::timestamp ;
-         ?column?         
---------------------------
- Fri Jun 23 13:39:40 2023
-(1 row)
-
  RETURN '06/23/2023 13:39:40.00'::timestamp ;
-         ?column?         
---------------------------
- Fri Jun 23 13:39:40 2023
-(1 row)
-
  RETURN 'Fri Jun 23 13:39:40.00 2023"'::timestamp ;
-         ?column?         
---------------------------
- Fri Jun 23 13:39:40 2023
-(1 row)
-
  RETURN '06/23/1970 13:39:40.00'::timestamp ;
-         ?column?         
---------------------------
- Tue Jun 23 13:39:40 1970
-(1 row)
-
  RETURN 0::timestamp ;
-         ?column?         
---------------------------
- Sat Jan 01 00:00:00 2000
-(1 row)
-
  RETURN NULL::timestamp ;
- ?column? 
-----------
- 
-(1 row)
-
  RETURN '1997-12-17 07:37:16-08'::timestamp ;
-         ?column?         
---------------------------
- Wed Dec 17 07:37:16 1997
-(1 row)
-
  RETURN '12/17/1997 07:37:16.00'::timestamp ;
-         ?column?         
---------------------------
- Wed Dec 17 07:37:16 1997
-(1 row)
-
  RETURN 'Wed Dec 17 07:37:16 1997'::timestamp ;
-         ?column?         
---------------------------
- Wed Dec 17 07:37:16 1997
-(1 row)
-
 -- timestamptz
  RETURN '1997-12-17 07:37:16-06'::timestamptz ;
-           ?column?           
-------------------------------
- Wed Dec 17 13:37:16 1997 GMT
-(1 row)
-
  RETURN '12/17/1997 07:37:16.00+00'::timestamptz ;
-           ?column?           
-------------------------------
- Wed Dec 17 07:37:16 1997 GMT
-(1 row)
-
  RETURN 'Wed Dec 17 07:37:16 1997+09'::timestamptz ;
-           ?column?           
-------------------------------
- Tue Dec 16 22:37:16 1997 GMT
-(1 row)
-
 -- date
  RETURN '1997-12-17'::date ;
-  ?column?  
-------------
- 12-17-1997
-(1 row)
-
  RETURN '12/17/1997'::date ;
-  ?column?  
-------------
- 12-17-1997
-(1 row)
-
  RETURN 'Wed Dec 17 1997'::date ;
-  ?column?  
-------------
- 12-17-1997
-(1 row)
-
 -- time
  RETURN '07:37:16-08'::time ;
- ?column? 
-----------
- 07:37:16
-(1 row)
-
  RETURN '07:37:16.00'::time ;
- ?column? 
-----------
- 07:37:16
-(1 row)
-
  RETURN '07:37:16'::time ;
- ?column? 
-----------
- 07:37:16
-(1 row)
-
 -- timetz
  RETURN '07:37:16-08'::timetz ;
-  ?column?   
--------------
- 07:37:16-08
-(1 row)
-
  RETURN '07:37:16.00'::timetz ;
-  ?column?   
--------------
- 07:37:16+00
-(1 row)
-
  RETURN '07:37:16'::timetz ;
-  ?column?   
--------------
- 07:37:16+00
-(1 row)
-
 -- Interval
  RETURN '30 Seconds'::interval ;
- ?column?  
------------
- @ 30 secs
-(1 row)
-
  RETURN '15 Minutes'::interval ;
- ?column?  
------------
- @ 15 mins
-(1 row)
-
  RETURN '10 Hours'::interval ;
-  ?column?  
-------------
- @ 10 hours
-(1 row)
-
  RETURN '40 Days'::interval ;
- ?column?  
------------
- @ 40 days
-(1 row)
-
  RETURN '10 Weeks'::interval ;
- ?column?  
------------
- @ 70 days
-(1 row)
-
  RETURN '10 Months'::interval ;
- ?column?  
------------
- @ 10 mons
-(1 row)
-
  RETURN '3 Years'::interval ;
- ?column?  
------------
- @ 3 years
-(1 row)
-
  RETURN '30 Seconds Ago'::interval ;
-   ?column?    
----------------
- @ 30 secs ago
-(1 row)
-
  RETURN '15 Minutes Ago'::interval ;
-   ?column?    
----------------
- @ 15 mins ago
-(1 row)
-
  RETURN '10 Hours Ago'::interval ;
-    ?column?    
-----------------
- @ 10 hours ago
-(1 row)
-
  RETURN '40 Days Ago'::interval ;
-   ?column?    
----------------
- @ 40 days ago
-(1 row)
-
  RETURN '10 Weeks Ago'::interval ;
-   ?column?    
----------------
- @ 70 days ago
-(1 row)
-
  RETURN '10 Months Ago'::interval ;
-   ?column?    
----------------
- @ 10 mons ago
-(1 row)
-
  RETURN '3 Years Ago'::interval ;
-   ?column?    
----------------
- @ 3 years ago
-(1 row)
 
 --
 -- toTimestamp()
 --
  RETURN toTimestamp('12/17/1997 07:37:16.00+00'::timestamptz) ;
-ERROR:  unrecognized node type: 364
  RETURN toTimestamp('12/17/1997 07:37:16.00+00') ;
-       totimestamp        
---------------------------
- Wed Dec 17 07:37:16 1997
-(1 row)
-
  RETURN toTimestamp('12/17/1997'::date) ;
-ERROR:  unrecognized node type: 364
  RETURN toTimestamp(100000000000) ;
-       totimestamp        
---------------------------
- Sun Jan 02 03:46:40 2000
-(1 row)
 
 --
 -- Postgres Timestamp to GType
 --
 SELECT '12/17/1997 07:37:16.00+00'::timestamp::gtype;
-          gtype           
---------------------------
- Wed Dec 17 07:37:16 1997
-(1 row)
 
 --
 -- toTimestampTz()
 --
  RETURN toTimestampTz('12/17/1997 07:37:16.00+00'::timestamp) ;
-ERROR:  unrecognized node type: 364
  RETURN toTimestampTz('12/17/1997 07:37:16.00+00') ;
-        totimestamptz         
-------------------------------
- Wed Dec 17 07:37:16 1997 GMT
-(1 row)
-
  RETURN toTimestampTz('12/17/1997'::date) ;
-ERROR:  unrecognized node type: 364
  RETURN toTimestampTz(100000000000) ;
-        totimestamptz         
-------------------------------
- Sun Jan 02 03:46:40 2000 GMT
-(1 row)
 
 --
 -- Postgres Timestamp to GType
 --
 SELECT '12/17/1997 07:37:16.00+08'::timestamptz::gtype;
-            gtype             
-------------------------------
- Tue Dec 16 23:37:16 1997 GMT
-(1 row)
 
 --
 -- toDate()
 --
  RETURN toDate('12/17/1997 07:37:16.00+00'::timestamp) ;
-ERROR:  unrecognized node type: 364
  RETURN toDate('12/17/1997 07:37:16.00+00'::timestamptz) ;
-ERROR:  unrecognized node type: 364
  RETURN toDate('12/17/1997 07:37:16.00+00') ;
-   todate   
-------------
- 12-17-1997
-(1 row)
-
  RETURN toDate('12/17/1997'::date) ;
-ERROR:  unrecognized node type: 364
+
 --
 -- Postgres Date to GType
 --
 SELECT '12/17/1997'::date::gtype;
-   gtype    
-------------
- 12-17-1997
-(1 row)
 
 --
 -- toTime()
 --
  RETURN toTime('12/17/1997 07:37:16.00+00'::timestamp) ;
-ERROR:  unrecognized node type: 364
  RETURN toTime('12/17/1997 07:37:16.00+00'::timestamptz) ;
-ERROR:  unrecognized node type: 364
  RETURN toTime('07:37:16.00+00') ;
-  totime  
-----------
- 07:37:16
-(1 row)
-
  RETURN toTime('07:37:16.00+00'::timetz) ;
-ERROR:  unrecognized node type: 364
  RETURN toTime('7 Hours 37 Minutes 16 Seconds'::interval) ;
-ERROR:  unrecognized node type: 364
+
 --
 -- Postgres Time to GType
 --
 SELECT '07:37:16.00'::time::gtype;
-  gtype   
-----------
- 07:37:16
-(1 row)
+
 
 --
 -- toTimeTz()
 --
  RETURN toTimeTz('12/17/1997 07:37:16.00+00'::timestamptz) ;
-ERROR:  unrecognized node type: 364
  RETURN toTimeTz('07:37:16.00+00') ;
-  totimetz   
--------------
- 07:37:16+00
-(1 row)
-
  RETURN toTimeTz('07:37:16.00+00'::timetz) ;
-ERROR:  unrecognized node type: 364
  RETURN toTimeTz('07:37:16.00+00'::time) ;
-ERROR:  unrecognized node type: 364
+
 --
 -- Postgres Time to GType
 --
 SELECT '07:37:16.00+08'::timetz::gtype;
-    gtype    
--------------
- 07:37:16+08
-(1 row)
+
 
 --
 -- Timestamp Comparison
 --
  RETURN '2023-06-23 13:39:40.00'::timestamp = '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp = '2023-07-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp = '2023-05-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '2023-06-23 13:39:40.00'::timestamp <> '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp <> '2023-07-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp <> '2023-05-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23 13:39:40.00'::timestamp > '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp > '2023-07-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp > '2023-05-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23 13:39:40.00'::timestamp < '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp < '2023-07-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp < '2023-05-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '2023-06-23 13:39:40.00'::timestamp >= '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp >= '2023-07-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp >= '2023-05-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23 13:39:40.00'::timestamp <= '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp <= '2023-07-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp <= '2023-05-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
 
 --
 -- Timestamp With Timezone Comparison
 --
  RETURN '2023-06-23 13:39:40.00'::timestamptz = '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz = '2023-07-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz = '2023-05-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '2023-06-23 13:39:40.00'::timestamptz <> '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz <> '2023-07-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz <> '2023-05-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23 13:39:40.00'::timestamptz > '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz > '2023-07-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz > '2023-05-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23 13:39:40.00'::timestamptz < '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz < '2023-07-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz < '2023-05-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '2023-06-23 13:39:40.00'::timestamptz >= '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz >= '2023-07-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz >= '2023-05-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23 13:39:40.00'::timestamptz <= '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz <= '2023-07-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz <= '2023-05-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
 
 --
 -- Timestamp With Timezone Timestamp Comparison
 --
  RETURN '2023-06-23 13:39:40.00'::timestamptz = '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz = '2023-07-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz = '2023-05-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '2023-06-23 13:39:40.00'::timestamptz <> '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz <> '2023-07-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz <> '2023-05-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23 13:39:40.00'::timestamptz > '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz > '2023-07-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz > '2023-05-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23 13:39:40.00'::timestamptz < '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz < '2023-07-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz < '2023-05-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '2023-06-23 13:39:40.00'::timestamptz >= '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz >= '2023-07-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz >= '2023-05-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23 13:39:40.00'::timestamptz <= '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz <= '2023-07-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz <= '2023-05-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
 
 --
 -- Timestamp With Timezone Comparison
 --
  RETURN '2023-06-23 13:39:40.00'::timestamp = '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp = '2023-07-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp = '2023-05-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '2023-06-23 13:39:40.00'::timestamp <> '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp <> '2023-07-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp <> '2023-05-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23 13:39:40.00'::timestamp > '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp > '2023-07-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp > '2023-05-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23 13:39:40.00'::timestamp < '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp < '2023-07-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp < '2023-05-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '2023-06-23 13:39:40.00'::timestamp >= '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp >= '2023-07-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp >= '2023-05-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23 13:39:40.00'::timestamp <= '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp <= '2023-07-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp <= '2023-05-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
 
 --
 -- date comparison
 --
  RETURN '1997-12-17'::date = '1997-12-17'::date ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '1997-12-17'::date = '1997-12-16'::date ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '1997-12-17'::date = '1997-12-18'::date ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '1997-12-17'::date <> '1997-12-17'::date ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '1997-12-17'::date <> '1997-12-16'::date ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '1997-12-17'::date <> '1997-12-18'::date ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '1997-12-17'::date > '1997-12-17'::date ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '1997-12-17'::date > '1997-12-16'::date ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '1997-12-17'::date > '1997-12-18'::date ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '1997-12-17'::date < '1997-12-17'::date ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '1997-12-17'::date < '1997-12-16'::date ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '1997-12-17'::date < '1997-12-18'::date ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '1997-12-17'::date >= '1997-12-17'::date ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '1997-12-17'::date >= '1997-12-16'::date ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '1997-12-17'::date >= '1997-12-18'::date ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '1997-12-17'::date <= '1997-12-17'::date ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '1997-12-17'::date <= '1997-12-16'::date ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '1997-12-17'::date <= '1997-12-18'::date ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23 0:0:00.00'::timestamp = '2023-06-23'::date ;
- ?column? 
-----------
- t
-(1 row)
-
 --
 -- Timestamp and Date Comparison
 --
  RETURN '2023-06-23 0:0:00.00'::timestamp = '2023-06-23'::date ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp = '2023-07-23'::date ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp = '2023-05-23'::date ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '2023-06-23 0:0:00.00'::timestamp <> '2023-06-23'::date ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp <> '2023-07-23'::date ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp <> '2023-05-23'::date ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23 0:0:00.00'::timestamp > '2023-06-23'::date ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp > '2023-07-23'::date ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp > '2023-05-23'::date ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23 0:0:00.00'::timestamp < '2023-06-23'::date ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp < '2023-07-23'::date ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp < '2023-05-23'::date ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '2023-06-23 0:0:00.00'::timestamp >= '2023-06-23'::date ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp >= '2023-07-23'::date ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp >= '2023-05-23'::date ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23 0:0:00.00'::timestamp <= '2023-06-23'::date ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp <= '2023-07-23'::date ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamp <= '2023-05-23'::date ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '2023-06-23'::date = '2023-06-23 0:0:00.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-07-23'::date = '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-05-23'::date = '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '2023-06-23'::date <> '2023-06-23 0:0:00.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-07-23'::date <> '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-05-23'::date <> '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23'::date > '2023-06-23 0:0:00.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-07-23'::date > '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-05-23'::date > '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '2023-06-23'::date < '2023-06-23 0:0:00.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-07-23'::date < '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-05-23'::date < '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23'::date >= '2023-06-23 0:0:00.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-07-23'::date >= '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-05-23'::date >= '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '2023-06-23'::date <= '2023-06-23 0:0:00.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-07-23'::date <= '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-05-23'::date <= '2023-06-23 13:39:40.00'::timestamp ;
- ?column? 
-----------
- t
-(1 row)
 
 --
 -- Timestamp With TimeZone and Date Comparison
 --
  RETURN '2023-06-23 0:0:00.00'::timestamptz = '2023-06-23'::date ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz = '2023-07-23'::date ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz = '2023-05-23'::date ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '2023-06-23 0:0:00.00'::timestamptz <> '2023-06-23'::date ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz <> '2023-07-23'::date ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz <> '2023-05-23'::date ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23 0:0:00.00'::timestamptz > '2023-06-23'::date ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz > '2023-07-23'::date ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz > '2023-05-23'::date ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23 0:0:00.00'::timestamptz < '2023-06-23'::date ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz < '2023-07-23'::date ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz < '2023-05-23'::date ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '2023-06-23 0:0:00.00'::timestamptz >= '2023-06-23'::date ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz >= '2023-07-23'::date ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz >= '2023-05-23'::date ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23 0:0:00.00'::timestamptz <= '2023-06-23'::date ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz <= '2023-07-23'::date ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-06-23 13:39:40.00'::timestamptz <= '2023-05-23'::date ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '2023-06-23'::date = '2023-06-23 0:0:00.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-07-23'::date = '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-05-23'::date = '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '2023-06-23'::date <> '2023-06-23 0:0:00.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-07-23'::date <> '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-05-23'::date <> '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23'::date > '2023-06-23 0:0:00.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-07-23'::date > '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-05-23'::date > '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '2023-06-23'::date < '2023-06-23 0:0:00.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-07-23'::date < '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-05-23'::date < '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '2023-06-23'::date >= '2023-06-23 0:0:00.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-07-23'::date >= '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-05-23'::date >= '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '2023-06-23'::date <= '2023-06-23 0:0:00.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '2023-07-23'::date <= '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '2023-05-23'::date <= '2023-06-23 13:39:40.00'::timestamptz ;
- ?column? 
-----------
- t
-(1 row)
+
 
 --
 -- Time Comparison
 --
  RETURN '07:37:16.00'::time = '07:37:16.00'::time ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::time = '06:37:16.00'::time ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::time = '08:37:16.00'::time ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '07:37:16.00'::time <> '07:37:16.00'::time ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::time <> '06:37:16.00'::time ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::time <> '08:37:16.00'::time ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '07:37:16.00'::time > '07:37:16.00'::time ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::time > '06:37:16.00'::time ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::time > '08:37:16.00'::time ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '07:37:16.00'::time < '07:37:16.00'::time ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::time < '06:37:16.00'::time ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::time < '08:37:16.00'::time ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '07:37:16.00'::time >= '07:37:16.00'::time ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::time >= '06:37:16.00'::time ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::time >= '08:37:16.00'::time ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '07:37:16.00'::time <= '07:37:16.00'::time ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::time <= '06:37:16.00'::time ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::time <= '08:37:16.00'::time ;
- ?column? 
-----------
- t
-(1 row)
 
 --
 -- Time With Timezone Comparison
 --
  RETURN '07:37:16.00'::timetz = '07:37:16.00'::timetz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::timetz = '06:37:16.00'::timetz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::timetz = '08:37:16.00'::timetz ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '07:37:16.00'::timetz <> '07:37:16.00'::timetz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::timetz <> '06:37:16.00'::timetz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::timetz <> '08:37:16.00'::timetz ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '07:37:16.00'::timetz > '07:37:16.00'::timetz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::timetz > '06:37:16.00'::timetz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::timetz > '08:37:16.00'::timetz ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '07:37:16.00'::timetz < '07:37:16.00'::timetz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::timetz < '06:37:16.00'::timetz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::timetz < '08:37:16.00'::timetz ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '07:37:16.00'::timetz >= '07:37:16.00'::timetz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::timetz >= '06:37:16.00'::timetz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::timetz >= '08:37:16.00'::timetz ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '07:37:16.00'::timetz <= '07:37:16.00'::timetz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::timetz <= '06:37:16.00'::timetz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::timetz <= '08:37:16.00'::timetz ;
- ?column? 
-----------
- t
-(1 row)
+
 
  RETURN '07:37:16.00'::timetz = '07:37:16.00'::time ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::timetz = '06:37:16.00'::time ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::timetz = '08:37:16.00'::time ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '07:37:16.00'::timetz <> '07:37:16.00'::time ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::timetz <> '06:37:16.00'::time ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::timetz <> '08:37:16.00'::time ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '07:37:16.00'::timetz > '07:37:16.00'::time ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::timetz > '06:37:16.00'::time ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::timetz > '08:37:16.00'::time ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '07:37:16.00'::timetz < '07:37:16.00'::time ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::timetz < '06:37:16.00'::time ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::timetz < '08:37:16.00'::time ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '07:37:16.00'::timetz >= '07:37:16.00'::time ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::timetz >= '06:37:16.00'::time ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::timetz >= '08:37:16.00'::time ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '07:37:16.00'::timetz <= '07:37:16.00'::time ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::timetz <= '06:37:16.00'::time ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::timetz <= '08:37:16.00'::time ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '07:37:16.00'::time = '07:37:16.00'::timetz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::time = '06:37:16.00'::timetz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::time = '08:37:16.00'::timetz ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '07:37:16.00'::time <> '07:37:16.00'::timetz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::time <> '06:37:16.00'::timetz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::time <> '08:37:16.00'::timetz ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '07:37:16.00'::time > '07:37:16.00'::timetz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::time > '06:37:16.00'::timetz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::time > '08:37:16.00'::timetz ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '07:37:16.00'::time < '07:37:16.00'::timetz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::time < '06:37:16.00'::timetz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::time < '08:37:16.00'::timetz ;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '07:37:16.00'::time >= '07:37:16.00'::timetz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::time >= '06:37:16.00'::timetz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::time >= '08:37:16.00'::timetz ;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '07:37:16.00'::time <= '07:37:16.00'::timetz ;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '07:37:16.00'::time <= '06:37:16.00'::timetz ;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '07:37:16.00'::time <= '08:37:16.00'::timetz ;
- ?column? 
-----------
- t
-(1 row)
 
 --
 -- Interval Comparison
 --
  RETURN '30 Seconds'::interval = '30 Seconds'::interval;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '30 Seconds'::interval = '20 Seconds'::interval;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '30 Seconds'::interval = '40 Seconds'::interval;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '30 Seconds'::interval <> '30 Seconds'::interval;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '30 Seconds'::interval <> '20 Seconds'::interval;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '30 Seconds'::interval <> '40 Seconds'::interval;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '30 Seconds'::interval > '30 Seconds'::interval;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '30 Seconds'::interval > '20 Seconds'::interval;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '30 Seconds'::interval > '40 Seconds'::interval;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '30 Seconds'::interval < '30 Seconds'::interval;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '30 Seconds'::interval < '20 Seconds'::interval;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '30 Seconds'::interval < '40 Seconds'::interval;
- ?column? 
-----------
- t
-(1 row)
 
  RETURN '30 Seconds'::interval >= '30 Seconds'::interval;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '30 Seconds'::interval >= '20 Seconds'::interval;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '30 Seconds'::interval >= '40 Seconds'::interval;
- ?column? 
-----------
- f
-(1 row)
 
  RETURN '30 Seconds'::interval <= '30 Seconds'::interval;
- ?column? 
-----------
- t
-(1 row)
-
  RETURN '30 Seconds'::interval <= '20 Seconds'::interval;
- ?column? 
-----------
- f
-(1 row)
-
  RETURN '30 Seconds'::interval <= '40 Seconds'::interval;
- ?column? 
-----------
- t
-(1 row)
+
 
 --
 -- + Operator
 --
 -- Timestamp + Interval Operator
  RETURN '2023-06-23 13:39:40.00'::timestamp + '10 Days'::interval ;
-         ?column?         
---------------------------
- Mon Jul 03 13:39:40 2023
-(1 row)
-
 -- Timestamp With Timezone + Interval Operator
  RETURN '2023-06-23 13:39:40.00'::timestamptz + '10 Days'::interval ;
-           ?column?           
-------------------------------
- Mon Jul 03 13:39:40 2023 GMT
-(1 row)
-
 -- Date + Interval Operator
  RETURN '2023-06-23'::date + '10 Days'::interval ;
-           ?column?           
-------------------------------
- Mon Jul 03 00:00:00 2023 GMT
-(1 row)
-
 -- Time + Interval Operator
  RETURN '13:39:40.00'::time + '8 Hours'::interval ;
- ?column? 
-----------
- 21:39:40
-(1 row)
-
 -- Time With Timezone + Interval Operator
  RETURN '13:39:40.00'::timetz + '8 Hours'::interval ;
-  ?column?   
--------------
- 21:39:40+00
-(1 row)
-
 -- Interval + Interval Operator
  RETURN '10 Days'::interval + '8 Hours'::interval ;
-     ?column?      
--------------------
- @ 10 days 8 hours
-(1 row)
-
 -- Timestamp - Interval Operator
  RETURN '2023-06-23 13:39:40.00'::timestamp - '10 Days'::interval ;
-         ?column?         
---------------------------
- Tue Jun 13 13:39:40 2023
-(1 row)
-
 -- Timestamp With Timezone - Interval Operator
  RETURN '2023-06-23 13:39:40.00'::timestamptz - '10 Days'::interval ;
-           ?column?           
-------------------------------
- Tue Jun 13 13:39:40 2023 GMT
-(1 row)
 
 --
 -- - Operator
 --
 -- Date - Interval Operator
  RETURN '2023-06-23'::date - '10 Days'::interval ;
-           ?column?           
-------------------------------
- Tue Jun 13 00:00:00 2023 GMT
-(1 row)
-
 -- Time - Interval Operator
  RETURN '13:39:40.00'::time - '8 Hours'::interval ;
- ?column? 
-----------
- 05:39:40
-(1 row)
-
 -- Time With Timezone - Interval Operator
  RETURN '13:39:40.00'::timetz - '8 Hours'::interval ;
-  ?column?   
--------------
- 05:39:40+00
-(1 row)
-
 -- Interval - Interval Operator
  RETURN '10 Days'::interval - '8 Hours'::interval ;
-      ?column?      
---------------------
- @ 10 days -8 hours
-(1 row)
-
 --
 -- - Interval Operator
 --
  RETURN - '8 Hours'::interval ;
-   ?column?    
----------------
- @ 8 hours ago
-(1 row)
-
  RETURN - '8 Hours Ago'::interval ;
- ?column?  
------------
- @ 8 hours
-(1 row)
+
 
 --
 -- * Interval Operator
 --
  RETURN '8 Hours'::interval * 8.0 ;
-  ?column?  
-------------
- @ 64 hours
-(1 row)
-
  RETURN '8 Hours'::interval * 8 ;
-  ?column?  
-------------
- @ 64 hours
-(1 row)
-
  RETURN 8 * '8 Hours'::interval ;
-  ?column?  
-------------
- @ 64 hours
-(1 row)
-
  RETURN 8.0 * '8 Hours'::interval ;
-  ?column?  
-------------
- @ 64 hours
-(1 row)
 
 --
 -- / Interval Operator
 --
  RETURN '8 Hours'::interval / 8.0 ;
- ?column? 
-----------
- @ 1 hour
-(1 row)
-
  RETURN '8 Hours'::interval / 8 ;
- ?column? 
-----------
- @ 1 hour
-(1 row)
 
 --
 -- Extract
 --
  RETURN EXTRACT(day FROM TIMESTAMP WITH TIME ZONE '12/17/1997 07:37:16.00+00') ;
-ERROR:  syntax error at or near "TIME"
-LINE 1: RETURN EXTRACT(day FROM TIMESTAMP WITH TIME ZONE '12/17/1997...
-                                          ^
  RETURN EXTRACT(day FROM TIMESTAMP WITHOUT TIME ZONE '12/17/1997 07:37:16.00+00') ;
-ERROR:  syntax error at or near "WITHOUT"
-LINE 1: RETURN EXTRACT(day FROM TIMESTAMP WITHOUT TIME ZONE '12/17/1...
-                                          ^
  RETURN EXTRACT(day FROM TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  syntax error at or near ")"
-LINE 1: RETURN EXTRACT(day FROM TIMESTAMP '12/17/1997 07:37:16.00+00...
-                                          ^
  RETURN EXTRACT(hour FROM TIME '07:37:16.00+00') ;
-ERROR:  syntax error at or near ")"
-LINE 1: RETURN EXTRACT(hour FROM TIME '07:37:16.00+00') ;
-                                      ^
  RETURN EXTRACT(hour FROM TIME WITH TIME ZONE '07:37:16.00+00') ;
-ERROR:  syntax error at or near "TIME"
-LINE 1: RETURN EXTRACT(hour FROM TIME WITH TIME ZONE '07:37:16.00+00...
-                                      ^
  RETURN EXTRACT(hour FROM TIME WITHOUT TIME ZONE '07:37:16.00+00') ;
-ERROR:  syntax error at or near "WITHOUT"
-LINE 1: RETURN EXTRACT(hour FROM TIME WITHOUT TIME ZONE '07:37:16.00...
-                                      ^
  RETURN EXTRACT(day FROM DATE '12/17/1997') ;
-ERROR:  syntax error at or near ")"
-LINE 1: RETURN EXTRACT(day FROM DATE '12/17/1997') ;
-                                     ^
  RETURN EXTRACT(day FROM INTERVAL '6 Years 11 Months 24 Days 5 Hours 23 Minutes') ;
-ERROR:  syntax error at or near ")"
-LINE 1: RETURN EXTRACT(day FROM INTERVAL '6 Years 11 Months 24 Days ...
-                                         ^
  RETURN EXTRACT(CENTURY FROM TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  syntax error at or near ")"
-LINE 1: RETURN EXTRACT(CENTURY FROM TIMESTAMP '12/17/1997 07:37:16.0...
-                                              ^
  RETURN EXTRACT(DECADE FROM TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  syntax error at or near ")"
-LINE 1: RETURN EXTRACT(DECADE FROM TIMESTAMP '12/17/1997 07:37:16.00...
-                                             ^
  RETURN EXTRACT(DOW FROM TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  syntax error at or near ")"
-LINE 1: RETURN EXTRACT(DOW FROM TIMESTAMP '12/17/1997 07:37:16.00+00...
-                                          ^
  RETURN EXTRACT(EPOCH FROM TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  syntax error at or near ")"
-LINE 1: RETURN EXTRACT(EPOCH FROM TIMESTAMP '12/17/1997 07:37:16.00+...
-                                            ^
  RETURN EXTRACT(ISODOW FROM TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  syntax error at or near ")"
-LINE 1: RETURN EXTRACT(ISODOW FROM TIMESTAMP '12/17/1997 07:37:16.00...
-                                             ^
  RETURN EXTRACT(ISOYEAR FROM TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  syntax error at or near ")"
-LINE 1: RETURN EXTRACT(ISOYEAR FROM TIMESTAMP '12/17/1997 07:37:16.0...
-                                              ^
  RETURN EXTRACT(JULIAN FROM TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  syntax error at or near ")"
-LINE 1: RETURN EXTRACT(JULIAN FROM TIMESTAMP '12/17/1997 07:37:16.00...
-                                             ^
  RETURN EXTRACT(MICROSECONDS FROM TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  syntax error at or near ")"
-LINE 1: RETURN EXTRACT(MICROSECONDS FROM TIMESTAMP '12/17/1997 07:37...
-                                                   ^
  RETURN EXTRACT(MILLISECONDS FROM TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  syntax error at or near ")"
-LINE 1: RETURN EXTRACT(MILLISECONDS FROM TIMESTAMP '12/17/1997 07:37...
-                                                   ^
  RETURN EXTRACT(ISOYEAR FROM TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  syntax error at or near ")"
-LINE 1: RETURN EXTRACT(ISOYEAR FROM TIMESTAMP '12/17/1997 07:37:16.0...
-                                              ^
  RETURN EXTRACT(MINUTE FROM TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  syntax error at or near ")"
-LINE 1: RETURN EXTRACT(MINUTE FROM TIMESTAMP '12/17/1997 07:37:16.00...
-                                             ^
  RETURN EXTRACT(MONTH FROM TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  syntax error at or near ")"
-LINE 1: RETURN EXTRACT(MONTH FROM TIMESTAMP '12/17/1997 07:37:16.00+...
-                                            ^
  RETURN EXTRACT(QUARTER FROM TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  syntax error at or near ")"
-LINE 1: RETURN EXTRACT(QUARTER FROM TIMESTAMP '12/17/1997 07:37:16.0...
-                                              ^
  RETURN EXTRACT(SECOND FROM TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  syntax error at or near ")"
-LINE 1: RETURN EXTRACT(SECOND FROM TIMESTAMP '12/17/1997 07:37:16.00...
-                                             ^
  RETURN EXTRACT(TIMEZONE FROM TIMESTAMP WITH TIME ZONE '12/17/1997 07:37:16.00+00') ;
-ERROR:  syntax error at or near "TIME"
-LINE 1: RETURN EXTRACT(TIMEZONE FROM TIMESTAMP WITH TIME ZONE '12/17...
-                                               ^
  RETURN EXTRACT(YEAR FROM TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  syntax error at or near ")"
-LINE 1: RETURN EXTRACT(YEAR FROM TIMESTAMP '12/17/1997 07:37:16.00+0...
-                                           ^
+
 --
 -- Date Part
 --
  RETURN date_part('day', TIMESTAMP WITH TIME ZONE '12/17/1997 07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('day', TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('hour', TIME '07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('hour', TIME WITH TIME ZONE '07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('day', DATE '12/17/1997') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('day', INTERVAL '6 Years 11 Months 24 Days 5 Hours 23 Minutes') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('CENTURY', TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('DECADE', TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('DOW', TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('EPOCH', TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('ISODOW', TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('ISOYEAR', TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('JULIAN', TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('MICROSECONDS', TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('MILLISECONDS', TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('ISOYEAR', TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('MINUTE', TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('MONTH', TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('QUARTER', TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('SECOND', TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('TIMEZONE', TIMESTAMP WITH TIME ZONE '12/17/1997 07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_part('YEAR', TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
+
 --
 -- date_bin
 --
  RETURN date_bin(INTERVAL '15 minutes', TIMESTAMP '2020-02-11 15:44:17', TIMESTAMP '2001-01-01') ;
-ERROR:  unrecognized node type: 364
  RETURN date_bin(INTERVAL '15 minutes', TIMESTAMP '2020-02-11 15:44:17', TIMESTAMP '2001-01-01') ;
-ERROR:  unrecognized node type: 364
  RETURN date_bin('15 minutes'::interval, '2020-02-11 15:44:17+08'::timestamptz, '2001-01-01'::timestamptz) ;
-ERROR:  unrecognized node type: 364
  RETURN date_bin('15 minutes'::interval, '2020-02-11 15:44:17+08'::timestamp, '2001-01-01'::date) ;
-ERROR:  unrecognized node type: 364
  RETURN date_bin('15 minutes'::interval, '2001-01-01'::date, '2020-02-11 15:44:17+08'::timestamp) ;
-ERROR:  unrecognized node type: 364
+
 --
 -- date_trunc
 --
  RETURN date_trunc('day', TIMESTAMP WITH TIME ZONE '12/17/1997 07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_trunc('day', TIMESTAMP WITH TIME ZONE '12/17/1997 07:37:16.00+00', 'Australia/Sydney') ;
-ERROR:  unrecognized node type: 364
  RETURN date_trunc('day', TIMESTAMP '12/17/1997 07:37:16.00+00') ;
-ERROR:  unrecognized node type: 364
  RETURN date_trunc('day', INTERVAL '6 Years 11 Months 24 Days 5 Hours 23 Minutes') ;
-ERROR:  unrecognized node type: 364
+
 --
 -- Temporal Functions
 --
  RETURN age('12/17/1997 07:37:16.00+00'::timestamptz, '6/12/2007 12:45:19.89+00'::timestamptz) ;
-ERROR:  unrecognized node type: 364
  RETURN age('12/17/1997 07:37:16.00+00'::timestamp, '6/12/2007 12:45:19.89+00'::timestamp) ;
-ERROR:  unrecognized node type: 364
  RETURN age('12/17/1997 07:37:16.00+00'::timestamptz, '6/12/2007 12:45:19.89+00'::timestamp) ;
-ERROR:  unrecognized node type: 364
+
+
 --
 -- Overlap
 --
+
 -- date date date date
  RETURN ('2001-02-16'::date,'2001-10-29'::date) overlaps ('2001-10-30'::date,'2002-10-30'::date) ;
- overlaps 
-----------
- false
-(1 row)
-
  RETURN ('2001-02-16'::date,'2001-10-31'::date) overlaps ('2001-10-30'::date,'2002-10-30'::date) ;
- overlaps 
-----------
- true
-(1 row)
-
 -- date interval date interval
  RETURN ('2001-02-16'::date,'10 days'::interval) overlaps ('2001-10-30'::date,'10 days'::interval) ;
- overlaps 
-----------
- false
-(1 row)
-
  RETURN ('2001-02-16'::date,'365 days'::interval) overlaps ('2001-10-30'::date,'10 days'::interval) ;
- overlaps 
-----------
- true
-(1 row)
-
 -- date interval date date
  RETURN ('2001-02-16'::date,'10 days'::interval) overlaps ('2001-10-30'::date,'2001-11-09'::date) ;
- overlaps 
-----------
- false
-(1 row)
-
  RETURN ('2001-02-16'::date,'365 days'::interval) overlaps ('2001-10-30'::date,'2001-11-09'::date) ;
- overlaps 
-----------
- true
-(1 row)
-
 -- date date date interval
  RETURN ('2001-02-16'::date,'2001-10-28'::date) overlaps ('2001-10-30'::date,'-2 days'::interval) ;
- overlaps 
-----------
- false
-(1 row)
-
  RETURN ('2001-02-16'::date,'2001-10-28'::date) overlaps ('2001-10-30'::date,'-3 days'::interval) ;
- overlaps 
-----------
- true
-(1 row)
-
 -- timestamp timestamp timestamp timestamp
  RETURN ('2001-02-16'::timestamp,'2001-10-29'::timestamp) overlaps ('2001-10-30'::timestamp,'2002-10-30'::timestamp) ;
- overlaps 
-----------
- false
-(1 row)
-
  RETURN ('2001-02-16'::timestamp,'2001-10-31'::timestamp) overlaps ('2001-10-30'::timestamp,'2002-10-30'::timestamp) ;
- overlaps 
-----------
- true
-(1 row)
-
 -- timestamp interval timestamp interval
  RETURN ('2001-02-16'::timestamp,'10 days'::interval) overlaps ('2001-10-30'::timestamp,'10 days'::interval) ;
- overlaps 
-----------
- false
-(1 row)
-
  RETURN ('2001-02-16'::timestamp,'365 days'::interval) overlaps ('2001-10-30'::timestamp,'10 days'::interval) ;
- overlaps 
-----------
- true
-(1 row)
-
 -- timestamp interval timestamp timestamp
  RETURN ('2001-02-16'::timestamp,'10 days'::interval) overlaps ('2001-10-30'::timestamp,'2001-11-09'::timestamp) ;
- overlaps 
-----------
- false
-(1 row)
-
  RETURN ('2001-02-16'::timestamp,'365 days'::interval) overlaps ('2001-10-30'::timestamp,'2001-11-09'::timestamp) ;
- overlaps 
-----------
- true
-(1 row)
-
 -- timestamp timestamp timestamp interval
  RETURN ('2001-02-16'::timestamp,'2001-10-28'::timestamp) overlaps ('2001-10-30'::timestamp,'-2 days'::interval) ;
- overlaps 
-----------
- false
-(1 row)
-
  RETURN ('2001-02-16'::timestamp,'2001-10-28'::timestamp) overlaps ('2001-10-30'::timestamp,'-3 days'::interval) ;
- overlaps 
-----------
- true
-(1 row)
-
 -- time time time time
  RETURN ('20:00:00'::time,'21:00:00'::time) overlaps ('21:00:00'::time,'22:00:00'::time) ;
- overlaps 
-----------
- false
-(1 row)
-
  RETURN ('20:00:00'::time,'21:01:00'::time) overlaps ('21:00:00'::time,'22:00:00'::time) ;
- overlaps 
-----------
- true
-(1 row)
-
 -- time interval time interval
  RETURN ('20:00:00'::time,'10 minutes'::interval) overlaps ('20:10:00'::time,'10 minutes'::interval) ;
- overlaps 
-----------
- false
-(1 row)
-
  RETURN ('20:00:00'::time,'11 minutes'::interval) overlaps ('20:10:00'::time,'10 minutes'::interval) ;
- overlaps 
-----------
- true
-(1 row)
-
 -- time interval time time
  RETURN ('20:00:00'::time,'10 minutes'::interval) overlaps ('20:10:00'::time,'20:20:00'::time) ;
- overlaps 
-----------
- false
-(1 row)
-
  RETURN ('20:00:00'::time,'11 minutes'::interval) overlaps ('20:10:00'::time,'20:20:00'::time) ;
- overlaps 
-----------
- true
-(1 row)
-
 -- time time time interval
  RETURN ('20:00:00'::time,'20:08:00'::time) overlaps ('20:10:00'::time,'-2 minutes'::interval) ;
- overlaps 
-----------
- false
-(1 row)
-
  RETURN ('20:00:00'::time,'20:08:00'::time) overlaps ('20:10:00'::time,'-3 minutes'::interval) ;
- overlaps 
-----------
- true
-(1 row)
-
 -- timetz timetz timetz timetz
  RETURN ('20:00:00+00'::timetz,'21:00:00+00'::timetz) overlaps ('21:00:00+00'::timetz,'22:00:00+00'::timetz) ;
- overlaps 
-----------
- false
-(1 row)
-
  RETURN ('20:00:00+00'::timetz,'21:01:00+00'::timetz) overlaps ('21:00:00+00'::timetz,'22:00:00+00'::timetz) ;
- overlaps 
-----------
- true
-(1 row)
-
 -- timetz interval timetz interval
  RETURN ('20:00:00+00'::timetz,'10 minutes'::interval) overlaps ('20:10:00+00'::timetz,'10 minutes'::interval) ;
- overlaps 
-----------
- false
-(1 row)
-
  RETURN ('20:00:00+00'::timetz,'11 minutes'::interval) overlaps ('20:10:00+00'::timetz,'10 minutes'::interval) ;
- overlaps 
-----------
- true
-(1 row)
-
 -- timetz interval timetz timetz
  RETURN ('20:00:00+00'::timetz,'10 minutes'::interval) overlaps ('20:10:00+00'::timetz,'20:20:00+00'::timetz) ;
- overlaps 
-----------
- false
-(1 row)
-
  RETURN ('20:00:00+00'::timetz,'11 minutes'::interval) overlaps ('20:10:00+00'::timetz,'20:20:00+00'::timetz) ;
- overlaps 
-----------
- true
-(1 row)
-
 -- timetz timetz timetz interval
  RETURN ('20:00:00+00'::timetz,'20:08:00+00'::timetz) overlaps ('20:10:00+00'::timetz,'-2 minutes'::interval) ;
- overlaps 
-----------
- false
-(1 row)
-
  RETURN ('20:00:00+00'::timetz,'20:08:00+00'::timetz) overlaps ('20:10:00+00'::timetz,'-3 minutes'::interval) ;
- overlaps 
-----------
- true
-(1 row)
 
 --
 -- justify functions
 --
 -- justify_interval
  RETURN justify_interval('1 month -1 hours'::interval) ;
-ERROR:  unrecognized node type: 364
  RETURN justify_interval('1 month 33 days 1 hours'::interval) ;
-ERROR:  unrecognized node type: 364
  RETURN justify_interval('1 week 6 days 27 hours'::interval) ;
-ERROR:  unrecognized node type: 364
  RETURN justify_interval('27 hours'::interval) ;
-ERROR:  unrecognized node type: 364
 -- justify_days
  RETURN justify_days('5 weeks'::interval) ;
-ERROR:  unrecognized node type: 364
  RETURN justify_days('35 days'::interval) ;
-ERROR:  unrecognized node type: 364
  RETURN justify_days('4 weeks 8 days'::interval) ;
-ERROR:  unrecognized node type: 364
  RETURN justify_days('1 month 5 weeks'::interval) ;
-ERROR:  unrecognized node type: 364
 -- justify_hours
  RETURN justify_hours('27 hours'::interval) ;
-ERROR:  unrecognized node type: 364
  RETURN justify_hours('1 week 27 hours'::interval) ;
-ERROR:  unrecognized node type: 364
  RETURN justify_hours('2 days 30 hours'::interval) ;
-ERROR:  unrecognized node type: 364
+
 --
 -- isfinite
 --
  RETURN isfinite('infinity'::date) ;
-ERROR:  unrecognized node type: 364
  RETURN isfinite('2001-02-16'::date) ;
-ERROR:  unrecognized node type: 364
  RETURN isfinite('2001-02-16 23:40:00'::timestamp) ;
-ERROR:  unrecognized node type: 364
  RETURN isfinite('infinity'::timestamp) ;
-ERROR:  unrecognized node type: 364
  RETURN isfinite('15 minutes'::interval) ;
-ERROR:  unrecognized node type: 364
+
 --
 -- Temporal Make Functions
 --
 RETURN make_date(0, 7, 15);
-ERROR:  date field value out of range: 0-07-15
 RETURN make_date(2013, 2, 30);
-ERROR:  date field value out of range: 2013-02-30
 RETURN make_date(2013, 13, 1);
-ERROR:  date field value out of range: 2013-13-01
 RETURN make_date(-44, 3, 15);
-   make_date   
----------------
- 03-15-0044 BC
-(1 row)
-
 RETURN make_date(2013, 11, -1);
-ERROR:  date field value out of range: 2013-11--1
 RETURN make_date(2013, 7, 15);
- make_date  
-------------
- 07-15-2013
-(1 row)
 
 RETURN make_time(8, 20, 0.0);
- make_time 
------------
- 08:20:00
-(1 row)
-
 RETURN make_time(10, 55, 100.1);
-ERROR:  time field value out of range: 10:55:100.1
 RETURN make_time(24, 0, 2.1);
-ERROR:  time field value out of range: 24:00:2.1
+
 RETURN make_timestamp(2023, 2, 14, 5, 30, 0.0);
-      make_timestamp      
---------------------------
- Tue Feb 14 05:30:00 2023
-(1 row)
-
 RETURN make_timestamptz(2023, 2, 14, 5, 30, 0.0);
-       make_timestamptz       
-------------------------------
- Tue Feb 14 05:30:00 2023 GMT
-(1 row)
-
 RETURN make_timestamptz(2023, 2, 14, 5, 30, 0.0, 'KST');
-       make_timestamptz       
-------------------------------
- Mon Feb 13 20:30:00 2023 GMT
-(1 row)
-
 RETURN make_timestamptz(2023, 2, 14, 5, 30, 0.0, 'GMT');
-       make_timestamptz       
-------------------------------
- Tue Feb 14 05:30:00 2023 GMT
-(1 row)
 
 --
 -- Typecasting
 --
 --Interval
  RETURN '30 Seconds'::interval ;
- ?column?  
------------
- @ 30 secs
-(1 row)
-
 --timestamp
  RETURN TIMESTAMP '2020-02-11 15:44:17' ;
-ERROR:  syntax error at or near ";"
-LINE 1: RETURN TIMESTAMP '2020-02-11 15:44:17' ;
-                         ^
  RETURN '2020-02-11 15:44:17' ;
-       ?column?        
------------------------
- "2020-02-11 15:44:17"
-(1 row)
-
 --timestamptz
  RETURN TIMESTAMP WITH TIME ZONE '12/17/1997 07:37:16.00+00' ;
-ERROR:  syntax error at or near "TIME"
-LINE 1: RETURN TIMESTAMP WITH TIME ZONE '12/17/1997 07:37:16.00+00' ...
-                         ^
  RETURN '12/17/1997 07:37:16.00+00' ;
-          ?column?           
------------------------------
- "12/17/1997 07:37:16.00+00"
-(1 row)
-
 -- date
 RETURN make_date(2000, 7, 15);
- make_date  
-------------
- 07-15-2000
-(1 row)
-
 -- time 
 RETURN make_time(8, 20, 0.0);
- make_time 
------------
- 08:20:00
-(1 row)
-
 -- timetz
  RETURN TIME WITH TIME ZONE '07:37:16.00+00' ;
-ERROR:  syntax error at or near "TIME"
-LINE 1: RETURN TIME WITH TIME ZONE '07:37:16.00+00' ;
-                    ^
  RETURN '07:37:16.00+00' ;
-     ?column?     
-------------------
- "07:37:16.00+00"
-(1 row)
-
 --interval
  RETURN '7 Hours 37 Minutes 16 Seconds'::interval ;
-         ?column?          
----------------------------
- @ 7 hours 37 mins 16 secs
-(1 row)
-
 SELECT '7 Hours 37 Minutes 16 Seconds'::interval::gtype;
-           gtype           
----------------------------
- @ 7 hours 37 mins 16 secs
-(1 row)
 
 --
 -- Clean up
 --
 DROP GRAPH temporal CASCADE;
-NOTICE:  drop cascades to 2 other objects
-DETAIL:  drop cascades to table temporal._ag_label_vertex
-drop cascades to table temporal._ag_label_edge
-NOTICE:  graph "temporal" has been dropped
- drop_graph 
-------------
- 
-(1 row)
-

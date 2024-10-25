@@ -29,5 +29,6 @@ void parse_analyze_init(void);
 void parse_analyze_fini(void);
 
 List *transform_cypher_order_by(cypher_parsestate *cpstate, List *sort_items, List **target_list, ParseExprKind expr_kind);
+ParseNamespaceItem *find_pnsi(cypher_parsestate *cpstate, char *varname);
 
 #endif

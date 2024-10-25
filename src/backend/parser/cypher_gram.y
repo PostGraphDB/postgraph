@@ -407,10 +407,11 @@ makeSimpleCypherA_Expr(A_Expr_Kind kind, char *name,
 %type <chr>		enable_trigger
 
 %type <node> where_clause where_or_current_clause
-             a_expr b_expr c_expr AexprConst indirection_el opt_slice_bound
-             columnref in_expr having_clause func_table xmltable array_expr
+             a_expr b_expr c_expr AexprConst indirection_el cypher_indirection_el opt_slice_bound cypher_opt_slice_bound
+             columnref cypher_columnref in_expr having_clause func_table xmltable array_expr
              OptWhereClause operator_def_arg
 %type <list>	rowsfrom_item rowsfrom_list opt_col_def_list
+
 %type <boolean> opt_ordinality
 
 %type <string>		iso_level 
@@ -652,7 +653,7 @@ makeSimpleCypherA_Expr(A_Expr_Kind kind, char *name,
 			 def_list operator_def_list
              execute_param_clause using_clause
 			 opt_enum_val_list enum_val_list
-             indirection opt_indirection
+             indirection cypher_indirection opt_indirection
 			 attrs
              var_list
 			 returning_clause
@@ -771,7 +772,7 @@ makeSimpleCypherA_Expr(A_Expr_Kind kind, char *name,
 %right NOT
 %nonassoc IS ISNULL NOTNULL	/* IS sets precedence for IS NULL, etc */
 %nonassoc '<' '>' '=' NOT_EQ LT_EQ GT_EQ
-%nonassoc BETWEEN IN LIKE ILIKE SIMILAR
+%nonassoc BETWEEN IN LIKE ILIKE SIMILAR CONTAINS
 %nonassoc ESCAPE
 %nonassoc UNBOUNDED		/* ideally would have same precedence as IDENT */
 %nonassoc IDENTIFIER PARTITION RANGE ROWS GROUPS PRECEDING FOLLOWING CUBE ROLLUP
@@ -4261,11 +4262,11 @@ cypher_query:
 cypher_query_start:
     create 
     | match
-    /*| CYPHER with { $$ = $2; }
-    | merge
+    | CYPHER with { $$ = $2; }
+    /*| merge
     | CYPHER call_stmt { $$ = $2; }*/
     | return
-   // | unwind
+    | unwind
 ;
 
 cypher_query_body:
@@ -16645,7 +16646,7 @@ set_item_list:
     ;
 
 set_item:
-    cypher_a_expr '=' cypher_a_expr
+    cypher_columnref '=' cypher_a_expr
         {
             cypher_set_item *n;
 
@@ -16657,7 +16658,7 @@ set_item:
 
             $$ = (Node *)n;
         }
-   | cypher_a_expr PLUS_EQ cypher_a_expr
+   | cypher_columnref PLUS_EQ cypher_a_expr
         {
             cypher_set_item *n;
 
@@ -17063,7 +17064,11 @@ cypher_a_expr:
             $$ = do_negate($2, @1);
         
         }
-	   /* | cypher_a_expr STARTS WITH cypher_b_expr %prec STARTS
+    | '(' cypher_a_expr ',' cypher_a_expr ')' OVERLAPS '(' cypher_a_expr ',' cypher_a_expr ')'
+        {
+            $$ = makeFuncCall(list_make1(makeString("overlaps")), list_make4($2, $4, $8, $10), COERCE_SQL_SYNTAX, @6);
+        }
+	| cypher_b_expr STARTS WITH cypher_expr_atom %prec STARTS
         {
             cypher_string_match *n;
 
@@ -17074,8 +17079,8 @@ cypher_a_expr:
             n->location = @2;
 
             $$ = (Node *)n;
-        }*/
-   /* | cypher_a_expr ENDS WITH cypher_a_expr %prec ENDS
+        }
+    | cypher_b_expr ENDS WITH cypher_expr_atom %prec ENDS
         {
             cypher_string_match *n;
 
@@ -17087,7 +17092,7 @@ cypher_a_expr:
 
             $$ = (Node *)n;
         }
-    | cypher_a_expr CONTAINS cypher_a_expr
+    | cypher_b_expr CONTAINS cypher_expr_atom %prec CONTAINS
         {
             cypher_string_match *n;
 
@@ -17098,32 +17103,6 @@ cypher_a_expr:
             n->location = @2;
 
             $$ = (Node *)n;
-        }*/
-    | cypher_a_expr '[' cypher_a_expr ']'  %prec UNARY_MINUS
-        {
-            A_Indices *i;
-
-            i = makeNode(A_Indices);
-            i->is_slice = false;
-            i->lidx = NULL;
-            i->uidx = $3;
-
-            $$ = append_indirection($1, (Node *)i);
-        }
-    | cypher_a_expr '[' expr_opt DOT_DOT expr_opt ']'
-        {
-            A_Indices *i;
-
-            i = makeNode(A_Indices);
-            i->is_slice = true;
-            i->lidx = $3;
-            i->uidx = $5;
-
-            $$ = append_indirection($1, (Node *)i);
-        }
-    | cypher_a_expr '.' schema_name %prec '.'
-        {
-             $$ = (Node *)makeSimpleCypherA_Expr(AEXPR_OP, "->", $1, makeString($3), @2);
         }
     | cypher_a_expr TYPECAST BareColLabel %prec TYPECAST
         {
@@ -17273,6 +17252,61 @@ cypher_expr_func:
     | cypher_expr_func_subexpr
     ;
 
+
+cypher_columnref:	ColId
+				{
+					$$ = makeColumnRef($1, NIL, @1, scanner);
+				}
+			| ColId cypher_indirection
+				{
+                    $$ =  makeColumnRef($1, $2, @1, scanner);
+				}
+		;
+
+cypher_indirection_el:
+			'.' attr_name
+				{
+					$$ = (Node *) makeString($2);
+				}
+			/*| '.' '*'
+				{
+					$$ = (Node *) makeNode(A_Star);
+				}*/
+			| '[' cypher_a_expr ']'
+				{
+					A_Indices *ai = makeNode(A_Indices);
+					ai->is_slice = false;
+					ai->lidx = NULL;
+					ai->uidx = $2;
+					$$ = (Node *) ai;
+				}
+			| '[' cypher_opt_slice_bound DOT_DOT cypher_opt_slice_bound ']'
+				{
+					A_Indices *ai = makeNode(A_Indices);
+					ai->is_slice = true;
+					ai->lidx = $2;
+					ai->uidx = $4;
+					$$ = (Node *) ai;
+				}
+			| '[' cypher_opt_slice_bound ':' cypher_opt_slice_bound ']'
+				{
+					A_Indices *ai = makeNode(A_Indices);
+					ai->is_slice = true;
+					ai->lidx = $2;
+					ai->uidx = $4;
+					$$ = (Node *) ai;
+				}
+		;
+
+cypher_opt_slice_bound:
+			cypher_a_expr									{ $$ = $1; }
+			| /*EMPTY*/								{ $$ = NULL; }
+		;
+
+cypher_indirection:
+			cypher_indirection_el							{ $$ = list_make1($1); }
+			| cypher_indirection cypher_indirection_el			{ $$ = lappend($1, $2); }
+		;
 
 /*
  * SQL/XML support
@@ -17664,15 +17698,11 @@ cypher_expr_func_subexpr:
         {
             $$ = makeSQLValueFunction(SVFOP_LOCALTIMESTAMP, $3, @1);
         }
-    | EXTRACT '(' IDENTIFIER FROM cypher_a_expr ')'
+    | EXTRACT '(' extract_arg FROM cypher_a_expr ')'
         {
             $$ = (Node *)makeFuncCall(list_make1(makeString($1)),
                                       list_make2(make_string_const($3, @3), $5),
                                       COERCE_SQL_SYNTAX, @1);
-        }
-    | '(' cypher_a_expr ',' cypher_a_expr ')' OVERLAPS '(' cypher_a_expr ',' cypher_a_expr ')'
-        {
-            $$ = makeFuncCall(list_make1(makeString("overlaps")), list_make4($2, $4, $8, $10), COERCE_SQL_SYNTAX, @6);
         }
     ;
                                         
@@ -17690,103 +17720,103 @@ cypher_in_expr:
    ;    
 
 cypher_b_expr:
-   cypher_a_expr OR cypher_a_expr
+   /* cypher_b_expr OR cypher_b_expr
         {
             $$ = make_or_expr($1, $3, @2);
         }
-    | cypher_a_expr AND cypher_a_expr
+    | cypher_b_expr AND cypher_b_expr
         {
             $$ = make_and_expr($1, $3, @2);
         }
-    | cypher_a_expr XOR cypher_a_expr
+    | cypher_b_expr XOR cypher_b_expr
         {
             $$ = make_xor_expr($1, $3, @2);
         }
-    | NOT cypher_a_expr
+    | NOT cypher_b_expr
         {
             $$ = make_not_expr($2, @1);
         }
-    | cypher_a_expr '=' cypher_a_expr
+    | cypher_b_expr '=' cypher_b_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "=", $1, $3, @2);
         }
-    | cypher_a_expr LIKE cypher_a_expr
+    | cypher_b_expr LIKE cypher_b_expr
         {   
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~~~", $1, $3, @2);
         } 
-    | cypher_a_expr NOT LIKE cypher_a_expr
+    | cypher_b_expr NOT LIKE cypher_b_expr
         {   
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "!~~", $1, $4, @2);
         }  
-    | cypher_a_expr ILIKE cypher_a_expr
+    | cypher_b_expr ILIKE cypher_b_expr
         {   
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~~*", $1, $3, @2);
         } 
-    | cypher_a_expr NOT ILIKE cypher_a_expr
+    | cypher_b_expr NOT ILIKE cypher_b_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "!~~*", $1, $4, @2);
         }  
-    | cypher_a_expr NOT_EQ cypher_a_expr
+    | cypher_b_expr NOT_EQ cypher_b_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<>", $1, $3, @2);
         }
-    | cypher_a_expr '<' cypher_a_expr
+    | cypher_b_expr '<' cypher_b_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<", $1, $3, @2);
         }
-    | cypher_a_expr LT_EQ cypher_a_expr
+    | cypher_b_expr LT_EQ cypher_b_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "<=", $1, $3, @2);
         }
-    | cypher_a_expr '>' cypher_a_expr
+    | cypher_b_expr '>' cypher_b_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, ">", $1, $3, @2);
         }
-    | cypher_a_expr GT_EQ cypher_a_expr
+    | cypher_b_expr GT_EQ cypher_b_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, ">=", $1, $3, @2);
         }
-    | cypher_a_expr '+' cypher_a_expr
+    | cypher_b_expr '+' cypher_b_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "+", $1, $3, @2);
         }
-    | cypher_a_expr '-' cypher_a_expr
+    | cypher_b_expr '-' cypher_b_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "-", $1, $3, @2);
         }
-    | cypher_a_expr '*' cypher_a_expr
+    | cypher_b_expr '*' cypher_b_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "*", $1, $3, @2);
         }
-    | cypher_a_expr '/' cypher_a_expr
+    | cypher_b_expr '/' cypher_b_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "/", $1, $3, @2);
         }
-    | cypher_a_expr '%' cypher_a_expr
+    | cypher_b_expr '%' cypher_b_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "%", $1, $3, @2);
         }
-    | cypher_a_expr '^' cypher_a_expr
+    | cypher_b_expr '^' cypher_b_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "^", $1, $3, @2);
         }
-    | cypher_a_expr OPERATOR cypher_a_expr
+    | cypher_b_expr OPERATOR cypher_b_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, $2, $1, $3, @2);
         }
-    | OPERATOR cypher_a_expr %prec UNARY_MINUS
+    | OPERATOR cypher_b_expr %prec UNARY_MINUS
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, $1, NULL, $2, @1);
         }
-    | cypher_a_expr RIGHT_ARROW cypher_a_expr
+    | cypher_b_expr RIGHT_ARROW cypher_b_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, $2, $1, $3, @2);
         }
-    | cypher_a_expr IN cypher_a_expr
+    | cypher_b_expr IN cypher_b_expr
         {
             $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "@=", $1, $3, @2);
         }
-    | cypher_a_expr IS NULL_P %prec IS
+    | cypher_b_expr IS NULL_P %prec IS
         {
             NullTest *n;
 
@@ -17797,7 +17827,7 @@ cypher_b_expr:
 
             $$ = (Node *)n;
         }
-    | cypher_a_expr IS NOT NULL_P %prec IS
+    | cypher_b_expr IS NOT NULL_P %prec IS
         {
             NullTest *n;
 
@@ -17808,70 +17838,16 @@ cypher_b_expr:
 
             $$ = (Node *)n;
         }
-    | '-' cypher_a_expr %prec UNARY_MINUS
+    | '-' cypher_b_expr %prec UNARY_MINUS
         {
             $$ = do_negate($2, @1);
         
         }
-   /* | cypher_a_expr ENDS WITH cypher_a_expr %prec ENDS
-        {
-            cypher_string_match *n;
-
-            n = make_ag_node(cypher_string_match);
-            n->operation = CSMO_ENDS_WITH;
-            n->lhs = $1;
-            n->rhs = $4;
-            n->location = @2;
-
-            $$ = (Node *)n;
-        }
-    | cypher_a_expr CONTAINS cypher_a_expr
-        {
-            cypher_string_match *n;
-
-            n = make_ag_node(cypher_string_match);
-            n->operation = CSMO_CONTAINS;
-            n->lhs = $1;
-            n->rhs = $3;
-            n->location = @2;
-
-            $$ = (Node *)n;
-        }
-    | cypher_a_expr '~' cypher_a_expr
-        {
-            $$ = (Node *)makeSimpleA_Expr(AEXPR_OP, "~", $1, $3, @2);
-        }
-    | cypher_a_expr '[' cypher_a_expr ']'  %prec UNARY_MINUS
-        {
-            A_Indices *i;
-
-            i = makeNode(A_Indices);
-            i->is_slice = false;
-            i->lidx = NULL;
-            i->uidx = $3;
-
-            $$ = append_indirection($1, (Node *)i);
-        }
-    | cypher_a_expr '[' expr_opt DOT_DOT expr_opt ']'
-        {
-            A_Indices *i;
-
-            i = makeNode(A_Indices);
-            i->is_slice = true;
-            i->lidx = $3;
-            i->uidx = $5;
-
-            $$ = append_indirection($1, (Node *)i);
-        }
-    | cypher_a_expr '.' cypher_a_expr
-        {
-            $$ = append_indirection($1, $3);
-        }
     | cypher_a_expr TYPECAST schema_name
         {
             $$ = make_typecast_expr($1, $3, @2);
-        }
-    | cypher_a_expr all_op ALL cypher_in_expr //%prec OPERATOR
+        }*/
+    /*| cypher_a_expr all_op ALL cypher_in_expr %prec OPERATOR
         {
             cypher_sub_pattern *sub = $4;
             sub->kind = CSP_ALL;
@@ -17890,7 +17866,8 @@ cypher_b_expr:
 	;
 
 cypher_expr_atom:
-	expr_literal
+    cypher_columnref
+	| expr_literal
     /*| PARAMETER
         {
             cypher_param *n;
@@ -17905,18 +17882,8 @@ cypher_expr_atom:
         {
             $$ = $2;
         }
-    | expr_case
-    | cypher_var_name 
-        {
-            ColumnRef *n;
-            
-            n = makeNode(ColumnRef);
-            n->fields = list_make1(makeString($1));
-            n->location = @1;
-            
-            $$ = (Node *)n;
-        }   
-    //| cypher_expr_func
+    | expr_case  
+    | cypher_expr_func
     | EXISTS '(' anonymous_path ')'
         {
             cypher_sub_pattern *sub;
@@ -17926,7 +17893,7 @@ cypher_expr_atom:
             sub->kind = CSP_EXISTS;
             sub->pattern = list_make1($3);
             cypher_match *match = make_ag_node(cypher_match);
-            match->pattern = list_make1($3);//subpat->pattern;
+            match->pattern = list_make1($3);
             match->where = NULL;
             sub->pattern = list_make1(match);
             n = makeNode(SubLink);
@@ -18105,44 +18072,23 @@ expr_case_default:
             $$ = NULL;
         }
     ;
-/*
-expr_var:
-    var_name
-        {
-            ColumnRef *n;
-
-            n = makeNode(ColumnRef);
-            n->fields = list_make1(makeString($1));
-            n->location = @1;
-
-            $$ = (Node *)n;
-        }
-    ;
-*/
 
 /*
  * names
  */
 cypher_func_name:
-    symbolic_name
+    type_function_name
         {
             $$ = list_make1(makeString($1));
         }
-    /*
-     * symbolic_name '.' symbolic_name is already covered with the
-     * rule expr '.' expr above. This rule is to allow most reserved
-     * keywords to be used as well. So, it essentially makes the
-     * rule schema_name '.' symbolic_name for func_name
-     * NOTE: This rule is incredibly stupid and needs to go
-     */
-    | bare_label_keyword '.' symbolic_name
+    /*| bare_label_keyword '.' symbolic_name
         {
             $$ = list_make2(makeString((char *)$1), makeString($3));
-        }
+        }*/
     ;
 
 property_key_name:
-    schema_name
+    attr_name
     ;
 
 cypher_var_name:
@@ -18158,29 +18104,25 @@ var_name_opt:
     ;
 
 label_name:
-    schema_name
+    attr_name
     ;
 
 symbolic_name:
     IDENTIFIER
     | RANGE 
         {
-            /* we don't need to copy it, as it already has been */
             $$ = (char *) $1;
         }
     | ROW
         {
-            /* we don't need to copy it, as it already has been */
             $$ = (char *) $1;
         }
     | LAST_P
         {
-            /* we don't need to copy it, as it already has been */
             $$ = (char *) $1;
         }
     | FIRST_P
         {
-            /* we don't need to copy it, as it already has been */
             $$ = (char *) $1;
         }
 

@@ -1,0 +1,582 @@
+/*
+ * Copyright (C) 2023 PostGraphDB
+ *  
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *  
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+LOAD 'postgraph';
+SET search_path TO postgraph;
+CREATE GRAPH tsearch;
+NOTICE:  graph "tsearch" has been created
+ create_graph 
+--------------
+ 
+(1 row)
+
+USE GRAPH tsearch;
+ use_graph 
+-----------
+ 
+(1 row)
+
+RETURN totsvector('a fat cat sat on a mat and ate a fat rat') ;
+                     totsvector                     
+----------------------------------------------------
+ 'a' 'and' 'ate' 'cat' 'fat' 'mat' 'on' 'rat' 'sat'
+(1 row)
+
+RETURN totsvector('1') ;
+ totsvector 
+------------
+ '1'
+(1 row)
+
+RETURN totsvector('1 2') ;
+ totsvector 
+------------
+ '1' '2'
+(1 row)
+
+RETURN totsvector('''w'':4A,3B,2C,1D,5 a:8') ;
+       totsvector       
+------------------------
+ 'a':8 'w':1,2C,3B,4A,5
+(1 row)
+
+--
+-- TSVector Operators
+--
+-- TSVector = TSVector
+RETURN totsvector('1') = totsvector('1') ;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN totsvector('1') = totsvector('2') ;
+ ?column? 
+----------
+ f
+(1 row)
+
+RETURN totsvector('2') = totsvector('1') ;
+ ?column? 
+----------
+ f
+(1 row)
+
+-- TSVector <> TSVector
+RETURN totsvector('1') <> totsvector('1') ;
+ ?column? 
+----------
+ f
+(1 row)
+
+RETURN totsvector('1') <> totsvector('2') ;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN totsvector('2') <> totsvector('1') ;
+ ?column? 
+----------
+ t
+(1 row)
+
+-- TSVector < TSVector
+RETURN totsvector('1') < totsvector('1') ;
+ ?column? 
+----------
+ f
+(1 row)
+
+RETURN totsvector('1') < totsvector('2') ;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN totsvector('2') < totsvector('1') ;
+ ?column? 
+----------
+ f
+(1 row)
+
+-- TSVector <= TSVector
+RETURN totsvector('1') <= totsvector('1') ;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN totsvector('1') <= totsvector('2') ;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN totsvector('2') <= totsvector('1') ;
+ ?column? 
+----------
+ f
+(1 row)
+
+-- TSVector > TSVector
+RETURN totsvector('1') > totsvector('1') ;
+ ?column? 
+----------
+ f
+(1 row)
+
+RETURN totsvector('1') > totsvector('2') ;
+ ?column? 
+----------
+ f
+(1 row)
+
+RETURN totsvector('2') > totsvector('1') ;
+ ?column? 
+----------
+ t
+(1 row)
+
+-- TSVector >= TSVector
+RETURN totsvector('1') >= totsvector('1') ;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN totsvector('1') >= totsvector('2') ;
+ ?column? 
+----------
+ f
+(1 row)
+
+RETURN totsvector('2') >= totsvector('1') ;
+ ?column? 
+----------
+ t
+(1 row)
+
+-- TSVector || TSVector
+RETURN totsvector('1') || totsvector('1') ;
+ ?column? 
+----------
+ '1'
+(1 row)
+
+RETURN totsvector('1') || totsvector('2') ;
+ ?column? 
+----------
+ '1' '2'
+(1 row)
+
+RETURN totsvector('2') || totsvector('1') ;
+ ?column? 
+----------
+ '1' '2'
+(1 row)
+
+--
+-- TS_Delete
+--
+    RETURN ts_delete(totsvector('a fat cat sat on a mat and ate a fat rat'), 'rat');
+                  ts_delete                   
+----------------------------------------------
+ 'a' 'and' 'ate' 'cat' 'fat' 'mat' 'on' 'sat'
+(1 row)
+
+--
+-- Strip
+--
+RETURN strip('fat:2,4 cat:3 rat:5A'::tsvector);
+ERROR:  unrecognized node type: 364
+RETURN totsquery('1') ;
+ totsquery 
+-----------
+ '1'
+(1 row)
+
+RETURN totsquery('''1 2''') ;
+ totsquery 
+-----------
+ '1 2'
+(1 row)
+
+RETURN totsquery('!1') ;
+ totsquery 
+-----------
+ !'1'
+(1 row)
+
+RETURN totsquery('1|2') ;
+ totsquery 
+-----------
+ '1' | '2'
+(1 row)
+
+RETURN totsquery('!(!1|!2)') ;
+    totsquery     
+------------------
+ !( !'1' | !'2' )
+(1 row)
+
+RETURN totsquery('!(!1|2)') ;
+    totsquery    
+-----------------
+ !( !'1' | '2' )
+(1 row)
+
+RETURN totsquery('!(1|2)') ;
+   totsquery    
+----------------
+ !( '1' | '2' )
+(1 row)
+
+RETURN totsquery('!1&2') ;
+ totsquery  
+------------
+ !'1' & '2'
+(1 row)
+
+RETURN totsquery('1&!2') ;
+ totsquery  
+------------
+ '1' & !'2'
+(1 row)
+
+RETURN totsquery('!(1)&2') ;
+ totsquery  
+------------
+ !'1' & '2'
+(1 row)
+
+RETURN totsquery('!(1&2)') ;
+   totsquery    
+----------------
+ !( '1' & '2' )
+(1 row)
+
+RETURN totsquery('1|!2&3') ;
+    totsquery     
+------------------
+ '1' | !'2' & '3'
+(1 row)
+
+RETURN totsquery('!1|2&3') ;
+    totsquery     
+------------------
+ !'1' | '2' & '3'
+(1 row)
+
+RETURN totsquery('(!1|2)&3') ;
+      totsquery       
+----------------------
+ ( !'1' | '2' ) & '3'
+(1 row)
+
+RETURN totsquery('1|(2|(4|(5|6)))') ;
+          totsquery          
+-----------------------------
+ '1' | '2' | '4' | '5' | '6'
+(1 row)
+
+RETURN totsquery('1|2|4|5|6') ;
+          totsquery          
+-----------------------------
+ '1' | '2' | '4' | '5' | '6'
+(1 row)
+
+RETURN totsquery('1&(2&(4&(5|!6)))') ;
+            totsquery             
+----------------------------------
+ '1' & '2' & '4' & ( '5' | !'6' )
+(1 row)
+
+RETURN totsquery('a:* & nbb:*ac | doo:a* | goo') ;
+              totsquery               
+--------------------------------------
+ 'a':* & 'nbb':*AC | 'doo':*A | 'goo'
+(1 row)
+
+RETURN totsquery('!!!b') ;
+ totsquery 
+-----------
+ !!!'b'
+(1 row)
+
+RETURN totsquery('!!a & b') ;
+  totsquery  
+-------------
+ !!'a' & 'b'
+(1 row)
+
+--
+-- PlainTo_TSQuery
+--
+RETURN PlainTo_TSQuery('"fat rat" or cat dog') ;
+        plainto_tsquery        
+-------------------------------
+ 'fat' & 'rat' & 'cat' & 'dog'
+(1 row)
+
+RETURN PlainTo_TSQuery('The Fat Rats') ;
+ plainto_tsquery 
+-----------------
+ 'fat' & 'rat'
+(1 row)
+
+RETURN PlainTo_TSQuery('The Cat and Rats') ;
+ plainto_tsquery 
+-----------------
+ 'cat' & 'rat'
+(1 row)
+
+--
+-- PhraseTo_TSQuery
+--
+RETURN PhraseTo_TSQuery('The Fat Rats') ;
+ phraseto_tsquery 
+------------------
+ 'fat' <-> 'rat'
+(1 row)
+
+RETURN PhraseTo_TSQuery('The Cat and Rats') ;
+ phraseto_tsquery 
+------------------
+ 'cat' <2> 'rat'
+(1 row)
+
+--
+-- Websearch_To_TSQuery
+--
+RETURN Websearch_To_TSQuery('"fat rat" or cat dog') ;
+      websearch_to_tsquery       
+---------------------------------
+ 'fat' <-> 'rat' | 'cat' & 'dog'
+(1 row)
+
+RETURN Websearch_To_TSQuery('The Fat Rats') ;
+ websearch_to_tsquery 
+----------------------
+ 'fat' & 'rat'
+(1 row)
+
+RETURN Websearch_To_TSQuery('The Cat and Rats') ;
+ websearch_to_tsquery 
+----------------------
+ 'cat' & 'rat'
+(1 row)
+
+--
+-- TSQuery Operators
+--
+-- TSQuery = TSQuery
+RETURN totsquery('1') = totsquery('1') ;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN totsquery('1') = totsquery('2') ;
+ ?column? 
+----------
+ f
+(1 row)
+
+RETURN totsquery('2') = totsquery('1') ;
+ ?column? 
+----------
+ f
+(1 row)
+
+-- TSQuery <> TSQuery
+RETURN totsquery('1') <> totsquery('1') ;
+ ?column? 
+----------
+ f
+(1 row)
+
+RETURN totsquery('1') <> totsquery('2') ;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN totsquery('2') <> totsquery('1') ;
+ ?column? 
+----------
+ t
+(1 row)
+
+-- TSQuery < TSQuery
+RETURN totsquery('1') < totsquery('1') ;
+ ?column? 
+----------
+ f
+(1 row)
+
+RETURN totsquery('1') < totsquery('2') ;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN totsquery('2') < totsquery('1') ;
+ ?column? 
+----------
+ f
+(1 row)
+
+-- TSQuery <= TSQuery
+RETURN totsquery('1') <= totsquery('1') ;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN totsquery('1') <= totsquery('2') ;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN totsquery('2') <= totsquery('1') ;
+ ?column? 
+----------
+ f
+(1 row)
+
+-- TSQuery > TSQuery
+RETURN totsquery('1') > totsquery('1') ;
+ ?column? 
+----------
+ f
+(1 row)
+
+RETURN totsquery('1') > totsquery('2') ;
+ ?column? 
+----------
+ f
+(1 row)
+
+RETURN totsquery('2') > totsquery('1') ;
+ ?column? 
+----------
+ t
+(1 row)
+
+-- TSQuery >= TSQuery
+RETURN totsquery('1') >= totsquery('1') ;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN totsquery('1') >= totsquery('2') ;
+ ?column? 
+----------
+ f
+(1 row)
+
+RETURN totsquery('2') >= totsquery('1') ;
+ ?column? 
+----------
+ t
+(1 row)
+
+-- TSQuery && TSQuery
+RETURN '1'::tsquery & '2'::tsquery ;
+ ?column?  
+-----------
+ '1' & '2'
+(1 row)
+
+RETURN '2'::tsquery & '1'::tsquery ;
+ ?column?  
+-----------
+ '2' & '1'
+(1 row)
+
+-- TSQuery || TSQuery
+RETURN '1'::tsquery || '2'::tsquery ;
+ ?column?  
+-----------
+ '1' | '2'
+(1 row)
+
+RETURN '2'::tsquery || '1'::tsquery ;
+ ?column?  
+-----------
+ '2' | '1'
+(1 row)
+
+-- TSQuery_Phrase and <-> Operator
+RETURN tsquery_phrase('fat'::tsquery,'cat'::tsquery) ;
+ERROR:  unrecognized node type: 364
+RETURN 'fat'::tsquery <-> 'cat'::tsquery ;
+    ?column?     
+-----------------
+ 'fat' <-> 'cat'
+(1 row)
+
+RETURN tsquery_phrase('fat'::tsquery,'cat'::tsquery, 10) ;
+ERROR:  unrecognized node type: 364
+-- TSQuery @> TSQuery
+RETURN 'cat & rat'::tsquery @> 'rat'::tsquery ;
+ ?column? 
+----------
+ t
+(1 row)
+
+RETURN 'cat'::tsquery @> 'cat & rat'::tsquery ;
+ ?column? 
+----------
+ f
+(1 row)
+
+-- TSQuery <@ TSQuery
+RETURN 'cat & rat'::tsquery <@ 'rat'::tsquery ;
+ ?column? 
+----------
+ f
+(1 row)
+
+RETURN 'cat'::tsquery <@ 'cat & rat'::tsquery ;
+ ?column? 
+----------
+ t
+(1 row)
+
+-- !! TSQuery
+RETURN !! totsquery('!1|2&3') ;
+       ?column?        
+-----------------------
+ !( !'1' | '2' & '3' )
+(1 row)
+
+--
+-- Cleanup
+--
+DROP GRAPH tsearch CASCADE;
+NOTICE:  drop cascades to 2 other objects
+DETAIL:  drop cascades to table tsearch._ag_label_vertex
+drop cascades to table tsearch._ag_label_edge
+NOTICE:  graph "tsearch" has been dropped
+ drop_graph 
+------------
+ 
+(1 row)
+

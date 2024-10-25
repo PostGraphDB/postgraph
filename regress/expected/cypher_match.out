@@ -52,8 +52,8 @@ MATCH (n:v) RETURN n;
 (3 rows)
 
 MATCH (n:v) RETURN n.i;
- ?column? 
-----------
+ i 
+---
  
  0
  1
@@ -61,8 +61,8 @@ MATCH (n:v) RETURN n.i;
 
 MATCH (n:v) WHERE n.i > 0
 RETURN n.i;
- ?column? 
-----------
+ i 
+---
  1
 (1 row)
 
@@ -277,11 +277,11 @@ MATCH con_path=(a)-[]->()<-[]-(), div_path=(b)<-[]-()-[]->() WHERE a.id = 'initi
 (1 row)
 
 MATCH (a:v), p=()-[]->()-[]->() RETURN a.i, p;
- ?column? |                                                                                                                                                                                                                                  p                                                                                                                                                                                                                                  
-----------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- 1        | [{"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}, {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}}, {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}, {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}}, {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}]
- 0        | [{"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}, {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}}, {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}, {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}}, {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}]
-          | [{"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}, {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}}, {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}, {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}}, {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}]
+ i |                                                                                                                                                                                                                                  p                                                                                                                                                                                                                                  
+---+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 1 | [{"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}, {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}}, {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}, {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}}, {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}]
+ 0 | [{"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}, {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}}, {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}, {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}}, {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}]
+   | [{"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}, {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}}, {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}, {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}}, {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}]
 (3 rows)
 
 --Multiple Match Clauses
@@ -292,41 +292,41 @@ MATCH (a:v1) WHERE a.id = 'initial' MATCH p=(a)-[]-()-[]-() RETURN p;
 (1 row)
 
 MATCH (a:v) MATCH p=()-[]->()-[]->() RETURN a.i, p;
- ?column? |                                                                                                                                                                                                                                  p                                                                                                                                                                                                                                  
-----------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- 1        | [{"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}, {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}}, {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}, {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}}, {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}]
- 0        | [{"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}, {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}}, {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}, {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}}, {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}]
-          | [{"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}, {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}}, {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}, {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}}, {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}]
+ i |                                                                                                                                                                                                                                  p                                                                                                                                                                                                                                  
+---+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 1 | [{"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}, {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}}, {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}, {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}}, {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}]
+ 0 | [{"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}, {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}}, {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}, {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}}, {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}]
+   | [{"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}, {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}}, {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}, {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}}, {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}]
 (3 rows)
 
 MATCH (a:v) MATCH (b:v1)-[]-(c) RETURN a.i, b.id, c.id;
- ?column? | ?column?  | ?column?  
-----------+-----------+-----------
-          | "end"     | "middle"
- 0        | "end"     | "middle"
- 1        | "end"     | "middle"
-          | "middle"  | "end"
- 0        | "middle"  | "end"
- 1        | "middle"  | "end"
-          | "middle"  | "initial"
- 0        | "middle"  | "initial"
- 1        | "middle"  | "initial"
-          | "initial" | "middle"
- 0        | "initial" | "middle"
- 1        | "initial" | "middle"
+ i |    id     |    id     
+---+-----------+-----------
+   | "end"     | "middle"
+ 0 | "end"     | "middle"
+ 1 | "end"     | "middle"
+   | "middle"  | "end"
+ 0 | "middle"  | "end"
+ 1 | "middle"  | "end"
+   | "middle"  | "initial"
+ 0 | "middle"  | "initial"
+ 1 | "middle"  | "initial"
+   | "initial" | "middle"
+ 0 | "initial" | "middle"
+ 1 | "initial" | "middle"
 (12 rows)
 
 --
 -- Property constraints
 --
 CREATE ({string_key: 'test', int_key: 1, float_key: 3.14, map_key: {key: 'value'}, list_key: [1, 2, 3]});
-ERROR:  syntax error at or near "key"
-LINE 1: ...y: 'test', int_key: 1, float_key: 3.14, map_key: {key: 'valu...
-                                                             ^
+--
+(0 rows)
+
 CREATE ({lst: [1, NULL, 3.14, 'string', {key: 'value'}, []]});
-ERROR:  syntax error at or near "key"
-LINE 1: CREATE ({lst: [1, NULL, 3.14, 'string', {key: 'value'}, []]}...
-                                                 ^
+--
+(0 rows)
+
 MATCH (n  {string_key: NULL}) RETURN n;
 ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
@@ -334,24 +334,23 @@ MATCH (n  {string_key: 'wrong value'}) RETURN n ;
 ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 MATCH (n {string_key: 'test', int_key: 1, float_key: 3.14, map_key: {key: 'value'}, list_key: [1, 2, 3]}) RETURN n;
-ERROR:  syntax error at or near "key"
-LINE 1: ...y: 'test', int_key: 1, float_key: 3.14, map_key: {key: 'valu...
-                                                             ^
+ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 MATCH (n {string_key: 'test'}) RETURN n;
 ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 MATCH (n {lst: [1, NULL, 3.14, 'string', {key: 'value'}, []]}) RETURN n;
-ERROR:  syntax error at or near "key"
-LINE 1: MATCH (n {lst: [1, NULL, 3.14, 'string', {key: 'value'}, []]...
-                                                  ^
+ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 MATCH (n {lst: [1, NULL, 3.14, 'string', {key: 'value'}, [], 'extra value']})  RETURN n;
-ERROR:  syntax error at or near "key"
-LINE 1: MATCH (n {lst: [1, NULL, 3.14, 'string', {key: 'value'}, [],...
-                                                  ^
+ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 -- Path of one vertex.
 MATCH p=() RETURN p;
-                                     p                                      
-----------------------------------------------------------------------------
+                                                                                 p                                                                                 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 281474976710657, "label": "", "properties": {"int_key": 1, "map_key": {"key": "value"}, "list_key": [1, 2, 3], "float_key": 3.14, "string_key": "test"}}]
+ [{"id": 281474976710658, "label": "", "properties": {"lst": [1, null, 3.14, "string", {"key": "value"}, []]}}]
  [{"id": 2251799813685249, "label": "v3", "properties": {"id": "initial"}}]
  [{"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}]
  [{"id": 2251799813685251, "label": "v3", "properties": {"id": "end"}}]
@@ -364,7 +363,7 @@ MATCH p=() RETURN p;
  [{"id": 844424930131969, "label": "v", "properties": {}}]
  [{"id": 844424930131970, "label": "v", "properties": {"i": 0}}]
  [{"id": 844424930131971, "label": "v", "properties": {"i": 1}}]
-(12 rows)
+(14 rows)
 
 --
 -- MATCH with WHERE EXISTS(pattern)
@@ -507,9 +506,10 @@ WHERE u.id = e.start_id
 --Distinct
 --
 MATCH (u) RETURN DISTINCT props(u);
-ERROR:  syntax error at or near "("
+ERROR:  function postgraph.props(postgraph.vertex) does not exist
 LINE 14: MATCH (u) RETURN DISTINCT props(u);
-                                        ^
+                                   ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
 CREATE (u:duplicate)-[:dup_edge {id:1 }]->(:other_v);
 --
 (0 rows)
@@ -531,8 +531,10 @@ MATCH p=(:duplicate)-[]-(:other_v) RETURN DISTINCT p;
 -- Limit & Skip
 --
 MATCH (u) RETURN u;
-                                     u                                      
-----------------------------------------------------------------------------
+                                                                                u                                                                                
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {"int_key": 1, "map_key": {"key": "value"}, "list_key": [1, 2, 3], "float_key": 3.14, "string_key": "test"}}
+ {"id": 281474976710658, "label": "", "properties": {"lst": [1, null, 3.14, "string", {"key": "value"}, []]}}
  {"id": 844424930131969, "label": "v", "properties": {}}
  {"id": 844424930131970, "label": "v", "properties": {"i": 0}}
  {"id": 844424930131971, "label": "v", "properties": {"i": 1}}
@@ -549,7 +551,7 @@ MATCH (u) RETURN u;
  {"id": 3377699720527873, "label": "duplicate", "properties": {}}
  {"id": 3940649673949185, "label": "other_v", "properties": {}}
  {"id": 3940649673949186, "label": "other_v", "properties": {}}
-(16 rows)
+(18 rows)
 
 MATCH (u) RETURN u LIMIT 3;
 ERROR:  syntax error at or near "LIMIT"
@@ -568,17 +570,20 @@ LINE 1: MATCH (u) RETURN u SKIP 7 LIMIT 3;
 --
 CREATE (:opt_match_v {name: 'someone'})-[:opt_match_e]->(:opt_match_v {name: 'somebody'}),
         (:opt_match_v {name: 'anybody'})-[:opt_match_e]->(:opt_match_v {name: 'nobody'});
-ERROR:  syntax error at or near "name"
-LINE 1: CREATE (:opt_match_v {name: 'someone'})-[:opt_match_e]->(:op...
-                              ^
+--
+(0 rows)
+
 MATCH (u:opt_match_v) OPTIONAL MATCH (u)-[m]-(l) RETURN u.name as u, type(m), l.name as l ORDER BY u, m, l;
-ERROR:  syntax error at or near "name"
-LINE 1: ...:opt_match_v) OPTIONAL MATCH (u)-[m]-(l) RETURN u.name as u,...
+ERROR:  syntax error at or near "ORDER"
+LINE 1: ...-[m]-(l) RETURN u.name as u, type(m), l.name as l ORDER BY u...
                                                              ^
 OPTIONAL MATCH (n:opt_match_v)-[r]->(p), (m:opt_match_v)-[s]->(q) WHERE id(n) <> id(m) RETURN n.name as n, type(r); m.name AS m, type(s); ORDER BY n, p, m, q;
-ERROR:  syntax error at or near "("
-LINE 1: ...tch_v)-[r]->(p), (m:opt_match_v)-[s]->(q) WHERE id(n) <> id(...
-                                                             ^
+     n     |     type      
+-----------+---------------
+ "someone" | "opt_match_e"
+ "anybody" | "opt_match_e"
+(2 rows)
+
 ERROR:  syntax error at or near "m"
 LINE 1: m.name AS m, type(s);
         ^
@@ -591,23 +596,21 @@ OPTIONAL MATCH (n)-[r]->(p), (m)-[s]->(q)
 RETURN n.name AS n, type(r),
            m.name AS m, type(s)
 ORDER BY n, p, m, q;
-ERROR:  syntax error at or near "("
-LINE 2: WHERE id(n) <> id(m)
-                ^
+ERROR:  syntax error at or near "ORDER"
+LINE 6: ORDER BY n, p, m, q;
+        ^
 CREATE (u {name: 'orphan'}) CREATE (u1 {name: 'F'})-[u2:e1]->(u3 {name: 'T'}) RETURN u1, u2, u3;
-ERROR:  syntax error at or near "name"
-LINE 1: CREATE (u {name: 'orphan'}) CREATE (u1 {name: 'F'})-[u2:e1]-...
-                   ^
+                                u1                                 |                                                        u2                                                         |                                u3                                 
+-------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------
+ {"id": 281474976710660, "label": "", "properties": {"name": "F"}} | {"id": 1407374883553283, "start_id": 281474976710660, "end_id": 281474976710661, "label": "e1", "properties": {}} | {"id": 281474976710661, "label": "", "properties": {"name": "T"}}
+(1 row)
+
 -- Querying NOT EXISTS syntax
 MATCH (f),(t) WHERE NOT EXISTS((f)-[]->(t)) RETURN f.name, t.name;
-ERROR:  syntax error at or near "name"
-LINE 1: ...CH (f),(t) WHERE NOT EXISTS((f)-[]->(t)) RETURN f.name, t.na...
-                                                             ^
+ERROR:  MATCH cannot be the last clause in a cypher statement
 -- Querying EXISTS syntax
 MATCH (f),(t) WHERE EXISTS((f)-[]->(t)) RETURN f.name, t.name;
-ERROR:  syntax error at or near "name"
-LINE 1: MATCH (f),(t) WHERE EXISTS((f)-[]->(t)) RETURN f.name, t.nam...
-                                                         ^
+ERROR:  MATCH cannot be the last clause in a cypher statement
 --
 -- Constraints and WHERE clause together
 --
@@ -658,19 +661,33 @@ MATCH (n:vmissing)-[]-() RETURN n;
 ERROR:  label vmissing does not exists
 LINE 1: MATCH (n:vmissing)-[]-() RETURN n;
               ^
-CREATE TABLE tst (int i);
-ERROR:  type "i" does not exist
-LINE 1: CREATE TABLE tst (int i);
-                              ^
-INSERT INTO tst VALUES (1, 2, 3,)
-MATCH (n) WHERE EXISTS (SELECT * FROM tst WHERE n->'"i"' = tst.i)
 --
 -- Clean up
 --
 DROP GRAPH cypher_match CASCADE;
-ERROR:  syntax error at or near ")"
-LINE 1: INSERT INTO tst VALUES (1, 2, 3,)
-                                        ^
+NOTICE:  drop cascades to 16 other objects
+DETAIL:  drop cascades to table cypher_match._ag_label_vertex
+drop cascades to table cypher_match._ag_label_edge
+drop cascades to table cypher_match.v
+drop cascades to table cypher_match.v1
+drop cascades to table cypher_match.e1
+drop cascades to table cypher_match.v2
+drop cascades to table cypher_match.e2
+drop cascades to table cypher_match.v3
+drop cascades to table cypher_match.e3
+drop cascades to table cypher_match.loop
+drop cascades to table cypher_match.self
+drop cascades to table cypher_match.duplicate
+drop cascades to table cypher_match.dup_edge
+drop cascades to table cypher_match.other_v
+drop cascades to table cypher_match.opt_match_v
+drop cascades to table cypher_match.opt_match_e
+NOTICE:  graph "cypher_match" has been dropped
+ drop_graph 
+------------
+ 
+(1 row)
+
 --
 -- End
 --

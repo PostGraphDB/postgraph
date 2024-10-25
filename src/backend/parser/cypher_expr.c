@@ -1946,99 +1946,112 @@ transform_column_ref(cypher_parsestate *cpstate, ColumnRef *cref) {
     int levels_up;
     ParseNamespaceItem *pnsi;
 
-    switch (list_length(cref->fields))
-    {
-        case 1:
-            {
-                transform_entity *te;
-                field1 = (Node*)linitial(cref->fields);
+   if (list_length(cref->fields) == 1) {
+        transform_entity *te;
+        field1 = (Node*)linitial(cref->fields);
 
-                Assert(IsA(field1, String));
-                colname = strVal(field1);
+        Assert(IsA(field1, String));
+        colname = strVal(field1);
 
-                node = colNameToVar(pstate, colname, false, cref->location);
-                if (node != NULL)
-                    break;
+        node = colNameToVar(pstate, colname, false, cref->location);
+        if (node != NULL)
+            return node;
 
-                te = find_variable(cpstate, colname) ;
-                if (te != NULL && te->expr != NULL) {
-                    node = (Node *)te->expr;
-                    break;
-                }
-                else {
-                    ParseNamespaceItem *nsitem = refnameNamespaceItem(pstate, NULL, colname, cref->location, &levels_up);
+        te = find_variable(cpstate, colname) ;
+        if (te != NULL && te->expr != NULL) {
+            node = (Node *)te->expr;
+            return node;
+        } else {
+            ParseNamespaceItem *nsitem = refnameNamespaceItem(pstate, NULL, colname, cref->location, &levels_up);
 
-                    if (nsitem) {
-                        return transformWholeRowRef(pstate, nsitem, levels_up, cref->location);
-                }
-
-                    ereport(ERROR, (errcode(ERRCODE_UNDEFINED_COLUMN),
-                                    errmsg("could not find rte for %s", colname),
-                                    parser_errposition(pstate, cref->location)));
-                }
-                break;
+            if (nsitem) {
+                return transformWholeRowRef(pstate, nsitem, levels_up, cref->location);
             }
-        case 2:
-            {
-                Oid inputTypeId = InvalidOid;
-                Oid targetTypeId = InvalidOid;
 
-                field1 = (Node*)linitial(cref->fields);
-                field2 = (Node*)lsecond(cref->fields);
-
-                Assert(IsA(field1, String));
-                relname = strVal(field1);
-
-                if (IsA(field2, String))
-                    colname = strVal(field2);
-
-                /* locate the referenced RTE */
-                pnsi = refnameNamespaceItem(pstate, nspname, relname,
-                                           cref->location, &levels_up);
-
-                if (pnsi == NULL)
-                    ereport(ERROR,
-                            (errcode(ERRCODE_UNDEFINED_COLUMN),
-                             errmsg("could not find rte for %s.%s", relname, colname),
-                             parser_errposition(pstate, cref->location)));
-
-                Assert(IsA(field2, String));
-
-                /* try to identify as a column of the RTE */
-                node = scanNSItemForColumn(pstate, pnsi, 0, colname, cref->location);
-
-                if (!node)
-                    ereport(ERROR,
-                            (errcode(ERRCODE_UNDEFINED_COLUMN),
-                             errmsg("could not find column %s in rel %s of rte", colname, relname),
-                             parser_errposition(pstate, cref->location)));
-
-                /* coerce it to GTYPE if possible */
-                inputTypeId = exprType(node);
-                /*targetTypeId = GTYPEOID;
-
-                if (can_coerce_type(1, &inputTypeId, &targetTypeId, COERCION_EXPLICIT)) {
-                    node = coerce_type(pstate, node, inputTypeId, targetTypeId,
-                                       -1, COERCION_EXPLICIT, COERCE_EXPLICIT_CAST, -1);
-                }*/
-                break;
-            }
-        default:
-            {
-                ereport(ERROR,
-                        (errcode(ERRCODE_SYNTAX_ERROR),
-                         errmsg("improper qualified name (too many dotted names): %s",
-                                NameListToString(cref->fields)),
-                         parser_errposition(pstate, cref->location)));
-                break;
-            }
-    }
-
-    if (!node)
+            ereport(ERROR, (errcode(ERRCODE_UNDEFINED_COLUMN),
+                            errmsg("could not find rte for %s", colname),
+                            parser_errposition(pstate, cref->location)));
+        }
+        if (!node)
         ereport(ERROR,
                 (errcode(ERRCODE_UNDEFINED_COLUMN),
                  errmsg("variable `%s` does not exist", colname),
                  parser_errposition(pstate, cref->location)));
+
+        return node;
+   }
+
+    Node *last_srf = pstate->p_last_srf;
+        transform_entity *te;
+        field1 = (Node*)linitial(cref->fields);
+
+        Assert(IsA(field1, String));
+        colname = strVal(field1);
+
+        node = colNameToVar(pstate, colname, false, cref->location);
+        if (node == NULL){
+            te = find_variable(cpstate, colname) ;
+            if (te != NULL && te->expr != NULL) {
+                node = (Node *)te->expr;
+            } else {
+                ParseNamespaceItem *nsitem = refnameNamespaceItem(pstate, NULL, colname, cref->location, &levels_up);
+
+                if (nsitem) {
+                    return transformWholeRowRef(pstate, nsitem, levels_up, cref->location);
+                }
+
+                ereport(ERROR, (errcode(ERRCODE_UNDEFINED_COLUMN),
+                                errmsg("could not find rte for %s", colname),
+                                parser_errposition(pstate, cref->location)));
+            }
+
+        }
+        if (!node)
+        ereport(ERROR,
+                (errcode(ERRCODE_UNDEFINED_COLUMN),
+                 errmsg("variable `%s` does not exist", colname),
+                 parser_errposition(pstate, cref->location)));
+
+    for (int i = 1; i < list_length(cref->fields); i++) {
+        field2 = (Node*)list_nth(cref->fields, i);
+
+        Node *rexpr;
+        if (IsA(field2, A_Indices)) {
+            A_Indices *indices = field2;
+
+            if (indices->is_slice) {
+                List *args = list_make1(node);
+
+                // lower bound
+                if (!indices->lidx)
+                    args = lappend(args, makeConst(GTYPEOID, -1, InvalidOid, -1, (Datum)NULL, true, false));
+                else
+                    args = lappend(args, transform_cypher_expr_recurse(cpstate, indices->lidx));
+
+                // upper bound
+                if (!indices->uidx)
+                    args = lappend(args, makeConst(GTYPEOID, -1, InvalidOid, -1, (Datum)NULL, true, false));
+                else
+                    args = lappend(args, transform_cypher_expr_recurse(cpstate, indices->uidx));
+
+                Oid oid = get_ag_func_oid("gtype_access_slice", 3, GTYPEOID, GTYPEOID, GTYPEOID);
+                FuncExpr *func_expr = makeFuncExpr(oid, GTYPEOID, args, InvalidOid, InvalidOid, COERCE_EXPLICIT_CALL);
+                func_expr->location = exprLocation(node);
+
+               return func_expr;
+            }
+            rexpr = transform_cypher_expr_recurse(cpstate, field2);
+        } else if (IsA(field2, String))
+            rexpr = transform_cypher_expr_recurse(cpstate, field2);
+        else    
+            ereport(ERROR,
+                (errcode(ERRCODE_UNDEFINED_COLUMN),
+                 errmsg("ColumnRef expects a String"),
+                 parser_errposition(pstate, cref->location)));
+
+        node = (Node *)make_op(pstate, list_make2(makeString("postgraph"), makeString("->")), node, rexpr, last_srf, cref->location);
+    }
+   
 
     return node;
 }
@@ -2295,7 +2308,6 @@ transform_a_indirection(cypher_parsestate *cpstate, A_Indirection *a_ind) {
 
     Assert(a_ind != NULL && list_length(a_ind->indirection) > 0);
 
-    // transform primary indirection argument
     Node *cur;
     if (IsA(a_ind->arg, ColumnRef))
         cur = transform_column_ref_for_indirection(cpstate, (ColumnRef *)a_ind->arg);
@@ -3170,77 +3182,73 @@ transform_sub_link(cypher_parsestate *cpstate, SubLink *sublink) {
 static Node *
 transformSQLValueFunction(cypher_parsestate *cpstate, SQLValueFunction *svf)
 {
-        /*
-         * All we need to do is insert the correct result type and (where needed)
-         * validate the typmod, so we just modify the node in-place.
-         */
-        switch (svf->op)
-        {
-                case SVFOP_CURRENT_DATE:
-                        svf->type = DATEOID;
-                        break;
-                case SVFOP_CURRENT_TIME:
-                        svf->type = TIMETZOID;
-                        break;
-                case SVFOP_CURRENT_TIME_N:
-                        svf->type = TIMETZOID;
-                        svf->typmod = anytime_typmod_check(true, svf->typmod);
-                        break;
-                case SVFOP_CURRENT_TIMESTAMP:
-                        svf->type = TIMESTAMPTZOID;
-                        break;
-                case SVFOP_CURRENT_TIMESTAMP_N:
-                        svf->type = TIMESTAMPTZOID;
-                        svf->typmod = anytimestamp_typmod_check(true, svf->typmod);
-                        break;
-                case SVFOP_LOCALTIME:
-                        svf->type = TIMEOID;
-                        break;
-                case SVFOP_LOCALTIME_N:
-                        svf->type = TIMEOID;
-                        svf->typmod = anytime_typmod_check(false, svf->typmod);
-                        break;
-                case SVFOP_LOCALTIMESTAMP:
-                        svf->type = TIMESTAMPOID;
-                        break;
-                case SVFOP_LOCALTIMESTAMP_N:
-                        svf->type = TIMESTAMPOID;
-                        svf->typmod = anytimestamp_typmod_check(false, svf->typmod);
-                        break;
-                case SVFOP_CURRENT_ROLE:
-                case SVFOP_CURRENT_USER:
-                case SVFOP_USER:
-                case SVFOP_SESSION_USER:
-                case SVFOP_CURRENT_CATALOG:
-                case SVFOP_CURRENT_SCHEMA:
-                        svf->type = NAMEOID;
-                        break;
-        }
+    /*
+     * All we need to do is insert the correct result type and (where needed)
+     * validate the typmod, so we just modify the node in-place.
+     */
+    switch (svf->op)
+    {
+        case SVFOP_CURRENT_DATE:
+            svf->type = DATEOID;
+            break;
+        case SVFOP_CURRENT_TIME:
+            svf->type = TIMETZOID;
+            break;
+        case SVFOP_CURRENT_TIME_N:
+            svf->type = TIMETZOID;
+            svf->typmod = anytime_typmod_check(true, svf->typmod);
+            break;
+        case SVFOP_CURRENT_TIMESTAMP:
+            svf->type = TIMESTAMPTZOID;
+            break;
+        case SVFOP_CURRENT_TIMESTAMP_N:
+            svf->type = TIMESTAMPTZOID;
+            svf->typmod = anytimestamp_typmod_check(true, svf->typmod);
+            break;
+        case SVFOP_LOCALTIME:
+            svf->type = TIMEOID;
+            break;
+        case SVFOP_LOCALTIME_N:
+            svf->type = TIMEOID;
+            svf->typmod = anytime_typmod_check(false, svf->typmod);
+            break;
+        case SVFOP_LOCALTIMESTAMP:
+            svf->type = TIMESTAMPOID;
+            break;
+        case SVFOP_LOCALTIMESTAMP_N:
+            svf->type = TIMESTAMPOID;
+            svf->typmod = anytimestamp_typmod_check(false, svf->typmod);
+            break;
+        case SVFOP_CURRENT_ROLE:
+        case SVFOP_CURRENT_USER:
+        case SVFOP_USER:
+        case SVFOP_SESSION_USER:
+        case SVFOP_CURRENT_CATALOG:
+        case SVFOP_CURRENT_SCHEMA:
+            svf->type = NAMEOID;
+            break;
+    }
 
-//        return (Node *) svf;
+    Node *result;
+    Node *expr = (Node *) svf;
+    Oid inputType;
+    Oid targetType;
+    int32 targetTypmod;
 
+    typenameTypeIdAndMod(cpstate, makeTypeName("gtype"), &targetType, &targetTypmod);
 
-        Node *result;
-        //Node       *arg = tc->arg;
-        Node *expr = (Node *) svf;
-        Oid inputType;
-        Oid targetType;
-        int32 targetTypmod;
+    inputType = exprType(expr);
+    if (inputType == InvalidOid)
+            return expr;
 
-        typenameTypeIdAndMod(cpstate, makeTypeName("gtype"), &targetType, &targetTypmod);
-
-        inputType = exprType(expr);
-        if (inputType == InvalidOid)
-                return expr;
-
-        result = coerce_to_target_type(cpstate, expr, inputType, targetType, targetTypmod,
-                                       COERCION_EXPLICIT, COERCE_EXPLICIT_CAST, -1);
+    result = coerce_to_target_type(cpstate, expr, inputType, targetType, targetTypmod,
+                                    COERCION_EXPLICIT, COERCE_EXPLICIT_CAST, -1);
 
     if (result == NULL)
-                ereport(ERROR, (errcode(ERRCODE_CANNOT_COERCE),
+        ereport(ERROR, (errcode(ERRCODE_CANNOT_COERCE),
                         errmsg("cannot cast type %s to %s", format_type_be(inputType), format_type_be(targetType)),
                         parser_coercion_errposition(cpstate, -1, expr)));
 
-        return result;
+    return result;
 }
 

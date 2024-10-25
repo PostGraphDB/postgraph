@@ -173,7 +173,7 @@ static FuncExpr *make_clause_func_expr(char *function_name, Node *clause_informa
 static ParseNamespaceItem *transform_RangeFunction(cypher_parsestate *cpstate, RangeFunction *r);
 static Node *transform_VLE_Function(cypher_parsestate *cpstate, Node *n, RangeTblEntry **top_rte, int *top_rti, List **namespace);
 static void setNamespaceLateralState(List *namespace, bool lateral_only, bool lateral_ok);
-ParseNamespaceItem *find_pnsi(cypher_parsestate *cpstate, char *varname);
+
 
 // utils XXX: Should be moved into its own file
 RangeFunction *make_range_function(FuncCall *func, Alias *alias, bool is_lateral, bool ordinality, bool is_rows_from);
@@ -953,7 +953,26 @@ static Query *transform_cypher_delete(cypher_parsestate *cpstate, cypher_clause 
     query->rtable = pstate->p_rtable;
     query->jointree = makeFromExpr(pstate->p_joinlist, NULL);
 
-    return query;
+
+    if (clause->next)
+        return query;
+
+    {
+        Query *topquery;
+        cypher_parsestate *new_cpstate = make_cypher_parsestate(cpstate);
+        topquery = makeNode(Query);
+        topquery->commandType = CMD_SELECT;
+        topquery->targetList = NIL;
+
+        ParseState *pstate = (ParseState *) cpstate;
+        int rtindex;
+
+        ParseNamespaceItem *pnsi = transform_cypher_clause_as_subquery_2(new_cpstate, clause, NULL, false, query);
+        topquery->rtable = new_cpstate->pstate.p_rtable;
+        topquery->jointree = makeFromExpr(new_cpstate->pstate.p_joinlist, NULL);
+
+        return topquery;
+    }
 }
 
 /*
@@ -1118,7 +1137,25 @@ static Query *transform_cypher_set(cypher_parsestate *cpstate, cypher_clause *cl
     query->rtable = pstate->p_rtable;
     query->jointree = makeFromExpr(pstate->p_joinlist, NULL);
 
-    return query;
+    if (clause->next)
+        return query;
+
+    {
+        Query *topquery;
+        cypher_parsestate *new_cpstate = make_cypher_parsestate(cpstate);
+        topquery = makeNode(Query);
+        topquery->commandType = CMD_SELECT;
+        topquery->targetList = NIL;
+
+        ParseState *pstate = (ParseState *) cpstate;
+        int rtindex;
+
+        ParseNamespaceItem *pnsi = transform_cypher_clause_as_subquery_2(new_cpstate, clause, NULL, false, query);
+        topquery->rtable = new_cpstate->pstate.p_rtable;
+        topquery->jointree = makeFromExpr(new_cpstate->pstate.p_joinlist, NULL);
+
+        return topquery;
+    }
 }
 
 cypher_update_information *transform_cypher_remove_item_list(cypher_parsestate *cpstate, List *remove_item_list, Query *query) {
@@ -1133,41 +1170,24 @@ cypher_update_information *transform_cypher_remove_item_list(cypher_parsestate *
         cypher_set_item *set_item = lfirst(li);
         cypher_update_item *item;
         ColumnRef *ref;
-        A_Indirection *ind;
         char *variable_name, *property_name;
         Value *property_node, *variable_node;
 
         item = make_ag_node(cypher_update_item);
-
-        if (!is_ag_node(lfirst(li), cypher_set_item))
-            ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                     errmsg("unexpected node in cypher update list")));
-
-        if (set_item->is_add)
-            ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                     errmsg("REMOVE clause does not support adding propereties from maps"),
-                     parser_errposition(pstate, set_item->location)));
-
         item->remove_item = true;
 
-
-        if (!IsA(set_item->prop, A_Indirection))
+        ColumnRef *set_item_prop = set_item->prop;
+        if (!IsA(set_item_prop, ColumnRef))
             ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
                      errmsg("REMOVE clause must be in the format: REMOVE variable.property_name"),
                      parser_errposition(pstate, set_item->location)));
 
-        ind = (A_Indirection *)set_item->prop;
-
-        // extract variable name
-        if (!IsA(ind->arg, ColumnRef))
-            ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                     errmsg("REMOVE clause must be in the format: REMOVE variable.property_name"),
-                     parser_errposition(pstate, set_item->location)));
-
-        ref = (ColumnRef *)ind->arg;
+        ref = (ColumnRef *)set_item_prop;
         variable_node = linitial(ref->fields);
 
+
         variable_name = variable_node->val.str;
+
         item->var_name = variable_name;
         item->entity_position = get_target_entry_resno(cpstate, query->targetList, variable_name);
 
@@ -1177,14 +1197,12 @@ cypher_update_information *transform_cypher_remove_item_list(cypher_parsestate *
                      parser_errposition(pstate, set_item->location)));
 
         // extract property name
-        if (list_length(ind->indirection) != 1)
+        if (list_length(ref->fields) != 2)
             ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
                      errmsg("REMOVE clause must be in the format: REMOVE variable.property_name"),
                      parser_errposition(pstate, set_item->location)));
 
-        ref = (ColumnRef*)linitial(ind->indirection);
-
-        property_node = linitial(ref->fields);
+        property_node = lsecond(ref->fields);
 
         if (!IsA(property_node, String))
             ereport(ERROR, (errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
@@ -1218,27 +1236,24 @@ cypher_update_information *transform_cypher_set_item_list(cypher_parsestate *cps
         char *variable_name, *property_name;
         Value *property_node, *variable_node;
 
-        // ColumnRef may come according to the Parser rule.
-        if (!IsA(set_item->prop, A_Indirection))
-            ereport(ERROR, (errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
-                            errmsg("SET clause expects a variable name"),
-                            parser_errposition(pstate, set_item->location)));
-
-        ind = (A_Indirection *)set_item->prop;
-        item = make_ag_node(cypher_update_item);
-
-        if (!is_ag_node(lfirst(li), cypher_set_item))
-            ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED), errmsg("unexpected node in cypher update list")));
-
         if (set_item->is_add)
             ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
                      errmsg("SET clause does not yet support adding propereties from maps"),
                      parser_errposition(pstate, set_item->location)));
 
+        if (!IsA(set_item->prop, ColumnRef))
+            ereport(ERROR, (errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
+                            errmsg("SET clause expects a variable name"),
+                            parser_errposition(pstate, set_item->location)));
+
+        ColumnRef *set_item_prop = set_item->prop;
+
+        //ind = (A_Indirection *)set_item->prop;
+        item = make_ag_node(cypher_update_item);
         item->remove_item = false;
 
         // extract variable name
-        ref = (ColumnRef *)ind->arg;
+        ref = (ColumnRef *)set_item_prop;
 
         variable_node = linitial(ref->fields);
         if (!IsA(variable_node, String))
@@ -1250,20 +1265,18 @@ cypher_update_information *transform_cypher_set_item_list(cypher_parsestate *cps
         item->var_name = variable_name;
         item->entity_position = get_target_entry_resno(cpstate, query->targetList, variable_name);
 
-    if (item->entity_position == -1)
+        if (item->entity_position == -1)
             ereport(ERROR, (errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
                      errmsg("undefined reference to variable %s in SET clause", variable_name),
                             parser_errposition(pstate, set_item->location)));
 
         // extract property name
-        if (list_length(ind->indirection) != 1)
+        if (list_length(ref->fields) != 2)
             ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
                      errmsg("SET clause doesnt not support updating maps or lists in a property"),
                      parser_errposition(pstate, set_item->location)));
 
-        ref = (ColumnRef*)linitial(ind->indirection);
-
-        property_node = linitial(ref->fields);
+        property_node = lsecond(ref->fields);
         if (!IsA(property_node, String))
             ereport(ERROR, (errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
                      errmsg("SET clause expects a property name"),

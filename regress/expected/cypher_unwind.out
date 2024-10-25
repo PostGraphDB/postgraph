@@ -1,0 +1,162 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+LOAD 'postgraph';
+SET search_path TO postgraph;
+CREATE GRAPH cypher_unwind;
+NOTICE:  graph "cypher_unwind" has been created
+ create_graph 
+--------------
+ 
+(1 row)
+
+USE GRAPH cypher_unwind;
+ use_graph 
+-----------
+ 
+(1 row)
+
+UNWIND [1, 2, 3] AS i RETURN i;
+ i 
+---
+ 1
+ 2
+ 3
+(3 rows)
+
+CREATE ({a: [1, 2, 3]}), ({a: [4, 5, 6]});
+--
+(0 rows)
+
+MATCH (n) WITH n.a AS a UNWIND a AS i RETURN *;
+     a     | i 
+-----------+---
+ [1, 2, 3] | 1
+ [1, 2, 3] | 2
+ [1, 2, 3] | 3
+ [4, 5, 6] | 4
+ [4, 5, 6] | 5
+ [4, 5, 6] | 6
+(6 rows)
+
+CYPHER WITH [[1, 2], [3, 4], 5] AS nested
+UNWIND nested AS x
+UNWIND x AS y
+RETURN y;
+ y 
+---
+ 1
+ 2
+ 3
+ 4
+ 5
+(5 rows)
+
+CYPHER WITH [[1, 2], [3, 4], 5] AS nested
+UNWIND nested AS x
+UNWIND x AS y
+RETURN x, y;
+   x    | y 
+--------+---
+ [1, 2] | 1
+ [1, 2] | 2
+ [3, 4] | 3
+ [3, 4] | 4
+ 5      | 5
+(5 rows)
+
+-- TODO
+MATCH (n_1)
+WITH collect(n_1) as n
+UNWIND n as a
+SET a.i = 1
+RETURN a;
+ERROR:  SET clause can only update vertex and edges
+-- TODO
+MATCH (n_1)
+WITH collect(n_1) as n
+UNWIND n as a
+RETURN a;
+                                  a                                   
+----------------------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {"a": [1, 2, 3]}}
+ {"id": 281474976710658, "label": "", "properties": {"a": [4, 5, 6]}}
+(2 rows)
+
+MATCH (n_1)
+WITH collect(n_1) as n
+UNWIND n as a
+RETURN a;
+                                  a                                   
+----------------------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {"a": [1, 2, 3]}}
+ {"id": 281474976710658, "label": "", "properties": {"a": [4, 5, 6]}}
+(2 rows)
+
+MATCH (n_1)
+WITH collect(n_1) as n
+UNWIND n as a
+SET a.i = 1
+RETURN a;
+ERROR:  SET clause can only update vertex and edges
+MATCH (n_1)
+WITH collect(n_1) as n
+UNWIND n as a
+WITH a
+SET a.i = 1
+RETURN a;
+ERROR:  SET clause can only update vertex and edges
+MATCH (n_1)
+WITH collect(n_1) as n
+UNWIND n as a
+CREATE ({i: a.i})
+RETURN a;
+                                  a                                   
+----------------------------------------------------------------------
+ {"id": 281474976710657, "label": "", "properties": {"a": [1, 2, 3]}}
+ {"id": 281474976710658, "label": "", "properties": {"a": [4, 5, 6]}}
+(2 rows)
+
+CREATE ()-[:e {a: [1, 2, 3]}]->();
+--
+(0 rows)
+
+CREATE ()-[:e {a: [1, 2, 3]}]->();
+--
+(0 rows)
+
+MATCH t=()-[:e]->()
+UNWIND relationships(t) as rel
+RETURN rel;
+                                                              rel                                                              
+-------------------------------------------------------------------------------------------------------------------------------
+ {"id": 844424930131969, "start_id": 281474976710661, "end_id": 281474976710662, "label": "e", "properties": {"a": [1, 2, 3]}}
+ {"id": 844424930131970, "start_id": 281474976710663, "end_id": 281474976710664, "label": "e", "properties": {"a": [1, 2, 3]}}
+(2 rows)
+
+DROP GRAPH cypher_unwind CASCADE;
+NOTICE:  drop cascades to 3 other objects
+DETAIL:  drop cascades to table cypher_unwind._ag_label_vertex
+drop cascades to table cypher_unwind._ag_label_edge
+drop cascades to table cypher_unwind.e
+NOTICE:  graph "cypher_unwind" has been dropped
+ drop_graph 
+------------
+ 
+(1 row)
+

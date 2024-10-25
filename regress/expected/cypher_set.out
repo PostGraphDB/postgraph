@@ -18,74 +18,76 @@
  */
 LOAD 'postgraph';
 SET search_path TO postgraph;
-SELECT create_graph('cypher_set');
+CREATE GRAPH cypher_set;
 NOTICE:  graph "cypher_set" has been created
  create_graph 
 --------------
  
 (1 row)
 
-SELECT * FROM cypher('cypher_set', $$CREATE (:v)$$) AS (a gtype);
- a 
----
+USE GRAPH cypher_set;
+ use_graph 
+-----------
+ 
+(1 row)
+
+CREATE (:v);
+--
 (0 rows)
 
-SELECT * FROM cypher('cypher_set', $$CREATE (:v {i: 0, j: 5, a: 0})$$) AS (a gtype);
- a 
----
+CREATE (:v {i: 0, j: 5, a: 0});
+--
 (0 rows)
 
-SELECT * FROM cypher('cypher_set', $$CREATE (:v {i: 1})$$) AS (a gtype);
- a 
----
+CREATE (:v {i: 1});
+--
 (0 rows)
 
 --Simple SET test case
-SELECT * FROM cypher('cypher_set', $$MATCH (n) SET n.i = 3$$) AS (a gtype);
- a 
----
+MATCH (n) SET n.i = 3;
+--
 (0 rows)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (n) WHERE n.j = 5 SET n.i = NULL RETURN n$$) AS (a vertex);
-                                   a                                   
+MATCH (n) WHERE n.j = 5 SET n.i = NULL RETURN n;
+                                   n                                   
 -----------------------------------------------------------------------
  {"id": 844424930131970, "label": "v", "properties": {"a": 0, "j": 5}}
 (1 row)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (n) RETURN n$$) AS (a vertex);
-                                   a                                   
+MATCH (n) RETURN n;
+                                   n                                   
 -----------------------------------------------------------------------
  {"id": 844424930131969, "label": "v", "properties": {"i": 3}}
  {"id": 844424930131971, "label": "v", "properties": {"i": 3}}
  {"id": 844424930131970, "label": "v", "properties": {"a": 0, "j": 5}}
 (3 rows)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (n) SET n.i = NULL RETURN n$$) AS (a vertex);
-                                   a                                   
+MATCH (n) SET n.i = NULL RETURN n;
+                                   n                                   
 -----------------------------------------------------------------------
  {"id": 844424930131969, "label": "v", "properties": {}}
  {"id": 844424930131971, "label": "v", "properties": {}}
  {"id": 844424930131970, "label": "v", "properties": {"a": 0, "j": 5}}
 (3 rows)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (n) RETURN n$$) AS (a vertex);
-                                   a                                   
+MATCH (n) RETURN n;
+                                   n                                   
 -----------------------------------------------------------------------
  {"id": 844424930131969, "label": "v", "properties": {}}
  {"id": 844424930131971, "label": "v", "properties": {}}
  {"id": 844424930131970, "label": "v", "properties": {"a": 0, "j": 5}}
 (3 rows)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (n) SET n.i = 3 RETURN n$$) AS (a vertex);
-                                       a                                       
+MATCH (n) SET n.i = 3 RETURN n;
+                                       n                                       
 -------------------------------------------------------------------------------
  {"id": 844424930131969, "label": "v", "properties": {"i": 3}}
  {"id": 844424930131971, "label": "v", "properties": {"i": 3}}
  {"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 3, "j": 5}}
 (3 rows)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (n) RETURN n$$) AS (a vertex);
-                                       a                                       
+MATCH (n) RETURN n;
+                                       n                                       
 -------------------------------------------------------------------------------
  {"id": 844424930131969, "label": "v", "properties": {"i": 3}}
  {"id": 844424930131971, "label": "v", "properties": {"i": 3}}
@@ -93,13 +95,12 @@ SELECT * FROM cypher('cypher_set', $$MATCH (n) RETURN n$$) AS (a vertex);
 (3 rows)
 
 --Handle Inheritance
-SELECT * FROM cypher('cypher_set', $$CREATE ()$$) AS (a gtype);
- a 
----
+CREATE ();
+--
 (0 rows)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (n) SET n.i = 3 RETURN n$$) AS (a vertex);
-                                       a                                       
+MATCH (n) SET n.i = 3 RETURN n;
+                                       n                                       
 -------------------------------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {"i": 3}}
  {"id": 844424930131969, "label": "v", "properties": {"i": 3}}
@@ -107,8 +108,8 @@ SELECT * FROM cypher('cypher_set', $$MATCH (n) SET n.i = 3 RETURN n$$) AS (a ver
  {"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 3, "j": 5}}
 (4 rows)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (n) RETURN n$$) AS (a vertex);
-                                       a                                       
+MATCH (n) RETURN n;
+                                       n                                       
 -------------------------------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {"i": 3}}
  {"id": 844424930131969, "label": "v", "properties": {"i": 3}}
@@ -117,8 +118,8 @@ SELECT * FROM cypher('cypher_set', $$MATCH (n) RETURN n$$) AS (a vertex);
 (4 rows)
 
 --Validate Paths are updated
-SELECT * FROM cypher('cypher_set', $$MATCH (n) CREATE (n)-[:e {j:20}]->(:other_v {k:10}) RETURN n$$) AS (a vertex);
-                                       a                                       
+MATCH (n) CREATE (n)-[:e {j:20}]->(:other_v {k:10}) RETURN n;
+                                       n                                       
 -------------------------------------------------------------------------------
  {"id": 281474976710657, "label": "", "properties": {"i": 3}}
  {"id": 844424930131969, "label": "v", "properties": {"i": 3}}
@@ -126,8 +127,8 @@ SELECT * FROM cypher('cypher_set', $$MATCH (n) CREATE (n)-[:e {j:20}]->(:other_v
  {"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 3, "j": 5}}
 (4 rows)
 
-SELECT * FROM cypher('cypher_set', $$MATCH p=(n)-[]->() SET n.i = 50 RETURN p$$) AS (a traversal);
-                                                                                                                                        a                                                                                                                                         
+MATCH p=(n)-[]->() SET n.i = 50 RETURN p;
+                                                                                                                                        p                                                                                                                                         
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  [{"id": 281474976710657, "label": "", "properties": {"i": 3}}, {"id": 1125899906842625, "start_id": 281474976710657, "end_id": 1407374883553281, "label": "e", "properties": {"j": 20}}, {"id": 1407374883553281, "label": "other_v", "properties": {"k": 10}}]
  [{"id": 844424930131969, "label": "v", "properties": {"i": 3}}, {"id": 1125899906842626, "start_id": 844424930131969, "end_id": 1407374883553282, "label": "e", "properties": {"j": 20}}, {"id": 1407374883553282, "label": "other_v", "properties": {"k": 10}}]
@@ -136,8 +137,8 @@ SELECT * FROM cypher('cypher_set', $$MATCH p=(n)-[]->() SET n.i = 50 RETURN p$$)
 (4 rows)
 
 --Edges
-SELECT * FROM cypher('cypher_set', $$MATCH ()-[n]-(:other_v) SET n.i = 3 RETURN n$$) AS (a edge);
-                                                                a                                                                 
+MATCH ()-[n]-(:other_v) SET n.i = 3 RETURN n;
+                                                                n                                                                 
 ----------------------------------------------------------------------------------------------------------------------------------
  {"id": 1125899906842625, "start_id": 281474976710657, "end_id": 1407374883553281, "label": "e", "properties": {"i": 3, "j": 20}}
  {"id": 1125899906842626, "start_id": 844424930131969, "end_id": 1407374883553282, "label": "e", "properties": {"i": 3, "j": 20}}
@@ -145,90 +146,57 @@ SELECT * FROM cypher('cypher_set', $$MATCH ()-[n]-(:other_v) SET n.i = 3 RETURN 
  {"id": 1125899906842628, "start_id": 844424930131970, "end_id": 1407374883553284, "label": "e", "properties": {"i": 3, "j": 20}}
 (4 rows)
 
-SELECT * FROM cypher('cypher_set', $$MATCH ()-[n]->(:other_v) RETURN n$$) AS (a edge);
-                                                                a                                                                 
-----------------------------------------------------------------------------------------------------------------------------------
- {"id": 1125899906842625, "start_id": 281474976710657, "end_id": 1407374883553281, "label": "e", "properties": {"i": 3, "j": 20}}
- {"id": 1125899906842626, "start_id": 844424930131969, "end_id": 1407374883553282, "label": "e", "properties": {"i": 3, "j": 20}}
- {"id": 1125899906842627, "start_id": 844424930131971, "end_id": 1407374883553283, "label": "e", "properties": {"i": 3, "j": 20}}
- {"id": 1125899906842628, "start_id": 844424930131970, "end_id": 1407374883553284, "label": "e", "properties": {"i": 3, "j": 20}}
-(4 rows)
-
-SELECT * FROM cypher('cypher_set', $$
-        MATCH (n {j: 5})
-        SET n.y = 50
-        SET n.z = 99
-        RETURN n
-$$) AS (a vertex);
-                                                a                                                 
+MATCH ()-[n]->(:other_v) RETURN n;
+ERROR:  operator does not exist: label_id postgraph.= integer
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+MATCH (n {j: 5}) SET n.y = 50 SET n.z = 99 RETURN n;
+                                                n                                                 
 --------------------------------------------------------------------------------------------------
  {"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 50, "j": 5, "y": 50, "z": 99}}
 (1 row)
 
-SELECT * FROM cypher('cypher_set', $$
-        MATCH (n {j: 5})
-        RETURN n
-$$) AS (a vertex);
-                                                a                                                 
+MATCH (n {j: 5}) RETURN n;
+                                                n                                                 
 --------------------------------------------------------------------------------------------------
  {"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 50, "j": 5, "y": 50, "z": 99}}
 (1 row)
 
 --Create a loop and see that set can work after create
-SELECT * FROM cypher('cypher_set', $$
-	MATCH (n {j: 5})
-	CREATE p=(n)-[e:e {j:34}]->(n)
-	SET n.y = 99
-	RETURN n, p
-$$) AS (a vertex, b traversal);
-                                                a                                                 |                                                                                                                                                               b                                                                                                                                                               
+MATCH (n {j: 5}) CREATE p=(n)-[e:e {j:34}]->(n) SET n.y = 99 RETURN n, p;
+                                                n                                                 |                                                                                                                                                               p                                                                                                                                                               
 --------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  {"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 50, "j": 5, "y": 99, "z": 99}} | [{"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 50, "j": 5, "y": 50, "z": 99}}, {"id": 1125899906842629, "start_id": 844424930131970, "end_id": 844424930131970, "label": "e", "properties": {"j": 34}}, {"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 50, "j": 5, "y": 50, "z": 99}}]
 (1 row)
 
 --Create a loop and see that set can work after create
-SELECT * FROM cypher('cypher_set', $$
-	CREATE ()-[e:e {j:34}]->()
-	SET e.y = 99
-	RETURN e
-$$) AS (a edge);
-                                                                a                                                                 
+CREATE ()-[e:e {j:34}]->() SET e.y = 99 RETURN e;
+                                                                e                                                                 
 ----------------------------------------------------------------------------------------------------------------------------------
  {"id": 1125899906842630, "start_id": 281474976710658, "end_id": 281474976710659, "label": "e", "properties": {"j": 34, "y": 99}}
 (1 row)
 
-SELECT * FROM cypher('cypher_set', $$
-        MATCH (n)
-        MATCH (n)-[e:e {j:34}]->()
-        SET n.y = 1
-        RETURN n
-$$) AS (a vertex);
-                                                a                                                
+MATCH (n) MATCH (n)-[e:e {j:34}]->() SET n.y = 1 RETURN n;
+                                                n                                                
 -------------------------------------------------------------------------------------------------
  {"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 50, "j": 5, "y": 1, "z": 99}}
  {"id": 281474976710658, "label": "", "properties": {"y": 1}}
 (2 rows)
 
-SELECT * FROM cypher('cypher_set', $$
-        MATCH (n)
-        MATCH ()-[e:e {j:34}]->(n)
-        SET n.y = 2
-        RETURN n
-$$) AS (a vertex);
-                                                a                                                
+MATCH (n) MATCH ()-[e:e {j:34}]->(n) SET n.y = 2 RETURN n;
+                                                n                                                
 -------------------------------------------------------------------------------------------------
  {"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 50, "j": 5, "y": 2, "z": 99}}
  {"id": 281474976710659, "label": "", "properties": {"y": 2}}
 (2 rows)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (n)-[]->(n) SET n.y = 99 RETURN n$$) AS (a vertex);
-                                                a                                                 
+MATCH (n)-[]->(n) SET n.y = 99 RETURN n;
+                                                n                                                 
 --------------------------------------------------------------------------------------------------
  {"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 50, "j": 5, "y": 99, "z": 99}}
 (1 row)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (n) MATCH (n)-[]->(m) SET n.t = 150 RETURN n$$) AS (a vertex);
-                                                     a                                                      
+MATCH (n) MATCH (n)-[]->(m) SET n.t = 150 RETURN n;
+                                                     n                                                      
 ------------------------------------------------------------------------------------------------------------
  {"id": 281474976710658, "label": "", "properties": {"t": 150, "y": 1}}
  {"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 50, "j": 5, "t": 150, "y": 99, "z": 99}}
@@ -239,67 +207,16 @@ SELECT * FROM cypher('cypher_set', $$MATCH (n) MATCH (n)-[]->(m) SET n.t = 150 R
 (6 rows)
 
 -- prepared statements
-PREPARE p_1 AS SELECT * FROM cypher('cypher_set', $$MATCH (n) SET n.i = 3 RETURN n $$) AS (a vertex);
+/*
+PREPARE p_1 AS MATCH (n) SET n.i = 3 RETURN n ;
 EXECUTE p_1;
-                                                     a                                                     
------------------------------------------------------------------------------------------------------------
- {"id": 281474976710659, "label": "", "properties": {"i": 3, "y": 2}}
- {"id": 281474976710658, "label": "", "properties": {"i": 3, "t": 150, "y": 1}}
- {"id": 281474976710657, "label": "", "properties": {"i": 3, "t": 150}}
- {"id": 844424930131969, "label": "v", "properties": {"i": 3, "t": 150}}
- {"id": 844424930131971, "label": "v", "properties": {"i": 3, "t": 150}}
- {"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 3, "j": 5, "t": 150, "y": 99, "z": 99}}
- {"id": 1407374883553281, "label": "other_v", "properties": {"i": 3, "k": 10}}
- {"id": 1407374883553282, "label": "other_v", "properties": {"i": 3, "k": 10}}
- {"id": 1407374883553283, "label": "other_v", "properties": {"i": 3, "k": 10}}
- {"id": 1407374883553284, "label": "other_v", "properties": {"i": 3, "k": 10}}
-(10 rows)
 
 EXECUTE p_1;
-                                                     a                                                     
------------------------------------------------------------------------------------------------------------
- {"id": 281474976710659, "label": "", "properties": {"i": 3, "y": 2}}
- {"id": 281474976710658, "label": "", "properties": {"i": 3, "t": 150, "y": 1}}
- {"id": 281474976710657, "label": "", "properties": {"i": 3, "t": 150}}
- {"id": 844424930131969, "label": "v", "properties": {"i": 3, "t": 150}}
- {"id": 844424930131971, "label": "v", "properties": {"i": 3, "t": 150}}
- {"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 3, "j": 5, "t": 150, "y": 99, "z": 99}}
- {"id": 1407374883553281, "label": "other_v", "properties": {"i": 3, "k": 10}}
- {"id": 1407374883553282, "label": "other_v", "properties": {"i": 3, "k": 10}}
- {"id": 1407374883553283, "label": "other_v", "properties": {"i": 3, "k": 10}}
- {"id": 1407374883553284, "label": "other_v", "properties": {"i": 3, "k": 10}}
-(10 rows)
 
-PREPARE p_2 AS SELECT * FROM cypher('cypher_set', $$MATCH (n) SET n.i = $var_name RETURN n $$, $1) AS (a vertex);
+PREPARE p_2 AS MATCH (n) SET n.i = $var_name RETURN n ;
 EXECUTE p_2('{"var_name": 4}');
-                                                     a                                                     
------------------------------------------------------------------------------------------------------------
- {"id": 281474976710659, "label": "", "properties": {"i": 4, "y": 2}}
- {"id": 281474976710658, "label": "", "properties": {"i": 4, "t": 150, "y": 1}}
- {"id": 281474976710657, "label": "", "properties": {"i": 4, "t": 150}}
- {"id": 844424930131969, "label": "v", "properties": {"i": 4, "t": 150}}
- {"id": 844424930131971, "label": "v", "properties": {"i": 4, "t": 150}}
- {"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 4, "j": 5, "t": 150, "y": 99, "z": 99}}
- {"id": 1407374883553281, "label": "other_v", "properties": {"i": 4, "k": 10}}
- {"id": 1407374883553282, "label": "other_v", "properties": {"i": 4, "k": 10}}
- {"id": 1407374883553283, "label": "other_v", "properties": {"i": 4, "k": 10}}
- {"id": 1407374883553284, "label": "other_v", "properties": {"i": 4, "k": 10}}
-(10 rows)
 
 EXECUTE p_2('{"var_name": 6}');
-                                                     a                                                     
------------------------------------------------------------------------------------------------------------
- {"id": 281474976710659, "label": "", "properties": {"i": 6, "y": 2}}
- {"id": 281474976710658, "label": "", "properties": {"i": 6, "t": 150, "y": 1}}
- {"id": 281474976710657, "label": "", "properties": {"i": 6, "t": 150}}
- {"id": 844424930131969, "label": "v", "properties": {"i": 6, "t": 150}}
- {"id": 844424930131971, "label": "v", "properties": {"i": 6, "t": 150}}
- {"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 6, "j": 5, "t": 150, "y": 99, "z": 99}}
- {"id": 1407374883553281, "label": "other_v", "properties": {"i": 6, "k": 10}}
- {"id": 1407374883553282, "label": "other_v", "properties": {"i": 6, "k": 10}}
- {"id": 1407374883553283, "label": "other_v", "properties": {"i": 6, "k": 10}}
- {"id": 1407374883553284, "label": "other_v", "properties": {"i": 6, "k": 10}}
-(10 rows)
 
 CREATE FUNCTION set_test()
 RETURNS TABLE(vertex vertex)
@@ -307,44 +224,19 @@ LANGUAGE plpgsql
 VOLATILE
 AS $BODY$
 BEGIN
-	RETURN QUERY SELECT * FROM cypher('cypher_set', $$MATCH (n) SET n.i = 7 RETURN n $$) AS (a vertex);
+	RETURN QUERY MATCH (n) SET n.i = 7 RETURN n ;
 END
 $BODY$;
-SELECT set_test();
-                                                 set_test                                                  
------------------------------------------------------------------------------------------------------------
- {"id": 281474976710659, "label": "", "properties": {"i": 7, "y": 2}}
- {"id": 281474976710658, "label": "", "properties": {"i": 7, "t": 150, "y": 1}}
- {"id": 281474976710657, "label": "", "properties": {"i": 7, "t": 150}}
- {"id": 844424930131969, "label": "v", "properties": {"i": 7, "t": 150}}
- {"id": 844424930131971, "label": "v", "properties": {"i": 7, "t": 150}}
- {"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 7, "j": 5, "t": 150, "y": 99, "z": 99}}
- {"id": 1407374883553281, "label": "other_v", "properties": {"i": 7, "k": 10}}
- {"id": 1407374883553282, "label": "other_v", "properties": {"i": 7, "k": 10}}
- {"id": 1407374883553283, "label": "other_v", "properties": {"i": 7, "k": 10}}
- {"id": 1407374883553284, "label": "other_v", "properties": {"i": 7, "k": 10}}
-(10 rows)
 
 SELECT set_test();
-                                                 set_test                                                  
------------------------------------------------------------------------------------------------------------
- {"id": 281474976710659, "label": "", "properties": {"i": 7, "y": 2}}
- {"id": 281474976710658, "label": "", "properties": {"i": 7, "t": 150, "y": 1}}
- {"id": 281474976710657, "label": "", "properties": {"i": 7, "t": 150}}
- {"id": 844424930131969, "label": "v", "properties": {"i": 7, "t": 150}}
- {"id": 844424930131971, "label": "v", "properties": {"i": 7, "t": 150}}
- {"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 7, "j": 5, "t": 150, "y": 99, "z": 99}}
- {"id": 1407374883553281, "label": "other_v", "properties": {"i": 7, "k": 10}}
- {"id": 1407374883553282, "label": "other_v", "properties": {"i": 7, "k": 10}}
- {"id": 1407374883553283, "label": "other_v", "properties": {"i": 7, "k": 10}}
- {"id": 1407374883553284, "label": "other_v", "properties": {"i": 7, "k": 10}}
-(10 rows)
 
+SELECT set_test();
+*/
 --
 -- Updating multiple fieds
 --
-SELECT * FROM cypher('cypher_set', $$MATCH (n) SET n.i = 3, n.j = 5 RETURN n $$) AS (a vertex);
-                                                     a                                                     
+MATCH (n) SET n.i = 3, n.j = 5 RETURN n ;
+                                                     n                                                     
 -----------------------------------------------------------------------------------------------------------
  {"id": 281474976710659, "label": "", "properties": {"i": 3, "j": 5, "y": 2}}
  {"id": 281474976710658, "label": "", "properties": {"i": 3, "j": 5, "t": 150, "y": 1}}
@@ -358,144 +250,132 @@ SELECT * FROM cypher('cypher_set', $$MATCH (n) SET n.i = 3, n.j = 5 RETURN n $$)
  {"id": 1407374883553284, "label": "other_v", "properties": {"i": 3, "j": 5, "k": 10}}
 (10 rows)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (n)-[m]->(n) SET m.y = n.y RETURN n, m$$) AS (a vertex, b edge);
-                                                     a                                                     |                                                                b                                                                 
+MATCH (n)-[m]->(n) SET m.y = n.y RETURN n, m;
+                                                     n                                                     |                                                                m                                                                 
 -----------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------
  {"id": 844424930131970, "label": "v", "properties": {"a": 0, "i": 3, "j": 5, "t": 150, "y": 99, "z": 99}} | {"id": 1125899906842629, "start_id": 844424930131970, "end_id": 844424930131970, "label": "e", "properties": {"j": 34, "y": 99}}
 (1 row)
 
 --Errors
-SELECT * FROM cypher('cypher_set', $$SET n.i = NULL$$) AS (a gtype);
-ERROR:  SET cannot be the first clause in a Cypher query
-LINE 1: SELECT * FROM cypher('cypher_set', $$SET n.i = NULL$$) AS (a...
-                                             ^
-SELECT * FROM cypher('cypher_set', $$MATCH (n) SET wrong_var.i = 3$$) AS (a gtype);
+SET n.i = NULL;
+ERROR:  syntax error at or near "NULL"
+LINE 1: SET n.i = NULL;
+                  ^
+MATCH (n) SET wrong_var.i = 3;
 ERROR:  undefined reference to variable wrong_var in SET clause
-LINE 1: ...ELECT * FROM cypher('cypher_set', $$MATCH (n) SET wrong_var....
-                                                             ^
-SELECT * FROM cypher('cypher_set', $$MATCH (n) SET i = 3$$) AS (a gtype);
-ERROR:  SET clause expects a variable name
-LINE 1: ...ELECT * FROM cypher('cypher_set', $$MATCH (n) SET i = 3$$) A...
-                                                             ^
+LINE 1: MATCH (n) SET wrong_var.i = 3;
+                      ^
+MATCH (n) SET i = 3;
+ERROR:  undefined reference to variable i in SET clause
+LINE 1: MATCH (n) SET i = 3;
+                      ^
 --
 -- SET refactor regression tests
 --
 -- INSERT INTO
+/*
 CREATE TABLE tbl (result vertex);
-SELECT * FROM cypher('cypher_set', $$CREATE (u:vertices) $$) AS (result gtype);
- result 
---------
+
+
+MATCH (u:vertices) return u ;
+MATCH (u:begin)-[:edge]->(v:end) return u, v ;
+
+INSERT INTO tbl (MATCH (u:vertices) SET u.i = 7 return u ;
+INSERT INTO tbl (MATCH (u:vertices) SET u.i = 13 return u ;
+
+SELECT * FROM tbl;
+*/
+CREATE (u:vertices) ;
+--
 (0 rows)
 
-SELECT * FROM cypher('cypher_set', $$CREATE (u:begin)-[:edge]->(v:end) $$) AS (result gtype);
- result 
---------
+CREATE (u:begin)-[:edge]->(v:end) ;
+--
 (0 rows)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (u:vertices) return u $$) AS (result vertex);
-                             result                              
+MATCH (u:vertices) return u ;
+                                u                                
 -----------------------------------------------------------------
  {"id": 1688849860263937, "label": "vertices", "properties": {}}
 (1 row)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (u:begin)-[:edge]->(v:end) return u, v $$) AS (u vertex, v vertex);
-                              u                               |                             v                              
---------------------------------------------------------------+------------------------------------------------------------
- {"id": 1970324836974593, "label": "begin", "properties": {}} | {"id": 2533274790395905, "label": "end", "properties": {}}
-(1 row)
-
-INSERT INTO tbl (SELECT * FROM cypher('cypher_set', $$MATCH (u:vertices) SET u.i = 7 return u $$) AS (result vertex));
-INSERT INTO tbl (SELECT * FROM cypher('cypher_set', $$MATCH (u:vertices) SET u.i = 13 return u $$) AS (result vertex));
-SELECT * FROM tbl;
-                                 result                                 
-------------------------------------------------------------------------
- {"id": 1688849860263937, "label": "vertices", "properties": {"i": 7}}
- {"id": 1688849860263937, "label": "vertices", "properties": {"i": 13}}
-(2 rows)
-
-SELECT * FROM cypher('cypher_set', $$MATCH (u:vertices) return u $$) AS (result vertex);
-                                 result                                 
-------------------------------------------------------------------------
- {"id": 1688849860263937, "label": "vertices", "properties": {"i": 13}}
-(1 row)
-
 BEGIN;
-SELECT * FROM cypher('cypher_set', $$MATCH (u:vertices) SET u.i = 1, u.j = 3, u.k = 5 return u $$) AS (result vertex);
-                                        result                                         
+MATCH (u:vertices) SET u.i = 1, u.j = 3, u.k = 5 return u ;
+                                           u                                           
 ---------------------------------------------------------------------------------------
  {"id": 1688849860263937, "label": "vertices", "properties": {"i": 1, "j": 3, "k": 5}}
 (1 row)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (u:vertices) return u $$) AS (result vertex);
-                                        result                                         
+MATCH (u:vertices) return u ;
+                                           u                                           
 ---------------------------------------------------------------------------------------
  {"id": 1688849860263937, "label": "vertices", "properties": {"i": 1, "j": 3, "k": 5}}
 (1 row)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (u:vertices) SET u.i = 2, u.j = 4, u.k = 6 return u $$) AS (result vertex);
-                                        result                                         
+MATCH (u:vertices) SET u.i = 2, u.j = 4, u.k = 6 return u ;
+                                           u                                           
 ---------------------------------------------------------------------------------------
  {"id": 1688849860263937, "label": "vertices", "properties": {"i": 2, "j": 4, "k": 6}}
 (1 row)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (u:vertices) return u $$) AS (result vertex);
-                                        result                                         
+MATCH (u:vertices) return u ;
+                                           u                                           
 ---------------------------------------------------------------------------------------
  {"id": 1688849860263937, "label": "vertices", "properties": {"i": 2, "j": 4, "k": 6}}
 (1 row)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (u:vertices) SET u.i = 3, u.j = 6, u.k = 9 return u $$) AS (result vertex);
-                                        result                                         
+MATCH (u:vertices) SET u.i = 3, u.j = 6, u.k = 9 return u ;
+                                           u                                           
 ---------------------------------------------------------------------------------------
  {"id": 1688849860263937, "label": "vertices", "properties": {"i": 3, "j": 6, "k": 9}}
 (1 row)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (u:vertices) return u $$) AS (result vertex);
-                                        result                                         
+MATCH (u:vertices) return u ;
+                                           u                                           
 ---------------------------------------------------------------------------------------
  {"id": 1688849860263937, "label": "vertices", "properties": {"i": 3, "j": 6, "k": 9}}
 (1 row)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (u:begin)-[:edge]->(v:end) SET u.i = 1, v.i = 2, u.j = 3, v.j = 4 return u, v $$) AS (u vertex, v vertex);
+MATCH (u:begin)-[:edge]->(v:end) SET u.i = 1, v.i = 2, u.j = 3, v.j = 4 return u, v ;
                                      u                                      |                                    v                                     
 ----------------------------------------------------------------------------+--------------------------------------------------------------------------
  {"id": 1970324836974593, "label": "begin", "properties": {"i": 1, "j": 3}} | {"id": 2533274790395905, "label": "end", "properties": {"i": 2, "j": 4}}
 (1 row)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (u:begin)-[:edge]->(v:end) return u, v $$) AS (u vertex, v vertex);
+MATCH (u:begin)-[:edge]->(v:end) return u, v ;
                                      u                                      |                                    v                                     
 ----------------------------------------------------------------------------+--------------------------------------------------------------------------
  {"id": 1970324836974593, "label": "begin", "properties": {"i": 1, "j": 3}} | {"id": 2533274790395905, "label": "end", "properties": {"i": 2, "j": 4}}
 (1 row)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (u:begin)-[:edge]->(v:end) SET u.i = 2, v.i = 1, u.j = 4, v.j = 3 return u, v $$) AS (u vertex, v vertex);
+MATCH (u:begin)-[:edge]->(v:end) SET u.i = 2, v.i = 1, u.j = 4, v.j = 3 return u, v ;
                                      u                                      |                                    v                                     
 ----------------------------------------------------------------------------+--------------------------------------------------------------------------
  {"id": 1970324836974593, "label": "begin", "properties": {"i": 2, "j": 4}} | {"id": 2533274790395905, "label": "end", "properties": {"i": 1, "j": 3}}
 (1 row)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (u:begin)-[:edge]->(v:end) return u, v $$) AS (u vertex, v vertex);
+MATCH (u:begin)-[:edge]->(v:end) return u, v ;
                                      u                                      |                                    v                                     
 ----------------------------------------------------------------------------+--------------------------------------------------------------------------
  {"id": 1970324836974593, "label": "begin", "properties": {"i": 2, "j": 4}} | {"id": 2533274790395905, "label": "end", "properties": {"i": 1, "j": 3}}
 (1 row)
 
 END;
-SELECT * FROM cypher('cypher_set', $$MATCH (u:vertices) return u $$) AS (result vertex);
-                                        result                                         
+MATCH (u:vertices) return u ;
+                                           u                                           
 ---------------------------------------------------------------------------------------
  {"id": 1688849860263937, "label": "vertices", "properties": {"i": 3, "j": 6, "k": 9}}
 (1 row)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (u:begin)-[:edge]->(v:end) return u, v $$) AS (u vertex, v vertex);
+MATCH (u:begin)-[:edge]->(v:end) return u, v ;
                                      u                                      |                                    v                                     
 ----------------------------------------------------------------------------+--------------------------------------------------------------------------
  {"id": 1970324836974593, "label": "begin", "properties": {"i": 2, "j": 4}} | {"id": 2533274790395905, "label": "end", "properties": {"i": 1, "j": 3}}
 (1 row)
 
 -- test lists
-SELECT * FROM cypher('cypher_set', $$MATCH (n) SET n.i = [3, 'test', [1, 2, 3], {id: 1}, 1.0, 1.0::numeric] RETURN n$$) AS (a vertex);
-                                                                             a                                                                              
+MATCH (n) SET n.i = [3, 'test', [1, 2, 3], {id: 1}, 1.0, 1.0::numeric] RETURN n;
+                                                                             n                                                                              
 ------------------------------------------------------------------------------------------------------------------------------------------------------------
  {"id": 281474976710659, "label": "", "properties": {"i": [3, "test", [1, 2, 3], {"id": 1}, 1.0, 1::numeric], "j": 5, "y": 2}}
  {"id": 281474976710658, "label": "", "properties": {"i": [3, "test", [1, 2, 3], {"id": 1}, 1.0, 1::numeric], "j": 5, "t": 150, "y": 1}}
@@ -512,8 +392,8 @@ SELECT * FROM cypher('cypher_set', $$MATCH (n) SET n.i = [3, 'test', [1, 2, 3], 
  {"id": 2533274790395905, "label": "end", "properties": {"i": [3, "test", [1, 2, 3], {"id": 1}, 1.0, 1::numeric], "j": 3}}
 (13 rows)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (n) RETURN n$$) AS (a vertex);
-                                                                             a                                                                              
+MATCH (n) RETURN n;
+                                                                             n                                                                              
 ------------------------------------------------------------------------------------------------------------------------------------------------------------
  {"id": 281474976710659, "label": "", "properties": {"i": [3, "test", [1, 2, 3], {"id": 1}, 1.0, 1::numeric], "j": 5, "y": 2}}
  {"id": 281474976710658, "label": "", "properties": {"i": [3, "test", [1, 2, 3], {"id": 1}, 1.0, 1::numeric], "j": 5, "t": 150, "y": 1}}
@@ -531,21 +411,21 @@ SELECT * FROM cypher('cypher_set', $$MATCH (n) RETURN n$$) AS (a vertex);
 (13 rows)
 
 -- test that lists get updated in paths
-SELECT * FROM cypher('cypher_set', $$MATCH p=(u:begin)-[:edge]->(v:end) SET u.i = [1, 2, 3] return u, p $$) AS (u vertex, p traversal);
+MATCH p=(u:begin)-[:edge]->(v:end) SET u.i = [1, 2, 3] return u, p ;
                                          u                                          |                                                                                                                                                                                        p                                                                                                                                                                                        
 ------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  {"id": 1970324836974593, "label": "begin", "properties": {"i": [1, 2, 3], "j": 4}} | [{"id": 1970324836974593, "label": "begin", "properties": {"i": [3, "test", [1, 2, 3], {"id": 1}, 1.0, 1::numeric], "j": 4}}, {"id": 2251799813685249, "start_id": 1970324836974593, "end_id": 2533274790395905, "label": "edge", "properties": {}}, {"id": 2533274790395905, "label": "end", "properties": {"i": [3, "test", [1, 2, 3], {"id": 1}, 1.0, 1::numeric], "j": 3}}]
 (1 row)
 
-SELECT * FROM cypher('cypher_set', $$MATCH p=(u:begin)-[:edge]->(v:end) return u, p $$) AS (u vertex, p traversal);
+MATCH p=(u:begin)-[:edge]->(v:end) return u, p ;
                                          u                                          |                                                                                                                                                                   p                                                                                                                                                                    
 ------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  {"id": 1970324836974593, "label": "begin", "properties": {"i": [1, 2, 3], "j": 4}} | [{"id": 1970324836974593, "label": "begin", "properties": {"i": [1, 2, 3], "j": 4}}, {"id": 2251799813685249, "start_id": 1970324836974593, "end_id": 2533274790395905, "label": "edge", "properties": {}}, {"id": 2533274790395905, "label": "end", "properties": {"i": [3, "test", [1, 2, 3], {"id": 1}, 1.0, 1::numeric], "j": 3}}]
 (1 row)
 
 -- test empty lists
-SELECT * FROM cypher('cypher_set', $$MATCH (n) SET n.i = [] RETURN n$$) AS (a vertex);
-                                                     a                                                      
+MATCH (n) SET n.i = [] RETURN n;
+                                                     n                                                      
 ------------------------------------------------------------------------------------------------------------
  {"id": 281474976710659, "label": "", "properties": {"i": [], "j": 5, "y": 2}}
  {"id": 281474976710658, "label": "", "properties": {"i": [], "j": 5, "t": 150, "y": 1}}
@@ -562,8 +442,8 @@ SELECT * FROM cypher('cypher_set', $$MATCH (n) SET n.i = [] RETURN n$$) AS (a ve
  {"id": 2533274790395905, "label": "end", "properties": {"i": [], "j": 3}}
 (13 rows)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (n) RETURN n$$) AS (a vertex);
-                                                     a                                                      
+MATCH (n) RETURN n;
+                                                     n                                                      
 ------------------------------------------------------------------------------------------------------------
  {"id": 281474976710659, "label": "", "properties": {"i": [], "j": 5, "y": 2}}
  {"id": 281474976710658, "label": "", "properties": {"i": [], "j": 5, "t": 150, "y": 1}}
@@ -581,8 +461,8 @@ SELECT * FROM cypher('cypher_set', $$MATCH (n) RETURN n$$) AS (a vertex);
 (13 rows)
 
 -- test maps
-SELECT * FROM cypher('cypher_set', $$MATCH (n) SET n.i = {prop1: 3, prop2:'test', prop3: [1, 2, 3], prop4: {id: 1}, prop5: 1.0, prop6:1.0::numeric} RETURN n$$) AS (a vertex);
-                                                                                                        a                                                                                                         
+MATCH (n) SET n.i = {prop1: 3, prop2:'test', prop3: [1, 2, 3], prop4: {id: 1}, prop5: 1.0, prop6:1.0::numeric} RETURN n;
+                                                                                                        n                                                                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  {"id": 281474976710659, "label": "", "properties": {"i": {"prop1": 3, "prop2": "test", "prop3": [1, 2, 3], "prop4": {"id": 1}, "prop5": 1.0, "prop6": 1::numeric}, "j": 5, "y": 2}}
  {"id": 281474976710658, "label": "", "properties": {"i": {"prop1": 3, "prop2": "test", "prop3": [1, 2, 3], "prop4": {"id": 1}, "prop5": 1.0, "prop6": 1::numeric}, "j": 5, "t": 150, "y": 1}}
@@ -599,8 +479,8 @@ SELECT * FROM cypher('cypher_set', $$MATCH (n) SET n.i = {prop1: 3, prop2:'test'
  {"id": 2533274790395905, "label": "end", "properties": {"i": {"prop1": 3, "prop2": "test", "prop3": [1, 2, 3], "prop4": {"id": 1}, "prop5": 1.0, "prop6": 1::numeric}, "j": 3}}
 (13 rows)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (n) RETURN n$$) AS (a vertex);
-                                                                                                        a                                                                                                         
+MATCH (n) RETURN n;
+                                                                                                        n                                                                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  {"id": 281474976710659, "label": "", "properties": {"i": {"prop1": 3, "prop2": "test", "prop3": [1, 2, 3], "prop4": {"id": 1}, "prop5": 1.0, "prop6": 1::numeric}, "j": 5, "y": 2}}
  {"id": 281474976710658, "label": "", "properties": {"i": {"prop1": 3, "prop2": "test", "prop3": [1, 2, 3], "prop4": {"id": 1}, "prop5": 1.0, "prop6": 1::numeric}, "j": 5, "t": 150, "y": 1}}
@@ -618,21 +498,21 @@ SELECT * FROM cypher('cypher_set', $$MATCH (n) RETURN n$$) AS (a vertex);
 (13 rows)
 
 -- test maps in paths
-SELECT * FROM cypher('cypher_set', $$MATCH p=(u:begin)-[:edge]->(v:end) SET u.i = {prop1: 1, prop2: 2, prop3: 3} return u, p $$) AS (u vertex, p traversal);
+MATCH p=(u:begin)-[:edge]->(v:end) SET u.i = {prop1: 1, prop2: 2, prop3: 3} return u, p ;
                                                        u                                                       |                                                                                                                                                                                                                                              p                                                                                                                                                                                                                                              
 ---------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  {"id": 1970324836974593, "label": "begin", "properties": {"i": {"prop1": 1, "prop2": 2, "prop3": 3}, "j": 4}} | [{"id": 1970324836974593, "label": "begin", "properties": {"i": {"prop1": 3, "prop2": "test", "prop3": [1, 2, 3], "prop4": {"id": 1}, "prop5": 1.0, "prop6": 1::numeric}, "j": 4}}, {"id": 2251799813685249, "start_id": 1970324836974593, "end_id": 2533274790395905, "label": "edge", "properties": {}}, {"id": 2533274790395905, "label": "end", "properties": {"i": {"prop1": 3, "prop2": "test", "prop3": [1, 2, 3], "prop4": {"id": 1}, "prop5": 1.0, "prop6": 1::numeric}, "j": 3}}]
 (1 row)
 
-SELECT * FROM cypher('cypher_set', $$MATCH p=(u:begin)-[:edge]->(v:end) return u, p $$) AS (u vertex, p traversal);
+MATCH p=(u:begin)-[:edge]->(v:end) return u, p ;
                                                        u                                                       |                                                                                                                                                                                                            p                                                                                                                                                                                                            
 ---------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  {"id": 1970324836974593, "label": "begin", "properties": {"i": {"prop1": 1, "prop2": 2, "prop3": 3}, "j": 4}} | [{"id": 1970324836974593, "label": "begin", "properties": {"i": {"prop1": 1, "prop2": 2, "prop3": 3}, "j": 4}}, {"id": 2251799813685249, "start_id": 1970324836974593, "end_id": 2533274790395905, "label": "edge", "properties": {}}, {"id": 2533274790395905, "label": "end", "properties": {"i": {"prop1": 3, "prop2": "test", "prop3": [1, 2, 3], "prop4": {"id": 1}, "prop5": 1.0, "prop6": 1::numeric}, "j": 3}}]
 (1 row)
 
 -- test empty maps
-SELECT * FROM cypher('cypher_set', $$MATCH (n) SET n.i = {} RETURN n$$) AS (a vertex);
-                                                     a                                                      
+MATCH (n) SET n.i = {} RETURN n;
+                                                     n                                                      
 ------------------------------------------------------------------------------------------------------------
  {"id": 281474976710659, "label": "", "properties": {"i": {}, "j": 5, "y": 2}}
  {"id": 281474976710658, "label": "", "properties": {"i": {}, "j": 5, "t": 150, "y": 1}}
@@ -649,8 +529,8 @@ SELECT * FROM cypher('cypher_set', $$MATCH (n) SET n.i = {} RETURN n$$) AS (a ve
  {"id": 2533274790395905, "label": "end", "properties": {"i": {}, "j": 3}}
 (13 rows)
 
-SELECT * FROM cypher('cypher_set', $$MATCH (n) RETURN n$$) AS (a vertex);
-                                                     a                                                      
+MATCH (n) RETURN n;
+                                                     n                                                      
 ------------------------------------------------------------------------------------------------------------
  {"id": 281474976710659, "label": "", "properties": {"i": {}, "j": 5, "y": 2}}
  {"id": 281474976710658, "label": "", "properties": {"i": {}, "j": 5, "t": 150, "y": 1}}
@@ -671,8 +551,10 @@ SELECT * FROM cypher('cypher_set', $$MATCH (n) RETURN n$$) AS (a vertex);
 -- Clean up
 --
 DROP TABLE tbl;
+ERROR:  table "tbl" does not exist
 DROP FUNCTION set_test;
-SELECT drop_graph('cypher_set', true);
+ERROR:  could not find a function named "set_test"
+DROP GRAPH cypher_set CASCADE;
 NOTICE:  drop cascades to 9 other objects
 DETAIL:  drop cascades to table cypher_set._ag_label_vertex
 drop cascades to table cypher_set._ag_label_edge
@@ -689,4 +571,3 @@ NOTICE:  graph "cypher_set" has been dropped
  
 (1 row)
 
---

@@ -1,11 +1,10 @@
 /*
- * PostGraph
- * Copyright (C) 2023 PostGraphDB
- * 
+ * Copyright (C) 2023-2024 PostGraphDB
+ *
  * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -13,8 +12,11 @@
  * GNU Affero General Public License for more details.
  *
  * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Portions Copyright (c) 2020-2023, Apache Software Foundation
+ * Portions Copyright (c) 2019-2020, Bitnine Global
+ */ 
 
 LOAD 'postgraph';
 SET search_path TO postgraph;
@@ -29,10 +31,10 @@ USE GRAPH lists;
 RETURN [];
 
 -- list of scalar values
- RETURN ['str', 1, 1.0, true, null] ;
+RETURN ['str', 1, 1.0, true, null] ;
 
 -- nested lists
- RETURN [['str'], [1, [1.0], [[true]]], null] ;
+RETURN [['str'], [1, [1.0], [[true]]], null] ;
 
 --list concatenation
 RETURN ['str', 1, 1.0] + [true, null];
@@ -82,28 +84,28 @@ RETURN 0[[0]..[1]];
 RETURN [0][0..-2147483649];
 
 -- access and slice operators nested
- WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[0] ;
- WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[2] ;
- WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-1] ;
- WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[2][-2] ;
- WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[2][-2..] ;
- WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..] ;
- WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][-1..] ;
- WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][0] ;
- WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][-1] ;
- WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-2..-1] ;
- WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2] ;
- WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2][-2] ;
- WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2][0] ;
- WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2][-2][-2..] ;
- WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2][-2][-2..][0] ;
+CYPHER WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[0] ;
+CYPHER WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[2] ;
+CYPHER WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-1] ;
+CYPHER WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[2][-2] ;
+CYPHER WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[2][-2..] ;
+CYPHER WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..] ;
+CYPHER WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][-1..] ;
+CYPHER WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][0] ;
+CYPHER WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][-1] ;
+CYPHER WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-2..-1] ;
+CYPHER WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2] ;
+CYPHER WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2][-2] ;
+CYPHER WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2][0] ;
+CYPHER WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2][-2][-2..] ;
+CYPHER WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-4..-2][-2][-2..][0] ;
 
 -- empty list
- WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][-2..-2] ;
+CYPHER WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][-2..-2] ;
 
 -- should return null
- WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[2][3] ;
- WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][-2] ;
+CYPHER WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[2][3] ;
+CYPHER WITH [0, 1, [2, 3, 4], 5, [6, 7, 8], 9] as l RETURN l[-2..][-1..][-2] ;
 
 -- size() of a string
  RETURN size('12345') ;

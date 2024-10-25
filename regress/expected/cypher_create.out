@@ -165,9 +165,9 @@ CREATE (:n_var {var_name: 'Node C'});
 (0 rows)
 
 MATCH (a:n_var), (b:n_var) WHERE a.var_name <> b.var_name CREATE (a)-[:e_var {var_name: a.name + ' -> ' + b.name}]->(b);
-ERROR:  syntax error at or near "name"
-LINE 1: ...ame <> b.var_name CREATE (a)-[:e_var {var_name: a.name + ' -...
-                                                             ^
+--
+(0 rows)
+
 MATCH (a:n_var) CREATE (a)-[:e_var {var_name: a.var_name + ' -> ' + a.var_name}]->(a);
 --
 (0 rows)
@@ -181,71 +181,75 @@ MATCH (a:n_var) WHERE a.var_name = 'Node A' CREATE (a)-[b:e_var]->();
 (0 rows)
 
 CREATE (a)-[:b_var]->() RETURN a, id(a);
-ERROR:  syntax error at or near "("
-LINE 1: CREATE (a)-[:b_var]->() RETURN a, id(a);
-                                            ^
+                           a                            |       id        
+--------------------------------------------------------+-----------------
+ {"id": 281474976710659, "label": "", "properties": {}} | 281474976710659
+(1 row)
+
 CREATE ()-[b:e_var]->() RETURN b, id(b);
-ERROR:  syntax error at or near "("
-LINE 1: CREATE ()-[b:e_var]->() RETURN b, id(b);
-                                            ^
+                                                          b                                                           |        id        
+----------------------------------------------------------------------------------------------------------------------+------------------
+ {"id": 1688849860263950, "start_id": 281474976710661, "end_id": 281474976710662, "label": "e_var", "properties": {}} | 1688849860263950
+(1 row)
+
 CREATE (a)-[b:e_var {id: 0}]->() RETURN a, b, b.id, b.id + 1;
-                           a                            |                                                              b                                                              | ?column? | ?column? 
---------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------+----------+----------
- {"id": 281474976710659, "label": "", "properties": {}} | {"id": 1688849860263944, "start_id": 281474976710659, "end_id": 281474976710660, "label": "e_var", "properties": {"id": 0}} | 0        | 1
+                           a                            |                                                              b                                                              | id | ?column? 
+--------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------+----+----------
+ {"id": 281474976710663, "label": "", "properties": {}} | {"id": 1688849860263951, "start_id": 281474976710663, "end_id": 281474976710664, "label": "e_var", "properties": {"id": 0}} | 0  | 1
 (1 row)
 
 MATCH (a:n_var) CREATE (a)-[b:e_var]->(a) RETURN a, b;
                                         a                                         |                                                           b                                                            
 ----------------------------------------------------------------------------------+------------------------------------------------------------------------------------------------------------------------
- {"id": 1407374883553281, "label": "n_var", "properties": {"var_name": "Node A"}} | {"id": 1688849860263945, "start_id": 1407374883553281, "end_id": 1407374883553281, "label": "e_var", "properties": {}}
- {"id": 1407374883553282, "label": "n_var", "properties": {"var_name": "Node B"}} | {"id": 1688849860263946, "start_id": 1407374883553282, "end_id": 1407374883553282, "label": "e_var", "properties": {}}
- {"id": 1407374883553283, "label": "n_var", "properties": {"var_name": "Node C"}} | {"id": 1688849860263947, "start_id": 1407374883553283, "end_id": 1407374883553283, "label": "e_var", "properties": {}}
+ {"id": 1407374883553281, "label": "n_var", "properties": {"var_name": "Node A"}} | {"id": 1688849860263952, "start_id": 1407374883553281, "end_id": 1407374883553281, "label": "e_var", "properties": {}}
+ {"id": 1407374883553282, "label": "n_var", "properties": {"var_name": "Node B"}} | {"id": 1688849860263953, "start_id": 1407374883553282, "end_id": 1407374883553282, "label": "e_var", "properties": {}}
+ {"id": 1407374883553283, "label": "n_var", "properties": {"var_name": "Node C"}} | {"id": 1688849860263954, "start_id": 1407374883553283, "end_id": 1407374883553283, "label": "e_var", "properties": {}}
 (3 rows)
 
 MATCH (a:n_var) CREATE (a)-[b:e_var]->(c) RETURN a, b, c;
                                         a                                         |                                                           b                                                           |                           c                            
 ----------------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------
- {"id": 1407374883553281, "label": "n_var", "properties": {"var_name": "Node A"}} | {"id": 1688849860263948, "start_id": 1407374883553281, "end_id": 281474976710661, "label": "e_var", "properties": {}} | {"id": 281474976710661, "label": "", "properties": {}}
- {"id": 1407374883553282, "label": "n_var", "properties": {"var_name": "Node B"}} | {"id": 1688849860263949, "start_id": 1407374883553282, "end_id": 281474976710662, "label": "e_var", "properties": {}} | {"id": 281474976710662, "label": "", "properties": {}}
- {"id": 1407374883553283, "label": "n_var", "properties": {"var_name": "Node C"}} | {"id": 1688849860263950, "start_id": 1407374883553283, "end_id": 281474976710663, "label": "e_var", "properties": {}} | {"id": 281474976710663, "label": "", "properties": {}}
+ {"id": 1407374883553281, "label": "n_var", "properties": {"var_name": "Node A"}} | {"id": 1688849860263955, "start_id": 1407374883553281, "end_id": 281474976710665, "label": "e_var", "properties": {}} | {"id": 281474976710665, "label": "", "properties": {}}
+ {"id": 1407374883553282, "label": "n_var", "properties": {"var_name": "Node B"}} | {"id": 1688849860263956, "start_id": 1407374883553282, "end_id": 281474976710666, "label": "e_var", "properties": {}} | {"id": 281474976710666, "label": "", "properties": {}}
+ {"id": 1407374883553283, "label": "n_var", "properties": {"var_name": "Node C"}} | {"id": 1688849860263957, "start_id": 1407374883553283, "end_id": 281474976710667, "label": "e_var", "properties": {}} | {"id": 281474976710667, "label": "", "properties": {}}
 (3 rows)
 
 CREATE (a)-[:e_var]->() RETURN a;
                            a                            
 --------------------------------------------------------
- {"id": 281474976710664, "label": "", "properties": {}}
+ {"id": 281474976710668, "label": "", "properties": {}}
 (1 row)
 
 CREATE ()-[b:e_var]->() RETURN b;
                                                           b                                                           
 ----------------------------------------------------------------------------------------------------------------------
- {"id": 1688849860263952, "start_id": 281474976710666, "end_id": 281474976710667, "label": "e_var", "properties": {}}
+ {"id": 1688849860263959, "start_id": 281474976710670, "end_id": 281474976710671, "label": "e_var", "properties": {}}
 (1 row)
 
 CREATE p=()-[:e_var]->() RETURN p;
                                                                                                                    p                                                                                                                    
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 281474976710668, "label": "", "properties": {}}, {"id": 1688849860263953, "start_id": 281474976710668, "end_id": 281474976710669, "label": "e_var", "properties": {}}, {"id": 281474976710669, "label": "", "properties": {}}]
+ [{"id": 281474976710672, "label": "", "properties": {}}, {"id": 1688849860263960, "start_id": 281474976710672, "end_id": 281474976710673, "label": "e_var", "properties": {}}, {"id": 281474976710673, "label": "", "properties": {}}]
 (1 row)
 
 CREATE p=(a {id:0})-[:e_var]->(a) RETURN p;
                                                                                                                           p                                                                                                                           
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 281474976710670, "label": "", "properties": {"id": 0}}, {"id": 1688849860263954, "start_id": 281474976710670, "end_id": 281474976710670, "label": "e_var", "properties": {}}, {"id": 281474976710670, "label": "", "properties": {"id": 0}}]
+ [{"id": 281474976710674, "label": "", "properties": {"id": 0}}, {"id": 1688849860263961, "start_id": 281474976710674, "end_id": 281474976710674, "label": "e_var", "properties": {}}, {"id": 281474976710674, "label": "", "properties": {"id": 0}}]
 (1 row)
 
 MATCH (a:n_var) CREATE p=(a)-[:e_var]->(a) RETURN p;
                                                                                                                                               p                                                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- [{"id": 1407374883553281, "label": "n_var", "properties": {"var_name": "Node A"}}, {"id": 1688849860263955, "start_id": 1407374883553281, "end_id": 1407374883553281, "label": "e_var", "properties": {}}, {"id": 1407374883553281, "label": "n_var", "properties": {"var_name": "Node A"}}]
- [{"id": 1407374883553282, "label": "n_var", "properties": {"var_name": "Node B"}}, {"id": 1688849860263956, "start_id": 1407374883553282, "end_id": 1407374883553282, "label": "e_var", "properties": {}}, {"id": 1407374883553282, "label": "n_var", "properties": {"var_name": "Node B"}}]
- [{"id": 1407374883553283, "label": "n_var", "properties": {"var_name": "Node C"}}, {"id": 1688849860263957, "start_id": 1407374883553283, "end_id": 1407374883553283, "label": "e_var", "properties": {}}, {"id": 1407374883553283, "label": "n_var", "properties": {"var_name": "Node C"}}]
+ [{"id": 1407374883553281, "label": "n_var", "properties": {"var_name": "Node A"}}, {"id": 1688849860263962, "start_id": 1407374883553281, "end_id": 1407374883553281, "label": "e_var", "properties": {}}, {"id": 1407374883553281, "label": "n_var", "properties": {"var_name": "Node A"}}]
+ [{"id": 1407374883553282, "label": "n_var", "properties": {"var_name": "Node B"}}, {"id": 1688849860263963, "start_id": 1407374883553282, "end_id": 1407374883553282, "label": "e_var", "properties": {}}, {"id": 1407374883553282, "label": "n_var", "properties": {"var_name": "Node B"}}]
+ [{"id": 1407374883553283, "label": "n_var", "properties": {"var_name": "Node C"}}, {"id": 1688849860263964, "start_id": 1407374883553283, "end_id": 1407374883553283, "label": "e_var", "properties": {}}, {"id": 1407374883553283, "label": "n_var", "properties": {"var_name": "Node C"}}]
 (3 rows)
 
 CREATE p=(a)-[:e_var]->(), (a)-[b:e_var]->(a) RETURN p, b;
                                                                                                                    p                                                                                                                    |                                                          b                                                           
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------
- [{"id": 281474976710671, "label": "", "properties": {}}, {"id": 1688849860263958, "start_id": 281474976710671, "end_id": 281474976710672, "label": "e_var", "properties": {}}, {"id": 281474976710672, "label": "", "properties": {}}] | {"id": 1688849860263959, "start_id": 281474976710671, "end_id": 281474976710671, "label": "e_var", "properties": {}}
+ [{"id": 281474976710675, "label": "", "properties": {}}, {"id": 1688849860263965, "start_id": 281474976710675, "end_id": 281474976710676, "label": "e_var", "properties": {}}, {"id": 281474976710676, "label": "", "properties": {}}] | {"id": 1688849860263966, "start_id": 281474976710675, "end_id": 281474976710675, "label": "e_var", "properties": {}}
 (1 row)
 
 MATCH (a:n_var) WHERE a.var_name = 'Node Z' CREATE (a)-[:e_var {var_name: a.var_name + ' -> doesnt exist'}]->(:n_other_node) RETURN a;
@@ -264,30 +268,37 @@ MATCH (n:n_var) RETURN n;
 MATCH ()-[e:e_var]->() RETURN e;
                                                                            e                                                                            
 --------------------------------------------------------------------------------------------------------------------------------------------------------
- {"id": 1688849860263937, "start_id": 1407374883553281, "end_id": 1407374883553281, "label": "e_var", "properties": {"var_name": "Node A -> Node A"}}
- {"id": 1688849860263938, "start_id": 1407374883553282, "end_id": 1407374883553282, "label": "e_var", "properties": {"var_name": "Node B -> Node B"}}
- {"id": 1688849860263939, "start_id": 1407374883553283, "end_id": 1407374883553283, "label": "e_var", "properties": {"var_name": "Node C -> Node C"}}
- {"id": 1688849860263940, "start_id": 1407374883553281, "end_id": 1970324836974593, "label": "e_var", "properties": {"var_name": "Node A -> new node"}}
- {"id": 1688849860263941, "start_id": 1407374883553282, "end_id": 1970324836974594, "label": "e_var", "properties": {"var_name": "Node B -> new node"}}
- {"id": 1688849860263942, "start_id": 1407374883553283, "end_id": 1970324836974595, "label": "e_var", "properties": {"var_name": "Node C -> new node"}}
- {"id": 1688849860263943, "start_id": 1407374883553281, "end_id": 281474976710658, "label": "e_var", "properties": {}}
- {"id": 1688849860263944, "start_id": 281474976710659, "end_id": 281474976710660, "label": "e_var", "properties": {"id": 0}}
- {"id": 1688849860263945, "start_id": 1407374883553281, "end_id": 1407374883553281, "label": "e_var", "properties": {}}
- {"id": 1688849860263946, "start_id": 1407374883553282, "end_id": 1407374883553282, "label": "e_var", "properties": {}}
- {"id": 1688849860263947, "start_id": 1407374883553283, "end_id": 1407374883553283, "label": "e_var", "properties": {}}
- {"id": 1688849860263948, "start_id": 1407374883553281, "end_id": 281474976710661, "label": "e_var", "properties": {}}
- {"id": 1688849860263949, "start_id": 1407374883553282, "end_id": 281474976710662, "label": "e_var", "properties": {}}
- {"id": 1688849860263950, "start_id": 1407374883553283, "end_id": 281474976710663, "label": "e_var", "properties": {}}
- {"id": 1688849860263951, "start_id": 281474976710664, "end_id": 281474976710665, "label": "e_var", "properties": {}}
- {"id": 1688849860263952, "start_id": 281474976710666, "end_id": 281474976710667, "label": "e_var", "properties": {}}
- {"id": 1688849860263953, "start_id": 281474976710668, "end_id": 281474976710669, "label": "e_var", "properties": {}}
- {"id": 1688849860263954, "start_id": 281474976710670, "end_id": 281474976710670, "label": "e_var", "properties": {}}
- {"id": 1688849860263955, "start_id": 1407374883553281, "end_id": 1407374883553281, "label": "e_var", "properties": {}}
- {"id": 1688849860263956, "start_id": 1407374883553282, "end_id": 1407374883553282, "label": "e_var", "properties": {}}
- {"id": 1688849860263957, "start_id": 1407374883553283, "end_id": 1407374883553283, "label": "e_var", "properties": {}}
- {"id": 1688849860263958, "start_id": 281474976710671, "end_id": 281474976710672, "label": "e_var", "properties": {}}
- {"id": 1688849860263959, "start_id": 281474976710671, "end_id": 281474976710671, "label": "e_var", "properties": {}}
-(23 rows)
+ {"id": 1688849860263937, "start_id": 1407374883553281, "end_id": 1407374883553282, "label": "e_var", "properties": {"var_name": null}}
+ {"id": 1688849860263938, "start_id": 1407374883553281, "end_id": 1407374883553283, "label": "e_var", "properties": {"var_name": null}}
+ {"id": 1688849860263939, "start_id": 1407374883553282, "end_id": 1407374883553281, "label": "e_var", "properties": {"var_name": null}}
+ {"id": 1688849860263940, "start_id": 1407374883553282, "end_id": 1407374883553283, "label": "e_var", "properties": {"var_name": null}}
+ {"id": 1688849860263941, "start_id": 1407374883553283, "end_id": 1407374883553281, "label": "e_var", "properties": {"var_name": null}}
+ {"id": 1688849860263942, "start_id": 1407374883553283, "end_id": 1407374883553282, "label": "e_var", "properties": {"var_name": null}}
+ {"id": 1688849860263943, "start_id": 1407374883553281, "end_id": 1407374883553281, "label": "e_var", "properties": {"var_name": "Node A -> Node A"}}
+ {"id": 1688849860263944, "start_id": 1407374883553282, "end_id": 1407374883553282, "label": "e_var", "properties": {"var_name": "Node B -> Node B"}}
+ {"id": 1688849860263945, "start_id": 1407374883553283, "end_id": 1407374883553283, "label": "e_var", "properties": {"var_name": "Node C -> Node C"}}
+ {"id": 1688849860263946, "start_id": 1407374883553281, "end_id": 1970324836974593, "label": "e_var", "properties": {"var_name": "Node A -> new node"}}
+ {"id": 1688849860263947, "start_id": 1407374883553282, "end_id": 1970324836974594, "label": "e_var", "properties": {"var_name": "Node B -> new node"}}
+ {"id": 1688849860263948, "start_id": 1407374883553283, "end_id": 1970324836974595, "label": "e_var", "properties": {"var_name": "Node C -> new node"}}
+ {"id": 1688849860263949, "start_id": 1407374883553281, "end_id": 281474976710658, "label": "e_var", "properties": {}}
+ {"id": 1688849860263950, "start_id": 281474976710661, "end_id": 281474976710662, "label": "e_var", "properties": {}}
+ {"id": 1688849860263951, "start_id": 281474976710663, "end_id": 281474976710664, "label": "e_var", "properties": {"id": 0}}
+ {"id": 1688849860263952, "start_id": 1407374883553281, "end_id": 1407374883553281, "label": "e_var", "properties": {}}
+ {"id": 1688849860263953, "start_id": 1407374883553282, "end_id": 1407374883553282, "label": "e_var", "properties": {}}
+ {"id": 1688849860263954, "start_id": 1407374883553283, "end_id": 1407374883553283, "label": "e_var", "properties": {}}
+ {"id": 1688849860263955, "start_id": 1407374883553281, "end_id": 281474976710665, "label": "e_var", "properties": {}}
+ {"id": 1688849860263956, "start_id": 1407374883553282, "end_id": 281474976710666, "label": "e_var", "properties": {}}
+ {"id": 1688849860263957, "start_id": 1407374883553283, "end_id": 281474976710667, "label": "e_var", "properties": {}}
+ {"id": 1688849860263958, "start_id": 281474976710668, "end_id": 281474976710669, "label": "e_var", "properties": {}}
+ {"id": 1688849860263959, "start_id": 281474976710670, "end_id": 281474976710671, "label": "e_var", "properties": {}}
+ {"id": 1688849860263960, "start_id": 281474976710672, "end_id": 281474976710673, "label": "e_var", "properties": {}}
+ {"id": 1688849860263961, "start_id": 281474976710674, "end_id": 281474976710674, "label": "e_var", "properties": {}}
+ {"id": 1688849860263962, "start_id": 1407374883553281, "end_id": 1407374883553281, "label": "e_var", "properties": {}}
+ {"id": 1688849860263963, "start_id": 1407374883553282, "end_id": 1407374883553282, "label": "e_var", "properties": {}}
+ {"id": 1688849860263964, "start_id": 1407374883553283, "end_id": 1407374883553283, "label": "e_var", "properties": {}}
+ {"id": 1688849860263965, "start_id": 281474976710675, "end_id": 281474976710676, "label": "e_var", "properties": {}}
+ {"id": 1688849860263966, "start_id": 281474976710675, "end_id": 281474976710675, "label": "e_var", "properties": {}}
+(30 rows)
 
 --Validate every vertex has the correct label
 MATCH (n) RETURN n;
@@ -306,9 +317,13 @@ MATCH (n) RETURN n;
  {"id": 281474976710667, "label": "", "properties": {}}
  {"id": 281474976710668, "label": "", "properties": {}}
  {"id": 281474976710669, "label": "", "properties": {}}
- {"id": 281474976710670, "label": "", "properties": {"id": 0}}
+ {"id": 281474976710670, "label": "", "properties": {}}
  {"id": 281474976710671, "label": "", "properties": {}}
  {"id": 281474976710672, "label": "", "properties": {}}
+ {"id": 281474976710673, "label": "", "properties": {}}
+ {"id": 281474976710674, "label": "", "properties": {"id": 0}}
+ {"id": 281474976710675, "label": "", "properties": {}}
+ {"id": 281474976710676, "label": "", "properties": {}}
  {"id": 844424930131969, "label": "v", "properties": {}}
  {"id": 844424930131970, "label": "v", "properties": {}}
  {"id": 844424930131971, "label": "v", "properties": {"prop_key": "value"}}
@@ -335,7 +350,7 @@ MATCH (n) RETURN n;
  {"id": 1970324836974593, "label": "n_other_node", "properties": {}}
  {"id": 1970324836974594, "label": "n_other_node", "properties": {}}
  {"id": 1970324836974595, "label": "n_other_node", "properties": {}}
-(42 rows)
+(46 rows)
 
 -- prepared statements
 /*
@@ -410,7 +425,7 @@ FROM (CREATE (a) RETURN a) as q(a vertex),
 -- Clean up
 --
 DROP GRAPH cypher_create CASCADE;
-NOTICE:  drop cascades to 7 other objects
+NOTICE:  drop cascades to 8 other objects
 DETAIL:  drop cascades to table cypher_create._ag_label_vertex
 drop cascades to table cypher_create._ag_label_edge
 drop cascades to table cypher_create.v
@@ -418,6 +433,7 @@ drop cascades to table cypher_create.e
 drop cascades to table cypher_create.n_var
 drop cascades to table cypher_create.e_var
 drop cascades to table cypher_create.n_other_node
+drop cascades to table cypher_create.b_var
 NOTICE:  graph "cypher_create" has been dropped
  drop_graph 
 ------------
