@@ -1,0 +1,402 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+LOAD 'postgraph';
+SET search_path TO postgraph;
+CREATE GRAPH cypher_vle;
+NOTICE:  graph "cypher_vle" has been created
+ create_graph 
+--------------
+ 
+(1 row)
+
+USE GRAPH cypher_vle;
+ use_graph 
+-----------
+ 
+(1 row)
+
+-- Create a graph to test
+CREATE (b:begin)-[:edge {name: 'main edge'}]->(u1:middle)-[:edge {name: 'main edge'}]->(u2:middle)-[:edge {name: 'main edge'}]->(u3:middle)-[:edge {name: 'main edge'}]->(e:end),
+	(u1)-[:self_loop {name: 'self loop'}]->(u1),
+	(e)-[:self_loop {name: 'self loop'}]->(e),
+	(b)-[:alternate_edge {name: 'alternate edge'}]->(u1),
+	(u2)-[:alternate_edge {name: 'alternate edge'}]->(u3),
+	(u3)-[:alternate_edge {name: 'alternate edge'}]->(e),
+	(u2)-[:bypass_edge {name: 'bypass edge'}]->(e),
+	(e)-[:alternate_edge {name: 'backup edge'}]->(u3), 
+	(u3)-[:alternate_edge {name: 'backup edge'}]->(u2),
+	(u2)-[:bypass_edge {name: 'bypass edge'}]->(b)
+RETURN b, e;
+                              b                              |                             e                              
+-------------------------------------------------------------+------------------------------------------------------------
+ {"id": 844424930131969, "label": "begin", "properties": {}} | {"id": 1688849860263937, "label": "end", "properties": {}}
+(1 row)
+
+-- Test the VLE match integration
+-- Each should find 400
+MATCH (u:begin)-[*]->(v:end) RETURN count(*);
+ count 
+-------
+ 400
+(1 row)
+
+MATCH (u:begin)-[*..]->(v:end) RETURN count(*);
+ count 
+-------
+ 400
+(1 row)
+
+MATCH (u:begin)-[*0..]->(v:end) RETURN count(*);
+ count 
+-------
+ 400
+(1 row)
+
+MATCH (u:begin)-[*1..]->(v:end) RETURN count(*);
+ count 
+-------
+ 400
+(1 row)
+
+MATCH (u:begin)-[*1..200]->(v:end) RETURN count(*);
+ count 
+-------
+ 400
+(1 row)
+
+-- Each should find 2
+MATCH (u:begin)<-[*]-(v:end) RETURN count(*);
+ count 
+-------
+ 2
+(1 row)
+
+MATCH (u:begin)<-[*..]-(v:end) RETURN count(*);
+ count 
+-------
+ 2
+(1 row)
+
+MATCH (u:begin)<-[*0..]-(v:end) RETURN count(*);
+ count 
+-------
+ 2
+(1 row)
+
+MATCH (u:begin)<-[*1..]-(v:end) RETURN count(*);
+ count 
+-------
+ 2
+(1 row)
+
+MATCH (u:begin)<-[*1..200]-(v:end) RETURN count(*);
+ count 
+-------
+ 2
+(1 row)
+
+-- Each should find 7092
+MATCH (u:begin)-[*]-(v:end) RETURN count(*);
+ count 
+-------
+ 7092
+(1 row)
+
+MATCH (u:begin)-[*..]-(v:end) RETURN count(*);
+ count 
+-------
+ 7092
+(1 row)
+
+MATCH (u:begin)-[*0..]-(v:end) RETURN count(*);
+ count 
+-------
+ 7092
+(1 row)
+
+MATCH (u:begin)-[*1..]-(v:end) RETURN count(*);
+ count 
+-------
+ 7092
+(1 row)
+
+MATCH (u:begin)-[*1..200]-(v:end) RETURN count(*);
+ count 
+-------
+ 7092
+(1 row)
+
+-- Each should find 1
+MATCH (u:begin)-[:edge*]-(v:end) RETURN count(*);
+ count 
+-------
+ 1
+(1 row)
+
+MATCH (u:begin)-[:edge* {name: 'main edge'}]-(v:end) RETURN count(*);
+ count 
+-------
+ 1
+(1 row)
+
+MATCH (u:begin)-[* {name: 'main edge'}]-(v:end) RETURN count(*);
+ count 
+-------
+ 1
+(1 row)
+
+-- Each should find 1
+MATCH ()<-[*4..4 {name: 'main edge'}]-() RETURN count(*);
+ count 
+-------
+ 1
+(1 row)
+
+MATCH (u)<-[*4..4 {name: 'main edge'}]-() RETURN count(*);
+ count 
+-------
+ 1
+(1 row)
+
+MATCH ()<-[*4..4 {name: 'main edge'}]-(v) RETURN count(*);
+ count 
+-------
+ 1
+(1 row)
+
+-- Each should find 2922
+MATCH ()-[*]->() RETURN count(*);
+ count 
+-------
+ 2922
+(1 row)
+
+MATCH (u)-[*]->() RETURN count(*);
+ count 
+-------
+ 2922
+(1 row)
+
+MATCH ()-[*]->(v) RETURN count(*);
+ count 
+-------
+ 2922
+(1 row)
+
+-- Should find 2
+MATCH (u:begin)<-[e*]-(v:end) RETURN e;
+                                                                                                                                                                                                                                                                                                                                                                                                    e                                                                                                                                                                                                                                                                                                                                                                                                    
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685253, "start_id": 1407374883553283, "end_id": 1407374883553282, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1407374883553283, "label": "middle", "properties": {}}, {"id": 2251799813685252, "start_id": 1688849860263937, "end_id": 1407374883553283, "label": "alternate_edge", "properties": {"name": "backup edge"}}]
+ [{"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685253, "start_id": 1407374883553283, "end_id": 1407374883553282, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1407374883553283, "label": "middle", "properties": {}}, {"id": 2251799813685252, "start_id": 1688849860263937, "end_id": 1407374883553283, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}, {"id": 1970324836974594, "start_id": 1688849860263937, "end_id": 1688849860263937, "label": "self_loop", "properties": {"name": "self loop"}}]
+(2 rows)
+
+-- Should find 5
+MATCH p=(:begin)<-[*1..1]-()-[]-() RETURN p ORDER BY p;
+ERROR:  syntax error at or near "ORDER"
+LINE 1: MATCH p=(:begin)<-[*1..1]-()-[]-() RETURN p ORDER BY p;
+                                                    ^
+-- Should find 2922
+MATCH p=()-[*]->(v) RETURN count(*);
+ count 
+-------
+ 2922
+(1 row)
+
+-- Should find 2
+MATCH p=(u:begin)-[*3..3]->(v:end) RETURN p;
+                                                                                                                                                                                                                                                                                                                                                      p                                                                                                                                                                                                                                                                                                                                                       
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 844424930131969, "label": "begin", "properties": {}}, {"id": 2251799813685249, "start_id": 844424930131969, "end_id": 1407374883553281, "label": "alternate_edge", "properties": {"name": "alternate edge"}}, {"id": 1407374883553281, "label": "middle", "properties": {}}, {"id": 1125899906842627, "start_id": 1407374883553281, "end_id": 1407374883553282, "label": "edge", "properties": {"name": "main edge"}}, {"id": 1407374883553281, "label": "middle", "properties": {}}, {"id": 2533274790395905, "start_id": 1407374883553282, "end_id": 1688849860263937, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}]
+ [{"id": 844424930131969, "label": "begin", "properties": {}}, {"id": 1125899906842628, "start_id": 844424930131969, "end_id": 1407374883553281, "label": "edge", "properties": {"name": "main edge"}}, {"id": 1407374883553281, "label": "middle", "properties": {}}, {"id": 1125899906842627, "start_id": 1407374883553281, "end_id": 1407374883553282, "label": "edge", "properties": {"name": "main edge"}}, {"id": 1407374883553281, "label": "middle", "properties": {}}, {"id": 2533274790395905, "start_id": 1407374883553282, "end_id": 1688849860263937, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}]
+(2 rows)
+
+-- Should find 12
+MATCH p=(u:begin)-[*3..3]-(v:end) RETURN p;
+                                                                                                                                                                                                                                                                                                                                                              p                                                                                                                                                                                                                                                                                                                                                              
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 844424930131969, "label": "begin", "properties": {}}, {"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685253, "start_id": 1407374883553283, "end_id": 1407374883553282, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1407374883553283, "label": "middle", "properties": {}}, {"id": 2251799813685252, "start_id": 1688849860263937, "end_id": 1407374883553283, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}]
+ [{"id": 844424930131969, "label": "begin", "properties": {}}, {"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685253, "start_id": 1407374883553283, "end_id": 1407374883553282, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1407374883553283, "label": "middle", "properties": {}}, {"id": 2251799813685251, "start_id": 1407374883553283, "end_id": 1688849860263937, "label": "alternate_edge", "properties": {"name": "alternate edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}]
+ [{"id": 844424930131969, "label": "begin", "properties": {}}, {"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685253, "start_id": 1407374883553283, "end_id": 1407374883553282, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1407374883553283, "label": "middle", "properties": {}}, {"id": 1125899906842625, "start_id": 1407374883553283, "end_id": 1688849860263937, "label": "edge", "properties": {"name": "main edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}]
+ [{"id": 844424930131969, "label": "begin", "properties": {}}, {"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2533274790395905, "start_id": 1407374883553282, "end_id": 1688849860263937, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 1970324836974594, "start_id": 1688849860263937, "end_id": 1688849860263937, "label": "self_loop", "properties": {"name": "self loop"}}, {"id": 1688849860263937, "label": "end", "properties": {}}]
+ [{"id": 844424930131969, "label": "begin", "properties": {}}, {"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685250, "start_id": 1407374883553282, "end_id": 1407374883553283, "label": "alternate_edge", "properties": {"name": "alternate edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685252, "start_id": 1688849860263937, "end_id": 1407374883553283, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}]
+ [{"id": 844424930131969, "label": "begin", "properties": {}}, {"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685250, "start_id": 1407374883553282, "end_id": 1407374883553283, "label": "alternate_edge", "properties": {"name": "alternate edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685251, "start_id": 1407374883553283, "end_id": 1688849860263937, "label": "alternate_edge", "properties": {"name": "alternate edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}]
+ [{"id": 844424930131969, "label": "begin", "properties": {}}, {"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685250, "start_id": 1407374883553282, "end_id": 1407374883553283, "label": "alternate_edge", "properties": {"name": "alternate edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 1125899906842625, "start_id": 1407374883553283, "end_id": 1688849860263937, "label": "edge", "properties": {"name": "main edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}]
+ [{"id": 844424930131969, "label": "begin", "properties": {}}, {"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 1125899906842626, "start_id": 1407374883553282, "end_id": 1407374883553283, "label": "edge", "properties": {"name": "main edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685252, "start_id": 1688849860263937, "end_id": 1407374883553283, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}]
+ [{"id": 844424930131969, "label": "begin", "properties": {}}, {"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 1125899906842626, "start_id": 1407374883553282, "end_id": 1407374883553283, "label": "edge", "properties": {"name": "main edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685251, "start_id": 1407374883553283, "end_id": 1688849860263937, "label": "alternate_edge", "properties": {"name": "alternate edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}]
+ [{"id": 844424930131969, "label": "begin", "properties": {}}, {"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 1125899906842626, "start_id": 1407374883553282, "end_id": 1407374883553283, "label": "edge", "properties": {"name": "main edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 1125899906842625, "start_id": 1407374883553283, "end_id": 1688849860263937, "label": "edge", "properties": {"name": "main edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}]
+ [{"id": 844424930131969, "label": "begin", "properties": {}}, {"id": 2251799813685249, "start_id": 844424930131969, "end_id": 1407374883553281, "label": "alternate_edge", "properties": {"name": "alternate edge"}}, {"id": 1407374883553281, "label": "middle", "properties": {}}, {"id": 1125899906842627, "start_id": 1407374883553281, "end_id": 1407374883553282, "label": "edge", "properties": {"name": "main edge"}}, {"id": 1407374883553281, "label": "middle", "properties": {}}, {"id": 2533274790395905, "start_id": 1407374883553282, "end_id": 1688849860263937, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}]
+ [{"id": 844424930131969, "label": "begin", "properties": {}}, {"id": 1125899906842628, "start_id": 844424930131969, "end_id": 1407374883553281, "label": "edge", "properties": {"name": "main edge"}}, {"id": 1407374883553281, "label": "middle", "properties": {}}, {"id": 1125899906842627, "start_id": 1407374883553281, "end_id": 1407374883553282, "label": "edge", "properties": {"name": "main edge"}}, {"id": 1407374883553281, "label": "middle", "properties": {}}, {"id": 2533274790395905, "start_id": 1407374883553282, "end_id": 1688849860263937, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}]
+(12 rows)
+
+-- Each should find 2
+MATCH p=(u:begin)<-[*]-(v:end) RETURN p;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                p                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 844424930131969, "label": "begin", "properties": {}}, {"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685253, "start_id": 1407374883553283, "end_id": 1407374883553282, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1407374883553283, "label": "middle", "properties": {}}, {"id": 2251799813685252, "start_id": 1688849860263937, "end_id": 1407374883553283, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}]
+ [{"id": 844424930131969, "label": "begin", "properties": {}}, {"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685253, "start_id": 1407374883553283, "end_id": 1407374883553282, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1407374883553283, "label": "middle", "properties": {}}, {"id": 2251799813685252, "start_id": 1688849860263937, "end_id": 1407374883553283, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}, {"id": 1970324836974594, "start_id": 1688849860263937, "end_id": 1688849860263937, "label": "self_loop", "properties": {"name": "self loop"}}, {"id": 1688849860263937, "label": "end", "properties": {}}]
+(2 rows)
+
+MATCH p=(u:begin)<-[e*]-(v:end) RETURN p;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                p                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 844424930131969, "label": "begin", "properties": {}}, {"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685253, "start_id": 1407374883553283, "end_id": 1407374883553282, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1407374883553283, "label": "middle", "properties": {}}, {"id": 2251799813685252, "start_id": 1688849860263937, "end_id": 1407374883553283, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}]
+ [{"id": 844424930131969, "label": "begin", "properties": {}}, {"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685253, "start_id": 1407374883553283, "end_id": 1407374883553282, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1407374883553283, "label": "middle", "properties": {}}, {"id": 2251799813685252, "start_id": 1688849860263937, "end_id": 1407374883553283, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}, {"id": 1970324836974594, "start_id": 1688849860263937, "end_id": 1688849860263937, "label": "self_loop", "properties": {"name": "self loop"}}, {"id": 1688849860263937, "label": "end", "properties": {}}]
+(2 rows)
+
+MATCH p=(u:begin)<-[e*]-(v:end) RETURN e;
+                                                                                                                                                                                                                                                                                                                                                                                                    e                                                                                                                                                                                                                                                                                                                                                                                                    
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685253, "start_id": 1407374883553283, "end_id": 1407374883553282, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1407374883553283, "label": "middle", "properties": {}}, {"id": 2251799813685252, "start_id": 1688849860263937, "end_id": 1407374883553283, "label": "alternate_edge", "properties": {"name": "backup edge"}}]
+ [{"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685253, "start_id": 1407374883553283, "end_id": 1407374883553282, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1407374883553283, "label": "middle", "properties": {}}, {"id": 2251799813685252, "start_id": 1688849860263937, "end_id": 1407374883553283, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}, {"id": 1970324836974594, "start_id": 1688849860263937, "end_id": 1688849860263937, "label": "self_loop", "properties": {"name": "self loop"}}]
+(2 rows)
+
+MATCH p=(:begin)<-[*]-()<-[]-(:end) RETURN p;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                p                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ [{"id": 844424930131969, "label": "begin", "properties": {}}, {"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685253, "start_id": 1407374883553283, "end_id": 1407374883553282, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1407374883553283, "label": "middle", "properties": {}}, {"id": 2251799813685252, "start_id": 1688849860263937, "end_id": 1407374883553283, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}]
+ [{"id": 844424930131969, "label": "begin", "properties": {}}, {"id": 2533274790395906, "start_id": 1407374883553282, "end_id": 844424930131969, "label": "bypass_edge", "properties": {"name": "bypass edge"}}, {"id": 1407374883553282, "label": "middle", "properties": {}}, {"id": 2251799813685253, "start_id": 1407374883553283, "end_id": 1407374883553282, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1407374883553283, "label": "middle", "properties": {}}, {"id": 2251799813685252, "start_id": 1688849860263937, "end_id": 1407374883553283, "label": "alternate_edge", "properties": {"name": "backup edge"}}, {"id": 1688849860263937, "label": "end", "properties": {}}, {"id": 1970324836974594, "start_id": 1688849860263937, "end_id": 1688849860263937, "label": "self_loop", "properties": {"name": "self loop"}}, {"id": 1688849860263937, "label": "end", "properties": {}}]
+(2 rows)
+
+-- Each should return 31
+MATCH ()-[e1]->(v)-[e2]->() RETURN count(*);
+ count 
+-------
+ 31
+(1 row)
+
+MATCH ()-[e1*1..1]->(v)-[e2*1..1]->() RETURN count(*);
+ count 
+-------
+ 31
+(1 row)
+
+MATCH (v)-[e1*1..1]->()-[e2*1..1]->() RETURN count(*);
+ count 
+-------
+ 31
+(1 row)
+
+MATCH ()-[e1]->(v)-[e2*1..1]->() RETURN count(*);
+ count 
+-------
+ 31
+(1 row)
+
+MATCH ()-[e1]->()-[e2*1..1]->() RETURN count(*);
+ count 
+-------
+ 31
+(1 row)
+
+MATCH ()-[e1*1..1]->(v)-[e2]->() RETURN count(*);
+ count 
+-------
+ 31
+(1 row)
+
+MATCH ()-[e1*1..1]->()-[e2]->() RETURN count(*);
+ count 
+-------
+ 31
+(1 row)
+
+MATCH (a)-[e1]->(a)-[e2*1..1]->() RETURN count(*);
+ count 
+-------
+ 2
+(1 row)
+
+MATCH (a) MATCH (a)-[e1*1..1]->(v) RETURN count(*);
+ count 
+-------
+ 13
+(1 row)
+
+MATCH (a) MATCH ()-[e1*1..1]->(a) RETURN count(*);
+ count 
+-------
+ 13
+(1 row)
+
+MATCH (a)-[e*1..1]->() RETURN count(*);
+ count 
+-------
+ 13
+(1 row)
+
+-- Should return 1 path
+ MATCH p=()<-[e1*]-(:end)-[e2*]->(:begin) RETURN p $$) AS (result traversal);
+-- Each should return 3
+MATCH (u:begin)-[e*0..1]->(v) RETURN id(u), e, id(v) $$) AS (u gtype, e variable_edge, v gtype);
+ERROR:  syntax error at or near ")"
+LINE 1: MATCH p=()<-[e1*]-(:end)-[e2*]->(:begin) RETURN p $$) AS (re...
+                                                          ^
+MATCH p=(u:begin)-[e*0..1]->(v) RETURN p $$) AS (p traversal);
+-- Each should return 5
+MATCH (u)-[e*0..0]->(v) RETURN id(u), e, id(v) $$) AS (u gtype, e variable_edge, v gtype);
+ERROR:  syntax error at or near ")"
+LINE 1: MATCH p=(u:begin)-[e*0..1]->(v) RETURN p $$) AS (p traversal...
+                                                 ^
+MATCH p=(u)-[e*0..0]->(v) RETURN id(u), p, id(v) $$) AS (u gtype, p traversal, v gtype);
+-- Each should return 13 and will be the same
+MATCH p=()-[*0..0]->()-[]->() RETURN p $$) AS (p traversal);
+ERROR:  syntax error at or near ")"
+LINE 1: MATCH p=(u)-[e*0..0]->(v) RETURN id(u), p, id(v) $$) AS (u g...
+                                                         ^
+MATCH p=()-[]->()-[*0..0]->() RETURN p $$) AS (p traversal);
+
+MATCH (u)-[*]-(v) RETURN count(*);
+MATCH (u)-[*0..1]-(v) RETURN count(*);
+MATCH (u)-[*..1]-(v) RETURN count(*);
+MATCH (u)-[*..5]-(v) RETURN count(*);
+
+MATCH p=(:begin)<-[ve1*]-(:end), (:end)-[ve2*]->(:begin) RETURN ve1 && ve2;
+MATCH p=()<-[ve1:edge*]-(), ()-[ve2:alternate_edge*]->() RETURN ve1 && ve2;
+SELECT * FROM ag_label;
+
+--
+-- Clean up
+--
+DROP GRAPH cypher_vle CASCADE;
+
+--
+-- End
+--
+ERROR:  unterminated dollar quoted string at or near "$$) AS (p traversal);
+
+MATCH (u)-[*]-(v) RETURN count(*);
+MATCH (u)-[*0..1]-(v) RETURN count(*);
+MATCH (u)-[*..1]-(v) RETURN count(*);
+MATCH (u)-[*..5]-(v) RETURN count(*);
+
+MATCH p=(:begin)<-[ve1*]-(:end), (:end)-[ve2*]->(:begin) RETURN ve1 && ve2;
+MATCH p=()<-[ve1:edge*]-(), ()-[ve2:alternate_edge*]->() RETURN ve1 && ve2;
+SELECT * FROM ag_label;
+
+--
+-- Clean up
+--
+DROP GRAPH cypher_vle CASCADE;
+
+--
+-- End
+--"
+LINE 1: MATCH p=()-[]->()-[*0..0]->() RETURN p $$) AS (p traversal);
+                                               ^

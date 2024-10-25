@@ -99,6 +99,7 @@ REGRESS = new_cypher \
           cypher_remove \
           cypher_delete \
           cypher_unwind \
+          cypher_vle \
           order_by \
           cypher_setop
 
