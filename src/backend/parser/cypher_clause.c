@@ -2281,11 +2281,6 @@ static Query *transform_cypher_clause_with_where(cypher_parsestate *cpstate, tra
 }
 
 static Query *transform_cypher_match(cypher_parsestate *cpstate, cypher_clause *clause) {
-    if (clause->next == NULL)
-                ereport(ERROR,
-                    (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-                     errmsg("MATCH cannot be the last clause in a cypher statement")));
-
     return transform_cypher_clause_with_where(cpstate, transform_cypher_match_pattern, clause);
 }
 

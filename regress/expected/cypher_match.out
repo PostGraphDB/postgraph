@@ -380,17 +380,32 @@ MATCH (u)-[e]->(v) RETURN u, e, v ;
 (6 rows)
 
 MATCH (u)-[e]->(v) WHERE EXISTS ((u)-[e]->(v)) RETURN u, e, v;
-ERROR:  MATCH cannot be the last clause in a cypher statement
+                                    u                                     |                                                          e                                                          |                                    v                                     
+--------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------
+ {"id": 2251799813685249, "label": "v3", "properties": {"id": "initial"}} | {"id": 2533274790395906, "start_id": 2251799813685249, "end_id": 2251799813685250, "label": "e3", "properties": {}} | {"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}
+ {"id": 2251799813685251, "label": "v3", "properties": {"id": "end"}}     | {"id": 2533274790395905, "start_id": 2251799813685251, "end_id": 2251799813685250, "label": "e3", "properties": {}} | {"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}
+ {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}  | {"id": 1970324836974594, "start_id": 1688849860263938, "end_id": 1688849860263937, "label": "e2", "properties": {}} | {"id": 1688849860263937, "label": "v2", "properties": {"id": "initial"}}
+ {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}  | {"id": 1970324836974593, "start_id": 1688849860263938, "end_id": 1688849860263939, "label": "e2", "properties": {}} | {"id": 1688849860263939, "label": "v2", "properties": {"id": "end"}}
+ {"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}} | {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}} | {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}
+ {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}  | {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}} | {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}
+(6 rows)
+
 -- Property Constraint in EXISTS
 MATCH (u) WHERE EXISTS((u)-[]->({id: 'middle'})) RETURN u;
-ERROR:  MATCH cannot be the last clause in a cypher statement
+ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 MATCH (u) WHERE EXISTS((u)-[]->({id: 'not a valid id'})) RETURN u;
-ERROR:  MATCH cannot be the last clause in a cypher statement
+ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 MATCH (u) WHERE EXISTS((u)-[]->({id: NULL})) RETURN u;
-ERROR:  MATCH cannot be the last clause in a cypher statement
+ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
 -- Exists checks for a loop. There shouldn't be any.
 MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) RETURN u, e, v;
-ERROR:  MATCH cannot be the last clause in a cypher statement
+ u | e | v 
+---+---+---
+(0 rows)
+
 -- Querying NOT EXISTS syntax
 -- Create a loop
 CREATE (u:loop {id:'initial'})-[:self]->(u);
@@ -399,21 +414,56 @@ CREATE (u:loop {id:'initial'})-[:self]->(u);
 
 -- dump paths
 MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(v)) RETURN u, e, v;
-ERROR:  MATCH cannot be the last clause in a cypher statement
+                                     u                                      |                                                           e                                                           |                                     v                                      
+----------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------
+ {"id": 2814749767106561, "label": "loop", "properties": {"id": "initial"}} | {"id": 3096224743817217, "start_id": 2814749767106561, "end_id": 2814749767106561, "label": "self", "properties": {}} | {"id": 2814749767106561, "label": "loop", "properties": {"id": "initial"}}
+ {"id": 2251799813685249, "label": "v3", "properties": {"id": "initial"}}   | {"id": 2533274790395906, "start_id": 2251799813685249, "end_id": 2251799813685250, "label": "e3", "properties": {}}   | {"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}
+ {"id": 2251799813685251, "label": "v3", "properties": {"id": "end"}}       | {"id": 2533274790395905, "start_id": 2251799813685251, "end_id": 2251799813685250, "label": "e3", "properties": {}}   | {"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}
+ {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}    | {"id": 1970324836974594, "start_id": 1688849860263938, "end_id": 1688849860263937, "label": "e2", "properties": {}}   | {"id": 1688849860263937, "label": "v2", "properties": {"id": "initial"}}
+ {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}    | {"id": 1970324836974593, "start_id": 1688849860263938, "end_id": 1688849860263939, "label": "e2", "properties": {}}   | {"id": 1688849860263939, "label": "v2", "properties": {"id": "end"}}
+ {"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}   | {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}}   | {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}
+ {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}    | {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}}   | {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}
+(7 rows)
+
 -- Exists checks for a loop. There should be one.
 MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) RETURN u, e, v;
-ERROR:  MATCH cannot be the last clause in a cypher statement
+                                     u                                      |                                                           e                                                           |                                     v                                      
+----------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------
+ {"id": 2814749767106561, "label": "loop", "properties": {"id": "initial"}} | {"id": 3096224743817217, "start_id": 2814749767106561, "end_id": 2814749767106561, "label": "self", "properties": {}} | {"id": 2814749767106561, "label": "loop", "properties": {"id": "initial"}}
+(1 row)
+
 -- Exists checks for a loop. There should be one.
 MATCH (u)-[e]->(v) WHERE EXISTS((v)-[e]->(v)) RETURN u, e, v;
-ERROR:  MATCH cannot be the last clause in a cypher statement
+                                     u                                      |                                                           e                                                           |                                     v                                      
+----------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------
+ {"id": 2814749767106561, "label": "loop", "properties": {"id": "initial"}} | {"id": 3096224743817217, "start_id": 2814749767106561, "end_id": 2814749767106561, "label": "self", "properties": {}} | {"id": 2814749767106561, "label": "loop", "properties": {"id": "initial"}}
+(1 row)
+
 -- Exists checks for a loop. There should be none because of edge uniqueness
 -- requirement.
 MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)-[e]->(u)) RETURN u, e, v;
-ERROR:  MATCH cannot be the last clause in a cypher statement
+ u | e | v 
+---+---+---
+(0 rows)
+
 MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(u)) AND EXISTS((v)-[e]->(v)) RETURN u, e, v;
-ERROR:  MATCH cannot be the last clause in a cypher statement
+                                     u                                      |                                                           e                                                           |                                     v                                      
+----------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------
+ {"id": 2814749767106561, "label": "loop", "properties": {"id": "initial"}} | {"id": 3096224743817217, "start_id": 2814749767106561, "end_id": 2814749767106561, "label": "self", "properties": {}} | {"id": 2814749767106561, "label": "loop", "properties": {"id": "initial"}}
+(1 row)
+
 MATCH (u)-[e]->(v) WHERE EXISTS((u)-[e]->(x)) RETURN u, e, v;
-ERROR:  MATCH cannot be the last clause in a cypher statement
+                                     u                                      |                                                           e                                                           |                                     v                                      
+----------------------------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------
+ {"id": 2814749767106561, "label": "loop", "properties": {"id": "initial"}} | {"id": 3096224743817217, "start_id": 2814749767106561, "end_id": 2814749767106561, "label": "self", "properties": {}} | {"id": 2814749767106561, "label": "loop", "properties": {"id": "initial"}}
+ {"id": 2251799813685249, "label": "v3", "properties": {"id": "initial"}}   | {"id": 2533274790395906, "start_id": 2251799813685249, "end_id": 2251799813685250, "label": "e3", "properties": {}}   | {"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}
+ {"id": 2251799813685251, "label": "v3", "properties": {"id": "end"}}       | {"id": 2533274790395905, "start_id": 2251799813685251, "end_id": 2251799813685250, "label": "e3", "properties": {}}   | {"id": 2251799813685250, "label": "v3", "properties": {"id": "middle"}}
+ {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}    | {"id": 1970324836974594, "start_id": 1688849860263938, "end_id": 1688849860263937, "label": "e2", "properties": {}}   | {"id": 1688849860263937, "label": "v2", "properties": {"id": "initial"}}
+ {"id": 1688849860263938, "label": "v2", "properties": {"id": "middle"}}    | {"id": 1970324836974593, "start_id": 1688849860263938, "end_id": 1688849860263939, "label": "e2", "properties": {}}   | {"id": 1688849860263939, "label": "v2", "properties": {"id": "end"}}
+ {"id": 1125899906842625, "label": "v1", "properties": {"id": "initial"}}   | {"id": 1407374883553282, "start_id": 1125899906842625, "end_id": 1125899906842626, "label": "e1", "properties": {}}   | {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}
+ {"id": 1125899906842626, "label": "v1", "properties": {"id": "middle"}}    | {"id": 1407374883553281, "start_id": 1125899906842626, "end_id": 1125899906842627, "label": "e1", "properties": {}}   | {"id": 1125899906842627, "label": "v1", "properties": {"id": "end"}}
+(7 rows)
+
 MATCH (u) WHERE EXISTS(MATCH (u)-[]->({id: 'middle'}) RETURN 1) RETURN u;
 ERROR:  operator does not exist: postgraph.gtype @> postgraph.gtype
 HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
@@ -491,7 +541,7 @@ ERROR:  cannot handle unplanned sub-select
 MATCH (u) RETURN case WHEN EXISTS(MATCH (u)-[]->() RETURN 1) THEN 1 ELSE 2 END;
 ERROR:  cannot handle unplanned sub-select
 MATCH (u) RETURN case WHEN EXISTS((u)-[]->()) THEN 1 ELSE 2 END;
-ERROR:  MATCH cannot be the last clause in a cypher statement
+ERROR:  cannot handle unplanned sub-select
 /*
 EXPLAIN
 SELECT *
@@ -607,10 +657,641 @@ CREATE (u {name: 'orphan'}) CREATE (u1 {name: 'F'})-[u2:e1]->(u3 {name: 'T'}) RE
 
 -- Querying NOT EXISTS syntax
 MATCH (f),(t) WHERE NOT EXISTS((f)-[]->(t)) RETURN f.name, t.name;
-ERROR:  MATCH cannot be the last clause in a cypher statement
+    name    |    name    
+------------+------------
+            | 
+            | 
+            | "orphan"
+            | "F"
+            | "T"
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | "someone"
+            | "somebody"
+            | "anybody"
+            | "nobody"
+            | 
+            | 
+            | "orphan"
+            | "F"
+            | "T"
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | "someone"
+            | "somebody"
+            | "anybody"
+            | "nobody"
+ "orphan"   | 
+ "orphan"   | 
+ "orphan"   | "orphan"
+ "orphan"   | "F"
+ "orphan"   | "T"
+ "orphan"   | 
+ "orphan"   | 
+ "orphan"   | 
+ "orphan"   | 
+ "orphan"   | 
+ "orphan"   | 
+ "orphan"   | 
+ "orphan"   | 
+ "orphan"   | 
+ "orphan"   | 
+ "orphan"   | 
+ "orphan"   | 
+ "orphan"   | 
+ "orphan"   | 
+ "orphan"   | 
+ "orphan"   | 
+ "orphan"   | "someone"
+ "orphan"   | "somebody"
+ "orphan"   | "anybody"
+ "orphan"   | "nobody"
+ "F"        | 
+ "F"        | 
+ "F"        | "orphan"
+ "F"        | "F"
+ "F"        | 
+ "F"        | 
+ "F"        | 
+ "F"        | 
+ "F"        | 
+ "F"        | 
+ "F"        | 
+ "F"        | 
+ "F"        | 
+ "F"        | 
+ "F"        | 
+ "F"        | 
+ "F"        | 
+ "F"        | 
+ "F"        | 
+ "F"        | 
+ "F"        | "someone"
+ "F"        | "somebody"
+ "F"        | "anybody"
+ "F"        | "nobody"
+ "T"        | 
+ "T"        | 
+ "T"        | "orphan"
+ "T"        | "F"
+ "T"        | "T"
+ "T"        | 
+ "T"        | 
+ "T"        | 
+ "T"        | 
+ "T"        | 
+ "T"        | 
+ "T"        | 
+ "T"        | 
+ "T"        | 
+ "T"        | 
+ "T"        | 
+ "T"        | 
+ "T"        | 
+ "T"        | 
+ "T"        | 
+ "T"        | 
+ "T"        | "someone"
+ "T"        | "somebody"
+ "T"        | "anybody"
+ "T"        | "nobody"
+ "someone"  | 
+ "someone"  | 
+ "someone"  | "orphan"
+ "someone"  | "F"
+ "someone"  | "T"
+ "someone"  | 
+ "someone"  | 
+ "someone"  | 
+ "someone"  | 
+ "someone"  | 
+ "someone"  | 
+ "someone"  | 
+ "someone"  | 
+ "someone"  | 
+ "someone"  | 
+ "someone"  | 
+ "someone"  | 
+ "someone"  | 
+ "someone"  | 
+ "someone"  | 
+ "someone"  | 
+ "someone"  | "someone"
+ "someone"  | "anybody"
+ "someone"  | "nobody"
+ "somebody" | 
+ "somebody" | 
+ "somebody" | "orphan"
+ "somebody" | "F"
+ "somebody" | "T"
+ "somebody" | 
+ "somebody" | 
+ "somebody" | 
+ "somebody" | 
+ "somebody" | 
+ "somebody" | 
+ "somebody" | 
+ "somebody" | 
+ "somebody" | 
+ "somebody" | 
+ "somebody" | 
+ "somebody" | 
+ "somebody" | 
+ "somebody" | 
+ "somebody" | 
+ "somebody" | 
+ "somebody" | "someone"
+ "somebody" | "somebody"
+ "somebody" | "anybody"
+ "somebody" | "nobody"
+ "anybody"  | 
+ "anybody"  | 
+ "anybody"  | "orphan"
+ "anybody"  | "F"
+ "anybody"  | "T"
+ "anybody"  | 
+ "anybody"  | 
+ "anybody"  | 
+ "anybody"  | 
+ "anybody"  | 
+ "anybody"  | 
+ "anybody"  | 
+ "anybody"  | 
+ "anybody"  | 
+ "anybody"  | 
+ "anybody"  | 
+ "anybody"  | 
+ "anybody"  | 
+ "anybody"  | 
+ "anybody"  | 
+ "anybody"  | 
+ "anybody"  | "someone"
+ "anybody"  | "somebody"
+ "anybody"  | "anybody"
+ "nobody"   | 
+ "nobody"   | 
+ "nobody"   | "orphan"
+ "nobody"   | "F"
+ "nobody"   | "T"
+ "nobody"   | 
+ "nobody"   | 
+ "nobody"   | 
+ "nobody"   | 
+ "nobody"   | 
+ "nobody"   | 
+ "nobody"   | 
+ "nobody"   | 
+ "nobody"   | 
+ "nobody"   | 
+ "nobody"   | 
+ "nobody"   | 
+ "nobody"   | 
+ "nobody"   | 
+ "nobody"   | 
+ "nobody"   | 
+ "nobody"   | "someone"
+ "nobody"   | "somebody"
+ "nobody"   | "anybody"
+ "nobody"   | "nobody"
+            | 
+            | 
+            | "orphan"
+            | "F"
+            | "T"
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | "someone"
+            | "somebody"
+            | "anybody"
+            | "nobody"
+            | 
+            | 
+            | "orphan"
+            | "F"
+            | "T"
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | "someone"
+            | "somebody"
+            | "anybody"
+            | "nobody"
+            | 
+            | 
+            | "orphan"
+            | "F"
+            | "T"
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | "someone"
+            | "somebody"
+            | "anybody"
+            | "nobody"
+            | 
+            | 
+            | "orphan"
+            | "F"
+            | "T"
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | "someone"
+            | "somebody"
+            | "anybody"
+            | "nobody"
+            | 
+            | 
+            | "orphan"
+            | "F"
+            | "T"
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | "someone"
+            | "somebody"
+            | "anybody"
+            | "nobody"
+            | 
+            | 
+            | "orphan"
+            | "F"
+            | "T"
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | "someone"
+            | "somebody"
+            | "anybody"
+            | "nobody"
+            | 
+            | 
+            | "orphan"
+            | "F"
+            | "T"
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | "someone"
+            | "somebody"
+            | "anybody"
+            | "nobody"
+            | 
+            | 
+            | "orphan"
+            | "F"
+            | "T"
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | "someone"
+            | "somebody"
+            | "anybody"
+            | "nobody"
+            | 
+            | 
+            | "orphan"
+            | "F"
+            | "T"
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | "someone"
+            | "somebody"
+            | "anybody"
+            | "nobody"
+            | 
+            | 
+            | "orphan"
+            | "F"
+            | "T"
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | "someone"
+            | "somebody"
+            | "anybody"
+            | "nobody"
+            | 
+            | 
+            | "orphan"
+            | "F"
+            | "T"
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | "someone"
+            | "somebody"
+            | "anybody"
+            | "nobody"
+            | 
+            | 
+            | "orphan"
+            | "F"
+            | "T"
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | "someone"
+            | "somebody"
+            | "anybody"
+            | "nobody"
+            | 
+            | 
+            | "orphan"
+            | "F"
+            | "T"
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | "someone"
+            | "somebody"
+            | "anybody"
+            | "nobody"
+            | 
+            | 
+            | "orphan"
+            | "F"
+            | "T"
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | "someone"
+            | "somebody"
+            | "anybody"
+            | "nobody"
+            | 
+            | 
+            | "orphan"
+            | "F"
+            | "T"
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | "someone"
+            | "somebody"
+            | "anybody"
+            | "nobody"
+            | 
+            | 
+            | "orphan"
+            | "F"
+            | "T"
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | 
+            | "someone"
+            | "somebody"
+            | "anybody"
+            | "nobody"
+(613 rows)
+
 -- Querying EXISTS syntax
 MATCH (f),(t) WHERE EXISTS((f)-[]->(t)) RETURN f.name, t.name;
-ERROR:  MATCH cannot be the last clause in a cypher statement
+   name    |    name    
+-----------+------------
+ "F"       | "T"
+ "someone" | "somebody"
+ "anybody" | "nobody"
+           | 
+           | 
+           | 
+           | 
+           | 
+           | 
+           | 
+           | 
+           | 
+(12 rows)
+
 --
 -- Constraints and WHERE clause together
 --
@@ -630,7 +1311,13 @@ HINT:  No operator matches the given name and argument types. You might need to 
 --
 -- need a following RETURN clause
 MATCH (n:v);
-ERROR:  MATCH cannot be the last clause in a cypher statement
+                               n                               |    _id_n___     |  _pr_n   
+---------------------------------------------------------------+-----------------+----------
+ {"id": 844424930131969, "label": "v", "properties": {}}       | 844424930131969 | {}
+ {"id": 844424930131970, "label": "v", "properties": {"i": 0}} | 844424930131970 | {"i": 0}
+ {"id": 844424930131971, "label": "v", "properties": {"i": 1}} | 844424930131971 | {"i": 1}
+(3 rows)
+
 --Invalid Variables
 MATCH (a)-[]-()-[]-(a:v1) RETURN a;
 ERROR:  variable a already exists

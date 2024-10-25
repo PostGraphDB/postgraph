@@ -98,6 +98,7 @@ REGRESS = new_cypher \
           cypher_set \
           cypher_remove \
           cypher_delete \
+          cypher_merge \
           cypher_unwind \
           cypher_vle \
           order_by \

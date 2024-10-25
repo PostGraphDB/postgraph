@@ -4263,8 +4263,8 @@ cypher_query_start:
     create 
     | match
     | CYPHER with { $$ = $2; }
-    /*| merge
-    | CYPHER call_stmt { $$ = $2; }*/
+    | merge
+    //| CYPHER call_stmt { $$ = $2; }
     | return
     | unwind
 ;
